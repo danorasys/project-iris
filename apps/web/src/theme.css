@@ -1,0 +1,146 @@
+/* Colors for IRIS. Based on the rings of an eye's iris (see IrisMark.tsx):
+   blues for most things, white for empty space, and one warm amber color
+   for the stuff that needs attention. Keep all colors and fonts in this
+   file, don't add new ones somewhere else. */
+
+:root {
+  /* --- Main colors --- */
+  --color-iris-deep: #1e3a52; /* brand, headings, dark surfaces */
+  --color-iris-medium: #3e6e8e; /* secondary action, links, focus */
+  --color-iris-pale: #dce8ef; /* borders, subtle surfaces */
+  --color-amber: #d97d45; /* the one warm color, used for primary action */
+  --color-amber-dark: #b8632f;
+  --color-gold: #e3a93f; /* extra color ("sun" variant) */
+  --color-mint: #4f8f7b; /* success/celebration ("leaf" variant) */
+  --color-canvas: #f4f7fa; /* background */
+  --color-surface: #ffffff; /* cards and elevated surfaces */
+  --color-ink: #16242e; /* text */
+  /* these have the "-v" at the end just so the name doesn't clash with the
+     alias below that already uses --color-ink-soft / --color-error */
+  --color-ink-soft-v: #4c5c68; /* secondary text */
+  --color-error-v: #c24444; /* form errors, destructive actions */
+  --color-slate: #7b8ca8; /* rules and separators, more discreet than amber */
+
+  /* --- Old names. Most components already use these, so instead of
+     rewriting every CSS module we just point them to the colors above --- */
+  --color-cream: var(--color-canvas);
+  --color-white: var(--color-surface);
+  --color-coral: var(--color-amber);
+  --color-coral-dark: var(--color-amber-dark);
+  --color-teal: var(--color-iris-medium);
+  --color-teal-dark: var(--color-iris-deep);
+  --color-sun: var(--color-gold);
+  --color-leaf: var(--color-mint);
+  --color-ink-soft: var(--color-ink-soft-v);
+  --color-error: var(--color-error-v);
+
+  --color-bg: var(--color-canvas);
+  --color-text: var(--color-ink);
+  --color-primary-action: var(--color-amber);
+  --color-secondary-action: var(--color-iris-medium);
+
+  /* Font idea copied from trii.co: headings and body text use the SAME
+     font, DM Sans, and only the weight changes between them. Spline Sans
+     Mono is just for numbers and codes. */
+  --font-display: "DM Sans", "Segoe UI", sans-serif; /* headings, heavier weight than body */
+  --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif; /* body text */
+  --font-mono: "Spline Sans Mono", ui-monospace, "Cascadia Code", monospace; /* codes, PIN, figures */
+
+  /* Smallest a gaze-selectable (dwell) button can be. We had it at 128px
+     but after testing the gaze engine with real users it wasn't accurate
+     enough, so we raised it to give more margin for tracking error. */
+  --dwell-target-min: 160px;
+  --dwell-duration-default-ms: 900ms;
+
+  --radius-large: 20px;
+  --radius-medium: 12px;
+  --radius-small: 8px;
+  --shadow-card: 0 10px 28px rgba(20, 32, 42, 0.1);
+  --shadow-soft: 0 2px 10px rgba(20, 32, 42, 0.06);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+}
+
+@keyframes iris-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.85;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+button {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: inherit;
+}
+
+a {
+  color: var(--color-iris-medium);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

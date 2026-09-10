@@ -1,0 +1,37 @@
+# Local dev convenience ports. Docker Compose merges this automatically with
+# docker-compose.yml, no extra flags needed. Publishes the services that
+# normally stay on the private network, plus Postgres/Redis/MinIO, so they can
+# be inspected directly without going through the gateway.
+#
+# Do not carry this file to a host outside localhost. docker-compose.yml alone
+# already exposes exactly what should be public.
+
+services:
+  postgres:
+    ports:
+      - "5433:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  minio:
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  identity-service:
+    ports:
+      - "${IDENTITY_PORT}:8000"
+
+  classroom-service:
+    ports:
+      - "${CLASSROOM_PORT}:8000"
+
+  content-service:
+    ports:
+      - "${CONTENT_PORT}:8000"
+
+  notification-service:
+    ports:
+      - "${NOTIFICATION_PORT}:8000"

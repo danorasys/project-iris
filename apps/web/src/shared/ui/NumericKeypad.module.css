@@ -1,0 +1,122 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.containerCompact {
+  gap: var(--space-3);
+}
+
+.display {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.displayCell {
+  width: 44px;
+  height: 56px;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  border: 2px solid var(--color-iris-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--color-iris-deep);
+}
+
+.displayCellCompact {
+  width: 36px;
+  height: 44px;
+  font-size: 1.15rem;
+}
+
+.displayCellFilled {
+  border-color: var(--color-amber);
+  background: #fdf1e9;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, var(--dwell-target-min));
+  gap: var(--space-3);
+}
+
+.gridCompact {
+  grid-template-columns: repeat(3, 64px);
+  gap: var(--space-2);
+}
+
+.key {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dwell-target-min);
+  height: var(--dwell-target-min);
+  border: none;
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-iris-deep);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.key:hover,
+.key.focused {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 14px 30px rgba(20, 32, 42, 0.16);
+}
+
+.keyCompact {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-medium);
+  font-size: 1.25rem;
+}
+
+.key:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.digit {
+  background: var(--color-surface);
+}
+
+.backspace {
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.confirm {
+  background: var(--color-mint);
+  color: var(--color-surface);
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  background: rgba(217, 125, 69, 0.22);
+  transform-origin: left center;
+  transform: scaleX(0);
+  pointer-events: none;
+}
+
+.label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

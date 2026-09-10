@@ -1,0 +1,9 @@
+{
+  "name": "@iris/shared-types",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tipos TypeScript derivados del contrato de API de IRIS, compartidos por apps/web.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}

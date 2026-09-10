@@ -1,0 +1,21 @@
+.image {
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.small {
+  width: 56px;
+  height: 56px;
+}
+
+.medium {
+  width: 88px;
+  height: 88px;
+}
+
+.large {
+  width: 140px;
+  height: 140px;
+}

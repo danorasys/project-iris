@@ -1,0 +1,18 @@
+# Applies only to the "web" build (the only service whose context is the
+# monorepo root, see docker-compose.yml). Keeps that build context lean.
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/node_modules
+**/dist
+**/.vite
+**/coverage
+**/*.db
+.git
+
+# Other local tooling.
+.claude/
+.agents/

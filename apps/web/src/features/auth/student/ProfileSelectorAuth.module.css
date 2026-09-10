@@ -1,0 +1,96 @@
+.page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) var(--space-4);
+  gap: var(--space-5);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  color: var(--color-iris-deep);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.form {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--color-surface);
+  padding: var(--space-5);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-card);
+  text-align: left;
+}
+
+.error {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.primaryButton {
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-amber);
+  color: var(--color-surface);
+  padding: var(--space-3) var(--space-4);
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-amber-dark);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.textLink {
+  border: none;
+  background: none;
+  color: var(--color-iris-deep);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 0.95rem;
+}
+
+.profiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  justify-content: center;
+}
+
+.profileName {
+  font-family: var(--font-display);
+}
+
+.pinWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.activeProfile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}

@@ -1,0 +1,54 @@
+.arrow {
+  position: relative;
+  min-width: var(--dwell-target-min);
+  width: 15vw;
+  max-width: 180px;
+  height: 100%;
+  border: none;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+  flex-shrink: 0;
+}
+
+.left {
+  border-radius: 0 var(--radius-large) var(--radius-large) 0;
+}
+
+.right {
+  border-radius: var(--radius-large) 0 0 var(--radius-large);
+}
+
+.arrow:hover,
+.arrow.focused {
+  background: #fdf1e9;
+}
+
+.arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  background: rgba(217, 125, 69, 0.25);
+  transform-origin: bottom center;
+  transform: scaleY(0);
+  pointer-events: none;
+}
+
+.icon {
+  position: relative;
+  display: flex;
+  width: 3rem;
+  height: 3rem;
+  color: var(--color-amber-dark);
+}

@@ -1,0 +1,397 @@
+/* Two columns: brand panel on the left, form on the right. Same blue
+   gradient as the landing carousel's brand slide, not a new color. */
+
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 45% 55%;
+  background: var(--color-canvas);
+}
+
+/* Brand panel */
+
+.brandPanel {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: radial-gradient(120% 120% at 30% 24%, var(--color-iris-medium) 0%, var(--color-iris-deep) 62%);
+}
+
+.ring {
+  position: absolute;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+.ringLarge {
+  bottom: -150px;
+  right: -130px;
+}
+
+.ringSmall {
+  top: -60px;
+  left: -50px;
+  opacity: 0.12;
+}
+
+.brandContent {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 24rem;
+  text-align: center;
+}
+
+.brandLogo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin-bottom: var(--space-2);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.brandWordmark {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(1.8rem, 3.4vw, 2.4rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-surface);
+  text-shadow: 0 4px 24px rgba(6, 14, 22, 0.35);
+}
+
+.brandRule {
+  display: block;
+  width: 56px;
+  height: 3px;
+  margin: var(--space-3) 0;
+  border-radius: 2px;
+  background: var(--color-surface);
+  opacity: 0.8;
+}
+
+.brandSlogan {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+  line-height: 1.35;
+  color: var(--color-surface);
+}
+
+.brandDescription {
+  margin: var(--space-1) 0 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--color-iris-pale);
+}
+
+/* Form column */
+
+.formColumn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6) var(--space-5);
+}
+
+.back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-iris-medium);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.back svg {
+  width: 16px;
+  height: 16px;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
+.formWrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.minorNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  max-width: 400px;
+  margin: 0 auto;
+  padding: var(--space-2) 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.minorNoticeIcon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--color-iris-medium);
+}
+
+.form {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.accessEyebrow {
+  align-self: flex-start;
+  margin: 0;
+  padding-bottom: var(--space-1);
+  border-bottom: 2px solid var(--color-slate);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-iris-medium);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.9rem, 3.5vw, 2.4rem);
+  color: var(--color-iris-deep);
+}
+
+.subtitle {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  color: var(--color-ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.fieldWithLink {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.forgotLink {
+  align-self: flex-end;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-iris-medium);
+  cursor: pointer;
+}
+
+.forgotLink:hover {
+  text-decoration: underline;
+}
+
+.recoveryNotice {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}
+
+.error {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.primaryButton {
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-amber);
+  color: var(--color-surface);
+  padding: var(--space-3) var(--space-4);
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-amber-dark);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.formFooter {
+  margin: var(--space-2) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-iris-pale);
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--color-ink-soft);
+}
+
+.secondaryLink {
+  border: none;
+  background: none;
+  padding: 0;
+  font-weight: 700;
+  color: var(--color-teal);
+  cursor: pointer;
+}
+
+.secondaryLink:hover {
+  text-decoration: underline;
+}
+
+/* Choose account type */
+
+.registrationOptions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.registrationOption {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  text-align: left;
+  padding: var(--space-4);
+  border: 2px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.registrationOption:hover {
+  border-color: var(--color-iris-medium);
+  transform: translateY(-1px);
+}
+
+.registrationOptionText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.registrationOptionTitle {
+  font-weight: 700;
+  font-size: 1.02rem;
+  color: var(--color-iris-deep);
+}
+
+.registrationOptionNote {
+  font-size: 0.88rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-ink-soft);
+}
+
+.registrationOptionIcon {
+  flex: none;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+}
+
+.backToChoice {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-iris-medium);
+  cursor: pointer;
+}
+
+.backToChoice svg {
+  width: 14px;
+  height: 14px;
+}
+
+.backToChoice:hover {
+  text-decoration: underline;
+}
+
+/* Mobile: brand panel shrinks to a top strip, form stays visible. */
+
+@media (max-width: 768px) {
+  .page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .brandPanel {
+    padding: var(--space-4);
+  }
+
+  .brandContent {
+    flex-direction: row;
+    gap: var(--space-2);
+    max-width: none;
+    text-align: left;
+  }
+
+  .brandLogo {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 0;
+  }
+
+  .brandWordmark {
+    font-size: 1.4rem;
+  }
+
+  .brandRule,
+  .brandSlogan,
+  .brandDescription {
+    display: none;
+  }
+
+  .ring {
+    display: none;
+  }
+
+  .formColumn {
+    padding: var(--space-5) var(--space-4);
+  }
+}
+
+@media (max-width: 400px) {
+  .formColumn {
+    padding: var(--space-4) var(--space-3);
+  }
+}

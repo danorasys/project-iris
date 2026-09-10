@@ -1,0 +1,37 @@
+.page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-iris-medium);
+}
+
+.title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  color: var(--color-iris-deep);
+  margin: 0 0 var(--space-4);
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  justify-content: center;
+}
+
+.icon {
+  width: 44px;
+  height: 44px;
+}

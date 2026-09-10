@@ -1,0 +1,80 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.button {
+  position: relative;
+  min-width: var(--dwell-target-min);
+  min-height: var(--dwell-target-min);
+  padding: var(--space-4) var(--space-5);
+  border: none;
+  border-radius: var(--radius-large);
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+  color: var(--color-white);
+}
+
+.button:hover,
+.button.focused {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.coral {
+  background: var(--color-coral);
+}
+.teal {
+  background: var(--color-teal);
+}
+.sol {
+  background: var(--color-sun);
+  color: var(--color-ink);
+}
+.hoja {
+  background: var(--color-leaf);
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.35);
+  transform-origin: left center;
+  transform: scaleX(0);
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.note {
+  margin: 0;
+  max-width: 220px;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+}

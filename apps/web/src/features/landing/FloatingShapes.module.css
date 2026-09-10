@@ -1,0 +1,109 @@
+.container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.floatingShape {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-shape, rgba(220, 232, 239, 0.45));
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.shapeAccent {
+  border-color: var(--color-shape-accent, rgba(227, 169, 63, 0.6));
+}
+
+.shapeSquare {
+  border-radius: 4px;
+}
+
+.shapeCross {
+  border: none;
+}
+
+.shapeCross::before,
+.shapeCross::after {
+  content: "";
+  position: absolute;
+  background: var(--color-shape, rgba(220, 232, 239, 0.5));
+}
+
+.shapeCross::before {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  transform: translateY(-50%);
+}
+
+.shapeCross::after {
+  top: 0;
+  left: 50%;
+  width: 1.5px;
+  height: 100%;
+  transform: translateX(-50%);
+}
+
+.shapeCross.shapeAccent::before,
+.shapeCross.shapeAccent::after {
+  background: var(--color-shape-accent, rgba(227, 169, 63, 0.65));
+}
+
+.floatA {
+  animation-name: iris-float-a;
+}
+
+.floatB {
+  animation-name: iris-float-b;
+}
+
+.floatC {
+  animation-name: iris-float-c;
+}
+
+.floatD {
+  animation-name: iris-float-d;
+}
+
+@keyframes iris-float-a {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(16px, -26px) rotate(10deg);
+  }
+}
+
+@keyframes iris-float-b {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-22px, 18px) rotate(-8deg);
+  }
+}
+
+@keyframes iris-float-c {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(12px, 16px) scale(1.12);
+  }
+}
+
+@keyframes iris-float-d {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-14px, -18px) rotate(16deg);
+  }
+}

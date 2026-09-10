@@ -1,0 +1,54 @@
+.container {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.logoWrap {
+  display: block;
+  flex-shrink: 0;
+  animation: iris-breathe 4s ease-in-out infinite;
+}
+
+.logoWrap.medium {
+  width: 88px;
+  height: 88px;
+}
+
+.logoWrap.large {
+  width: 140px;
+  height: 140px;
+}
+
+.logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.bubble {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: var(--radius-medium);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-card);
+  max-width: 320px;
+}
+
+.bubble p {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.bubble::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  bottom: 20px;
+  border-width: 8px 10px 8px 0;
+  border-style: solid;
+  border-color: transparent var(--color-surface) transparent transparent;
+}

@@ -1,0 +1,344 @@
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: none;
+  border: none;
+  color: var(--color-iris-deep);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.classroomHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.logoColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.fileInput {
+  display: none;
+}
+
+.textLink {
+  border: none;
+  background: none;
+  color: var(--color-iris-deep);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.textLink:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.editInfoForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 260px;
+  flex: 1;
+}
+
+.editInfoForm .field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.editInfoForm .field label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.editInfoForm .field input,
+.editInfoForm .field textarea {
+  padding: var(--space-2);
+  border-radius: var(--radius-medium);
+  border: 2px solid var(--color-iris-pale);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--color-ink);
+}
+
+.editInfoActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.classroomInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.logo {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-medium);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.logoPlaceholder {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-medium);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.classroomInfo h1 {
+  margin: 0;
+}
+
+.classroomInfo p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-ink-soft);
+}
+
+.entryCode {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  padding: var(--space-2) var(--space-3);
+  box-shadow: var(--shadow-card);
+  font-weight: 700;
+  margin-top: var(--space-2) !important;
+}
+
+.entryCode strong {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  color: var(--color-amber-dark);
+  letter-spacing: 2px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.sectionHeader h2 {
+  margin: 0;
+}
+
+.primaryButton {
+  background: var(--color-amber);
+  color: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-medium);
+  padding: var(--space-2) var(--space-4);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.empty {
+  color: var(--color-ink-soft);
+  background: var(--color-surface);
+  border-radius: var(--radius-medium);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+}
+
+.requestList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.request {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-3) var(--space-4);
+  flex-wrap: wrap;
+}
+
+.requestInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.requestInfo p {
+  margin: 0;
+}
+
+.requestInfo .studentName {
+  font-weight: 700;
+}
+
+.requestInfo .guardianDetail {
+  color: var(--color-ink-soft);
+  font-size: 0.9rem;
+}
+
+.requestActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.accept {
+  background: var(--color-amber);
+  color: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-medium);
+  padding: var(--space-2) var(--space-3);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reject {
+  background: var(--color-surface);
+  border: 2px solid var(--color-error);
+  color: var(--color-error);
+  border-radius: var(--radius-medium);
+  padding: var(--space-2) var(--space-3);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.accept:disabled,
+.reject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-iris-pale);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table th {
+  color: var(--color-ink-soft);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.studentRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.lessonList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lesson {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-3) var(--space-4);
+}
+
+.lessonLink {
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+}
+
+.lessonLink:hover,
+.lessonLink:focus-visible {
+  text-decoration: underline;
+}
+
+.lessonStatus {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+}
+
+.statusDraft {
+  background: rgba(227, 169, 63, 0.18);
+  color: var(--color-amber-dark);
+}
+
+.statusPublished {
+  background: rgba(79, 143, 123, 0.16);
+  color: var(--color-mint);
+}
+
+.error {
+  color: var(--color-error);
+  font-weight: 600;
+}

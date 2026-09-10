@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.db
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Docker / data volumes
+**/pgdata/
+**/miniodata/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Other local tooling, and its lockfile.
+.claude/
+.agents/
+skills-lock.json
+
+# Internal docs (proposal, architecture, diagrams), not for the public
+# GitHub repo.
+docs/
+
+# Internal handoff note, not product documentation, stays local only.
+CONTEXT_HANDOFF.md
+
+# Running log of design/product decisions, internal use, not for the public
+# repo.
+apps/web/PRODUCT.md
+
+# No .md files get pushed to GitHub for now.
+*.md
