@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom
 import { RequireRol } from "./RequireRol";
 import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext";
 import { GazeCursor } from "@/shared/ui/GazeCursor";
+import { LoadingScreen } from "@/shared/ui/LoadingScreen";
 
 // We split the code by role, so the /student/* pages, and the gaze
 // engine that comes with them, only get downloaded if the user goes there.
@@ -29,18 +30,10 @@ const CreateClassroomPage = lazy(() => import("@/features/teacher/pages/CreateCl
 const ClassroomDetailPage = lazy(() => import("@/features/teacher/pages/ClassroomDetailPage"));
 const LessonEditorPage = lazy(() => import("@/features/teacher/pages/LessonEditorPage"));
 
-function LoadingRoute() {
-  return (
-    <div style={{ padding: "var(--space-6)", textAlign: "center" }} role="status">
-      Cargando…
-    </div>
-  );
-}
-
 export function AppRouter() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingRoute />}>
+      <Suspense fallback={<LoadingScreen />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<RoleSelectorPage />} />
