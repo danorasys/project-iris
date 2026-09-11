@@ -3,7 +3,7 @@ import logoIris from "@/assets/landing/logo-iris.png";
 import styles from "./MeetIris.module.css";
 
 const IRIS_MESSAGE =
-  "¡Hola! Soy IRIS, una tecnología educativa accesible mediante seguimiento de la mirada, y quiero acompañar a tu hijo o hija en cada clase, sin mouse, sin teclado, solo con su mirada. Vamos a avanzar a su propio ritmo, celebrando cada logro. Lo que más me importa es que pueda explorar cada pantalla por sí mismo, eligiendo y avanzando solo, para que pueda visionar su propio camino educativo, de la mano de su familia, sus docentes y mía.";
+  "¡Hola! Soy IRIS, una tecnología educativa accesible mediante seguimiento de la mirada, y quiero acompañar a tu hijo o hija en cada clase. Vamos a avanzar a su propio ritmo, celebrando cada logro. Lo que más me importa es que pueda explorar cada pantalla con decisión y orientación educativa, eligiendo y avanzando a su manera, para que pueda visionar su propio camino educativo, de la mano de su familia, sus docentes y mía.";
 
 const TYPING_SPEED_MS = 20;
 
