@@ -30,9 +30,14 @@ export function LandingHeader() {
         ))}
       </nav>
 
-      <Link to="/login/adult" className={styles.loginButton}>
-        Ingresar
-      </Link>
+      <div className={styles.headerActions}>
+        <Link to="/login/adult" className={styles.loginButton}>
+          Ingresar
+        </Link>
+        <Link to="/login/adult" state={{ vista: "elegirRegistro" }} className={styles.registerButton}>
+          Regístrate
+        </Link>
+      </div>
     </header>
   );
 }

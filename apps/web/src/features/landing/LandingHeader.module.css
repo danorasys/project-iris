@@ -87,7 +87,42 @@
   transform: scaleX(1);
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+/* Secondary: existing users signing in. A quiet outline against the
+   header's glass, since it needs less persuasion than joining does. */
 .loginButton {
+  flex: none;
+  border: 1.5px solid rgba(220, 232, 239, 0.5);
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--color-surface);
+  padding: var(--space-2) var(--space-4);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition:
+    background 200ms ease,
+    border-color 200ms ease,
+    transform 200ms ease;
+}
+
+.loginButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(220, 232, 239, 0.85);
+  transform: translateY(-1px);
+}
+
+/* Primary: the conversion goal, solid and closest to the edge of the bar
+   so it's the last, most prominent thing a scanning eye lands on. Same
+   quiet lift as "Ingresar" on hover, just a color change instead of an
+   outline, since this one already stands out by being solid. */
+.registerButton {
   flex: none;
   border: none;
   border-radius: var(--radius-medium);
@@ -97,34 +132,27 @@
   font-weight: 700;
   font-size: 0.95rem;
   text-decoration: none;
-  box-shadow: 0 0 0 rgba(217, 125, 69, 0);
   transition:
     background 200ms ease,
-    transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 320ms ease;
+    transform 200ms ease;
 }
 
-.loginButton:hover {
+.registerButton:hover {
   background: var(--color-amber-dark);
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 10px 22px rgba(217, 125, 69, 0.35);
-}
-
-.loginButton:active {
-  transform: translateY(0) scale(1.01);
-  transition-duration: 90ms;
+  transform: translateY(-1px);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .navLink,
   .navLink::after,
-  .loginButton {
+  .loginButton,
+  .registerButton {
     transition: color 120ms ease;
   }
 
   .navLink:hover,
   .loginButton:hover,
-  .loginButton:active {
+  .registerButton:hover {
     transform: none;
   }
 }
@@ -141,6 +169,11 @@
   }
 
   .wordmark {
+    display: none;
+  }
+
+  /* Only one button fits comfortably; keep the conversion goal. */
+  .loginButton {
     display: none;
   }
 }

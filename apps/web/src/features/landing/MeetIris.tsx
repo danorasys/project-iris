@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import logoIris from "@/assets/landing/logo-iris.png";
 import styles from "./MeetIris.module.css";
 
@@ -58,6 +59,11 @@ export function MeetIris() {
           {!done && <span className={styles.cursor} />}
         </p>
         <p className={styles.srOnly}>{IRIS_MESSAGE}</p>
+        {done && (
+          <Link to="/login/adult" state={{ vista: "elegirRegistro" }} className={styles.cta}>
+            Quiero que acompañe a mi hijo o hija
+          </Link>
+        )}
       </div>
     </div>
   );

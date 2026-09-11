@@ -287,7 +287,7 @@ function JoinSection() {
           una educación más inclusiva, donde cada estudiante aprende a su manera. Construyamos juntos un camino sin
           barreras.
         </p>
-        <Link to="/login/adult" className={styles.heroButton}>
+        <Link to="/login/adult" state={{ vista: "elegirRegistro" }} className={styles.heroButton}>
           Quiero unirme
         </Link>
       </div>
@@ -388,6 +388,12 @@ export default function LandingPage() {
           Por Qué Importa
         </h2>
         <Statistics />
+        <div className={styles.statsCta}>
+          <p className={styles.statsCtaText}>Detrás de cada cifra hay una historia que puede cambiar.</p>
+          <Link to="/login/adult" state={{ vista: "elegirRegistro" }} className={styles.statsCtaButton}>
+            Empieza el cambio hoy
+          </Link>
+        </div>
       </SectionBand>
 
       <SectionBand

@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { RequireRol } from "./RequireRol";
 import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext";
 import { GazeCursor } from "@/shared/ui/GazeCursor";
@@ -30,9 +30,23 @@ const CreateClassroomPage = lazy(() => import("@/features/teacher/pages/CreateCl
 const ClassroomDetailPage = lazy(() => import("@/features/teacher/pages/ClassroomDetailPage"));
 const LessonEditorPage = lazy(() => import("@/features/teacher/pages/LessonEditorPage"));
 
+/** React Router doesn't reset scroll position on navigation the way a full
+ * page load does, so without this, a page opened from deep down another
+ * one (e.g. clicking a footer link) would keep the old scroll position. */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 export function AppRouter() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Suspense fallback={<LoadingScreen />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />

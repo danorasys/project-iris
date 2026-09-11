@@ -339,6 +339,85 @@
   }
 }
 
+/* Closes the statistics with its own call to action. Same shape, shadow
+   and hover mechanics as every other landing button, only in the brand
+   blue instead of amber, so the CTAs feel like one family of buttons in
+   two accent colors, not a mismatched one-off. */
+.statsCta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  text-align: center;
+}
+
+.statsCtaText {
+  margin: 0;
+  max-width: 32rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--color-iris-deep);
+}
+
+.statsCtaButton {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+  padding: var(--space-3) var(--space-5);
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+  box-shadow: var(--shadow-card);
+  transition:
+    background 200ms ease,
+    transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 320ms ease;
+}
+
+.statsCtaButton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+  transform: translateX(-130%);
+  transition: transform 650ms ease;
+}
+
+.statsCtaButton:hover {
+  background: var(--color-iris-deep);
+  transform: translateY(-3px) scale(1.045);
+  box-shadow: 0 14px 30px rgba(62, 110, 142, 0.4);
+}
+
+.statsCtaButton:hover::after {
+  transform: translateX(130%);
+}
+
+.statsCtaButton:active {
+  transform: translateY(-1px) scale(1.01);
+  transition-duration: 90ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statsCtaButton {
+    transition: background 120ms ease;
+  }
+
+  .statsCtaButton::after {
+    display: none;
+  }
+
+  .statsCtaButton:hover,
+  .statsCtaButton:active {
+    transform: none;
+  }
+}
+
 /* Cómo funciona: the diagram is the explanation. No frame or shadow, it
    blends into the page background instead of floating over it. */
 
