@@ -79,12 +79,7 @@ const STATISTICS: Statistic[] = [
         segments: [
           { text: "de personas en el mundo necesitan tecnología de apoyo para vivir con autonomía. Solo el " },
           { text: "3 %", emphasis: true },
-          {
-            text:
-              " de las personas en países de bajos ingresos tiene acceso a la tecnología de apoyo que necesita — frente al ",
-          },
-          { text: "90 %", emphasis: true },
-          { text: " en países de altos ingresos." },
+          { text: " accede a ella en países de bajos ingresos." },
         ],
       },
     ],
@@ -96,7 +91,15 @@ const STATISTICS: Statistic[] = [
   {
     finalValue: 19.1,
     format: (value) => `${value.toFixed(1).replace(".", ",")} millones`,
-    paragraphs: [{ segments: [{ text: "de niños y niñas con discapacidad viven en América Latina y el Caribe." }] }],
+    paragraphs: [
+      {
+        segments: [
+          { text: "de niños, niñas y adolescentes con discapacidad viven en América Latina y el Caribe. De ellos, " },
+          { text: "7 de cada 10", emphasis: true },
+          { text: " en edad escolar no asisten a la escuela." },
+        ],
+      },
+    ],
     source: "UNICEF LAC",
     year: "Publicado en noviembre de 2021",
     logo: logoUnicef1,
@@ -108,10 +111,9 @@ const STATISTICS: Statistic[] = [
     paragraphs: [
       {
         segments: [
-          {
-            text:
-              "en Colombia reportan dificultades para realizar actividades básicas diarias (7,1 % de la población); moverse el cuerpo, caminar o subir y bajar escaleras es una de las categorías más frecuentes.",
-          },
+          { text: "en Colombia reportan dificultades para realizar actividades básicas diarias (" },
+          { text: "7,1 % de la población", emphasis: true },
+          { text: "), como moverse, caminar o subir y bajar escaleras." },
         ],
       },
     ],
@@ -185,10 +187,7 @@ function StatisticRow({ statistic, active }: { statistic: Statistic; active: boo
   const value = useCountUp(statistic.finalValue, active);
   return (
     <div className={styles.statisticRow}>
-      <div className={styles.figureBlock}>
-        <dt className={styles.figure}>{statistic.format(value)}</dt>
-        <img src={statistic.logo} alt={statistic.logoAlt} className={styles.institutionLogo} />
-      </div>
+      <dt className={styles.figure}>{statistic.format(value)}</dt>
       <dd className={styles.figureDescription}>
         {statistic.paragraphs.map((paragraph, index) => (
           <p key={index} className={index === 0 ? styles.figureParagraph : styles.secondaryParagraph}>
@@ -203,10 +202,13 @@ function StatisticRow({ statistic, active }: { statistic: Statistic; active: boo
             )}
           </p>
         ))}
+      </dd>
+      <div className={styles.sourceRow}>
+        <img src={statistic.logo} alt={statistic.logoAlt} className={styles.institutionLogo} />
         <span className={styles.figureSource}>
           {statistic.source} · {statistic.year}
         </span>
-      </dd>
+      </div>
     </div>
   );
 }
