@@ -184,8 +184,8 @@
 }
 
 .forWhoBadge {
-  width: 56px;
-  height: 56px;
+  width: 100px;
+  height: 100px;
   margin-bottom: var(--space-1);
 }
 

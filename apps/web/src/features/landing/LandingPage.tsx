@@ -29,19 +29,19 @@ const ROLES: Role[] = [
     image: badgeStudents,
     title: "Estudiantes",
     text:
-      "Tu propio espacio dentro de IRIS: eliges tu avatar, entras con tu PIN y avanzas por tus lecciones sosteniendo la mirada — sin mouse, sin teclado, a tu propio ritmo.",
+      "Tu propio lugar dentro de IRIS, donde cada mirada sostenida impulsa tu aprendizaje: eliges, avanzas y creces a tu manera, lección tras lección.",
   },
   {
     image: badgeFamily,
     title: "Familia",
     text:
-      "Ustedes abren la puerta: crean la cuenta, calibran la cámara junto al niño o niña y acompañan cada uno de sus primeros pasos — sin perder de vista su progreso.",
+      "El respaldo detrás de cada avance: deciden, supervisan y acompañan de cerca el progreso de su hijo o hija dentro de IRIS.",
   },
   {
     image: badgeTeachers,
     title: "Docentes",
     text:
-      "Su espacio para enseñar: construyen aulas y lecciones, deciden quién entra y siguen el progreso de cada estudiante desde una interfaz convencional de mouse y teclado.",
+      "Quienes diseñan el camino de aprendizaje: dan forma a cada lección y guían el progreso de sus estudiantes dentro de IRIS.",
   },
 ];
 
