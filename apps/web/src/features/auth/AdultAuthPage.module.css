@@ -103,6 +103,7 @@
 }
 
 .back {
+  position: relative;
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
@@ -116,6 +117,9 @@
   color: var(--color-iris-medium);
   text-decoration: none;
   cursor: pointer;
+  transition:
+    color 200ms ease,
+    transform 200ms ease;
 }
 
 .back svg {
@@ -123,8 +127,28 @@
   height: 16px;
 }
 
+/* Underline grows from the center on hover, same as the landing header's
+   nav links, instead of the browser's plain text-decoration. */
+.back::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .back:hover {
-  text-decoration: underline;
+  transform: translateY(-1px);
+}
+
+.back:hover::after {
+  transform: scaleX(1);
 }
 
 .formWrapper {
@@ -194,6 +218,7 @@
 }
 
 .forgotLink {
+  position: relative;
   align-self: flex-end;
   border: none;
   background: none;
@@ -202,10 +227,33 @@
   font-weight: 600;
   color: var(--color-iris-medium);
   cursor: pointer;
+  transition:
+    color 200ms ease,
+    transform 200ms ease;
+}
+
+/* Underline grows from the center on hover, same as the landing header's
+   nav links, instead of the browser's plain text-decoration. */
+.forgotLink::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .forgotLink:hover {
-  text-decoration: underline;
+  transform: translateY(-1px);
+}
+
+.forgotLink:hover::after {
+  transform: scaleX(1);
 }
 
 .recoveryNotice {
@@ -251,16 +299,60 @@
 }
 
 .secondaryLink {
+  position: relative;
   border: none;
   background: none;
   padding: 0;
   font-weight: 700;
   color: var(--color-teal);
   cursor: pointer;
+  transition:
+    color 200ms ease,
+    transform 200ms ease;
+}
+
+/* Underline grows from the center on hover, same as the landing header's
+   nav links, instead of the browser's plain text-decoration. */
+.secondaryLink::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .secondaryLink:hover {
-  text-decoration: underline;
+  transform: translateY(-1px);
+}
+
+.secondaryLink:hover::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back,
+  .forgotLink,
+  .secondaryLink {
+    transition: color 120ms ease;
+  }
+
+  .back::after,
+  .forgotLink::after,
+  .secondaryLink::after {
+    transition: none;
+  }
+
+  .back:hover,
+  .forgotLink:hover,
+  .secondaryLink:hover {
+    transform: none;
+  }
 }
 
 /* Choose account type */

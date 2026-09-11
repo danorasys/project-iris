@@ -72,8 +72,8 @@ export default function AdultAuthPage() {
         </div>
         <p className={styles.minorNotice}>
           <IconInfo className={styles.minorNoticeIcon} />
-          El registro y el ingreso de un menor de edad a IRIS debe estar siempre acompañado por su madre, padre,
-          tutor o adulto responsable.
+          Todo menor de edad debe contar con el acompañamiento de su madre, padre, tutor o adulto responsable al
+          registrarse e ingresar a IRIS.
         </p>
       </div>
     </main>
@@ -162,7 +162,7 @@ function LoginForm({ onGoToRegister }: { onGoToRegister: () => void }) {
           required
           autoComplete="current-password"
         />
-        <button type="button" className={styles.forgotLink} onClick={() => setShowRecoveryNotice(true)}>
+        <button type="button" className={styles.forgotLink} onClick={() => setShowRecoveryNotice((value) => !value)}>
           ¿Olvidaste tu contraseña?
         </button>
         {showRecoveryNotice && (
