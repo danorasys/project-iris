@@ -1,0 +1,37 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  border: 2px solid var(--color-iris-pale);
+  background: var(--color-surface);
+}
+.wrapper:focus-within {
+  border-color: var(--color-iris-medium);
+}
+.wrapperError {
+  border-color: var(--color-error);
+}
+.wrapper :global(.PhoneInputInput) {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--color-ink);
+}
+.wrapper :global(.PhoneInputCountry) {
+  /* Visually separates the (fixed, selector-only) calling code from the
+   * number field, e.g. "🇨🇴 +57 | 315 769 8420". */
+  padding-right: var(--space-2);
+  border-right: 1px solid var(--color-iris-pale);
+}
+.wrapper :global(.PhoneInputCountrySelectArrow) {
+  color: var(--color-ink-soft);
+  opacity: 1;
+}

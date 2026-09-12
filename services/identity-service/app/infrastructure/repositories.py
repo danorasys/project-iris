@@ -27,7 +27,9 @@ def _person_to_entity(m: PersonModel) -> Person:
         created_at=m.created_at,
         document_type_id=m.document_type_id,
         document_number=m.document_number,
-        phone=m.phone,
+        document_issued_at=m.document_issued_at,
+        phone_country_code=m.phone_country_code,
+        phone_number=m.phone_number,
         date_of_birth=m.date_of_birth,
     )
 
@@ -96,7 +98,9 @@ class SqlAlchemyPersonRepository:
                 created_at=person.created_at,
                 document_type_id=person.document_type_id,
                 document_number=person.document_number,
-                phone=person.phone,
+                document_issued_at=person.document_issued_at,
+                phone_country_code=person.phone_country_code,
+                phone_number=person.phone_number,
                 date_of_birth=person.date_of_birth,
             )
         )

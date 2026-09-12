@@ -20,8 +20,18 @@ class Person:
     created_at: datetime
     document_type_id: int
     document_number: str
-    phone: str
+    phone_country_code: str
+    phone_number: str
     date_of_birth: date
+    # Optional: only guardian registration collects it today (see GuardianData);
+    # a teacher's Person row is created without it.
+    document_issued_at: date | None = None
+
+    def phone_e164(self) -> str:
+        """Reassembles the E.164 phone number from its stored parts. Only
+        needed where a single display string is expected, e.g. the
+        guardian_phone shown to a teacher in internal_service.py."""
+        return f"+{self.phone_country_code}{self.phone_number}"
 
 
 @dataclass

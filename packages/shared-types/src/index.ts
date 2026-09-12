@@ -53,10 +53,13 @@ export interface GuardianRegistrationRequest {
     document_type_id: number;
     document_number: string;
     date_of_birth: string; // ISO date
+    document_issued_at: string; // ISO date
     email: string;
-    password: string;
-    phone: string;
+    phone_country_code: string; // Calling code without "+", e.g. "57"
+    phone_number: string; // National significant number, digits only, e.g. "3001234567"
     relationship_type_id: number;
+    password: string;
+    password_confirmation: string;
   };
   student: {
     first_name: string;

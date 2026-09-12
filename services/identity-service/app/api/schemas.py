@@ -5,11 +5,20 @@ from datetime import date
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
 MINIMUM_ADULT_AGE = 18
 PHONE_PATTERN = r"^\d{10}$"
+# The guardian form's country-flag picker (react-phone-number-input) always
+# hands back a calling code (no leading "+", e.g. "57") and a national
+# significant number (digits only, e.g. "3001234567") as two separate
+# values — stored as two columns instead of one combined E.164 string, see
+# app/infrastructure/models.py's PersonModel.
+PHONE_COUNTRY_CODE_PATTERN = r"^[1-9]\d{0,2}$"
+PHONE_NUMBER_PATTERN = r"^\d{4,14}$"
+# E.164 caps a phone number at 15 digits total, country code included.
+E164_MAX_DIGITS = 15
 
 # The 4 predetermined, permanent student avatars (illustrated portraits, not
 # an administrable catalog, see students.avatar's CHECK constraint, migration
@@ -50,20 +59,57 @@ class GuardianDataRequest(BaseModel):
     document_type_id: int = Field(gt=0)
     document_number: str = Field(min_length=1, max_length=30)
     date_of_birth: date
+    document_issued_at: date
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-    phone: str = Field(pattern=PHONE_PATTERN, description="Exactly 10 numeric digits.")
+    phone_country_code: str = Field(
+        pattern=PHONE_COUNTRY_CODE_PATTERN, description="Country calling code without '+', e.g. '57'."
+    )
+    phone_number: str = Field(
+        pattern=PHONE_NUMBER_PATTERN, description="National significant number, digits only, e.g. '3001234567'."
+    )
     relationship_type_id: int = Field(gt=0)
+    password: str = Field(min_length=8, max_length=128)
+    # Confirmation-only: checked against `password` below, never stored or
+    # forwarded past this schema (same pattern as FirstStudentDataRequest's
+    # pin/pin_confirmation).
+    password_confirmation: str = Field(min_length=8, max_length=128)
 
     @field_validator("date_of_birth")
     @classmethod
     def validate_date_of_birth(cls, v: date) -> date:
         return _validar_mayor_de_edad(v)
 
+    @field_validator("document_issued_at")
+    @classmethod
+    def validate_document_issued_at_not_future(cls, v: date) -> date:
+        if v > date.today():
+            raise ValueError("La fecha de expedición del documento no puede ser una fecha futura.")
+        return v
+
     @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:
         return _validar_password(v)
+
+    @model_validator(mode="after")
+    def validate_document_issued_after_birth(self) -> "GuardianDataRequest":
+        if self.document_issued_at < self.date_of_birth:
+            raise ValueError("La fecha de expedición del documento no puede ser anterior a la fecha de nacimiento.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_passwords_match(self) -> "GuardianDataRequest":
+        if self.password != self.password_confirmation:
+            raise ValueError("Las contraseñas no coinciden.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_phone_total_length(self) -> "GuardianDataRequest":
+        if len(self.phone_country_code) + len(self.phone_number) > E164_MAX_DIGITS:
+            raise ValueError(
+                f"El código de país y el número telefónico no pueden sumar más de {E164_MAX_DIGITS} dígitos."
+            )
+        return self
 
 
 class FirstStudentDataRequest(BaseModel):

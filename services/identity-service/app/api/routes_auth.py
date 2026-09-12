@@ -41,10 +41,12 @@ async def register_guardian(payload: GuardianRegistrationRequest, auth: AuthServ
             last_name=payload.guardian.last_name,
             document_type_id=payload.guardian.document_type_id,
             document_number=payload.guardian.document_number,
+            document_issued_at=payload.guardian.document_issued_at,
             date_of_birth=payload.guardian.date_of_birth,
             email=payload.guardian.email,
             password=payload.guardian.password,
-            phone=payload.guardian.phone,
+            phone_country_code=payload.guardian.phone_country_code,
+            phone_number=payload.guardian.phone_number,
             relationship_type_id=payload.guardian.relationship_type_id,
         ),
         FirstStudentData(

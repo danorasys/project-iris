@@ -15,10 +15,13 @@ def _payload_registro_tutor(correo: str = "ana.tutor@example.com") -> dict:
             "last_name": "Pérez",
             "document_type_id": 1,
             "document_number": "1020304050",
+            "document_issued_at": "2015-06-01",
             "date_of_birth": "1990-04-12",
             "email": correo,
             "password": "Clave-Segura-123",
-            "phone": "3001234567",
+            "password_confirmation": "Clave-Segura-123",
+            "phone_country_code": "57",
+            "phone_number": "3001234567",
             "relationship_type_id": 1,
         },
         "student": {
@@ -90,6 +93,63 @@ async def test_registro_tutor_menor_de_edad_es_rechazado(client: AsyncClient) ->
 async def test_registro_tutor_fecha_nacimiento_futura_es_rechazada(client: AsyncClient) -> None:
     payload = _payload_registro_tutor()
     payload["guardian"]["date_of_birth"] = "2099-01-01"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+
+
+async def test_registro_tutor_fecha_expedicion_documento_futura_es_rechazada(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor()
+    payload["guardian"]["document_issued_at"] = "2099-01-01"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+
+
+async def test_registro_tutor_fecha_expedicion_documento_anterior_a_nacimiento_es_rechazada(
+    client: AsyncClient,
+) -> None:
+    payload = _payload_registro_tutor()
+    payload["guardian"]["document_issued_at"] = "1980-01-01"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+
+
+async def test_registro_tutor_codigo_pais_con_simbolo_mas_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor()
+    payload["guardian"]["phone_country_code"] = "+57"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+
+
+async def test_registro_tutor_numero_telefono_con_letras_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor()
+    payload["guardian"]["phone_number"] = "300abc4567"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+
+
+async def test_registro_tutor_telefono_supera_quince_digitos_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor()
+    payload["guardian"]["phone_country_code"] = "999"
+    payload["guardian"]["phone_number"] = "12345678901234"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+
+
+async def test_registro_tutor_contrasenas_no_coincidentes_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor()
+    payload["guardian"]["password_confirmation"] = "Otra-Clave-456"
 
     response = await client.post("/auth/guardians", json=payload)
 
@@ -264,7 +324,7 @@ async def test_internal_obtener_estudiante_con_tutor(client: AsyncClient) -> Non
     body = response.json()
     assert body["student_first_name"] == "Sofía"
     assert body["guardian_first_name"] == "Ana"
-    assert body["guardian_phone"] == "3001234567"
+    assert body["guardian_phone"] == "+573001234567"
 
 
 async def test_internal_obtener_estudiante_inexistente(client: AsyncClient) -> None:
@@ -434,6 +494,7 @@ async def test_registro_tutor_con_contrasena_incompleta_es_rechazado(client: Asy
 async def test_registro_tutor_con_contrasena_completa_es_aceptado(client: AsyncClient) -> None:
     payload = _payload_registro_tutor("password-fuerte@example.com")
     payload["guardian"]["password"] = "Segura123!"
+    payload["guardian"]["password_confirmation"] = "Segura123!"
 
     response = await client.post("/auth/guardians", json=payload)
 

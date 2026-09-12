@@ -49,5 +49,5 @@ class InternalQueryService:
                 guardian_first_name=person.first_name,
                 guardian_last_name=person.last_name,
                 guardian_email=person.email,
-                guardian_phone=person.phone,
+                guardian_phone=person.phone_e164(),
             )

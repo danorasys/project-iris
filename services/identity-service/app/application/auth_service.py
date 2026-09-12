@@ -88,7 +88,9 @@ class AuthService:
                 created_at=now,
                 document_type_id=guardian_data.document_type_id,
                 document_number=guardian_data.document_number,
-                phone=guardian_data.phone,
+                document_issued_at=guardian_data.document_issued_at,
+                phone_country_code=guardian_data.phone_country_code,
+                phone_number=guardian_data.phone_number,
                 date_of_birth=guardian_data.date_of_birth,
             )
             guardian = Guardian(
@@ -150,7 +152,14 @@ class AuthService:
                 created_at=datetime.now(timezone.utc),
                 document_type_id=data.document_type_id,
                 document_number=data.document_number,
-                phone=data.phone,
+                # Teacher registration doesn't have the country-flag selector
+                # guardians do (see TeacherRegistrationRequest.phone): it only
+                # ever collected a 10-digit local number, which was always
+                # implicitly Colombian. Splitting the column doesn't change
+                # that behavior, it just makes the assumption explicit here
+                # instead of leaving it undocumented in a bare digit string.
+                phone_country_code="57",
+                phone_number=data.phone,
                 date_of_birth=data.date_of_birth,
             )
             teacher = Teacher(id=uuid.uuid4(), person_id=person.id, institution=data.institution)

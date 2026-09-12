@@ -49,7 +49,17 @@ class PersonModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     document_type_id: Mapped[int] = mapped_column(Integer, ForeignKey("document_types.id"))
     document_number: Mapped[str] = mapped_column(String(30), unique=True, index=True)
-    phone: Mapped[str] = mapped_column(String(30))
+    # Nullable: teacher registration doesn't collect it yet, only guardians do
+    # (see GuardianDataRequest). A person row created either way must stay valid.
+    document_issued_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Split rather than a single E.164 string: the calling code is always
+    # chosen from a fixed, known list (the country-flag selector on the
+    # frontend), so keeping it apart from the freely-typed national number
+    # avoids ever having to re-parse a formatted string to answer "what
+    # country is this person in" (see internal_service.py's guardian_phone,
+    # which reassembles E.164 for display, the one place that still needs it).
+    phone_country_code: Mapped[str] = mapped_column(String(3))
+    phone_number: Mapped[str] = mapped_column(String(15))
     date_of_birth: Mapped[date] = mapped_column(Date)
 
     guardian: Mapped["GuardianModel | None"] = relationship(back_populates="person", uselist=False, cascade="all, delete-orphan")

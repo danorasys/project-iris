@@ -14,10 +14,12 @@ class GuardianData:
     last_name: str
     document_type_id: int
     document_number: str
+    document_issued_at: date
     date_of_birth: date
     email: str
     password: str
-    phone: str
+    phone_country_code: str
+    phone_number: str
     relationship_type_id: int
 
 
