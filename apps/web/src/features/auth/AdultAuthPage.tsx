@@ -211,7 +211,7 @@ function ChooseAccountType({
           <span className={styles.registrationOptionText}>
             <span className={styles.registrationOptionTitle}>Soy tutor, papá o mamá</span>
             <span className={styles.registrationOptionNote}>
-              Crea la cuenta de tu hijo o hija y acompaña sus primeros pasos en IRIS.
+              Crea la cuenta de tu hijo o hija, acompaña su aprendizaje y sigue de cerca su progreso dentro de IRIS.
             </span>
           </span>
           <img src={iconGuardian} alt="" className={styles.registrationOptionIcon} />
@@ -220,7 +220,7 @@ function ChooseAccountType({
           <span className={styles.registrationOptionText}>
             <span className={styles.registrationOptionTitle}>Soy docente</span>
             <span className={styles.registrationOptionNote}>
-              Crea aulas y lecciones, y sigue el progreso de tus estudiantes.
+              Diseña aulas y lecciones pensadas para el aprendizaje por mirada, y guía el progreso de tus estudiantes.
             </span>
           </span>
           <img src={iconTeacher} alt="" className={styles.registrationOptionIcon} />
