@@ -14,11 +14,12 @@ from app.application.catalog_service import CatalogQueryService
 from app.application.guardian_service import GuardianService
 from app.application.internal_service import InternalQueryService
 from app.application.student_service import StudentService
+from app.application.totp_service import TotpService
 from app.application.user_service import UserQueryService
 from app.config import Settings, get_settings
 from app.domain.exceptions import PermissionDenied, InvalidToken, UnauthorizedInternalAccess
 from app.infrastructure.redis_gateway import RedisRateLimiter, RedisTokenBlacklist
-from app.infrastructure.security import BcryptPasswordHasher, JoseTokenIssuer
+from app.infrastructure.security import BcryptPasswordHasher, FernetTotpEncryptor, JoseTokenIssuer, PyotpTotpProvider
 from app.infrastructure.uow import SqlAlchemyUnitOfWork
 
 _bearer = HTTPBearer(auto_error=False)
@@ -75,9 +76,44 @@ def get_auth_service(
 
 
 def get_guardian_service(
+    settings: Annotated[Settings, Depends(get_settings)],
     hasher: Annotated[BcryptPasswordHasher, Depends(get_password_hasher)],
+    rate_limiter: Annotated[RedisRateLimiter, Depends(get_rate_limiter)],
 ) -> GuardianService:
-    return GuardianService(uow_factory=SqlAlchemyUnitOfWork, password_hasher=hasher)
+    return GuardianService(
+        uow_factory=SqlAlchemyUnitOfWork,
+        password_hasher=hasher,
+        rate_limiter=rate_limiter,
+        rate_limit_confirm_password_max=settings.rate_limit_confirm_password_max,
+        rate_limit_confirm_password_window_sec=settings.rate_limit_confirm_password_window_sec,
+    )
+
+
+@lru_cache
+def get_totp_provider() -> PyotpTotpProvider:
+    return PyotpTotpProvider()
+
+
+@lru_cache
+def get_totp_encryptor() -> FernetTotpEncryptor:
+    return FernetTotpEncryptor(get_settings().totp_encryption_key)
+
+
+def get_totp_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    totp_provider: Annotated[PyotpTotpProvider, Depends(get_totp_provider)],
+    encryptor: Annotated[FernetTotpEncryptor, Depends(get_totp_encryptor)],
+    rate_limiter: Annotated[RedisRateLimiter, Depends(get_rate_limiter)],
+) -> TotpService:
+    return TotpService(
+        uow_factory=SqlAlchemyUnitOfWork,
+        totp_provider=totp_provider,
+        encryptor=encryptor,
+        rate_limiter=rate_limiter,
+        issuer_name=settings.totp_issuer_name,
+        rate_limit_verify_max=settings.rate_limit_totp_max,
+        rate_limit_verify_window_sec=settings.rate_limit_totp_window_sec,
+    )
 
 
 def get_internal_query_service() -> InternalQueryService:

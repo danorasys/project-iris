@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from datetime import date
-from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
@@ -20,11 +19,6 @@ PHONE_NUMBER_PATTERN = r"^\d{4,14}$"
 # E.164 caps a phone number at 15 digits total, country code included.
 E164_MAX_DIGITS = 15
 
-# The 4 predetermined, permanent student avatars (illustrated portraits, not
-# an administrable catalog, see students.avatar's CHECK constraint, migration
-# 0007). A student chooses one of these interactively, by gaze, right after
-# calibrating; registration just sends a default that gets overwritten later.
-AvatarId = Literal["avatar1", "avatar2", "avatar3", "avatar4"]
 
 
 def _validar_mayor_de_edad(v: date) -> date:
@@ -116,10 +110,16 @@ class FirstStudentDataRequest(BaseModel):
     first_name: str = Field(min_length=1, max_length=120)
     last_name: str = Field(min_length=1, max_length=120)
     date_of_birth: date
-    avatar: AvatarId
-    pin: str = Field(min_length=4, max_length=6)
-    pin_confirmation: str = Field(min_length=4, max_length=6)
-    support_condition: str | None = Field(default=None, max_length=500)
+    avatar_id: int = Field(gt=0)
+    pin: str = Field(min_length=4, max_length=4)
+    pin_confirmation: str = Field(min_length=4, max_length=4)
+    support_condition_id: int = Field(gt=0)
+    # Whether this must be set (and whether it's even allowed) depends on
+    # *which* support_condition_id was chosen ("Otra condición (especificar)"
+    # vs. any other catalog entry) — that requires looking the id up in the
+    # database, so it's checked in AuthService/GuardianService, not here.
+    support_condition_other: str | None = Field(default=None, max_length=200)
+    additional_support_need: str | None = Field(default=None, max_length=500)
 
     @field_validator("date_of_birth")
     @classmethod
@@ -151,8 +151,10 @@ class ConsentDataRequest(BaseModel):
     @field_validator("authorizes_support_condition")
     @classmethod
     def must_authorize_support_condition(cls, v: bool) -> bool:
-        # Authorizing the sharing mechanism is required. The actual support_condition
-        # field on FirstStudentDataRequest stays optional and can be empty.
+        # Choosing a support_condition_id on FirstStudentDataRequest is
+        # mandatory (it always includes a "prefiero no especificar" option
+        # for families with nothing to disclose), but authorizing the school
+        # to see whatever was chosen is a separate consent, asked here.
         if not v:
             raise ValueError("La autorización para compartir una condición o necesidad de apoyo es obligatoria.")
         return v
@@ -200,7 +202,7 @@ class LoginRequest(BaseModel):
 
 class StudentProfileLoginRequest(BaseModel):
     student_id: UUID
-    pin: str = Field(min_length=4, max_length=6)
+    pin: str = Field(min_length=4, max_length=4)
 
 
 class RefreshRequest(BaseModel):
@@ -211,9 +213,11 @@ class CreateAdditionalStudentRequest(BaseModel):
     first_name: str = Field(min_length=1, max_length=120)
     last_name: str = Field(min_length=1, max_length=120)
     date_of_birth: date
-    avatar: AvatarId
-    pin: str = Field(min_length=4, max_length=6)
-    support_condition: str | None = Field(default=None, max_length=500)
+    avatar_id: int = Field(gt=0)
+    pin: str = Field(min_length=4, max_length=4)
+    support_condition_id: int = Field(gt=0)
+    support_condition_other: str | None = Field(default=None, max_length=200)
+    additional_support_need: str | None = Field(default=None, max_length=500)
 
     @field_validator("pin")
     @classmethod
@@ -232,9 +236,11 @@ class TokensResponse(BaseModel):
 class StudentProfileResponse(BaseModel):
     id: UUID
     first_name: str
-    avatar: str
+    avatar_id: int
     date_of_birth: date
-    support_condition: str | None = None
+    support_condition_id: int
+    support_condition_other: str | None = None
+    additional_support_need: str | None = None
 
 
 class CurrentUserResponse(BaseModel):
@@ -254,7 +260,7 @@ class TokenClaimsResponse(BaseModel):
 class StudentWithGuardianResponse(BaseModel):
     student_id: UUID
     student_first_name: str
-    student_avatar: str
+    student_avatar_id: int
     guardian_first_name: str
     guardian_last_name: str
     guardian_email: EmailStr
@@ -267,9 +273,90 @@ class DocumentTypeResponse(BaseModel):
 
 
 class UpdateStudentAvatarRequest(BaseModel):
-    avatar: AvatarId
+    avatar_id: int = Field(gt=0)
+
+
+class TotpSetupResponse(BaseModel):
+    qr_code_data_uri: str
+    manual_entry_key: str
+
+
+class TotpVerifyRequest(BaseModel):
+    code: str = Field(pattern=r"^\d{6}$")
 
 
 class RelationshipTypeResponse(BaseModel):
     id: int
     name: str
+
+
+class SupportConditionResponse(BaseModel):
+    id: int
+    name: str
+
+
+class AvatarResponse(BaseModel):
+    id: int
+    name: str
+    image_path: str
+
+
+class GuardianProfileResponse(BaseModel):
+    first_name: str
+    last_name: str
+    date_of_birth: date
+    # These fields are shown as read-only in the guardian's profile screen.
+    # They identify the account itself, so letting someone edit them here
+    # would mean changing the document or login without any extra checks.
+    document_type_id: int
+    document_number: str
+    document_issued_at: date
+    email: EmailStr
+    phone_country_code: str
+    phone_number: str
+    relationship_type_id: int
+
+
+class UpdateGuardianProfileRequest(BaseModel):
+    first_name: str = Field(min_length=1, max_length=120)
+    last_name: str = Field(min_length=1, max_length=120)
+    date_of_birth: date
+    phone_country_code: str = Field(pattern=PHONE_COUNTRY_CODE_PATTERN)
+    phone_number: str = Field(pattern=PHONE_NUMBER_PATTERN)
+    relationship_type_id: int = Field(gt=0)
+
+    @field_validator("date_of_birth")
+    @classmethod
+    def validate_date_of_birth(cls, v: date) -> date:
+        return _validar_mayor_de_edad(v)
+
+    @model_validator(mode="after")
+    def validate_phone_total_length(self) -> "UpdateGuardianProfileRequest":
+        if len(self.phone_country_code) + len(self.phone_number) > E164_MAX_DIGITS:
+            raise ValueError(
+                f"El código de país y el número telefónico no pueden sumar más de {E164_MAX_DIGITS} dígitos."
+            )
+        return self
+
+
+class ChangePasswordRequest(BaseModel):
+    password: str = Field(min_length=8, max_length=128)
+    # Confirmation-only: checked against `password` below, never stored or
+    # forwarded past this schema (same pattern as GuardianDataRequest's
+    # password/password_confirmation at registration).
+    password_confirmation: str = Field(min_length=8, max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        return _validar_password(v)
+
+    @model_validator(mode="after")
+    def validate_passwords_match(self) -> "ChangePasswordRequest":
+        if self.password != self.password_confirmation:
+            raise ValueError("Las contraseñas no coinciden.")
+        return self
+
+
+class ConfirmPasswordRequest(BaseModel):
+    password: str = Field(min_length=1, max_length=128)

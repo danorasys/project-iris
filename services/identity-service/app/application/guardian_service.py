@@ -4,18 +4,35 @@ import uuid
 from typing import Callable
 from uuid import UUID
 
-from app.application.dtos import FirstStudentData
-from app.domain.entities import Student
-from app.domain.exceptions import ResourceNotFound
-from app.domain.ports import PasswordHasher, UnitOfWork
+from app.application.dtos import FirstStudentData, UpdateGuardianProfileData
+from app.domain.entities import SUPPORT_CONDITION_NAME_OTHER, Guardian, Person, Student
+from app.domain.exceptions import (
+    AttemptLimitExceeded,
+    InvalidAvatar,
+    InvalidPasswordConfirmation,
+    InvalidRelationshipType,
+    InvalidSupportCondition,
+    ResourceNotFound,
+)
+from app.domain.ports import PasswordHasher, RateLimiter, UnitOfWork
 
 UowFactory = Callable[[], "UnitOfWork"]
 
 
 class GuardianService:
-    def __init__(self, uow_factory: UowFactory, password_hasher: PasswordHasher) -> None:
+    def __init__(
+        self,
+        uow_factory: UowFactory,
+        password_hasher: PasswordHasher,
+        rate_limiter: RateLimiter,
+        rate_limit_confirm_password_max: int,
+        rate_limit_confirm_password_window_sec: int,
+    ) -> None:
         self._uow_factory = uow_factory
         self._hasher = password_hasher
+        self._rate_limiter = rate_limiter
+        self._rate_limit_confirm_password_max = rate_limit_confirm_password_max
+        self._rate_limit_confirm_password_window_sec = rate_limit_confirm_password_window_sec
 
     async def list_students(self, person_id: UUID) -> list[Student]:
         async with self._uow_factory() as uow:
@@ -24,12 +41,26 @@ class GuardianService:
                 raise ResourceNotFound("No existe un tutor asociado a esta cuenta.")
             return await uow.students.list_by_guardian(guardian.id)
 
+    # Creates an additional student profile under the same guardian, for siblings.
     async def create_student(self, person_id: UUID, data: FirstStudentData) -> Student:
-        """Creates an additional student profile under the same guardian, for siblings."""
         async with self._uow_factory() as uow:
             guardian = await uow.guardians.get_by_person_id(person_id)
             if guardian is None:
                 raise ResourceNotFound("No existe un tutor asociado a esta cuenta.")
+
+            if await uow.avatars.get_by_id(data.avatar_id) is None:
+                raise InvalidAvatar()
+
+            support_condition = await uow.support_conditions.get_by_id(data.support_condition_id)
+            if support_condition is None:
+                raise InvalidSupportCondition()
+            is_other_condition = support_condition.name == SUPPORT_CONDITION_NAME_OTHER
+            if is_other_condition and not (data.support_condition_other or "").strip():
+                raise InvalidSupportCondition("Debes especificar la condición.")
+            if not is_other_condition and data.support_condition_other:
+                raise InvalidSupportCondition(
+                    "Solo puedes especificar una condición cuando eliges 'Otra condición (especificar)'."
+                )
 
             student = Student(
                 id=uuid.uuid4(),
@@ -38,18 +69,96 @@ class GuardianService:
                 last_name=data.last_name,
                 date_of_birth=data.date_of_birth,
                 hash_pin=self._hasher.hash(data.pin),
-                avatar=data.avatar,
-                support_condition=data.support_condition,
+                avatar_id=data.avatar_id,
+                support_condition_id=data.support_condition_id,
+                support_condition_other=data.support_condition_other,
+                additional_support_need=data.additional_support_need,
             )
             await uow.students.add(student)
             await uow.commit()
             return student
 
+    # Checks the guardian's password again before letting them into the
+    # parents' portal. This protects the account if a session was left
+    # open on a shared family computer. The attempt limit is tied to the
+    # account instead of the IP address, so it still works even if the
+    # page is closed and reopened, and even if the whole family shares
+    # one IP address.
+    async def confirm_password(self, person_id: UUID, password: str) -> None:
+        limit_key = f"confirm-password:{person_id}"
+        if not await self._rate_limiter.permitir(
+            limit_key, self._rate_limit_confirm_password_max, self._rate_limit_confirm_password_window_sec
+        ):
+            raise AttemptLimitExceeded()
+
+        async with self._uow_factory() as uow:
+            person = await uow.people.get_by_id(person_id)
+            if person is None:
+                raise ResourceNotFound("No existe una cuenta asociada a este tutor.")
+            if not self._hasher.verificar(password, person.hash_password):
+                raise InvalidPasswordConfirmation()
+
+    async def get_profile(self, person_id: UUID) -> tuple[Person, Guardian]:
+        async with self._uow_factory() as uow:
+            person = await uow.people.get_by_id(person_id)
+            guardian = await uow.guardians.get_by_person_id(person_id)
+            if person is None or guardian is None:
+                raise ResourceNotFound("No existe un tutor asociado a esta cuenta.")
+            return person, guardian
+
+    # Updates only the fields a guardian is allowed to change about
+    # themselves. Document type, document number, email and the document
+    # issue date never pass through here — see the comment on
+    # PersonRepository.update_profile for why those stay untouched.
+    async def update_profile(self, person_id: UUID, data: UpdateGuardianProfileData) -> tuple[Person, Guardian]:
+        async with self._uow_factory() as uow:
+            person = await uow.people.get_by_id(person_id)
+            guardian = await uow.guardians.get_by_person_id(person_id)
+            if person is None or guardian is None:
+                raise ResourceNotFound("No existe un tutor asociado a esta cuenta.")
+
+            if await uow.relationship_types.get_by_id(data.relationship_type_id) is None:
+                raise InvalidRelationshipType()
+
+            await uow.people.update_profile(
+                person_id,
+                first_name=data.first_name,
+                last_name=data.last_name,
+                date_of_birth=data.date_of_birth,
+                phone_country_code=data.phone_country_code,
+                phone_number=data.phone_number,
+            )
+            await uow.guardians.update_relationship_type(guardian.id, data.relationship_type_id)
+            await uow.commit()
+
+            person.first_name = data.first_name
+            person.last_name = data.last_name
+            person.date_of_birth = data.date_of_birth
+            person.phone_country_code = data.phone_country_code
+            person.phone_number = data.phone_number
+            guardian.relationship_type_id = data.relationship_type_id
+            return person, guardian
+
+    # Changes the guardian's password. The strength rules are already
+    # checked in the API schema (the same _validar_password used at
+    # registration), so this method just hashes the new password and
+    # saves it. There's no "current password" field here on purpose: the
+    # guardian already had to re-type their password to get into the
+    # portal in the first place, so asking again here would just repeat
+    # a check they already passed a few minutes earlier.
+    async def change_password(self, person_id: UUID, new_password: str) -> None:
+        async with self._uow_factory() as uow:
+            person = await uow.people.get_by_id(person_id)
+            if person is None:
+                raise ResourceNotFound("No existe una cuenta asociada a este tutor.")
+            await uow.people.update_password(person_id, self._hasher.hash(new_password))
+            await uow.commit()
+
+    # Right to erasure. Deletes the guardian and cascades to their students and
+    # consents in this service's own database. It doesn't reach into
+    # classroom-service or content-service, so enrollments and lessons tied
+    # to the deleted students stay there and need to be cleaned up by hand.
     async def delete_account(self, person_id: UUID) -> None:
-        """Right to erasure. Deletes the guardian and cascades to their students and
-        consents in this service's own database. It doesn't reach into
-        classroom-service or content-service, so enrollments and lessons tied
-        to the deleted students stay there and need to be cleaned up by hand."""
         async with self._uow_factory() as uow:
             guardian = await uow.guardians.get_by_person_id(person_id)
             if guardian is None:

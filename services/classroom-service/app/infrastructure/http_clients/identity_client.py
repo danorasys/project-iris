@@ -1,11 +1,10 @@
-"""HTTP client for identity-service. classroom-service never sees JWT_SECRET,
-it validates who the user is by calling /internal/tokens/validate, always
-with a 2s timeout and an in-process circuit breaker.
-
-Fail-closed: if identity-service doesn't respond (timeout, open circuit or
-5xx), this raises IdentityServiceUnavailable (503). A missing response is never
-treated as authenticated.
-"""
+# HTTP client for identity-service. classroom-service never sees JWT_SECRET,
+# it validates who the user is by calling /internal/tokens/validate, always
+# with a 2s timeout and an in-process circuit breaker.
+#
+# Fail-closed: if identity-service doesn't respond (timeout, open circuit or
+# 5xx), this raises IdentityServiceUnavailable (503). A missing response is
+# never treated as authenticated.
 
 from __future__ import annotations
 
@@ -45,9 +44,9 @@ class IdentityHttpClient:
             headers.update(extra)
         return headers
 
+    # Only a network error or a 5xx counts as a circuit breaker failure.
+    # A 401/404 is a valid response from identity-service, not a failure.
     async def _get(self, path: str, headers: dict[str, str]) -> httpx.Response:
-        """Only a network error or a 5xx counts as a circuit breaker failure.
-        A 401/404 is a valid response from identity-service, not a failure."""
         response = await self._client.get(f"{self._base_url}{path}", headers=headers)
         if response.status_code >= 500:
             response.raise_for_status()
@@ -74,9 +73,9 @@ class IdentityHttpClient:
         self._cache_tokens[access_token] = claims
         return claims
 
+    # No cache here. Used to enrich lists (requests, a classroom's enrolled
+    # students), not for per-request verification.
     async def obtener_estudiante(self, student_id: UUID) -> StudentInfo:
-        """No cache here. Used to enrich lists (requests, a classroom's
-        enrolled students), not for per-request verification."""
         headers = self._headers()
         try:
             response = await self._breaker.llamar(
@@ -94,7 +93,7 @@ class IdentityHttpClient:
         return StudentInfo(
             student_id=UUID(str(body["student_id"])),
             first_name=str(body["student_first_name"]),
-            avatar=str(body["student_avatar"]),
+            avatar_id=int(body["student_avatar_id"]),
             guardian_first_name=str(body["guardian_first_name"]),
             guardian_last_name=str(body["guardian_last_name"]),
             guardian_email=str(body["guardian_email"]),

@@ -1,26 +1,36 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatPhoneNumberIntl, isValidPhoneNumber, parsePhoneNumber } from "react-phone-number-input";
-import type { GuardianRegistrationRequest, StudentProfile } from "@iris/shared-types";
+import type { GuardianRegistrationRequest } from "@iris/shared-types";
 import { useAuth } from "@/shared/auth/AuthContext";
 import { guardarCorreoTutorReciente } from "@/shared/auth/tokenStorage";
-import { apiFetch } from "@/shared/api/httpClient";
 import {
   useRegistrarTutor,
   useDocumentTypes,
   useRelationshipTypes,
-  useLoginPerfilEstudiante,
+  useSupportConditions,
+  useAvatars,
 } from "@/shared/api/hooks/useAuthApi";
 import { getAuthErrorMessage } from "@/features/auth/errors";
-import { STUDENT_AVATARS } from "@/shared/ui/avatarCatalog";
+import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
 import { TextField } from "@/features/auth/ui/TextField";
 import { PhoneField } from "@/features/auth/ui/PhoneField";
 import { PasswordRequirements, passwordMeetsRequirements } from "@/features/auth/ui/PasswordRequirements";
+import {
+  DOCUMENT_TYPE_NAME_PASSPORT,
+  documentNumberFormatError,
+  filterDocumentNumberInput,
+} from "@/features/auth/lib/documentNumber";
 import { SelectField } from "@/features/auth/ui/SelectField";
+import fieldStyles from "@/features/auth/ui/Fields.module.css";
 import { CheckboxField } from "@/features/auth/ui/CheckboxField";
 import { NumericKeypad } from "@/shared/ui/NumericKeypad";
 import { IrisMark } from "@/shared/ui/IrisMark";
-import { IconCheck, IconArrowLeft, IconInfo } from "@/shared/ui/icons";
+import { IconCheck, IconArrowLeft, IconInfo, IconLock } from "@/shared/ui/icons";
+import { LoadingScreen } from "@/shared/ui/LoadingScreen";
+import { RegistrationSuccessScreen } from "./RegistrationSuccessScreen";
+import { TotpSetupScreen } from "./TotpSetupScreen";
+import { TotpSuccessScreen } from "./TotpSuccessScreen";
 import logoIris from "@/assets/landing/logo-iris.png";
 import styles from "./GuardianRegistrationWizard.module.css";
 
@@ -28,9 +38,20 @@ const CONSENT_POLICY_VERSION = "1.0";
 const MIN_GUARDIAN_AGE = 18;
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Matched by name, not a hardcoded id: the catalog lives in identity-service's
+// database (see its migration 0004), so ids are only stable in practice, not
+// guaranteed. Mirrors app/domain/entities.py's SUPPORT_CONDITION_NAME_OTHER.
+const SUPPORT_CONDITION_NAME_OTHER = "Otra condición (especificar)";
 
 type PinSubstep = "ingresar" | "confirmar" | "listo";
 type Phase = "formulario" | "confirmacion";
+
+/** Runs after both confirmations pass and "Crear cuenta" is pressed, on top
+ * of (not instead of) the step/phase state above: "idle" leaves the wizard's
+ * own step 2 confirmation on screen, "cargando" and "exito" each replace the
+ * whole page. Kept separate from `phase` because it isn't a step of the
+ * form — there's nothing to correct or go back to once the account exists. */
+type PostSubmitPhase = "idle" | "cargando" | "exito" | "totp-setup" | "totp-exito";
 
 /** Brings a field into view and focuses it, so a validation error is never
  * just an easy-to-miss inline message below the fold, on submit or when
@@ -111,7 +132,9 @@ function catalogLabel(items: { id: number; name: string }[] | undefined, id: str
  * entered, never the password or the PIN, those never get echoed back,
  * before letting them move on or asking them to fix something. */
 function ConfirmationScreen({
+  stepLabel,
   greeting,
+  avatarPreview,
   items,
   onEdit,
   onConfirm,
@@ -119,7 +142,11 @@ function ConfirmationScreen({
   confirmLabel = "Confirmar",
   error,
 }: {
+  stepLabel: string;
   greeting: ReactNode;
+  /** Shown as a picture, not a summary row: a text label like "Violeta"
+   * means nothing to the family compared to just seeing the avatar itself. */
+  avatarPreview?: ReactNode;
   items: SummaryItem[];
   onEdit: () => void;
   onConfirm: () => void;
@@ -129,12 +156,15 @@ function ConfirmationScreen({
 }) {
   return (
     <div className={styles.confirmation}>
+      <p className={styles.subtitle}>{stepLabel}</p>
       <div className={styles.mascotRow}>
         <img src={logoIris} alt="" className={styles.mascotLogo} />
         <div className={styles.bubble}>
           <p>{greeting}</p>
         </div>
       </div>
+
+      {avatarPreview && <div className={styles.avatarPreviewRow}>{avatarPreview}</div>}
 
       <dl className={styles.summaryList}>
         {items.map((item) => (
@@ -165,28 +195,42 @@ function ConfirmationScreen({
   );
 }
 
-/** This is `/login/student/new`, a 2-step wizard. First the guardian's
+/** This is `/login/guardian/new`, a 2-step wizard. First the guardian's
  * data and consent, then the first student profile with the PIN typed
  * twice. Each step shows a confirmation screen with the IRIS mascot
  * before moving on. Confirming step 2 makes `identity-service` create the
- * person, guardian, student and consent all together. Right after that,
- * this wizard logs into the new student's own session automatically and
- * sends them straight to `/student/setup-conditions`, since calibrating
- * their gaze is the whole point of the account. The manual profile picker
- * (`/login/student/profile`) is still there for anyone coming back later
- * without an active session. */
+ * person, guardian, student and consent all together, and logs the
+ * guardian into their own session. From there the wizard walks them
+ * through setting up 2FA (TotpSetupScreen) before handing off to
+ * `/guardian/portal` — reaching the student's own session from there
+ * always goes through `/login/student/profile`, which asks for the PIN
+ * again rather than reusing the one just typed in this form, the same
+ * check any other guardian login has to pass. */
 export default function GuardianRegistrationWizard() {
   const navigate = useNavigate();
   const { setSession } = useAuth();
   const register = useRegistrarTutor();
-  const loginPerfilEstudiante = useLoginPerfilEstudiante();
   const documentTypesQuery = useDocumentTypes();
   const relationshipTypesQuery = useRelationshipTypes();
+  const supportConditionsQuery = useSupportConditions();
+  const avatarsQuery = useAvatars();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [phase, setPhase] = useState<Phase>("formulario");
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [postSubmitPhase, setPostSubmitPhase] = useState<PostSubmitPhase>("idle");
   const step1FormRef = useRef<HTMLFormElement>(null);
+
+  // This wizard moves between its 4 screens (both forms, both confirmations)
+  // through step/phase state on one single route, never a real navigation,
+  // so AppRouter's own ScrollToTop (which only resets on pathname change)
+  // never fires here. Without this, clicking "Siguiente" from the bottom of
+  // a long form — e.g. after scrolling all the way down to confirm the PIN —
+  // leaves the next screen scrolled to that same position instead of
+  // starting at its own top.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step, phase, postSubmitPhase]);
 
   // Step 1, guardian data.
   const [guardianFirstName, setGuardianFirstName] = useState("");
@@ -234,10 +278,10 @@ export default function GuardianRegistrationWizard() {
   const [studentFirstName, setStudentFirstName] = useState("");
   const [studentLastName, setStudentLastName] = useState("");
   const [birthDate, setBirthDate] = useState("");
-  // The avatar picker was pulled from the UI temporarily, it'll be redesigned
-  // later. Until then every student registers with this default avatar.
-  const avatar = STUDENT_AVATARS[0].id;
-  const [supportCondition, setSupportCondition] = useState("");
+  const [avatarId, setAvatarId] = useState<string>("");
+  const [supportConditionId, setSupportConditionId] = useState("");
+  const [supportConditionOther, setSupportConditionOther] = useState("");
+  const [additionalSupportNeed, setAdditionalSupportNeed] = useState("");
   const [pinSubstep, setPinSubstep] = useState<PinSubstep>("ingresar");
   const [pin, setPin] = useState("");
   const [pinDraft, setPinDraft] = useState("");
@@ -245,9 +289,75 @@ export default function GuardianRegistrationWizard() {
   const [studentFirstNameError, setStudentFirstNameError] = useState<string | null>(null);
   const [studentLastNameError, setStudentLastNameError] = useState<string | null>(null);
   const [studentBirthDateError, setStudentBirthDateError] = useState<string | null>(null);
+  const [supportConditionError, setSupportConditionError] = useState<string | null>(null);
+  const [supportConditionOtherError, setSupportConditionOtherError] = useState<string | null>(null);
+
+  // Default to the first avatar once the catalog loads, same reasoning as
+  // document type/relationship in step 1: unlike the support condition
+  // below, there's no "safe-looking default" concern here, any avatar is a
+  // fine starting point and the tutor can simply pick a different one.
+  useEffect(() => {
+    if (avatarId === "" && avatarsQuery.data && avatarsQuery.data.length > 0) {
+      setAvatarId(String(avatarsQuery.data[0].id));
+    }
+  }, [avatarId, avatarsQuery.data]);
+
+  // Deliberately left unselected (see the placeholder option in the
+  // SelectField below): unlike document type/relationship above, silently
+  // defaulting this to any real entry — even "Prefiero no especificar" —
+  // would let a family move on without ever having actually looked at the
+  // list. It has to be a conscious choice, checked when moving forward
+  // (handleSubmitStep2) — going back never checks it, see handleGoBackToStep1.
+  const selectedSupportCondition = supportConditionsQuery.data?.find(
+    (condition) => String(condition.id) === supportConditionId,
+  );
+  const isOtherConditionSelected = selectedSupportCondition?.name === SUPPORT_CONDITION_NAME_OTHER;
+
+  const selectedDocumentType = documentTypesQuery.data?.find((dt) => String(dt.id) === documentType);
 
   const catalogsReady = documentType !== "" && relationship !== "";
   const catalogsFailed = documentTypesQuery.isError || relationshipTypesQuery.isError;
+  const supportConditionsFailed = supportConditionsQuery.isError;
+  const avatarsFailed = avatarsQuery.isError;
+
+  /** Used by handleSubmitStep2, when moving forward: the support condition
+   * select can't be left on its placeholder, and "Otra condición" can't be
+   * left unspecified. Going backward (handleGoBackToStep1) never runs this —
+   * "Atrás" always has to work, regardless of what's still missing here. */
+  function validateSupportConditionBeforeLeaving(): boolean {
+    if (!selectedSupportCondition) {
+      setSupportConditionError("Selecciona la condición correspondiente a tu hijo o hija.");
+      focusAndScrollToField("estudiante-condicion");
+      return false;
+    }
+    setSupportConditionError(null);
+
+    if (isOtherConditionSelected && !supportConditionOther.trim()) {
+      setSupportConditionOtherError("Especifica la condición de tu hijo o hija.");
+      focusAndScrollToField("estudiante-condicion-otra");
+      return false;
+    }
+    setSupportConditionOtherError(null);
+    return true;
+  }
+
+  function handleGoBackToStep1() {
+    setStep(1);
+    setPhase("formulario");
+  }
+
+  /** Switching away from "Otra condición (especificar)" clears whatever was
+   * typed into its text field, so it can never be submitted alongside a
+   * different, unrelated condition. */
+  function handleSupportConditionChange(nextId: string) {
+    setSupportConditionId(nextId);
+    setSupportConditionError(null);
+    const nextCondition = supportConditionsQuery.data?.find((condition) => String(condition.id) === nextId);
+    if (nextCondition?.name !== SUPPORT_CONDITION_NAME_OTHER) {
+      setSupportConditionOther("");
+      setSupportConditionOtherError(null);
+    }
+  }
 
   /** Validates every field top to bottom and stops at the first one that
    * fails: its error message is set and the field is scrolled into view and
@@ -295,6 +405,12 @@ export default function GuardianRegistrationWizard() {
 
     if (!documentNumber.trim()) {
       setDocumentNumberError("Ingresa tu número de documento.");
+      focusAndScrollToField("tutor-numero-documento");
+      return;
+    }
+    const documentNumberValidationError = documentNumberFormatError(selectedDocumentType?.name, documentNumber);
+    if (documentNumberValidationError) {
+      setDocumentNumberError(documentNumberValidationError);
       focusAndScrollToField("tutor-numero-documento");
       return;
     }
@@ -353,32 +469,16 @@ export default function GuardianRegistrationWizard() {
     }
     setPasswordConfirmationError(null);
 
-    if (!acceptsDataProcessing) {
-      setAcceptsDataProcessingError("El consentimiento de tratamiento de datos es obligatorio.");
-      focusAndScrollToField("tutor-consentimiento");
-      return;
-    }
-    setAcceptsDataProcessingError(null);
-
-    if (!authorizesSupportCondition) {
-      setAuthorizesSupportConditionError(
-        "La autorización para compartir una condición o necesidad de apoyo es obligatoria.",
-      );
-      focusAndScrollToField("tutor-condicion-consentimiento");
-      return;
-    }
-    setAuthorizesSupportConditionError(null);
-
     setStep(2);
   }
 
-  /** Step indicator click. Going back needs no validation, going forward
-   * triggers the step 1 form's real submit instead of duplicating it. */
+  /** Step indicator click. Going back always works, same as the "Atrás"
+   * button. Going forward triggers the step 1 form's real submit instead of
+   * duplicating its validation here. */
   function handleStepIndicatorClick(target: 1 | 2) {
     if (target === step) return;
     if (target === 1) {
-      setStep(1);
-      setPhase("formulario");
+      handleGoBackToStep1();
       return;
     }
     step1FormRef.current?.requestSubmit();
@@ -412,21 +512,21 @@ export default function GuardianRegistrationWizard() {
     e.preventDefault();
 
     if (!studentFirstName.trim()) {
-      setStudentFirstNameError("Escribe el nombre de tu hijo o hija.");
+      setStudentFirstNameError("Ingresa los nombres de tu hijo o hija.");
       focusAndScrollToField("estudiante-nombres");
       return;
     }
     setStudentFirstNameError(null);
 
     if (!studentLastName.trim()) {
-      setStudentLastNameError("Escribe el apellido de tu hijo o hija.");
+      setStudentLastNameError("Ingresa los apellidos de tu hijo o hija.");
       focusAndScrollToField("estudiante-apellidos");
       return;
     }
     setStudentLastNameError(null);
 
     if (!birthDate) {
-      setStudentBirthDateError("Selecciona la fecha de nacimiento.");
+      setStudentBirthDateError("Ingresa la fecha de nacimiento de tu hijo o hija.");
       focusAndScrollToField("estudiante-fecha-nacimiento");
       return;
     }
@@ -437,11 +537,30 @@ export default function GuardianRegistrationWizard() {
     }
     setStudentBirthDateError(null);
 
+    if (!validateSupportConditionBeforeLeaving()) return;
+
+    if (!authorizesSupportCondition) {
+      setAuthorizesSupportConditionError(
+        "La autorización para compartir una condición o necesidad de apoyo es obligatoria.",
+      );
+      focusAndScrollToField("estudiante-condicion-consentimiento");
+      return;
+    }
+    setAuthorizesSupportConditionError(null);
+
+    if (!acceptsDataProcessing) {
+      setAcceptsDataProcessingError("El consentimiento de tratamiento de datos es obligatorio.");
+      focusAndScrollToField("estudiante-consentimiento");
+      return;
+    }
+    setAcceptsDataProcessingError(null);
+
     if (pinSubstep !== "listo") {
       setPinError("Define y confirma el PIN antes de continuar.");
       focusAndScrollToField("estudiante-pin-seccion");
       return;
     }
+
     setSubmitError(null);
     // Both forms are already complete and validated at this point. The
     // confirmation starts by showing the guardian's summary first, not
@@ -452,6 +571,7 @@ export default function GuardianRegistrationWizard() {
 
   async function confirmAndCreateAccount() {
     setSubmitError(null);
+    setPostSubmitPhase("cargando");
 
     // The backend stores the calling code and the national number in two
     // separate columns (see identity-service's people.phone_country_code /
@@ -480,10 +600,12 @@ export default function GuardianRegistrationWizard() {
         first_name: studentFirstName.trim(),
         last_name: studentLastName.trim(),
         date_of_birth: birthDate,
-        avatar,
+        avatar_id: Number(avatarId),
         pin,
         pin_confirmation: pin,
-        ...(supportCondition.trim() ? { support_condition: supportCondition.trim() } : {}),
+        support_condition_id: Number(supportConditionId),
+        ...(isOtherConditionSelected ? { support_condition_other: supportConditionOther.trim() } : {}),
+        ...(additionalSupportNeed.trim() ? { additional_support_need: additionalSupportNeed.trim() } : {}),
       },
       consent: {
         policy_version: CONSENT_POLICY_VERSION,
@@ -496,25 +618,13 @@ export default function GuardianRegistrationWizard() {
       const tokens = await register.mutateAsync(payload);
       setSession(tokens);
       guardarCorreoTutorReciente(email.trim());
-      try {
-        // The account (person, guardian, student and consent) already
-        // exists. Calibration needs a student session, not this guardian
-        // one, so we log straight into the profile we just created. The
-        // PIN was set a moment ago in this same form, no need to make the
-        // family type it again on a separate screen.
-        const students = await apiFetch<StudentProfile[]>("/identity/guardians/me/students");
-        const newStudent = students[0];
-        const studentTokens = await loginPerfilEstudiante.mutateAsync({ student_id: newStudent.id, pin });
-        setSession(studentTokens);
-        navigate("/student/setup-conditions", { replace: true });
-      } catch {
-        // The account is safe either way. If the automatic handoff fails for
-        // any reason, fall back to the manual path instead of showing an
-        // error for something that isn't actually fatal.
-        navigate("/login/student/profile", { replace: true });
-      }
+      // The account (person, guardian, student and consent) already exists
+      // at this point — everything after this is a celebration + hand-off,
+      // never something that can undo the registration that just succeeded.
+      setPostSubmitPhase("exito");
     } catch (err) {
       setSubmitError(getAuthErrorMessage(err));
+      setPostSubmitPhase("idle");
     }
   }
 
@@ -530,12 +640,47 @@ export default function GuardianRegistrationWizard() {
     { label: "Relación con el estudiante", value: catalogLabel(relationshipTypesQuery.data, relationship) },
   ];
 
+  const supportConditionSummaryValue =
+    selectedSupportCondition &&
+    (isOtherConditionSelected
+      ? `${selectedSupportCondition.name}: ${supportConditionOther.trim()}`
+      : selectedSupportCondition.name);
+
   const studentSummary: SummaryItem[] = [
     { label: "Nombres", value: studentFirstName },
     { label: "Apellidos", value: studentLastName },
     { label: "Fecha de nacimiento", value: formatDate(birthDate) },
-    { label: "Condición o necesidad de apoyo", value: supportCondition.trim() || "No indicada" },
+    { label: "Condición", value: supportConditionSummaryValue ?? "" },
+    { label: "Necesidad de apoyo adicional", value: additionalSupportNeed.trim() || "No indicada" },
   ];
+
+  // Replaces the whole wizard once "Crear cuenta" succeeds: there's nothing
+  // left to correct or navigate back to at this point (see
+  // confirmAndCreateAccount above), so this isn't rendered as just another
+  // step/phase branch alongside the form below.
+  if (postSubmitPhase === "cargando") {
+    return <LoadingScreen message="Creando tu cuenta" />;
+  }
+  if (postSubmitPhase === "exito") {
+    return (
+      <RegistrationSuccessScreen
+        guardianFirstName={guardianFirstName.trim()}
+        studentFirstName={studentFirstName.trim()}
+        onContinue={() => setPostSubmitPhase("totp-setup")}
+      />
+    );
+  }
+  if (postSubmitPhase === "totp-setup") {
+    return <TotpSetupScreen onVerified={() => setPostSubmitPhase("totp-exito")} />;
+  }
+  if (postSubmitPhase === "totp-exito") {
+    return (
+      <TotpSuccessScreen
+        guardianFirstName={guardianFirstName.trim()}
+        onContinue={() => navigate("/guardian/portal", { replace: true })}
+      />
+    );
+  }
 
   return (
     <main className={styles.page}>
@@ -588,7 +733,7 @@ export default function GuardianRegistrationWizard() {
             ref={step1FormRef}
             className={styles.form}
             onSubmit={handleSubmitStep1}
-            aria-label="Datos del tutor, paso 1 de 2"
+            aria-label="Datos del tutor, paso 1 de 4"
             noValidate
           >
             <div className={styles.notice}>
@@ -601,9 +746,30 @@ export default function GuardianRegistrationWizard() {
                   este registro, en el paso 2 será necesario inscribir a tu hijo o hija (o al menor
                   a tu cargo), así que ten también sus datos listos para registrarlo dentro de IRIS.
                 </p>
+                <p className={styles.noticeText}>
+                  En total son 4 pasos: los dos primeros para ingresar tus datos y los de tu hijo o
+                  hija, y los dos últimos para confirmar que todos los datos estén correctos antes de
+                  crear la cuenta.
+                </p>
               </div>
             </div>
-            <p className={styles.subtitle}>Paso 1 de 2 — Datos de quien acompaña al estudiante (Tutor, papá o mamá).</p>
+            <div className={styles.notice}>
+              <IconLock className={styles.noticeIcon} />
+              <div>
+                <p className={styles.noticeHeading}>Seguridad de tu cuenta:</p>
+                <p className={styles.noticeText}>
+                  Para proteger el acceso al Portal de Padres, IRIS usa autenticación de dos factores
+                  (2FA) mediante una aplicación autenticadora (basada en TOTP), además de tu
+                  contraseña.
+                </p>
+                <p className={styles.noticeText}>
+                  Te recomendamos tener instalada en tu celular una aplicación como Google
+                  Authenticator, Microsoft Authenticator o Authy, ya que la necesitarás para activar
+                  esta protección.
+                </p>
+              </div>
+            </div>
+            <p className={styles.subtitle}>Paso 1 de 4 — Datos de quien acompaña al estudiante (Tutor, papá o mamá).</p>
             <TextField
               id="tutor-nombres"
               label="Nombres"
@@ -653,6 +819,13 @@ export default function GuardianRegistrationWizard() {
               onChange={(value) => {
                 setDocumentType(value);
                 setDocumentTypeError(null);
+                // Switching type can turn a value that was fine a moment ago
+                // into an invalid one (e.g. a passport's letters, once you
+                // switch to cédula), so it's re-checked against the new
+                // type right away instead of waiting for the next keystroke
+                // or the next attempt to leave this screen.
+                const nextDocumentType = documentTypesQuery.data?.find((dt) => String(dt.id) === value);
+                setDocumentNumberError(documentNumberFormatError(nextDocumentType?.name, documentNumber));
               }}
               options={(documentTypesQuery.data ?? []).map((dt) => ({ value: String(dt.id), label: dt.name }))}
               error={documentTypeError ?? undefined}
@@ -664,12 +837,13 @@ export default function GuardianRegistrationWizard() {
               label="Número de documento"
               value={documentNumber}
               onChange={(value) => {
-                setDocumentNumber(value.replace(/\D/g, ""));
-                setDocumentNumberError(null);
+                const filtered = filterDocumentNumberInput(selectedDocumentType?.name, value);
+                setDocumentNumber(filtered);
+                setDocumentNumberError(documentNumberFormatError(selectedDocumentType?.name, filtered));
               }}
               error={documentNumberError ?? undefined}
               required
-              inputMode="numeric"
+              inputMode={selectedDocumentType?.name === DOCUMENT_TYPE_NAME_PASSPORT ? "text" : "numeric"}
             />
             <TextField
               id="tutor-fecha-expedicion-documento"
@@ -755,47 +929,6 @@ export default function GuardianRegistrationWizard() {
               required
               autoComplete="new-password"
             />
-            <CheckboxField
-              id="tutor-consentimiento"
-              checked={acceptsDataProcessing}
-              onChange={(checked) => {
-                setAcceptsDataProcessing(checked);
-                setAcceptsDataProcessingError(null);
-              }}
-              error={acceptsDataProcessingError ?? undefined}
-              required
-            >
-              Acepto el tratamiento de mis datos y los de mi hijo/a para el uso de IRIS, conforme a nuestro{" "}
-              <a href="/legal-notice" target="_blank" rel="noopener noreferrer">
-                Aviso Legal
-              </a>{" "}
-              y{" "}
-              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">
-                Política de Privacidad
-              </a>
-              .
-            </CheckboxField>
-            <CheckboxField
-              id="tutor-condicion-consentimiento"
-              checked={authorizesSupportCondition}
-              onChange={(checked) => {
-                setAuthorizesSupportCondition(checked);
-                setAuthorizesSupportConditionError(null);
-              }}
-              error={authorizesSupportConditionError ?? undefined}
-              required
-            >
-              Autorizo compartir con el docente una condición o necesidad de apoyo del estudiante, en caso de
-              indicarla, hacerlo es opcional y queda a tu criterio, conforme a nuestro{" "}
-              <a href="/legal-notice" target="_blank" rel="noopener noreferrer">
-                Aviso Legal
-              </a>{" "}
-              y{" "}
-              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">
-                Política de Privacidad
-              </a>
-              .
-            </CheckboxField>
             {catalogsFailed && (
               <p role="alert" className={styles.error}>
                 No pudimos cargar los tipos de documento y relación. Verifica tu conexión e intenta de nuevo.
@@ -812,6 +945,7 @@ export default function GuardianRegistrationWizard() {
 
         {step === 1 && phase === "confirmacion" && (
           <ConfirmationScreen
+            stepLabel="Paso 3 de 4 — Confirmación: Tutor, papá o mamá."
             greeting={
               <>
                 ¡Hola <strong>{guardianFirstName}</strong>! Gracias por tomarte el tiempo de completar tus datos. Significa
@@ -833,10 +967,24 @@ export default function GuardianRegistrationWizard() {
           <form
             className={styles.form}
             onSubmit={handleSubmitStep2}
-            aria-label="Datos del estudiante, paso 2 de 2"
+            aria-label="Datos del estudiante, paso 2 de 4"
             noValidate
           >
-            <p className={styles.subtitle}>Paso 2 de 2 — Perfil de estudiante.</p>
+            <div className={styles.notice}>
+              <IconInfo className={styles.noticeIcon} />
+              <div>
+                <p className={styles.noticeHeading}>Indicaciones de esta sección:</p>
+                <p className={styles.noticeText}>
+                  Aquí vas a completar los datos de tu hijo o hija (o del menor a tu cargo): su
+                  nombre, apellidos y fecha de nacimiento. También vas a seleccionar una condición
+                  de una lista (puedes elegir "Prefiero no especificar" si prefieres no indicarla)
+                  y, si quieres, agregar alguna necesidad de apoyo adicional que sea importante que
+                  el docente conozca. Además, vas a elegir su avatar. Por último, vas a definir el
+                  PIN con el que podrá ingresar a su propio perfil dentro de IRIS.
+                </p>
+              </div>
+            </div>
+            <p className={styles.subtitle}>Paso 2 de 4 — Perfil de estudiante.</p>
             <TextField
               id="estudiante-nombres"
               label="Nombres"
@@ -874,14 +1022,113 @@ export default function GuardianRegistrationWizard() {
               required
               max={TODAY_ISO}
             />
+            <div className={fieldStyles.field}>
+              <label className={fieldStyles.label} id="estudiante-avatar-label">
+                Avatar de tu hijo o hija
+              </label>
+              <div className={styles.avatarGrid} role="radiogroup" aria-labelledby="estudiante-avatar-label">
+                {(avatarsQuery.data ?? []).map((option) => {
+                  const isSelected = avatarId === String(option.id);
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={option.name}
+                      className={`${styles.avatarOption} ${isSelected ? styles.avatarOptionSelected : ""}`}
+                      onClick={() => setAvatarId(String(option.id))}
+                    >
+                      <StudentAvatarImage avatarId={option.id} size="large" label={option.name} />
+                    </button>
+                  );
+                })}
+              </div>
+              {avatarsFailed && (
+                <p role="alert" className={styles.error}>
+                  No pudimos cargar los avatares. Verifica tu conexión e intenta de nuevo.
+                </p>
+              )}
+            </div>
+            <SelectField
+              id="estudiante-condicion"
+              label="Condición"
+              value={supportConditionId}
+              onChange={handleSupportConditionChange}
+              options={[
+                { value: "", label: "-- Selecciona una opción --" },
+                ...(supportConditionsQuery.data ?? []).map((condition) => ({
+                  value: String(condition.id),
+                  label: condition.name,
+                })),
+              ]}
+              error={supportConditionError ?? undefined}
+              required
+              disabled={supportConditionsQuery.isLoading}
+            />
+            {isOtherConditionSelected && (
+              <TextField
+                id="estudiante-condicion-otra"
+                label="Especifica la condición"
+                value={supportConditionOther}
+                onChange={(value) => {
+                  setSupportConditionOther(value);
+                  setSupportConditionOtherError(null);
+                }}
+                error={supportConditionOtherError ?? undefined}
+                required
+                multiline
+              />
+            )}
             <TextField
-              id="estudiante-condicion-apoyo"
-              label="Condición o necesidad de apoyo (opcional)"
-              value={supportCondition}
-              onChange={setSupportCondition}
+              id="estudiante-necesidad-apoyo-adicional"
+              label="Necesidad de apoyo adicional (opcional)"
+              value={additionalSupportNeed}
+              onChange={setAdditionalSupportNeed}
               multiline
               placeholder="Ej.: le cuesta sostener el mouse, necesita más tiempo para las actividades…"
             />
+            <CheckboxField
+              id="estudiante-condicion-consentimiento"
+              checked={authorizesSupportCondition}
+              onChange={(checked) => {
+                setAuthorizesSupportCondition(checked);
+                setAuthorizesSupportConditionError(null);
+              }}
+              error={authorizesSupportConditionError ?? undefined}
+              required
+            >
+              Autorizo compartir con el docente la condición y la necesidad de apoyo adicional de mi
+              hijo o hija indicadas en este registro, conforme a nuestro{" "}
+              <a href="/legal-notice" target="_blank" rel="noopener noreferrer">
+                Aviso Legal
+              </a>{" "}
+              y{" "}
+              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">
+                Política de Privacidad
+              </a>
+              .
+            </CheckboxField>
+            <CheckboxField
+              id="estudiante-consentimiento"
+              checked={acceptsDataProcessing}
+              onChange={(checked) => {
+                setAcceptsDataProcessing(checked);
+                setAcceptsDataProcessingError(null);
+              }}
+              error={acceptsDataProcessingError ?? undefined}
+              required
+            >
+              Acepto el tratamiento de mis datos y los de mi hijo/a para el uso de IRIS, conforme a nuestro{" "}
+              <a href="/legal-notice" target="_blank" rel="noopener noreferrer">
+                Aviso Legal
+              </a>{" "}
+              y{" "}
+              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">
+                Política de Privacidad
+              </a>
+              .
+            </CheckboxField>
 
             <p id="estudiante-pin-seccion" className={styles.notice}>
               <IconInfo className={styles.noticeIcon} />
@@ -900,16 +1147,17 @@ export default function GuardianRegistrationWizard() {
             ) : (
               <div className={styles.pinSection}>
                 <p className={styles.subtitle}>
-                  {pinSubstep === "ingresar" ? "Define un PIN de 4 a 6 dígitos" : "Vuelve a escribir el mismo PIN"}
+                  {pinSubstep === "ingresar" ? "Define un PIN de 4 dígitos" : "Vuelve a escribir el mismo PIN"}
                 </p>
                 <NumericKeypad
                   value={pinDraft}
                   onChange={setPinDraft}
                   onConfirm={pinSubstep === "ingresar" ? handleFirstPinEntry : handleSecondPinEntry}
-                  maxLength={pinSubstep === "confirmar" ? pin.length : 6}
-                  minLength={pinSubstep === "confirmar" ? pin.length : 4}
+                  maxLength={4}
+                  minLength={4}
                   mask
                   compact
+                  numericFont="body"
                 />
               </div>
             )}
@@ -918,16 +1166,14 @@ export default function GuardianRegistrationWizard() {
                 {pinError}
               </p>
             )}
+            {supportConditionsFailed && (
+              <p role="alert" className={styles.error}>
+                No pudimos cargar el catálogo de condiciones. Verifica tu conexión e intenta de nuevo.
+              </p>
+            )}
 
             <div className={styles.buttonRow}>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() => {
-                  setStep(1);
-                  setPhase("formulario");
-                }}
-              >
+              <button type="button" className={styles.secondaryButton} onClick={handleGoBackToStep1}>
                 Atrás
               </button>
               <button type="submit" className={styles.primaryButton}>
@@ -939,11 +1185,15 @@ export default function GuardianRegistrationWizard() {
 
         {step === 2 && phase === "confirmacion" && (
           <ConfirmationScreen
+            stepLabel="Paso 4 de 4 — Confirmación: Tu niño o niña."
             greeting={
               <>
                 Ahora vamos a revisar los datos de tu peque. Esperamos que <strong>{studentFirstName}</strong> esté
                 muy emocionado o emocionada por formar parte de la comunidad IRIS.
               </>
+            }
+            avatarPreview={
+              avatarId && <StudentAvatarImage avatarId={Number(avatarId)} size="large" label="Avatar elegido" />
             }
             items={studentSummary}
             onEdit={() => setPhase("formulario")}

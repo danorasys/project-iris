@@ -1,6 +1,6 @@
-"""Protocol that decouples application/ from the concrete HTTP client (httpx,
-in infrastructure/http_clients/proxy_client.py). The application layer never
-imports httpx directly, only this abstract shape."""
+# Protocol that decouples application/ from the concrete HTTP client (httpx,
+# in infrastructure/http_clients/proxy_client.py). The application layer
+# never imports httpx directly, only this abstract shape.
 
 from __future__ import annotations
 

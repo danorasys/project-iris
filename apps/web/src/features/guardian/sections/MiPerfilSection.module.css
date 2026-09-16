@@ -1,0 +1,211 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 640px;
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-canvas);
+  border-radius: var(--radius-medium);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.noticeIcon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--color-iris-medium);
+}
+
+.noticeHeading {
+  margin: 0 0 var(--space-1) 0;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.noticeText {
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.groupTitle {
+  margin: var(--space-2) 0 0 0;
+  font-size: 1rem;
+  color: var(--color-iris-deep);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fieldLabel {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-ink);
+}
+
+.fieldEditing {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.fieldEditing > :first-child {
+  flex: 1;
+}
+
+.doneEditingButton {
+  border: 2px solid var(--color-iris-medium);
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--color-iris-deep);
+  padding: var(--space-2) var(--space-3);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Editable value: same field footprint as a real input, with a dashed
+   border as a hint that it's interactive without looking like a button.
+   The pencil button is the reliable, discoverable, touch-friendly way in;
+   double-clicking the row itself also works for anyone who reaches for it
+   first. */
+.editableValue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  border: 2px dashed var(--color-iris-pale);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.editableValue:hover {
+  border-color: var(--color-iris-medium);
+}
+
+.editButton {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.editButton:hover {
+  background: var(--color-iris-pale);
+}
+
+/* Read-only value: solid border and a muted background, so it looks
+   visibly different from the editable fields around it and a guardian
+   doesn't try to click into something they can't change. */
+.readOnlyValue {
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  border: 2px solid var(--color-iris-pale);
+  background: var(--color-canvas);
+  color: var(--color-ink-soft);
+}
+
+.confirmBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-canvas);
+  border-radius: var(--radius-medium);
+  margin-top: var(--space-2);
+}
+
+.error {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.primaryButton {
+  align-self: flex-start;
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-amber);
+  color: var(--color-surface);
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-amber-dark);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  border: 2px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--color-ink);
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondaryButton:hover {
+  border-color: var(--color-iris-medium);
+}
+
+.textLink {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  color: var(--color-iris-deep);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 0.95rem;
+}
+
+.passwordForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-canvas);
+  border-radius: var(--radius-medium);
+}
+
+.passwordFormButtons {
+  display: flex;
+  gap: var(--space-3);
+}

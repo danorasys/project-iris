@@ -1,5 +1,5 @@
-"""X-Correlation-Id. Generated if the client didn't send one, and propagated
-explicitly on every request forwarded to domain services."""
+# X-Correlation-Id. Generated if the client didn't send one, and propagated
+# explicitly on every request forwarded to domain services.
 
 from __future__ import annotations
 

@@ -10,6 +10,10 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
 os.environ.setdefault("JWT_SECRET", "test-secret")
 os.environ.setdefault("INTERNAL_SERVICE_KEY", "test-internal-key")
 os.environ.setdefault("WEB_ORIGIN", "http://localhost:5173")
+# A real Fernet key is required here (unlike the plain strings above) because
+# FernetTotpEncryptor actually encrypts/decrypts with it in tests. It's a
+# throwaway key that only ever protects data in the ephemeral test database.
+os.environ.setdefault("TOTP_ENCRYPTION_KEY", "Co9JKiKl3sQwBsQc_tOwxRxRsmQlgfjqdtWeX7_Z6-Y=")
 
 import fakeredis.aioredis
 import pytest
@@ -18,15 +22,21 @@ from httpx import ASGITransport, AsyncClient
 
 from app.api import deps
 from app.infrastructure.db import Base, engine
-from app.infrastructure.models import DocumentTypeModel, RelationshipTypeModel
+from app.infrastructure.models import AvatarModel, DocumentTypeModel, RelationshipTypeModel, SupportConditionModel
 from app.main import app
 
 _TEST_DB_FILE = os.environ["DATABASE_URL"].removeprefix("sqlite+aiosqlite:///")
 
-# Matches the seed order in alembic/versions/0006_document_relationship_catalogs.py,
+# Matches the seed order in alembic/versions/0004_support_conditions_catalog.py,
 # so tests can rely on the same ids (1=Cédula de ciudadanía, 1=Madre, etc).
 DOCUMENT_TYPE_ID_CEDULA = 1
+DOCUMENT_TYPE_ID_PASAPORTE = 3
 RELATIONSHIP_TYPE_ID_MADRE = 1
+SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL = 1
+SUPPORT_CONDITION_ID_OTRA = 14
+SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR = 15
+AVATAR_ID_VIOLETA = 1
+AVATAR_ID_CORAL = 2
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -41,6 +51,35 @@ async def _prepare_database() -> AsyncIterator[None]:
         await conn.execute(
             RelationshipTypeModel.__table__.insert(),
             [{"name": "Madre"}, {"name": "Padre"}, {"name": "Acudiente legal"}, {"name": "Otro"}],
+        )
+        await conn.execute(
+            SupportConditionModel.__table__.insert(),
+            [
+                {"name": "Parálisis cerebral"},
+                {"name": "Lesión medular"},
+                {"name": "Mielomeningocele"},
+                {"name": "Enfermedad de Arnold Chiari"},
+                {"name": "Distrofias musculares / miopatías"},
+                {"name": "Agenesia del cuerpo calloso u otra malformación congénita"},
+                {"name": "Luxación congénita de cadera"},
+                {"name": "Artrogriposis"},
+                {"name": "Parálisis de Guillain-Barré"},
+                {"name": "Poliomielitis anterior aguda"},
+                {"name": "Traumatismo craneoencefálico"},
+                {"name": "Reumatismos infantiles"},
+                {"name": "Mutilaciones o amputaciones"},
+                {"name": "Otra condición (especificar)"},
+                {"name": "Prefiero no especificar"},
+            ],
+        )
+        await conn.execute(
+            AvatarModel.__table__.insert(),
+            [
+                {"name": "Violeta", "image_path": "http://localhost:9000/iris-media/avatars/avatar-1.png"},
+                {"name": "Coral", "image_path": "http://localhost:9000/iris-media/avatars/avatar-2.png"},
+                {"name": "Bosque", "image_path": "http://localhost:9000/iris-media/avatars/avatar-3.png"},
+                {"name": "Cielo", "image_path": "http://localhost:9000/iris-media/avatars/avatar-4.png"},
+            ],
         )
     yield
     async with engine.begin() as conn:

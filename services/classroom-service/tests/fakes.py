@@ -1,6 +1,6 @@
-"""Test doubles for the ports that talk to the outside world (identity-service,
-S3/MinIO), injected via app.dependency_overrides to avoid hitting the real
-network in tests."""
+# Test doubles for the ports that talk to the outside world (identity-service,
+# S3/MinIO), injected via app.dependency_overrides to avoid hitting the real
+# network in tests.
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ class FakeIdentityGateway:
         return token, teacher_id
 
     def registrar_estudiante_token(
-        self, student_id: UUID | None = None, nombres: str = "Sofía", avatar: str = "zorro"
+        self, student_id: UUID | None = None, nombres: str = "Sofía", avatar_id: int = 1
     ) -> tuple[str, UUID]:
         student_id = student_id or uuid4()
         token = f"token-estudiante-{uuid4().hex}"
@@ -31,7 +31,7 @@ class FakeIdentityGateway:
         self._students[student_id] = StudentInfo(
             student_id=student_id,
             first_name=nombres,
-            avatar=avatar,
+            avatar_id=avatar_id,
             guardian_first_name="Ana",
             guardian_last_name="Pérez",
             guardian_email="ana@example.com",

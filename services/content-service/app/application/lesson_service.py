@@ -1,8 +1,7 @@
-"""Lesson and content block use cases.
-
-Pure orchestration. No direct FastAPI, SQLAlchemy, httpx or boto3 imports,
-only the ports defined in app.domain.ports.
-"""
+# Lesson and content block use cases.
+#
+# Pure orchestration. No direct FastAPI, SQLAlchemy, httpx or boto3 imports,
+# only the ports defined in app.domain.ports.
 
 from __future__ import annotations
 
@@ -43,8 +42,8 @@ class LessonService:
         blocks: list[ContentBlockInput],
         correlation_id: str | None,
     ) -> Lesson:
-        """POST /classrooms/{classroom_id}/lessons. Only the teacher who owns the
-        classroom, verified against classroom-service, fail-closed to 403."""
+        # POST /classrooms/{classroom_id}/lessons. Only the teacher who owns the
+        # classroom, verified against classroom-service, fail-closed to 403.
         self._require_role(user, "teacher")
         authorized = await self._classroom.verify_access(classroom_id, user.subject_id, "teacher", correlation_id)
         if not authorized:
@@ -81,9 +80,9 @@ class LessonService:
     async def list_classroom_lessons(
         self, classroom_id: UUID, user: ValidatedUser, correlation_id: str | None
     ) -> list[Lesson]:
-        """GET /classrooms/{classroom_id}/lessons. The owning teacher sees borrador
-        and publicada. An enrolled student (verified and cached ~30s) sees only
-        publicada."""
+        # GET /classrooms/{classroom_id}/lessons. The owning teacher sees borrador
+        # and publicada. An enrolled student (verified and cached ~30s) sees only
+        # publicada.
         if user.role == "teacher":
             async with self._uow_factory() as uow:
                 # If a lesson by this teacher already exists in the classroom, we assume
@@ -104,8 +103,8 @@ class LessonService:
     async def get_lesson(
         self, lesson_id: UUID, user: ValidatedUser, correlation_id: str | None
     ) -> Lesson:
-        """GET /lessons/{lesson_id}. Same authorization rule as the listing,
-        resolved from lesson.classroom_id."""
+        # GET /lessons/{lesson_id}. Same authorization rule as the listing,
+        # resolved from lesson.classroom_id.
         self._require_role(user, "teacher", "student")
         async with self._uow_factory() as uow:
             lesson = await uow.lessons.get_by_id(lesson_id)
@@ -135,8 +134,8 @@ class LessonService:
         status: str | None,
         blocks: list[ContentBlockInput] | None,
     ) -> Lesson:
-        """PATCH /lessons/{lesson_id}. Only the authoring teacher, a local
-        check that doesn't repeat the classroom-service call."""
+        # PATCH /lessons/{lesson_id}. Only the authoring teacher, a local
+        # check that doesn't repeat the classroom-service call.
         self._require_role(user, "teacher")
         async with self._uow_factory() as uow:
             lesson = await uow.lessons.get_by_id(lesson_id)
@@ -174,9 +173,9 @@ class LessonService:
         content_type: str,
         content: bytes,
     ) -> str:
-        """POST /lessons/{lesson_id}/images. Only the authoring teacher, a
-        local check. Uploads to S3/MinIO and returns the URL to insert as a
-        block via PATCH."""
+        # POST /lessons/{lesson_id}/images. Only the authoring teacher, a
+        # local check. Uploads to S3/MinIO and returns the URL to insert as a
+        # block via PATCH.
         self._require_role(user, "teacher")
         if content_type not in _ALLOWED_IMAGE_CONTENT_TYPES:
             raise InvalidFile("El archivo debe ser una imagen.")

@@ -1,6 +1,6 @@
-"""Unit tests for the real HTTP client to identity-service, not the business
-routes, which use FakeIdentityGateway via DI (see tests/fakes.py). Uses
-httpx.MockTransport to avoid hitting the real network."""
+# Unit tests for the real HTTP client to identity-service, not the business
+# routes, which use FakeIdentityGateway via DI (see tests/fakes.py). Uses
+# httpx.MockTransport to avoid hitting the real network.
 
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ async def test_obtener_estudiante_no_usa_cache() -> None:
             json={
                 "student_id": str(student_id),
                 "student_first_name": "Sofía",
-                "student_avatar": "zorro",
+                "student_avatar_id": 1,
                 "guardian_first_name": "Ana",
                 "guardian_last_name": "Pérez",
                 "guardian_email": "ana@example.com",

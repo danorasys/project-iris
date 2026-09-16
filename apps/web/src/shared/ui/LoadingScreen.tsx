@@ -1,11 +1,18 @@
 import logoIris from "@/assets/landing/logo-iris.png";
 import styles from "./LoadingScreen.module.css";
 
+interface LoadingScreenProps {
+  /** Defaults to "Cargando", the original wording used while a lazy route
+   * chunk downloads. Callers with a more specific "why" (e.g. "Creando tu
+   * cuenta") can say so instead, without duplicating this whole component. */
+  message?: string;
+}
+
 /** Full-page loading state, shown while a lazy route chunk downloads (see
  * AppRouter's Suspense fallback). A ring spins around the logo and the
  * dots bounce one after another, so waiting still feels like IRIS instead
  * of a bare "Cargando…" line. */
-export function LoadingScreen() {
+export function LoadingScreen({ message = "Cargando" }: LoadingScreenProps) {
   return (
     <div className={styles.page} role="status">
       <div className={styles.logoWrap}>
@@ -16,7 +23,7 @@ export function LoadingScreen() {
         <img src={logoIris} alt="" className={styles.logo} />
       </div>
       <p className={styles.text}>
-        Cargando
+        {message}
         <span className={styles.dots} aria-hidden="true">
           <span className={styles.dot} />
           <span className={styles.dot} />

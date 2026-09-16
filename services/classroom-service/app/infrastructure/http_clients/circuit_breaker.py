@@ -1,7 +1,7 @@
-"""Simple in-process circuit breaker. Opens after N consecutive failures and
-stays open for segundos_apertura, after which it allows one probe attempt
-(half-open) before deciding whether to close again. No need for an external
-library for ~30 lines."""
+# Simple in-process circuit breaker. Opens after N consecutive failures and
+# stays open for segundos_apertura, after which it allows one probe attempt
+# (half-open) before deciding whether to close again. No need for an external
+# library for ~30 lines.
 
 from __future__ import annotations
 
@@ -12,8 +12,9 @@ from typing import TypeVar
 T = TypeVar("T")
 
 
+# The circuit is open. Fails fast without touching the network.
 class CircuitAbiertoError(Exception):
-    """The circuit is open. Fails fast without touching the network."""
+    pass
 
 
 class CircuitBreaker:

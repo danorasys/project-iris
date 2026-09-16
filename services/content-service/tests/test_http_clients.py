@@ -1,5 +1,5 @@
-"""Unit tests for the outgoing HTTP clients (identity/classroom) against respx,
-without hitting the real network."""
+# Unit tests for the outgoing HTTP clients (identity/classroom) against respx,
+# without hitting the real network.
 
 from __future__ import annotations
 

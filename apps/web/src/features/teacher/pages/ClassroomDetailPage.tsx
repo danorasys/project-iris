@@ -223,7 +223,7 @@ export default function ClassroomDetailPage() {
             {requestsQuery.data.map((request) => (
               <li key={request.enrollment_id} className={styles.request}>
                 <div className={styles.requestInfo}>
-                  <StudentAvatarImage avatarId={request.student_avatar} size="small" />
+                  <StudentAvatarImage avatarId={request.student_avatar_id} size="small" />
                   <div>
                     <p className={styles.studentName}>{request.student_first_name}</p>
                     <p className={styles.guardianDetail}>
@@ -272,7 +272,7 @@ export default function ClassroomDetailPage() {
               {acceptedStudents.map((student) => (
                 <tr key={student.enrollment_id}>
                   <td className={styles.studentRow}>
-                    <StudentAvatarImage avatarId={student.avatar} size="small" />
+                    <StudentAvatarImage avatarId={student.avatar_id} size="small" />
                     {student.first_name}
                   </td>
                 </tr>

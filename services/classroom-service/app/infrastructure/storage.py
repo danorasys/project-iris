@@ -1,8 +1,7 @@
-"""Implements the ObjectStorage port with boto3 against S3/MinIO.
-
-boto3 is synchronous, so it runs in a separate thread via asyncio.to_thread
-to avoid blocking the event loop.
-"""
+# Implements the ObjectStorage port with boto3 against S3/MinIO.
+#
+# boto3 is synchronous, so it runs in a separate thread via asyncio.to_thread
+# to avoid blocking the event loop.
 
 from __future__ import annotations
 

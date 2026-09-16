@@ -16,3 +16,11 @@
 # Other local tooling.
 .claude/
 .agents/
+
+# The real .env is never copied by any current Dockerfile (each one lists
+# its own files by name instead of a broad "COPY . ."), but this stays here
+# as a safety net in case that ever changes. .env.example has no real
+# secrets, so it's fine to keep out of this list.
+.env
+.env.*
+!.env.example

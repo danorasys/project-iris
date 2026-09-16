@@ -66,8 +66,8 @@ async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     identity: Annotated[IdentityClient, Depends(get_identity_client)],
 ) -> CurrentUser:
-    """Same pattern as the other services: notification-service never sees
-    JWT_SECRET, it validates the token by calling identity-service."""
+    # Same pattern as the other services: notification-service never sees
+    # JWT_SECRET, it validates the token by calling identity-service.
     if credentials is None:
         raise InvalidToken("Falta el encabezado de autorización.")
     claims = await identity.validate_token(credentials.credentials, get_correlation_id())

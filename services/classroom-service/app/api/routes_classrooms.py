@@ -76,7 +76,7 @@ async def get_classroom(classroom_id: UUID, user: TeacherDep, classrooms: Classr
                 enrollment_id=s.enrollment_id,
                 student_id=s.student_id,
                 first_name=s.first_name,
-                avatar=s.avatar,
+                avatar_id=s.avatar_id,
                 status=s.status,
             )
             for s in detail.students
@@ -116,7 +116,7 @@ async def list_requests(classroom_id: UUID, user: TeacherDep, classrooms: Classr
             enrollment_id=r.enrollment_id,
             student_id=r.student_id,
             student_first_name=r.student_first_name,
-            student_avatar=r.student_avatar,
+            student_avatar_id=r.student_avatar_id,
             guardian_name=r.guardian_name,
             guardian_contact=r.guardian_contact,
             requested_at=r.requested_at,

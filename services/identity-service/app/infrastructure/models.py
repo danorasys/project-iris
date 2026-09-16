@@ -1,16 +1,15 @@
-"""SQLAlchemy models.
-
-Uuid(as_uuid=True) is SQLAlchemy 2.0's generic type. It maps to the native
-uuid type on PostgreSQL and to CHAR(32) on SQLite, so the schema doesn't need
-to be duplicated between the two dialects.
-"""
+# SQLAlchemy models.
+#
+# Uuid(as_uuid=True) is SQLAlchemy 2.0's generic type. It maps to the native
+# uuid type on PostgreSQL and to CHAR(32) on SQLite, so the schema doesn't need
+# to be duplicated between the two dialects.
 
 from __future__ import annotations
 
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Uuid
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db import Base
@@ -36,6 +35,13 @@ class RelationshipTypeModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
+
+
+class SupportConditionModel(Base):
+    __tablename__ = "support_conditions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(150), unique=True)
 
 
 class PersonModel(Base):
@@ -72,6 +78,9 @@ class GuardianModel(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=_uuid4)
     person_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("people.id", ondelete="CASCADE"), unique=True)
     relationship_type_id: Mapped[int] = mapped_column(Integer, ForeignKey("relationship_types.id"))
+    # Encrypted (Fernet), never plain text — see infrastructure/security.py.
+    totp_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     person: Mapped[PersonModel] = relationship(back_populates="guardian")
     students: Mapped[list["StudentModel"]] = relationship(back_populates="guardian", cascade="all, delete-orphan")
@@ -87,13 +96,16 @@ class TeacherModel(Base):
     person: Mapped[PersonModel] = relationship(back_populates="teacher")
 
 
+class AvatarModel(Base):
+    __tablename__ = "avatars"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    image_path: Mapped[str] = mapped_column(Text)
+
+
 class StudentModel(Base):
     __tablename__ = "students"
-    # The 4 fixed avatar ids, enforced at the database level too, not just by
-    # the AvatarId Literal on the Pydantic schema.
-    __table_args__ = (
-        CheckConstraint("avatar IN ('avatar1', 'avatar2', 'avatar3', 'avatar4')", name="ck_students_avatar_valido"),
-    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=_uuid4)
     # Indexed: list_by_guardian filters students by this column.
@@ -104,8 +116,13 @@ class StudentModel(Base):
     last_name: Mapped[str] = mapped_column(String(120))
     date_of_birth: Mapped[date] = mapped_column(Date)
     hash_pin: Mapped[str] = mapped_column(String(255))
-    avatar: Mapped[str] = mapped_column(String(60))
-    support_condition: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    avatar_id: Mapped[int] = mapped_column(Integer, ForeignKey("avatars.id"))
+    support_condition_id: Mapped[int] = mapped_column(Integer, ForeignKey("support_conditions.id"))
+    # Only set when support_condition_id points to "Otra condición (especificar)".
+    support_condition_other: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Independent of support_condition_id: a free-text note for anything else
+    # the family wants the teacher to know, always optional.
+    additional_support_need: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     guardian: Mapped[GuardianModel] = relationship(back_populates="students")
 
@@ -118,4 +135,5 @@ class ConsentModel(Base):
     student_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"))
     policy_version: Mapped[str] = mapped_column(String(20))
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    accepts_data_processing: Mapped[bool] = mapped_column(Boolean, default=False)
     authorizes_support_condition: Mapped[bool] = mapped_column(Boolean, default=False)

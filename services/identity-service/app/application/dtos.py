@@ -1,6 +1,6 @@
-"""Application-layer input/output DTOs, independent of Pydantic so application/
-doesn't depend on FastAPI. The api/ layer maps its Pydantic schemas to and
-from these dataclasses."""
+# Application-layer input/output DTOs, independent of Pydantic so application/
+# doesn't depend on FastAPI. The api/ layer maps its Pydantic schemas to and
+# from these dataclasses.
 
 from __future__ import annotations
 
@@ -28,15 +28,28 @@ class FirstStudentData:
     first_name: str
     last_name: str
     date_of_birth: date
-    avatar: str
+    avatar_id: int
     pin: str
-    support_condition: str | None = None
+    support_condition_id: int
+    support_condition_other: str | None = None
+    additional_support_need: str | None = None
 
 
 @dataclass
 class ConsentData:
     policy_version: str
+    accepts_data_processing: bool
     authorizes_support_condition: bool
+
+
+@dataclass
+class UpdateGuardianProfileData:
+    first_name: str
+    last_name: str
+    date_of_birth: date
+    phone_country_code: str
+    phone_number: str
+    relationship_type_id: int
 
 
 @dataclass
@@ -57,3 +70,9 @@ class IssuedTokens:
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+
+@dataclass
+class TotpSetupResult:
+    qr_code_data_uri: str
+    manual_entry_key: str

@@ -1,5 +1,5 @@
-"""Test doubles for content-service's external dependencies. Never hit the
-real network in a test."""
+# Test doubles for content-service's external dependencies. Never hit the
+# real network in a test.
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken
 
 
 class FakeIdentityClient:
-    """Implements the IdentityClient port without any network calls."""
+    # Implements the IdentityClient port without any network calls.
 
     def __init__(self) -> None:
         self._users: dict[str, ValidatedUser] = {}
@@ -29,8 +29,8 @@ class FakeIdentityClient:
 
 
 class FakeClassroomClient:
-    """Implements the ClassroomClient port. Never raises, fails closed to False
-    when available is False, same as the real HttpClassroomClient."""
+    # Implements the ClassroomClient port. Never raises, fails closed to False
+    # when available is False, same as the real HttpClassroomClient.
 
     def __init__(self) -> None:
         self._authorizations: dict[tuple[UUID, UUID, str], bool] = {}
@@ -46,7 +46,7 @@ class FakeClassroomClient:
 
 
 class FakeObjectStorage:
-    """Implements the ObjectStorage port in memory. There's no MinIO in this setup."""
+    # Implements the ObjectStorage port in memory. There's no MinIO in this setup.
 
     def __init__(self) -> None:
         self.files: dict[str, bytes] = {}

@@ -1,12 +1,12 @@
-"""Client for classroom-service's /internal/classrooms/{classroom_id}/access.
-
-Unlike identity_client, this is an AUTHORIZATION check, not authentication.
-If classroom-service doesn't respond, this fails closed to "denied" and
-never raises an availability exception upward. Never fail open on an
-authorization check.
-
-The URL path, its query params ("subject_id", "role") and the JSON response
-key ("authorized") are classroom-service's own wire contract."""
+# Client for classroom-service's /internal/classrooms/{classroom_id}/access.
+#
+# Unlike identity_client, this is an AUTHORIZATION check, not authentication.
+# If classroom-service doesn't respond, this fails closed to "denied" and
+# never raises an availability exception upward. Never fail open on an
+# authorization check.
+#
+# The URL path, its query params ("subject_id", "role") and the JSON response
+# key ("authorized") are classroom-service's own wire contract.
 
 from __future__ import annotations
 

@@ -226,6 +226,11 @@
   border-color: transparent var(--color-canvas) transparent transparent;
 }
 
+.avatarPreviewRow {
+  display: flex;
+  justify-content: center;
+}
+
 .summaryList {
   margin: 0;
   display: flex;
@@ -396,6 +401,96 @@
   margin: 0;
 }
 
+.noticeText + .noticeText {
+  margin-top: var(--space-2);
+}
+
+.notice + .notice {
+  margin-top: var(--space-2);
+}
+
+.totpSteps {
+  margin: var(--space-4) 0 0 0;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: totp-step;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* display: flex on the <ol> above suppresses the native ::marker, so the
+   step number is rendered explicitly instead — as a "Paso N" label, which
+   also reads better than a bare "1." for a non-technical audience. The
+   list stays a real <ol>/<li> for screen readers, which announce "item N
+   of 7" regardless of this visual marker being hidden. */
+.totpSteps li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  counter-increment: totp-step;
+}
+
+.totpSteps li::before {
+  content: "Paso " counter(totp-step);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-iris-medium);
+}
+
+.totpSteps li p {
+  margin: 0;
+}
+
+.totpStepImage {
+  align-self: center;
+  max-width: 220px;
+  width: 100%;
+  border-radius: var(--radius-medium);
+  border: 1px solid var(--color-iris-pale);
+  box-shadow: var(--shadow-soft);
+}
+
+.totpQrWrap {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-3) 0;
+}
+
+.totpQr {
+  width: 220px;
+  height: 220px;
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  padding: var(--space-2);
+  background: var(--color-surface);
+}
+
+.totpManualKeyHint {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.totpManualKeyBox {
+  margin: 0 0 var(--space-3) 0;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-soft);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-iris-deep);
+  word-break: break-all;
+}
+
 .pinSection {
   display: flex;
   flex-direction: column;
@@ -449,4 +544,33 @@
 .textLink:hover {
   background: var(--color-iris-pale);
   color: var(--color-iris-medium);
+}
+
+.avatarGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: var(--space-3);
+}
+
+.avatarOption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border: 2px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.avatarOption:hover {
+  transform: translateY(-2px);
+}
+
+.avatarOptionSelected {
+  border-color: var(--color-amber);
+  background: #fdf1e9;
 }

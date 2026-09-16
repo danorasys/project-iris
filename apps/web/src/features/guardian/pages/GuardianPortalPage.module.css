@@ -1,0 +1,129 @@
+.page {
+  display: flex;
+  /* Fixed height, not min-height: the sidebar and the content pane each
+     scroll independently inside this fixed frame (.content has its own
+     overflow-y below). A min-height here would let .page itself grow past
+     the viewport and scroll too, fighting .content's own scroll and
+     leaving the sidebar looking like it scrolled out of view. */
+  height: 100vh;
+  height: 100dvh;
+  background: var(--color-canvas);
+}
+
+.sidebar {
+  flex: none;
+  width: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-4);
+  background: var(--color-iris-deep);
+  color: var(--color-surface);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+}
+
+.brandLabel {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border: none;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--color-surface);
+  opacity: 0.85;
+  padding: var(--space-3);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    opacity 120ms ease;
+}
+
+.navItem:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.navItemActive {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.navItemDanger:hover {
+  background: rgba(194, 68, 68, 0.35);
+}
+
+.navDivider {
+  height: 1px;
+  margin: var(--space-2) 0;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-6) var(--space-5);
+  overflow-y: auto;
+}
+
+@media (max-width: 720px) {
+  .page {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    gap: var(--space-4);
+  }
+
+  .brand {
+    flex: none;
+  }
+
+  .brandLabel {
+    display: none;
+  }
+
+  .nav {
+    flex-direction: row;
+    gap: var(--space-2);
+  }
+
+  .navItem span {
+    display: none;
+  }
+
+  .navDivider {
+    width: 1px;
+    height: 32px;
+    margin: 0 var(--space-1);
+  }
+
+  .content {
+    padding: var(--space-4);
+  }
+}

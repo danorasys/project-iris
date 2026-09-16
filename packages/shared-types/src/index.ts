@@ -46,6 +46,17 @@ export interface RelationshipType {
   name: string;
 }
 
+export interface SupportCondition {
+  id: number;
+  name: string;
+}
+
+export interface Avatar {
+  id: number;
+  name: string;
+  image_path: string;
+}
+
 export interface GuardianRegistrationRequest {
   guardian: {
     first_name: string;
@@ -65,10 +76,12 @@ export interface GuardianRegistrationRequest {
     first_name: string;
     last_name: string;
     date_of_birth: string; // ISO date
-    avatar: string;
+    avatar_id: number;
     pin: string;
     pin_confirmation: string;
-    support_condition?: string;
+    support_condition_id: number;
+    support_condition_other?: string; // Required only when support_condition_id is "Otra condición (especificar)"
+    additional_support_need?: string; // Always optional
   };
   consent: {
     policy_version: string;
@@ -102,13 +115,55 @@ export interface StudentProfileLoginRequest {
 export interface StudentProfile {
   id: string;
   first_name: string;
-  avatar: string;
+  avatar_id: number;
   date_of_birth: string;
-  support_condition?: string | null;
+  support_condition_id: number;
+  support_condition_other?: string | null;
+  additional_support_need?: string | null;
 }
 
 export interface UpdateStudentAvatarRequest {
-  avatar: string;
+  avatar_id: number;
+}
+
+export interface TotpSetupResponse {
+  qr_code_data_uri: string;
+  manual_entry_key: string;
+}
+
+export interface TotpVerifyRequest {
+  code: string;
+}
+
+export interface GuardianProfile {
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  document_type_id: number;
+  document_number: string;
+  document_issued_at: string;
+  email: string;
+  phone_country_code: string;
+  phone_number: string;
+  relationship_type_id: number;
+}
+
+export interface UpdateGuardianProfileRequest {
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  phone_country_code: string;
+  phone_number: string;
+  relationship_type_id: number;
+}
+
+export interface ChangePasswordRequest {
+  password: string;
+  password_confirmation: string;
+}
+
+export interface ConfirmPasswordRequest {
+  password: string;
 }
 
 export interface Classroom {
@@ -126,7 +181,7 @@ export interface ClassroomWithStudents extends Classroom {
     enrollment_id: string;
     student_id: string;
     first_name: string;
-    avatar: string;
+    avatar_id: number;
     status: EnrollmentStatus;
   }>;
 }
@@ -135,7 +190,7 @@ export interface EnrollmentRequest {
   enrollment_id: string;
   student_id: string;
   student_first_name: string;
-  student_avatar: string;
+  student_avatar_id: number;
   guardian_name: string;
   guardian_contact: string;
   requested_at: string;

@@ -22,6 +22,14 @@ export function getAuthErrorMessage(error: unknown): string {
       return "El PIN no es correcto. Inténtalo de nuevo.";
     case "limite_intentos_excedido":
       return "Demasiados intentos. Espera unos minutos antes de volver a intentarlo.";
+    case "codigo_totp_invalido":
+      return "Ese código no es correcto o ya expiró. Escribe el más reciente que muestre tu aplicación autenticadora.";
+    case "configuracion_totp_no_iniciada":
+      return "Primero debemos generar tu código QR. Recarga la página e inténtalo de nuevo.";
+    case "confirmacion_contrasena_invalida":
+      return "La contraseña no es correcta.";
+    case "tipo_relacion_invalido":
+      return "Elige un tipo de relación válido.";
     case "datos_invalidos": {
       const errors = error.details?.errores;
       if (Array.isArray(errors) && errors.length > 0) {

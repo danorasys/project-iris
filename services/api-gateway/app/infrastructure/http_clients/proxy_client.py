@@ -1,8 +1,8 @@
-"""Concrete httpx implementation of the HttpForwarder port.
-
-Distinguishes between failing to connect (connection refused, connect
-timeout), which the caller maps to 502, and connecting but not getting a
-response in time, which maps to 504."""
+# Concrete httpx implementation of the HttpForwarder port.
+#
+# Distinguishes between failing to connect (connection refused, connect
+# timeout), which the caller maps to 502, and connecting but not getting a
+# response in time, which maps to 504.
 
 from __future__ import annotations
 

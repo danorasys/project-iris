@@ -1,6 +1,6 @@
-"""Protocol the application layer uses to talk to the outside world,
-implemented in infrastructure/. This is what keeps application/ free of a
-direct SQLAlchemy import, same convention as the other services."""
+# Protocol the application layer uses to talk to the outside world,
+# implemented in infrastructure/. This is what keeps application/ free of a
+# direct SQLAlchemy import, same convention as the other services.
 
 from __future__ import annotations
 

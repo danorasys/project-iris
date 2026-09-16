@@ -121,9 +121,9 @@ async def test_subir_logo_content_type_invalido_es_rechazado(
 
 
 async def test_subir_logo_svg_es_rechazado(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
-    """SVG can carry a <script> tag and gets served back with the same
-    content type, so it's excluded even though it technically starts with
-    "image/"."""
+    # SVG can carry a <script> tag and gets served back with the same
+    # content type, so it's excluded even though it technically starts with
+    # "image/".
     token, _ = identity_gateway.registrar_docente()
     aula = await _crear_aula(client, token)
 

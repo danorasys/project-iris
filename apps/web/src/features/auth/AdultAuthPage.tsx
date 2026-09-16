@@ -7,6 +7,7 @@ import { getAuthErrorMessage } from "./errors";
 import { TextField } from "./ui/TextField";
 import { SelectField } from "./ui/SelectField";
 import { PasswordRequirements, passwordMeetsRequirements } from "./ui/PasswordRequirements";
+import { DOCUMENT_TYPE_NAME_PASSPORT, documentNumberFormatError, filterDocumentNumberInput } from "./lib/documentNumber";
 import { IrisMark } from "@/shared/ui/IrisMark";
 import { IconArrowLeft, IconInfo } from "@/shared/ui/icons";
 import logoIris from "@/assets/landing/logo-iris.png";
@@ -206,7 +207,7 @@ function ChooseAccountType({
       <p className={styles.subtitle}>Cuéntanos cómo vas a usar IRIS para llevarte al registro correcto.</p>
 
       <div className={styles.registrationOptions}>
-        <Link to="/login/student/new" className={styles.registrationOption}>
+        <Link to="/login/guardian/new" className={styles.registrationOption}>
           <span className={styles.registrationOptionText}>
             <span className={styles.registrationOptionTitle}>Soy tutor, papá o mamá</span>
             <span className={styles.registrationOptionNote}>
@@ -259,6 +260,7 @@ function TeacherRegistrationForm({
   const [institution, setInstitution] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [dateOfBirthError, setDateOfBirthError] = useState<string | null>(null);
+  const [documentNumberError, setDocumentNumberError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
@@ -271,11 +273,19 @@ function TeacherRegistrationForm({
   }, [documentType, documentTypesQuery.data]);
 
   const documentTypeReady = documentType !== "";
+  const selectedDocumentType = documentTypesQuery.data?.find((dt) => String(dt.id) === documentType);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     if (!documentTypeReady) return;
+
+    const documentNumberValidationError = documentNumberFormatError(selectedDocumentType?.name, documentNumber);
+    if (documentNumberValidationError) {
+      setDocumentNumberError(documentNumberValidationError);
+      return;
+    }
+    setDocumentNumberError(null);
 
     if (calculateAge(dateOfBirth) < MINIMUM_TEACHER_AGE) {
       setDateOfBirthError(`Debes ser mayor de edad (${MINIMUM_TEACHER_AGE} años o más) para registrarte como docente.`);
@@ -333,7 +343,14 @@ function TeacherRegistrationForm({
         id="docente-tipo-documento"
         label="Tipo de documento"
         value={documentType}
-        onChange={setDocumentType}
+        onChange={(value) => {
+          setDocumentType(value);
+          // Switching type can turn a value that was fine a moment ago into
+          // an invalid one (e.g. a passport's letters, once you switch to
+          // cédula), so it's re-checked against the new type right away.
+          const nextDocumentType = documentTypesQuery.data?.find((dt) => String(dt.id) === value);
+          setDocumentNumberError(documentNumberFormatError(nextDocumentType?.name, documentNumber));
+        }}
         options={(documentTypesQuery.data ?? []).map((dt) => ({ value: String(dt.id), label: dt.name }))}
         required
         disabled={documentTypesQuery.isLoading}
@@ -342,9 +359,14 @@ function TeacherRegistrationForm({
         id="docente-numero-documento"
         label="Número de documento"
         value={documentNumber}
-        onChange={(value) => setDocumentNumber(value.replace(/\D/g, ""))}
+        onChange={(value) => {
+          const filtered = filterDocumentNumberInput(selectedDocumentType?.name, value);
+          setDocumentNumber(filtered);
+          setDocumentNumberError(documentNumberFormatError(selectedDocumentType?.name, filtered));
+        }}
+        error={documentNumberError ?? undefined}
         required
-        inputMode="numeric"
+        inputMode={selectedDocumentType?.name === DOCUMENT_TYPE_NAME_PASSPORT ? "text" : "numeric"}
       />
       <TextField
         id="docente-fecha-nacimiento"

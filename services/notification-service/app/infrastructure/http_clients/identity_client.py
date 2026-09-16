@@ -1,19 +1,19 @@
-"""Client for identity-service, validates the access token on every
-request to this service's own REST routes. The role itself (must be
-"teacher") is checked separately, in app/api/deps.py.
-
-Explicit 2s timeout plus a circuit breaker, and a short TTL cache so the
-notification tray, polled every ~20s per teacher, doesn't revalidate the same
-token against identity-service on every poll.
-
-A network failure (timeout, connection refused, identity-service returning
-an error status) maps to InvalidToken and counts against the circuit
-breaker. A clean 401 from identity-service, meaning the token itself is
-invalid or expired, also maps to InvalidToken but does NOT count against the
-breaker: identity-service answered fine, so there's nothing wrong with its
-availability. Counting it would let a batch of ordinary expired tokens (they
-last only 15 minutes, and every teacher's browser is polling) trip the
-breaker and briefly reject even valid tokens for everyone."""
+# Client for identity-service, validates the access token on every
+# request to this service's own REST routes. The role itself (must be
+# "teacher") is checked separately, in app/api/deps.py.
+#
+# Explicit 2s timeout plus a circuit breaker, and a short TTL cache so the
+# notification tray, polled every ~20s per teacher, doesn't revalidate the same
+# token against identity-service on every poll.
+#
+# A network failure (timeout, connection refused, identity-service returning
+# an error status) maps to InvalidToken and counts against the circuit
+# breaker. A clean 401 from identity-service, meaning the token itself is
+# invalid or expired, also maps to InvalidToken but does NOT count against the
+# breaker: identity-service answered fine, so there's nothing wrong with its
+# availability. Counting it would let a batch of ordinary expired tokens (they
+# last only 15 minutes, and every teacher's browser is polling) trip the
+# breaker and briefly reject even valid tokens for everyone.
 
 from __future__ import annotations
 

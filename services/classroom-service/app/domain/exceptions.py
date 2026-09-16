@@ -1,5 +1,5 @@
-"""Domain errors. Translated to HTTP in app/errors.py, the domain doesn't
-know about HTTP status codes, only business semantics."""
+# Domain errors. Translated to HTTP in app/errors.py, the domain doesn't
+# know about HTTP status codes, only business semantics.
 
 from __future__ import annotations
 

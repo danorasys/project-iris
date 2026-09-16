@@ -1,13 +1,12 @@
-"""X-Correlation-Id middleware.
-
-Generated here, at the API Gateway, if the client didn't send one. Each
-service propagates the same value in its response and exposes it through a
-ContextVar, so the logger and outgoing HTTP clients can include it without
-passing it manually through every layer. The gateway also adds it explicitly
-as a header on every request it forwards to domain services (see
-app/application/proxy_service.py), so end-to-end tracing works even when a
-request crosses multiple services.
-"""
+# X-Correlation-Id middleware.
+#
+# Generated here, at the API Gateway, if the client didn't send one. Each
+# service propagates the same value in its response and exposes it through
+# a ContextVar, so the logger and outgoing HTTP clients can include it
+# without passing it manually through every layer. The gateway also adds it
+# explicitly as a header on every request it forwards to domain services
+# (see app/application/proxy_service.py), so end-to-end tracing works even
+# when a request crosses multiple services.
 
 from __future__ import annotations
 

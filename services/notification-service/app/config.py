@@ -14,7 +14,11 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     identity_service_url: str = "http://localhost:8001"
-    internal_service_key: str = "dev-internal-key"
+    # No default: a working value checked into source is a real, usable
+    # secret sitting in git history forever. Startup must fail loudly if this
+    # isn't set, instead of anyone with repo access being able to call this
+    # service's internal-only routes.
+    internal_service_key: str
 
     web_origin: str = "http://localhost:5173"
 
@@ -36,4 +40,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    return Settings()  # type: ignore[call-arg]  # pydantic-settings fills required fields from the environment; mypy can't see that

@@ -11,6 +11,7 @@ os.environ.setdefault("INTERNAL_SERVICE_KEY", "test-internal-key")
 os.environ.setdefault("WEB_ORIGIN", "http://localhost:5173")
 os.environ.setdefault("IDENTITY_SERVICE_URL", "http://identity-test")
 os.environ.setdefault("CLASSROOM_SERVICE_URL", "http://classroom-test")
+os.environ.setdefault("S3_SECRET_KEY", "test-s3-secret")
 
 import fakeredis.aioredis
 import pytest

@@ -1,8 +1,8 @@
-"""S3/MinIO object storage.
-
-boto3 is synchronous, so it runs in a separate thread via asyncio.to_thread
-to avoid blocking the event loop. Tests use tests.fakes.FakeObjectStorage via
-dependency_overrides, there's no MinIO in this dev setup."""
+# S3/MinIO object storage.
+#
+# boto3 is synchronous, so it runs in a separate thread via asyncio.to_thread
+# to avoid blocking the event loop. Tests use tests.fakes.FakeObjectStorage via
+# dependency_overrides, there's no MinIO in this dev setup.
 
 from __future__ import annotations
 

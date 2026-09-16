@@ -1,4 +1,4 @@
-"""Domain entities. Plain dataclasses, no SQLAlchemy or FastAPI imports here."""
+# Domain entities. Plain dataclasses, no SQLAlchemy or FastAPI imports here.
 
 from __future__ import annotations
 

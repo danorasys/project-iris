@@ -46,7 +46,7 @@ class EnrolledStudentResponse(BaseModel):
     enrollment_id: UUID
     student_id: UUID
     first_name: str
-    avatar: str
+    avatar_id: int
     status: str
 
 
@@ -58,7 +58,7 @@ class RequestResponse(BaseModel):
     enrollment_id: UUID
     student_id: UUID
     student_first_name: str
-    student_avatar: str
+    student_avatar_id: int
     guardian_name: str
     guardian_contact: str
     requested_at: datetime

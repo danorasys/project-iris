@@ -1,9 +1,8 @@
-"""X-Correlation-Id middleware.
-
-Generated at the API Gateway if missing. Each service propagates it in the
-response and exposes it through a ContextVar, so the logger and outgoing
-HTTP clients can include it without passing it manually through every layer.
-"""
+# X-Correlation-Id middleware.
+#
+# Generated at the API Gateway if missing. Each service propagates it in the
+# response and exposes it through a ContextVar, so the logger and outgoing
+# HTTP clients can include it without passing it manually through every layer.
 
 from __future__ import annotations
 

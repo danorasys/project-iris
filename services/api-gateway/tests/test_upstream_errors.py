@@ -1,6 +1,6 @@
-"""502/504 behavior when the target service doesn't respond: connection
-refused or connect timeout maps to 502, connects but doesn't respond in time
-maps to 504."""
+# 502/504 behavior when the target service doesn't respond: connection
+# refused or connect timeout maps to 502, connects but doesn't respond in
+# time maps to 504.
 
 from __future__ import annotations
 

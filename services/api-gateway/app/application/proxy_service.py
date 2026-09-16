@@ -1,10 +1,11 @@
-"""Use case: forward a client request to a domain service.
-
-Applies the routing table (see each destination_* method's docstring), strips
-hop-by-hop headers, propagates X-Correlation-Id and the caller's real IP
-(X-Forwarded-For) explicitly, and blocks any route containing the internal
-segment. Those routes are only for service-to-service calls on the private
-network, never reachable from the public gateway."""
+# Use case: forward a client request to a domain service.
+#
+# Applies the routing table (see the comment above each destination_*
+# method), strips hop-by-hop headers, propagates X-Correlation-Id and the
+# caller's real IP (X-Forwarded-For) explicitly, and blocks any route
+# containing the internal segment. Those routes are only for
+# service-to-service calls on the private network, never reachable from the
+# public gateway.
 
 from __future__ import annotations
 
@@ -34,36 +35,36 @@ class ProxyService:
         segments = [s for s in rest.split("/") if s]
         return BLOCKED_SEGMENT in segments
 
+    # /api/identity/{rest} -> {IDENTITY_SERVICE_URL}/{rest}. Drops the
+    # /api/identity prefix entirely. identity-service exposes /auth,
+    # /guardians, /users directly, with no identity prefix.
     @staticmethod
     def destination_identity(base_url: str, rest: str) -> str:
-        """/api/identity/{rest} -> {IDENTITY_SERVICE_URL}/{rest}. Drops the
-        /api/identity prefix entirely. identity-service exposes /auth,
-        /guardians, /users directly, with no identity prefix."""
         base = base_url.rstrip("/")
         return f"{base}/{rest}" if rest else base
 
+    # /api/classrooms/{rest} -> {CLASSROOM_SERVICE_URL}/classrooms/{rest}.
+    # Drops only /api. classroom-service exposes its routes under
+    # /classrooms, that segment stays.
     @staticmethod
     def destination_classrooms(base_url: str, rest: str) -> str:
-        """/api/classrooms/{rest} -> {CLASSROOM_SERVICE_URL}/classrooms/{rest}.
-        Drops only /api. classroom-service exposes its routes under
-        /classrooms, that segment stays."""
         base = base_url.rstrip("/")
         return f"{base}/classrooms/{rest}" if rest else f"{base}/classrooms"
 
+    # /api/content/{rest} -> {CONTENT_SERVICE_URL}/{rest}. Drops the
+    # /api/content prefix entirely. content-service exposes
+    # /classrooms/{id}/lessons and /lessons/{id} directly, with no
+    # content prefix.
     @staticmethod
     def destination_content(base_url: str, rest: str) -> str:
-        """/api/content/{rest} -> {CONTENT_SERVICE_URL}/{rest}. Drops the
-        /api/content prefix entirely. content-service exposes
-        /classrooms/{id}/lessons and /lessons/{id} directly, with no
-        content prefix."""
         base = base_url.rstrip("/")
         return f"{base}/{rest}" if rest else base
 
+    # /api/notifications/{rest} -> {NOTIFICATION_SERVICE_URL}/notifications/{rest}.
+    # Drops only /api. notification-service exposes its routes under
+    # /notifications, that segment stays.
     @staticmethod
     def destination_notifications(base_url: str, rest: str) -> str:
-        """/api/notifications/{rest} -> {NOTIFICATION_SERVICE_URL}/notifications/{rest}.
-        Drops only /api. notification-service exposes its routes under
-        /notifications, that segment stays."""
         base = base_url.rstrip("/")
         return f"{base}/notifications/{rest}" if rest else f"{base}/notifications"
 

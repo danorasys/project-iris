@@ -6,20 +6,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db import SessionLocal
 from app.infrastructure.repositories import (
+    SqlAlchemyAvatarRepository,
     SqlAlchemyConsentRepository,
     SqlAlchemyDocumentTypeRepository,
     SqlAlchemyGuardianRepository,
     SqlAlchemyPersonRepository,
     SqlAlchemyRelationshipTypeRepository,
     SqlAlchemyStudentRepository,
+    SqlAlchemySupportConditionRepository,
     SqlAlchemyTeacherRepository,
 )
 
 
+# Implements the UnitOfWork port. One transaction per use case, so
+# registering a guardian, student and consent stays atomic.
 class SqlAlchemyUnitOfWork:
-    """Implements the UnitOfWork port. One transaction per use case, so
-    registering a guardian, student and consent stays atomic."""
-
     session: AsyncSession
 
     async def __aenter__(self) -> "SqlAlchemyUnitOfWork":
@@ -31,6 +32,8 @@ class SqlAlchemyUnitOfWork:
         self.consents = SqlAlchemyConsentRepository(self.session)
         self.document_types = SqlAlchemyDocumentTypeRepository(self.session)
         self.relationship_types = SqlAlchemyRelationshipTypeRepository(self.session)
+        self.support_conditions = SqlAlchemySupportConditionRepository(self.session)
+        self.avatars = SqlAlchemyAvatarRepository(self.session)
         return self
 
     async def __aexit__(

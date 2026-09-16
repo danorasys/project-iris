@@ -1,0 +1,171 @@
+.page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  background: var(--color-canvas);
+  text-align: center;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.badge {
+  width: 108px;
+  height: 108px;
+  /* Starts invisible and pops in once the mascot has had time to land (see
+   * .mascot's animation below) — the check is the payoff, not the opener. */
+  animation: badge-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) 550ms both;
+}
+
+.badgeSquare {
+  fill: var(--color-iris-medium);
+}
+
+.badgeCheck {
+  fill: none;
+  stroke: var(--color-surface);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* Path length is ~75; 80 leaves a little slack so the dash fully hides
+   * the stroke at offset 80 without a visible sliver. */
+  stroke-dasharray: 80;
+  stroke-dashoffset: 80;
+  animation: check-draw 420ms ease-out 820ms forwards;
+}
+
+.mascot {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  /* Jumps up from below the fold and settles with a small overshoot bounce,
+   * landing just before the check badge starts its own pop-in above. */
+  animation: mascot-jump-in 650ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.bubble {
+  position: relative;
+  max-width: 480px;
+  background: var(--color-surface);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* Waits for the mascot + badge to finish before it's even legible, so the
+   * whole thing reads as one sequence instead of three things at once. */
+  opacity: 0;
+  animation: bubble-fade-in 500ms ease 1250ms forwards;
+}
+
+.bubble p {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+.bubble p.headline {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--color-iris-deep);
+}
+
+/* Same button as every "Siguiente" in the registration forms
+ * (GuardianRegistrationWizard.module.css's .primaryButton) — same colors,
+ * same hover, so this doesn't read as a different kind of button just
+ * because it says "Continuar" instead. */
+.continueButton {
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-amber);
+  color: var(--color-surface);
+  padding: var(--space-3) var(--space-4);
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0;
+  animation: bubble-fade-in 500ms ease 1450ms forwards;
+  transition: background 120ms ease;
+}
+
+.continueButton:hover {
+  background: var(--color-amber-dark);
+}
+
+@keyframes mascot-jump-in {
+  0% {
+    transform: translateY(140px) scale(0.7);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(-18px) scale(1.06);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(6px) scale(0.98);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes bubble-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge,
+  .mascot,
+  .bubble,
+  .continueButton {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .badgeCheck {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

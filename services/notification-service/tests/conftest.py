@@ -25,10 +25,9 @@ from app.main import app  # noqa: E402
 _TEST_DB_FILE = os.environ["DATABASE_URL"].removeprefix("sqlite+aiosqlite:///")
 
 
+# Replaces IdentityClient in tests via dependency injection. Never hits
+# the real network.
 class FakeIdentityClient:
-    """Replaces IdentityClient in tests via dependency injection. Never hits
-    the real network."""
-
     def __init__(self) -> None:
         self.tokens: dict[str, TokenClaims] = {}
 

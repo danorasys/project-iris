@@ -1,5 +1,5 @@
-"""Translates domain and validation errors into a uniform HTTP envelope,
-{"error": {"code", "message", "details"}}. Same contract across all 5 services."""
+# Translates domain and validation errors into a uniform HTTP envelope,
+# {"error": {"code", "message", "details"}}. Same contract across all 5 services.
 
 from __future__ import annotations
 
@@ -15,15 +15,21 @@ from app.domain.exceptions import (
     ConsentRequired,
     DocumentNumberAlreadyRegistered,
     EmailAlreadyRegistered,
+    InvalidAvatar,
     InvalidCredentials,
+    InvalidDocumentNumberFormat,
     InvalidDocumentType,
+    InvalidPasswordConfirmation,
     InvalidRelationshipType,
+    InvalidSupportCondition,
+    InvalidTotpCode,
     DomainError,
     AttemptLimitExceeded,
     PermissionDenied,
     InvalidPin,
     ResourceNotFound,
     InvalidToken,
+    TotpSetupNotStarted,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,6 +38,7 @@ _STATUS_POR_ERROR: dict[type[DomainError], int] = {
     EmailAlreadyRegistered: status.HTTP_409_CONFLICT,
     DocumentNumberAlreadyRegistered: status.HTTP_409_CONFLICT,
     InvalidCredentials: status.HTTP_401_UNAUTHORIZED,
+    InvalidPasswordConfirmation: status.HTTP_401_UNAUTHORIZED,
     InvalidPin: status.HTTP_401_UNAUTHORIZED,
     InvalidToken: status.HTTP_401_UNAUTHORIZED,
     AttemptLimitExceeded: status.HTTP_429_TOO_MANY_REQUESTS,
@@ -39,8 +46,13 @@ _STATUS_POR_ERROR: dict[type[DomainError], int] = {
     PermissionDenied: status.HTTP_403_FORBIDDEN,
     ConsentRequired: status.HTTP_422_UNPROCESSABLE_ENTITY,
     InvalidDocumentType: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    InvalidDocumentNumberFormat: status.HTTP_422_UNPROCESSABLE_ENTITY,
     InvalidRelationshipType: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    InvalidSupportCondition: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    InvalidAvatar: status.HTTP_422_UNPROCESSABLE_ENTITY,
     UnauthorizedInternalAccess: status.HTTP_401_UNAUTHORIZED,
+    InvalidTotpCode: status.HTTP_401_UNAUTHORIZED,
+    TotpSetupNotStarted: status.HTTP_422_UNPROCESSABLE_ENTITY,
 }
 
 

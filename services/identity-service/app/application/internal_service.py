@@ -1,7 +1,7 @@
-"""Queries used only by other services via /internal/*, never exposed to end
-clients. classroom-service needs the student's name and avatar plus the
-guardian's name and contact info, to give the teacher context when resolving an
-enrollment request."""
+# Queries used only by other services via /internal/*, never exposed to end
+# clients. classroom-service needs the student's name and avatar plus the
+# guardian's name and contact info, to give the teacher context when resolving an
+# enrollment request.
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ UowFactory = Callable[[], "UnitOfWork"]
 class StudentWithGuardian:
     student_id: UUID
     student_first_name: str
-    student_avatar: str
+    student_avatar_id: int
     guardian_first_name: str
     guardian_last_name: str
     guardian_email: str
@@ -45,7 +45,7 @@ class InternalQueryService:
             return StudentWithGuardian(
                 student_id=student.id,
                 student_first_name=student.first_name,
-                student_avatar=student.avatar,
+                student_avatar_id=student.avatar_id,
                 guardian_first_name=person.first_name,
                 guardian_last_name=person.last_name,
                 guardian_email=person.email,

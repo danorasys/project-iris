@@ -1,8 +1,7 @@
-"""Auth use cases.
-
-Pure orchestration. No SQLAlchemy, jose or bcrypt imports here, only the
-ports defined in app.domain.ports.
-"""
+# Auth use cases.
+#
+# Pure orchestration. No SQLAlchemy, jose or bcrypt imports here, only the
+# ports defined in app.domain.ports.
 
 from __future__ import annotations
 
@@ -18,15 +17,19 @@ from app.application.dtos import (
     IssuedTokens,
     TeacherData,
 )
-from app.domain.entities import Consent, Guardian, Person, Student, Teacher
+from app.domain.document_number import document_number_format_error
+from app.domain.entities import SUPPORT_CONDITION_NAME_OTHER, Consent, Guardian, Person, Student, Teacher
 from app.domain.exceptions import (
     AttemptLimitExceeded,
     DocumentNumberAlreadyRegistered,
     EmailAlreadyRegistered,
+    InvalidAvatar,
     InvalidCredentials,
+    InvalidDocumentNumberFormat,
     InvalidDocumentType,
     InvalidPin,
     InvalidRelationshipType,
+    InvalidSupportCondition,
     InvalidToken,
     ResourceNotFound,
 )
@@ -66,17 +69,33 @@ class AuthService:
         student_data: FirstStudentData,
         consent_data: ConsentData,
     ) -> tuple[Person, Guardian, Student, IssuedTokens]:
-        """Creates person, guardian, student and consent in a single
-        transaction. A student never registers itself, a guardian always does it."""
+        # Creates person, guardian, student and consent in a single
+        # transaction. A student never registers itself, a guardian always does it.
         async with self._uow_factory() as uow:
             if await uow.people.get_by_email(guardian_data.email) is not None:
                 raise EmailAlreadyRegistered()
             if await uow.people.get_by_document_number(guardian_data.document_number) is not None:
                 raise DocumentNumberAlreadyRegistered()
-            if await uow.document_types.get_by_id(guardian_data.document_type_id) is None:
+            document_type = await uow.document_types.get_by_id(guardian_data.document_type_id)
+            if document_type is None:
                 raise InvalidDocumentType()
+            format_error = document_number_format_error(document_type.name, guardian_data.document_number)
+            if format_error:
+                raise InvalidDocumentNumberFormat(format_error)
             if await uow.relationship_types.get_by_id(guardian_data.relationship_type_id) is None:
                 raise InvalidRelationshipType()
+            if await uow.avatars.get_by_id(student_data.avatar_id) is None:
+                raise InvalidAvatar()
+            support_condition = await uow.support_conditions.get_by_id(student_data.support_condition_id)
+            if support_condition is None:
+                raise InvalidSupportCondition()
+            is_other_condition = support_condition.name == SUPPORT_CONDITION_NAME_OTHER
+            if is_other_condition and not (student_data.support_condition_other or "").strip():
+                raise InvalidSupportCondition("Debes especificar la condición.")
+            if not is_other_condition and student_data.support_condition_other:
+                raise InvalidSupportCondition(
+                    "Solo puedes especificar una condición cuando eliges 'Otra condición (especificar)'."
+                )
 
             now = datetime.now(timezone.utc)
             person = Person(
@@ -105,8 +124,10 @@ class AuthService:
                 last_name=student_data.last_name,
                 date_of_birth=student_data.date_of_birth,
                 hash_pin=self._hasher.hash(student_data.pin),
-                avatar=student_data.avatar,
-                support_condition=student_data.support_condition,
+                avatar_id=student_data.avatar_id,
+                support_condition_id=student_data.support_condition_id,
+                support_condition_other=student_data.support_condition_other,
+                additional_support_need=student_data.additional_support_need,
             )
             consent_entity = Consent(
                 id=uuid.uuid4(),
@@ -114,6 +135,7 @@ class AuthService:
                 student_id=student.id,
                 policy_version=consent_data.policy_version,
                 granted_at=now,
+                accepts_data_processing=consent_data.accepts_data_processing,
                 authorizes_support_condition=consent_data.authorizes_support_condition,
             )
 
@@ -140,8 +162,12 @@ class AuthService:
                 raise EmailAlreadyRegistered()
             if await uow.people.get_by_document_number(data.document_number) is not None:
                 raise DocumentNumberAlreadyRegistered()
-            if await uow.document_types.get_by_id(data.document_type_id) is None:
+            document_type = await uow.document_types.get_by_id(data.document_type_id)
+            if document_type is None:
                 raise InvalidDocumentType()
+            format_error = document_number_format_error(document_type.name, data.document_number)
+            if format_error:
+                raise InvalidDocumentNumberFormat(format_error)
 
             person = Person(
                 id=uuid.uuid4(),

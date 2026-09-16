@@ -46,10 +46,10 @@ def get_object_storage() -> S3ObjectStorage:
     )
 
 
+# One instance per process. The circuit breaker and token cache (TTLCache)
+# only make sense if they're shared across requests.
 @lru_cache
 def get_identity_gateway() -> IdentityHttpClient:
-    """One instance per process. The circuit breaker and token cache (TTLCache)
-    only make sense if they're shared across requests."""
     settings = get_settings()
     return IdentityHttpClient(base_url=settings.identity_service_url, internal_key=settings.internal_service_key)
 
@@ -83,10 +83,11 @@ async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     identity: Annotated[IdentityGateway, Depends(get_identity_gateway)],
 ) -> CurrentUser:
-    """Unlike identity-service, classroom-service never sees JWT_SECRET. It
-    validates the token by calling identity-service's /internal/tokens/validate.
-    If identity-service doesn't respond, this raises IdentityServiceUnavailable (503).
-    A missing response is never treated as authenticated."""
+    # Unlike identity-service, classroom-service never sees JWT_SECRET. It
+    # validates the token by calling identity-service's
+    # /internal/tokens/validate. If identity-service doesn't respond, this
+    # raises IdentityServiceUnavailable (503). A missing response is never
+    # treated as authenticated.
     if credentials is None:
         raise InvalidToken("Falta el encabezado de autorización.")
     claims = await identity.validar_token(credentials.credentials)

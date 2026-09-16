@@ -21,10 +21,10 @@ configure_logging(settings.service_name)
 logger = logging.getLogger(__name__)
 
 
+# Honors app.dependency_overrides the same way FastAPI would for a route
+# with Depends(get_http_client), so tests can close or swap the client
+# without the lifespan trying to close one it didn't create.
 def _resolve_http_client(app: FastAPI) -> httpx.AsyncClient:
-    """Honors app.dependency_overrides the same way FastAPI would for a route
-    with Depends(get_http_client), so tests can close or swap the client
-    without the lifespan trying to close one it didn't create."""
     factory = app.dependency_overrides.get(deps.get_http_client, deps.get_http_client)
     return factory()
 

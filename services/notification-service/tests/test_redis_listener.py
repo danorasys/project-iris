@@ -1,5 +1,5 @@
-"""Events published by classroom-service on the classroom.requests Redis
-channel get persisted as notifications for the right teacher."""
+# Events published by classroom-service on the classroom.requests Redis
+# channel get persisted as notifications for the right teacher.
 
 from __future__ import annotations
 

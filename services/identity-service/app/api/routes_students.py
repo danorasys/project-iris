@@ -23,5 +23,5 @@ async def update_my_avatar(
     """A student picks their own avatar by gaze, right after calibrating.
     `user.subject_id` is the student's own id here, never a client-supplied
     one, so there's no way to target another profile."""
-    student = await students.update_avatar(user.subject_id, payload.avatar)
+    student = await students.update_avatar(user.subject_id, payload.avatar_id)
     return StudentProfileResponse(**student.__dict__)

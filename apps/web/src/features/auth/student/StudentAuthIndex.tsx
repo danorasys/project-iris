@@ -18,7 +18,7 @@ export default function StudentAuthIndex() {
         <BigChoiceButton
           variant="coral"
           icon={<IconSparkle className={styles.icon} />}
-          onSelect={() => navigate("/login/student/new")}
+          onSelect={() => navigate("/login/guardian/new")}
         >
           Soy nuevo
         </BigChoiceButton>

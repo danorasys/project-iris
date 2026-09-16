@@ -1,8 +1,8 @@
-"""Simple in-process circuit breaker.
-
-Counts consecutive failures. Past failure_threshold it goes "open" and fails
-fast without hitting the network for recovery_seconds seconds, then
-"half-open": the next attempt decides whether it closes again or reopens."""
+# Simple in-process circuit breaker.
+#
+# Counts consecutive failures. Past failure_threshold it goes "open" and fails
+# fast without hitting the network for recovery_seconds seconds, then
+# "half-open": the next attempt decides whether it closes again or reopens.
 
 from __future__ import annotations
 
@@ -12,8 +12,9 @@ from typing import Awaitable, Callable, TypeVar
 T = TypeVar("T")
 
 
+# Raised when the circuit is open and the call fails fast without the network.
 class CircuitBreakerOpen(Exception):
-    """Raised when the circuit is open and the call fails fast without the network."""
+    pass
 
 
 class CircuitBreaker:

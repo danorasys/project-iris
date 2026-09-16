@@ -1,8 +1,7 @@
-"""Classroom and enrollment use cases.
-
-Pure orchestration. No direct FastAPI, SQLAlchemy, boto3 or redis imports,
-only the ports defined in app.domain.ports.
-"""
+# Classroom and enrollment use cases.
+#
+# Pure orchestration. No direct FastAPI, SQLAlchemy, boto3 or redis imports,
+# only the ports defined in app.domain.ports.
 
 from __future__ import annotations
 
@@ -132,7 +131,7 @@ class ClassroomService:
                 enrollment_id=enrollment.id,
                 student_id=enrollment.student_id,
                 first_name=info.first_name,
-                avatar=info.avatar,
+                avatar_id=info.avatar_id,
                 status=enrollment.status,
             )
             for enrollment, info in zip(accepted, infos)
@@ -153,8 +152,8 @@ class ClassroomService:
     async def upload_logo(
         self, classroom_id: UUID, teacher_id: UUID, contenido: bytes, content_type: str, filename: str | None
     ) -> Classroom:
-        """Free upload by the teacher, no moderation in the MVP. Validates
-        type and size before touching storage."""
+        # Free upload by the teacher, no moderation in the MVP. Validates
+        # type and size before touching storage.
         if content_type not in _ALLOWED_LOGO_CONTENT_TYPES:
             raise InvalidFile("El archivo debe ser una imagen PNG, JPEG, WEBP o GIF.")
         if len(contenido) > _MAX_LOGO_SIZE_BYTES:
@@ -185,7 +184,7 @@ class ClassroomService:
                 enrollment_id=enrollment.id,
                 student_id=enrollment.student_id,
                 student_first_name=info.first_name,
-                student_avatar=info.avatar,
+                student_avatar_id=info.avatar_id,
                 guardian_name=f"{info.guardian_first_name} {info.guardian_last_name}",
                 guardian_contact=f"{info.guardian_email} · {info.guardian_phone}",
                 requested_at=enrollment.requested_at,
@@ -304,10 +303,10 @@ class ClassroomService:
             return False
 
     # ------------------------------------------------------------------
+    # Publishing to Redis is a non-critical side effect. If Redis doesn't
+    # respond, the business operation that already got committed to the
+    # database shouldn't fail because of it.
     async def _publish_event_safely(self, canal: str, evento: dict[str, object]) -> None:
-        """Publishing to Redis is a non-critical side effect. If Redis doesn't
-        respond, the business operation that already got committed to the
-        database shouldn't fail because of it."""
         try:
             await self._events.publicar(canal, evento)
         except Exception:  # noqa: BLE001, any infra failure here is non-critical

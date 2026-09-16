@@ -1,14 +1,25 @@
-"""Protocols the application layer uses to talk to the outside world,
-implemented in infrastructure/. This is what keeps application/ free of
-direct SQLAlchemy, jose or bcrypt imports."""
+# Protocols the application layer uses to talk to the outside world,
+# implemented in infrastructure/. This is what keeps application/ free of
+# direct SQLAlchemy, jose or bcrypt imports.
 
 from __future__ import annotations
 
+from datetime import date
 from types import TracebackType
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.entities import Consent, DocumentType, Guardian, Person, RelationshipType, Student, Teacher
+from app.domain.entities import (
+    Avatar,
+    Consent,
+    DocumentType,
+    Guardian,
+    Person,
+    RelationshipType,
+    Student,
+    SupportCondition,
+    Teacher,
+)
 
 
 class PersonRepository(Protocol):
@@ -16,6 +27,22 @@ class PersonRepository(Protocol):
     async def get_by_id(self, person_id: UUID) -> Person | None: ...
     async def get_by_document_number(self, document_number: str) -> Person | None: ...
     async def add(self, person: Person) -> None: ...
+    async def update_profile(
+        self,
+        person_id: UUID,
+        *,
+        first_name: str,
+        last_name: str,
+        date_of_birth: date,
+        phone_country_code: str,
+        phone_number: str,
+    ) -> None:
+        # Updates only the fields a person is allowed to change about
+        # themselves. Document type, document number, email and the document
+        # issue date are read-only, since they identify the account or the
+        # document itself, so this method has no way to change them.
+        ...
+    async def update_password(self, person_id: UUID, hash_password: str) -> None: ...
 
 
 class GuardianRepository(Protocol):
@@ -23,6 +50,8 @@ class GuardianRepository(Protocol):
     async def get_by_id(self, guardian_id: UUID) -> Guardian | None: ...
     async def add(self, guardian: Guardian) -> None: ...
     async def delete(self, guardian_id: UUID) -> None: ...
+    async def update_totp(self, guardian_id: UUID, totp_secret: str | None, totp_enabled: bool) -> None: ...
+    async def update_relationship_type(self, guardian_id: UUID, relationship_type_id: int) -> None: ...
 
 
 class TeacherRepository(Protocol):
@@ -35,7 +64,7 @@ class StudentRepository(Protocol):
     async def get_by_id(self, student_id: UUID) -> Student | None: ...
     async def list_by_guardian(self, guardian_id: UUID) -> list[Student]: ...
     async def add(self, student: Student) -> None: ...
-    async def update_avatar(self, student_id: UUID, avatar: str) -> None: ...
+    async def update_avatar(self, student_id: UUID, avatar_id: int) -> None: ...
 
 
 class ConsentRepository(Protocol):
@@ -50,6 +79,16 @@ class DocumentTypeRepository(Protocol):
 class RelationshipTypeRepository(Protocol):
     async def list_all(self) -> list[RelationshipType]: ...
     async def get_by_id(self, relationship_type_id: int) -> RelationshipType | None: ...
+
+
+class SupportConditionRepository(Protocol):
+    async def list_all(self) -> list[SupportCondition]: ...
+    async def get_by_id(self, support_condition_id: int) -> SupportCondition | None: ...
+
+
+class AvatarRepository(Protocol):
+    async def list_all(self) -> list[Avatar]: ...
+    async def get_by_id(self, avatar_id: int) -> Avatar | None: ...
 
 
 class UnitOfWork(Protocol):
@@ -74,6 +113,12 @@ class UnitOfWork(Protocol):
     @property
     def relationship_types(self) -> RelationshipTypeRepository: ...
 
+    @property
+    def support_conditions(self) -> SupportConditionRepository: ...
+
+    @property
+    def avatars(self) -> AvatarRepository: ...
+
     async def __aenter__(self) -> "UnitOfWork": ...
     async def __aexit__(
         self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: TracebackType | None
@@ -81,10 +126,10 @@ class UnitOfWork(Protocol):
     async def commit(self) -> None: ...
     async def rollback(self) -> None: ...
     async def flush(self) -> None:
-        """Sends pending INSERT/UPDATE statements to the DB without closing the
-        transaction. Needed between FK-related entities built with a plain id
-        instead of an ORM object graph. Without it, automatic flush order
-        between them isn't guaranteed."""
+        # Sends pending INSERT/UPDATE statements to the DB without closing the
+        # transaction. Needed between FK-related entities built with a plain id
+        # instead of an ORM object graph. Without it, automatic flush order
+        # between them isn't guaranteed.
         ...
 
 
@@ -94,18 +139,18 @@ class PasswordHasher(Protocol):
 
     @property
     def dummy_hash(self) -> str:
-        """A precomputed hash that never matches a real password or PIN, used to
-        keep a failed login's timing constant when there's no real hash to check
-        against (see AuthService.login)."""
+        # A precomputed hash that never matches a real password or PIN, used to
+        # keep a failed login's timing constant when there's no real hash to check
+        # against (see AuthService.login).
         ...
 
 
 class TokenIssuer(Protocol):
     def emitir_access_token(self, subject_id: UUID, role: str, extra: dict[str, str]) -> str: ...
     def emitir_refresh_token(self, subject_id: UUID, role: str) -> tuple[str, str]:
-        """Returns (token, jti). The jti lets logout invalidate it later.
-        subject_id is person_id for guardian/teacher, and student_id for a
-        student profile, since Student isn't a Person in this model."""
+        # Returns (token, jti). The jti lets logout invalidate it later.
+        # subject_id is person_id for guardian/teacher, and student_id for a
+        # student profile, since Student isn't a Person in this model.
         ...
 
     def decodificar(self, token: str) -> dict[str, object]: ...
@@ -113,11 +158,32 @@ class TokenIssuer(Protocol):
 
 class RateLimiter(Protocol):
     async def permitir(self, clave: str, maximo: int, ventana_seg: int) -> bool:
-        """Increments the counter for clave and returns False once it passes
-        maximo within the window."""
+        # Increments the counter for clave and returns False once it passes
+        # maximo within the window.
         ...
 
 
 class TokenBlacklist(Protocol):
     async def invalidar(self, jti: str, ttl_seg: int) -> None: ...
     async def esta_invalidado(self, jti: str) -> bool: ...
+
+
+# Wraps the TOTP (RFC 6238) algorithm itself, so the application layer
+# never imports pyotp or qrcode directly — same reason PasswordHasher wraps
+# bcrypt and TokenIssuer wraps jose.
+class TotpProvider(Protocol):
+    def generar_secreto(self) -> str: ...
+    def uri_aprovisionamiento(self, secreto: str, nombre_cuenta: str, emisor: str) -> str: ...
+    def verificar(self, secreto: str, codigo: str, ventana: int) -> bool: ...
+    def codigo_qr_base64(self, uri_aprovisionamiento: str) -> str:
+        # Renders the provisioning URI as a QR code PNG, returned as a
+        # data: URI ready to drop into an <img src>.
+        ...
+
+
+# The TOTP secret has to be readable back in plain text to verify a
+# live code against it, so it's encrypted at rest, not hashed like a
+# password or PIN.
+class TotpEncryptor(Protocol):
+    def encrypt(self, valor_plano: str) -> str: ...
+    def decrypt(self, valor_cifrado: str) -> str: ...

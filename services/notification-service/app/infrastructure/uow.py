@@ -8,9 +8,8 @@ from app.infrastructure.db import SessionLocal
 from app.infrastructure.repositories import SqlAlchemyNotificationRepository
 
 
+# Implements the UnitOfWork port. One transaction per use case.
 class SqlAlchemyUnitOfWork:
-    """Implements the UnitOfWork port. One transaction per use case."""
-
     session: AsyncSession
 
     async def __aenter__(self) -> "SqlAlchemyUnitOfWork":

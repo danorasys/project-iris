@@ -1,10 +1,10 @@
-"""Subscriber for the classroom.requests Redis channel.
-
-classroom-service publishes request.created and request.resolved events
-there. This listener runs as a background task for the app's whole
-lifespan (started in app/main.py) and persists each recognized event as a
-notification for its teacher, who reads it back later over
-GET /notifications/me."""
+# Subscriber for the classroom.requests Redis channel.
+#
+# classroom-service publishes request.created and request.resolved events
+# there. This listener runs as a background task for the app's whole
+# lifespan (started in app/main.py) and persists each recognized event as a
+# notification for its teacher, who reads it back later over
+# GET /notifications/me.
 
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ from app.application.notification_service import NotificationService
 logger = logging.getLogger(__name__)
 
 
+# Infinite loop, cancelled from the lifespan when the app shuts down.
 async def listen_for_requests(redis: Redis, notifications: NotificationService, channel: str) -> None:
-    """Infinite loop, cancelled from the lifespan when the app shuts down."""
     pubsub = redis.pubsub()
     await pubsub.subscribe(channel)
     logger.info("Suscrito al canal Redis '%s'.", channel)

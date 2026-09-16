@@ -1,18 +1,31 @@
 from __future__ import annotations
 
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.entities import Consent, DocumentType, Guardian, Person, RelationshipType, Student, Teacher
+from app.domain.entities import (
+    Avatar,
+    Consent,
+    DocumentType,
+    Guardian,
+    Person,
+    RelationshipType,
+    Student,
+    SupportCondition,
+    Teacher,
+)
 from app.infrastructure.models import (
+    AvatarModel,
     ConsentModel,
     DocumentTypeModel,
     GuardianModel,
     PersonModel,
     RelationshipTypeModel,
     StudentModel,
+    SupportConditionModel,
     TeacherModel,
 )
 
@@ -39,6 +52,8 @@ def _guardian_to_entity(m: GuardianModel) -> Guardian:
         id=m.id,
         person_id=m.person_id,
         relationship_type_id=m.relationship_type_id,
+        totp_secret=m.totp_secret,
+        totp_enabled=m.totp_enabled,
     )
 
 
@@ -48,6 +63,14 @@ def _document_type_to_entity(m: DocumentTypeModel) -> DocumentType:
 
 def _relationship_type_to_entity(m: RelationshipTypeModel) -> RelationshipType:
     return RelationshipType(id=m.id, name=m.name)
+
+
+def _support_condition_to_entity(m: SupportConditionModel) -> SupportCondition:
+    return SupportCondition(id=m.id, name=m.name)
+
+
+def _avatar_to_entity(m: AvatarModel) -> Avatar:
+    return Avatar(id=m.id, name=m.name, image_path=m.image_path)
 
 
 def _teacher_to_entity(m: TeacherModel) -> Teacher:
@@ -62,8 +85,10 @@ def _student_to_entity(m: StudentModel) -> Student:
         last_name=m.last_name,
         date_of_birth=m.date_of_birth,
         hash_pin=m.hash_pin,
-        avatar=m.avatar,
-        support_condition=m.support_condition,
+        avatar_id=m.avatar_id,
+        support_condition_id=m.support_condition_id,
+        support_condition_other=m.support_condition_other,
+        additional_support_need=m.additional_support_need,
     )
 
 
@@ -105,6 +130,29 @@ class SqlAlchemyPersonRepository:
             )
         )
 
+    async def update_profile(
+        self,
+        person_id: UUID,
+        *,
+        first_name: str,
+        last_name: str,
+        date_of_birth: date,
+        phone_country_code: str,
+        phone_number: str,
+    ) -> None:
+        m = await self._session.get(PersonModel, person_id)
+        if m is not None:
+            m.first_name = first_name
+            m.last_name = last_name
+            m.date_of_birth = date_of_birth
+            m.phone_country_code = phone_country_code
+            m.phone_number = phone_number
+
+    async def update_password(self, person_id: UUID, hash_password: str) -> None:
+        m = await self._session.get(PersonModel, person_id)
+        if m is not None:
+            m.hash_password = hash_password
+
 
 class SqlAlchemyGuardianRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -135,6 +183,17 @@ class SqlAlchemyGuardianRepository:
         person_id = guardian.person_id
         await self._session.execute(delete(GuardianModel).where(GuardianModel.id == guardian_id))
         await self._session.execute(delete(PersonModel).where(PersonModel.id == person_id))
+
+    async def update_totp(self, guardian_id: UUID, totp_secret: str | None, totp_enabled: bool) -> None:
+        m = await self._session.get(GuardianModel, guardian_id)
+        if m is not None:
+            m.totp_secret = totp_secret
+            m.totp_enabled = totp_enabled
+
+    async def update_relationship_type(self, guardian_id: UUID, relationship_type_id: int) -> None:
+        m = await self._session.get(GuardianModel, guardian_id)
+        if m is not None:
+            m.relationship_type_id = relationship_type_id
 
 
 class SqlAlchemyTeacherRepository:
@@ -175,15 +234,17 @@ class SqlAlchemyStudentRepository:
                 last_name=student.last_name,
                 date_of_birth=student.date_of_birth,
                 hash_pin=student.hash_pin,
-                avatar=student.avatar,
-                support_condition=student.support_condition,
+                avatar_id=student.avatar_id,
+                support_condition_id=student.support_condition_id,
+                support_condition_other=student.support_condition_other,
+                additional_support_need=student.additional_support_need,
             )
         )
 
-    async def update_avatar(self, student_id: UUID, avatar: str) -> None:
+    async def update_avatar(self, student_id: UUID, avatar_id: int) -> None:
         m = await self._session.get(StudentModel, student_id)
         if m is not None:
-            m.avatar = avatar
+            m.avatar_id = avatar_id
 
 
 class SqlAlchemyConsentRepository:
@@ -198,6 +259,7 @@ class SqlAlchemyConsentRepository:
                 student_id=consent.student_id,
                 policy_version=consent.policy_version,
                 granted_at=consent.granted_at,
+                accepts_data_processing=consent.accepts_data_processing,
                 authorizes_support_condition=consent.authorizes_support_condition,
             )
         )
@@ -227,3 +289,29 @@ class SqlAlchemyRelationshipTypeRepository:
     async def get_by_id(self, relationship_type_id: int) -> RelationshipType | None:
         m = await self._session.get(RelationshipTypeModel, relationship_type_id)
         return _relationship_type_to_entity(m) if m else None
+
+
+class SqlAlchemySupportConditionRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def list_all(self) -> list[SupportCondition]:
+        result = await self._session.execute(select(SupportConditionModel).order_by(SupportConditionModel.id))
+        return [_support_condition_to_entity(m) for m in result.scalars().all()]
+
+    async def get_by_id(self, support_condition_id: int) -> SupportCondition | None:
+        m = await self._session.get(SupportConditionModel, support_condition_id)
+        return _support_condition_to_entity(m) if m else None
+
+
+class SqlAlchemyAvatarRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def list_all(self) -> list[Avatar]:
+        result = await self._session.execute(select(AvatarModel).order_by(AvatarModel.id))
+        return [_avatar_to_entity(m) for m in result.scalars().all()]
+
+    async def get_by_id(self, avatar_id: int) -> Avatar | None:
+        m = await self._session.get(AvatarModel, avatar_id)
+        return _avatar_to_entity(m) if m else None

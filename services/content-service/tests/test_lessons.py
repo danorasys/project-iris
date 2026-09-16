@@ -255,9 +255,9 @@ async def test_image_with_invalid_content_type_is_rejected(
 async def test_image_svg_is_rejected(
     client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
 ) -> None:
-    """An SVG can carry a <script> tag and gets served back with the same
-    content type, so it's excluded even though it technically starts with
-    "image/"."""
+    # An SVG can carry a <script> tag and gets served back with the same
+    # content type, so it's excluded even though it technically starts with
+    # "image/".
     classroom_id = uuid4()
     teacher_id = uuid4()
     identity_client.register("token-docente", teacher_id, "teacher")

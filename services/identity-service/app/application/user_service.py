@@ -1,5 +1,5 @@
-"""Read-only query for the currently authenticated guardian or teacher's own
-account data, exposed via GET /users/me."""
+# Read-only query for the currently authenticated guardian or teacher's own
+# account data, exposed via GET /users/me.
 
 from __future__ import annotations
 

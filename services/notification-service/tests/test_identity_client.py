@@ -1,6 +1,6 @@
-"""Unit tests for IdentityClient, the call to identity-service that validates
-the access token on every REST request: 2s timeout plus circuit breaker, and
-any failure maps to InvalidToken. See app/api/deps.py."""
+# Unit tests for IdentityClient, the call to identity-service that validates
+# the access token on every REST request: 2s timeout plus circuit breaker, and
+# any failure maps to InvalidToken. See app/api/deps.py.
 
 from __future__ import annotations
 
@@ -77,10 +77,10 @@ async def test_open_circuit_after_consecutive_failures_fails_fast_without_hittin
 
 
 @respx.mock
+# identity-service responding 401 means it's healthy, the token is just
+# wrong. That must never count as a circuit-breaker failure, or a run of
+# ordinary expired tokens would start rejecting valid ones too.
 async def test_repeated_invalid_tokens_do_not_open_the_circuit() -> None:
-    """identity-service responding 401 means it's healthy, the token is just
-    wrong. That must never count as a circuit-breaker failure, or a run of
-    ordinary expired tokens would start rejecting valid ones too."""
     route = respx.get(f"{_BASE_URL}/internal/tokens/validate").mock(return_value=httpx.Response(401, json={}))
     client = _client(failure_threshold=2, recovery_seconds=30.0)
 

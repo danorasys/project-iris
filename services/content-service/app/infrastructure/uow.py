@@ -9,8 +9,7 @@ from app.infrastructure.repositories import SqlAlchemyLessonRepository
 
 
 class SqlAlchemyUnitOfWork:
-    """Implements the UnitOfWork port. One transaction per use case."""
-
+    # Implements the UnitOfWork port. One transaction per use case.
     session: AsyncSession
 
     async def __aenter__(self) -> "SqlAlchemyUnitOfWork":

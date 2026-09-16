@@ -199,3 +199,32 @@ export function IconEyeOff(props: IconProps) {
     </svg>
   );
 }
+
+export function IconLock(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V7.5a4 4 0 0 1 8 0V11" />
+      <path d="M12 14.5v2.2" />
+    </svg>
+  );
+}
+
+export function IconPencil(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M14.3 4.7 19.3 9.7 8 21H3v-5z" />
+      <path d="M12.5 6.5 17.5 11.5" />
+    </svg>
+  );
+}
+
+export function IconUserCircle(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="9.5" />
+      <circle cx="12" cy="10" r="2.6" />
+      <path d="M6 18.2c1.1-2.6 3.3-4 6-4s4.9 1.4 6 4" />
+    </svg>
+  );
+}

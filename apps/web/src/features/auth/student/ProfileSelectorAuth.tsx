@@ -10,6 +10,7 @@ import { TextField } from "@/features/auth/ui/TextField";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { NumericKeypad } from "@/shared/ui/NumericKeypad";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
+import { IconLock } from "@/shared/ui/icons";
 import styles from "./ProfileSelectorAuth.module.css";
 
 /** `/login/student/profile`, the "Ya soy Mirador" branch. If the device
@@ -83,6 +84,7 @@ function GuardianLogin() {
 }
 
 function ProfilePicker() {
+  const navigate = useNavigate();
   const profiles = useEstudiantesDeTutor(true);
   const [selected, setSelected] = useState<StudentProfile | null>(null);
 
@@ -111,7 +113,7 @@ function ProfilePicker() {
             <BigChoiceButton
               key={profile.id}
               variant="teal"
-              icon={<StudentAvatarImage avatarId={profile.avatar} size="small" label={profile.first_name} />}
+              icon={<StudentAvatarImage avatarId={profile.avatar_id} size="small" label={profile.first_name} />}
               onSelect={() => setSelected(profile)}
             >
               <span className={styles.profileName}>{profile.first_name}</span>
@@ -119,6 +121,19 @@ function ProfilePicker() {
           ))}
         </div>
       )}
+
+      {/* A plain button meant to be used with a mouse or keyboard, on
+          purpose different from the gaze-selectable tiles above — this one
+          is for the adult managing the account, not for a child picking
+          their own avatar. */}
+      <button
+        type="button"
+        className={styles.guardianPortalLink}
+        onClick={() => navigate("/guardian/confirm-password")}
+      >
+        <IconLock width={18} height={18} aria-hidden="true" />
+        Portal de padres
+      </button>
     </main>
   );
 }
@@ -146,13 +161,21 @@ function PinEntry({ profile, onBack }: { profile: StudentProfile; onBack: () => 
   return (
     <main className={styles.page}>
       <div className={styles.activeProfile}>
-        <StudentAvatarImage avatarId={profile.avatar} size="large" label={profile.first_name} />
+        <StudentAvatarImage avatarId={profile.avatar_id} size="large" label={profile.first_name} />
         <h1 className={styles.title}>Hola, {profile.first_name}</h1>
         <p className={styles.subtitle}>Escribe tu PIN.</p>
       </div>
 
       <div className={styles.pinWrapper}>
-        <NumericKeypad value={pin} onChange={setPin} onConfirm={handleConfirm} maxLength={6} minLength={4} mask />
+        <NumericKeypad
+          value={pin}
+          onChange={setPin}
+          onConfirm={handleConfirm}
+          maxLength={4}
+          minLength={4}
+          mask
+          numericFont="body"
+        />
       </div>
 
       {error && (

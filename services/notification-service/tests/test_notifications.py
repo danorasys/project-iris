@@ -1,5 +1,5 @@
-"""REST contract for the teacher's notification tray: only the owning
-teacher can list or mark their own notifications as read."""
+# REST contract for the teacher's notification tray: only the owning
+# teacher can list or mark their own notifications as read.
 
 from __future__ import annotations
 

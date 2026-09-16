@@ -1,9 +1,8 @@
-"""SQLAlchemy models.
-
-teacher_id, classroom_id and enrollment_id are reference UUIDs pointing at
-identity_db and classroom_db, with no real ForeignKey across databases,
-same convention as the other services.
-"""
+# SQLAlchemy models.
+#
+# teacher_id, classroom_id and enrollment_id are reference UUIDs pointing at
+# identity_db and classroom_db, with no real ForeignKey across databases,
+# same convention as the other services.
 
 from __future__ import annotations
 

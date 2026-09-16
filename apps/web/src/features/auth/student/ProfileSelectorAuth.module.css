@@ -94,3 +94,28 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+/* Visible, but deliberately plain next to the big colorful gaze tiles
+   above — this is the adult's own way in, not another profile to pick. */
+.guardianPortalLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  border: 2px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.guardianPortalLink:hover {
+  border-color: var(--color-iris-medium);
+  background: var(--color-canvas);
+}

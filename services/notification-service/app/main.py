@@ -24,11 +24,11 @@ configure_logging(settings.service_name)
 logger = logging.getLogger(__name__)
 
 
+# Resolves the Redis client honoring app.dependency_overrides, the same
+# way FastAPI would for a route with Depends(get_redis). Needed because the
+# lifespan background task doesn't go through per-request dependency
+# injection, and tests inject fakeredis there to avoid the real network.
 def _resolve_redis(app: FastAPI) -> Redis:
-    """Resolves the Redis client honoring app.dependency_overrides, the same
-    way FastAPI would for a route with Depends(get_redis). Needed because the
-    lifespan background task doesn't go through per-request dependency
-    injection, and tests inject fakeredis there to avoid the real network."""
     factory = app.dependency_overrides.get(deps.get_redis, deps.get_redis)
     return factory()
 

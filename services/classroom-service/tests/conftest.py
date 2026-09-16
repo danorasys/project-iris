@@ -10,6 +10,7 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
 os.environ.setdefault("INTERNAL_SERVICE_KEY", "test-internal-key")
 os.environ.setdefault("WEB_ORIGIN", "http://localhost:5173")
 os.environ.setdefault("IDENTITY_SERVICE_URL", "http://identity-service.test")
+os.environ.setdefault("S3_SECRET_KEY", "test-s3-secret")
 
 import fakeredis.aioredis
 import pytest

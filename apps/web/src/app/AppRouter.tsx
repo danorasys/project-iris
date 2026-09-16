@@ -11,8 +11,16 @@ const LandingPage = lazy(() => import("@/features/landing/LandingPage"));
 const RoleSelectorPage = lazy(() => import("@/features/auth/RoleSelectorPage"));
 const StudentAuthPage = lazy(() => import("@/features/auth/StudentAuthPage"));
 const AdultAuthPage = lazy(() => import("@/features/auth/AdultAuthPage"));
+const GuardianRegistrationWizard = lazy(
+  () => import("@/features/auth/student/GuardianRegistrationWizard"),
+);
 const LegalNoticePage = lazy(() => import("@/features/legal/LegalNoticePage"));
 const PrivacyPolicyPage = lazy(() => import("@/features/legal/PrivacyPolicyPage"));
+
+const GuardianConfirmPasswordPage = lazy(
+  () => import("@/features/guardian/pages/GuardianConfirmPasswordPage"),
+);
+const GuardianPortalPage = lazy(() => import("@/features/guardian/pages/GuardianPortalPage"));
 
 const TourPage = lazy(() => import("@/features/student/pages/TourPage"));
 const SetupConditionsPage = lazy(() => import("@/features/student/pages/SetupConditionsPage"));
@@ -24,6 +32,13 @@ const EnterCodePage = lazy(() => import("@/features/student/pages/EnterCodePage"
 const StudentClassroomsPage = lazy(() => import("@/features/student/pages/ClassroomsPage"));
 const LessonListPage = lazy(() => import("@/features/student/pages/LessonListPage"));
 const LessonViewerPage = lazy(() => import("@/features/student/pages/LessonViewerPage"));
+
+// Dev-only preview routes, never mounted in a production build (see the
+// import.meta.env.DEV check around their <Route>s below).
+const TotpSetupPreviewPage = lazy(() => import("@/features/auth/student/TotpSetupPreviewPage"));
+// Purely presentational (no API calls), so unlike TotpSetupPreviewPage this
+// one needs no guardian session — it just replays the animation.
+const TotpSuccessPreviewPage = lazy(() => import("@/features/auth/student/TotpSuccessPreviewPage"));
 
 const TeacherDashboardPage = lazy(() => import("@/features/teacher/pages/DashboardPage"));
 const CreateClassroomPage = lazy(() => import("@/features/teacher/pages/CreateClassroomPage"));
@@ -53,6 +68,7 @@ export function AppRouter() {
           <Route path="/login" element={<RoleSelectorPage />} />
           <Route path="/login/student/*" element={<StudentAuthPage />} />
           <Route path="/login/adult/*" element={<AdultAuthPage />} />
+          <Route path="/login/guardian/new" element={<GuardianRegistrationWizard />} />
           <Route path="/legal-notice" element={<LegalNoticePage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
 
@@ -81,6 +97,19 @@ export function AppRouter() {
           </Route>
 
           <Route
+            path="/guardian"
+            element={
+              <RequireRol role="guardian">
+                <Outlet />
+              </RequireRol>
+            }
+          >
+            <Route index element={<Navigate to="portal" replace />} />
+            <Route path="confirm-password" element={<GuardianConfirmPasswordPage />} />
+            <Route path="portal" element={<GuardianPortalPage />} />
+          </Route>
+
+          <Route
             path="/teacher"
             element={
               <RequireRol role="teacher">
@@ -95,6 +124,18 @@ export function AppRouter() {
             <Route path="classrooms/:classroomId/lessons/create" element={<LessonEditorPage />} />
             <Route path="classrooms/:classroomId/lessons/:lessonId/edit" element={<LessonEditorPage />} />
           </Route>
+
+          {import.meta.env.DEV && (
+            <Route
+              path="/dev/totp-setup"
+              element={
+                <RequireRol role="guardian">
+                  <TotpSetupPreviewPage />
+                </RequireRol>
+              }
+            />
+          )}
+          {import.meta.env.DEV && <Route path="/dev/totp-success" element={<TotpSuccessPreviewPage />} />}
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,0 +1,39 @@
+.toast {
+  position: fixed;
+  bottom: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-iris-deep);
+  color: var(--color-surface);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-card);
+  font-weight: 600;
+  z-index: 40;
+  animation: toast-in 220ms ease both;
+}
+
+.icon {
+  flex: none;
+  color: var(--color-mint);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

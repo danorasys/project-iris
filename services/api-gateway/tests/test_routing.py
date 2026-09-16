@@ -1,4 +1,4 @@
-"""Routing table tests."""
+# Routing table tests.
 
 from __future__ import annotations
 
@@ -120,10 +120,10 @@ async def test_upstream_error_response_is_returned_as_is(client: AsyncClient) ->
 
 
 @respx.mock
+# Host is hop-by-hop. The client talks to testserver, but the gateway
+# must talk to identity-service with its OWN host, never the one the
+# original client used. host is excluded explicitly in ProxyService.
 async def test_client_host_header_is_not_forwarded_as_is(client: AsyncClient) -> None:
-    """Host is hop-by-hop. The client talks to testserver, but the gateway
-    must talk to identity-service with its OWN host, never the one the
-    original client used. host is excluded explicitly in ProxyService."""
     route = respx.get(f"{IDENTITY_SERVICE_URL}/users/me").mock(return_value=httpx.Response(200, json={}))
 
     await client.get("/api/identity/users/me")
@@ -133,10 +133,10 @@ async def test_client_host_header_is_not_forwarded_as_is(client: AsyncClient) ->
 
 
 @respx.mock
+# Without this, every request identity-service sees comes from the
+# gateway's own address, and its per-IP login rate limit collapses into a
+# single shared bucket for every user.
 async def test_client_ip_is_forwarded_so_downstream_rate_limits_see_the_real_caller(client: AsyncClient) -> None:
-    """Without this, every request identity-service sees comes from the
-    gateway's own address, and its per-IP login rate limit collapses into a
-    single shared bucket for every user."""
     route = respx.post(f"{IDENTITY_SERVICE_URL}/auth/login").mock(return_value=httpx.Response(200, json={}))
 
     await client.post("/api/identity/auth/login", json={"email": "a@a.com", "password": "x"})
@@ -146,10 +146,10 @@ async def test_client_ip_is_forwarded_so_downstream_rate_limits_see_the_real_cal
 
 
 @respx.mock
+# A caller could send its own X-Forwarded-For to dodge the per-IP rate
+# limit downstream. The gateway must always overwrite it with the address
+# it actually observed the connection from.
 async def test_incoming_x_forwarded_for_is_ignored_not_trusted(client: AsyncClient) -> None:
-    """A caller could send its own X-Forwarded-For to dodge the per-IP rate
-    limit downstream. The gateway must always overwrite it with the address
-    it actually observed the connection from."""
     route = respx.post(f"{IDENTITY_SERVICE_URL}/auth/login").mock(return_value=httpx.Response(200, json={}))
 
     await client.post(

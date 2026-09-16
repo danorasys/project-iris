@@ -1,5 +1,5 @@
-"""Explicit security block. Any forwarded route containing the internal
-segment responds 404 without forwarding, across all four prefixes."""
+# Explicit security block. Any forwarded route containing the internal
+# segment responds 404 without forwarding, across all four prefixes.
 
 from __future__ import annotations
 
@@ -59,11 +59,11 @@ async def test_notifications_internal_route_blocked(client: AsyncClient) -> None
 
 
 @respx.mock
+# internal must match as a full path segment, not a substring.
+# /classrooms/internal-2024/x is a legitimate business route.
 async def test_segment_that_only_contains_internal_as_a_substring_is_not_blocked(
     client: AsyncClient,
 ) -> None:
-    """internal must match as a full path segment, not a substring.
-    /classrooms/internal-2024/x is a legitimate business route."""
     route = respx.get(f"{CLASSROOM_SERVICE_URL}/classrooms/internal-2024/x").mock(return_value=httpx.Response(200, json={}))
 
     response = await client.get("/api/classrooms/internal-2024/x")

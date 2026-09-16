@@ -11,10 +11,10 @@ from app.config import Settings, get_settings
 from app.infrastructure.http_clients.proxy_client import HttpxHttpForwarder
 
 
+# httpx client shared for the process's whole lifetime, reusing
+# connections. Closed explicitly in the lifespan (app/main.py).
 @lru_cache
 def get_http_client() -> httpx.AsyncClient:
-    """httpx client shared for the process's whole lifetime, reusing
-    connections. Closed explicitly in the lifespan (app/main.py)."""
     return httpx.AsyncClient()
 
 

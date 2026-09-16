@@ -1,19 +1,23 @@
 from __future__ import annotations
 
+import base64
 import uuid
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from uuid import UUID
 
 import bcrypt
+import pyotp
+import qrcode  # type: ignore[import-untyped]  # no bundled type stubs
+from cryptography.fernet import Fernet, InvalidToken as InvalidFernetToken
 from jose import JWTError, jwt
 
 from app.domain.exceptions import InvalidToken
 
 
+# Implements the PasswordHasher port. Used for both guardian/teacher
+# passwords and the student PIN. Hashed the same way, never stored plain.
 class BcryptPasswordHasher:
-    """Implements the PasswordHasher port. Used for both guardian/teacher
-    passwords and the student PIN. Hashed the same way, never stored plain."""
-
     # A bcrypt hash of a fixed placeholder value, never a real credential. Only
     # used as a stand-in to check against when there's no real hash, so that
     # check still costs a real bcrypt comparison. Fixed instead of generated on
@@ -34,10 +38,9 @@ class BcryptPasswordHasher:
         return self.DUMMY_HASH
 
 
+# Implements the TokenIssuer port with JWT. Access tokens last 15 minutes,
+# refresh tokens 7 days.
 class JoseTokenIssuer:
-    """Implements the TokenIssuer port with JWT. Access tokens last 15 minutes,
-    refresh tokens 7 days."""
-
     def __init__(self, secret: str, algorithm: str, access_ttl_min: int, refresh_ttl_days: int) -> None:
         self._secret = secret
         self._algorithm = algorithm
@@ -79,3 +82,42 @@ class JoseTokenIssuer:
     @property
     def refresh_ttl_seconds(self) -> int:
         return int(self._refresh_ttl.total_seconds())
+
+
+# Implements the TotpProvider port with pyotp (RFC 6238) and qrcode.
+# Any authenticator app that follows the same standard — Google
+# Authenticator, Microsoft Authenticator, Authy, 1Password, etc. — can
+# scan what this produces; nothing here is tied to one vendor.
+class PyotpTotpProvider:
+    def generar_secreto(self) -> str:
+        return pyotp.random_base32()
+
+    def uri_aprovisionamiento(self, secreto: str, nombre_cuenta: str, emisor: str) -> str:
+        return pyotp.TOTP(secreto).provisioning_uri(name=nombre_cuenta, issuer_name=emisor)
+
+    def verificar(self, secreto: str, codigo: str, ventana: int) -> bool:
+        return pyotp.TOTP(secreto).verify(codigo, valid_window=ventana)
+
+    def codigo_qr_base64(self, uri_aprovisionamiento: str) -> str:
+        img = qrcode.make(uri_aprovisionamiento)
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return f"data:image/png;base64,{encoded}"
+
+
+# Implements the TotpEncryptor port. Symmetric encryption, not hashing —
+# unlike a password or PIN, a TOTP secret has to be read back in plain text
+# to compute the expected code and compare it against what the app shows.
+class FernetTotpEncryptor:
+    def __init__(self, key: str) -> None:
+        self._fernet = Fernet(key.encode("utf-8"))
+
+    def encrypt(self, valor_plano: str) -> str:
+        return self._fernet.encrypt(valor_plano.encode("utf-8")).decode("utf-8")
+
+    def decrypt(self, valor_cifrado: str) -> str:
+        try:
+            return self._fernet.decrypt(valor_cifrado.encode("utf-8")).decode("utf-8")
+        except InvalidFernetToken as exc:
+            raise InvalidToken("No fue posible leer el secreto TOTP almacenado.") from exc

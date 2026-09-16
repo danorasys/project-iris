@@ -1,9 +1,8 @@
-"""Structured JSON logging.
-
-Each log line carries correlation_id, service and level, so a request can be
-traced end to end even across multiple services. Passwords, PINs, tokens and
-the raw body of sensitive routes are never logged.
-"""
+# Structured JSON logging.
+#
+# Each log line carries correlation_id, service and level, so a request can be
+# traced end to end even across multiple services. Passwords, PINs, tokens and
+# the raw body of sensitive routes are never logged.
 
 from __future__ import annotations
 

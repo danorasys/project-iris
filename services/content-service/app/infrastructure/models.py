@@ -1,11 +1,10 @@
-"""SQLAlchemy models.
-
-Uuid(as_uuid=True) is SQLAlchemy 2.0's generic type. It maps to the native
-uuid type on PostgreSQL and to CHAR(32) on SQLite, so the schema doesn't need
-to be duplicated between the two dialects. classroom_id and teacher_id are
-reference UUIDs with no real foreign key toward another database. Integrity
-is validated by API, not by the DB engine.
-"""
+# SQLAlchemy models.
+#
+# Uuid(as_uuid=True) is SQLAlchemy 2.0's generic type. It maps to the native
+# uuid type on PostgreSQL and to CHAR(32) on SQLite, so the schema doesn't need
+# to be duplicated between the two dialects. classroom_id and teacher_id are
+# reference UUIDs with no real foreign key toward another database. Integrity
+# is validated by API, not by the DB engine.
 
 from __future__ import annotations
 

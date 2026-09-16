@@ -14,6 +14,16 @@
 .wrapperError {
   border-color: var(--color-error);
 }
+.wrapper :global(.PhoneInput) {
+  /* react-phone-number-input renders its own flex row (.PhoneInput) as a
+   * single child of this wrapper. Without stretching it explicitly, that
+   * child sizes to its own content (flag + typed digits) instead of filling
+   * the wrapper, leaving a dead zone at the end of the field that looks
+   * clickable but isn't, and shrinking the input well below the field's
+   * visible width. */
+  flex: 1;
+  min-width: 0;
+}
 .wrapper :global(.PhoneInputInput) {
   flex: 1;
   min-width: 0;

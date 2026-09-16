@@ -4,6 +4,14 @@ import pytest
 from httpx import AsyncClient
 
 from app.config import get_settings
+from tests.conftest import (
+    AVATAR_ID_CORAL,
+    AVATAR_ID_VIOLETA,
+    DOCUMENT_TYPE_ID_CEDULA,
+    DOCUMENT_TYPE_ID_PASAPORTE,
+    SUPPORT_CONDITION_ID_OTRA,
+    SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -28,9 +36,10 @@ def _payload_registro_tutor(correo: str = "ana.tutor@example.com") -> dict:
             "first_name": "Sofía",
             "last_name": "Pérez",
             "date_of_birth": "2018-05-10",
-            "avatar": "avatar1",
+            "avatar_id": AVATAR_ID_VIOLETA,
             "pin": "1234",
             "pin_confirmation": "1234",
+            "support_condition_id": SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR,
         },
         "consent": {
             "policy_version": "v1",
@@ -147,6 +156,55 @@ async def test_registro_tutor_telefono_supera_quince_digitos_es_rechazado(client
     assert response.status_code == 422
 
 
+async def test_registro_tutor_condicion_inexistente_es_rechazada(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor()
+    payload["student"]["support_condition_id"] = 9999
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "condicion_apoyo_invalida"
+
+
+async def test_registro_tutor_otra_condicion_sin_especificar_es_rechazada(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor()
+    payload["student"]["support_condition_id"] = SUPPORT_CONDITION_ID_OTRA
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "condicion_apoyo_invalida"
+
+
+async def test_registro_tutor_otra_condicion_especificada_es_aceptada(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor("otra.condicion@example.com")
+    payload["student"]["support_condition_id"] = SUPPORT_CONDITION_ID_OTRA
+    payload["student"]["support_condition_other"] = "Migraña crónica"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 201
+
+
+async def test_registro_tutor_especifica_condicion_sin_elegir_otra_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor()
+    payload["student"]["support_condition_other"] = "Algo que no debería ir aquí"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "condicion_apoyo_invalida"
+
+
+async def test_registro_tutor_necesidad_apoyo_adicional_es_opcional(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor("necesidad.adicional@example.com")
+    payload["student"]["additional_support_need"] = "Necesita más tiempo para las actividades."
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 201
+
+
 async def test_registro_tutor_contrasenas_no_coincidentes_es_rechazado(client: AsyncClient) -> None:
     payload = _payload_registro_tutor()
     payload["guardian"]["password_confirmation"] = "Otra-Clave-456"
@@ -209,11 +267,11 @@ async def test_login_credenciales_invalidas(client: AsyncClient) -> None:
     assert response.json()["error"]["code"] == "credenciales_invalidas"
 
 
+# The rate limit key combines IP and email. Without reading
+# X-Forwarded-For (set by api-gateway to the real caller), every request
+# would look like it comes from the same address, and one attacker could
+# lock out a victim's email from any IP.
 async def test_login_usa_x_forwarded_for_para_separar_el_limite_por_ip(client: AsyncClient) -> None:
-    """The rate limit key combines IP and email. Without reading
-    X-Forwarded-For (set by api-gateway to the real caller), every request
-    would look like it comes from the same address, and one attacker could
-    lock out a victim's email from any IP."""
     await client.post("/auth/guardians", json=_payload_registro_tutor("ip-separada@example.com"))
     maximo = get_settings().rate_limit_login_max
 
@@ -399,9 +457,62 @@ async def test_registro_docente_con_tipo_de_documento_inexistente_es_rechazado(c
     assert response.json()["error"]["code"] == "tipo_documento_invalido"
 
 
+async def test_registro_tutor_con_cedula_con_letras_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor("cedula-con-letras@example.com")
+    payload["guardian"]["document_type_id"] = DOCUMENT_TYPE_ID_CEDULA
+    payload["guardian"]["document_number"] = "10AB304050"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "formato_documento_invalido"
+
+
+async def test_registro_tutor_con_cedula_de_mas_de_10_digitos_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor("cedula-larga@example.com")
+    payload["guardian"]["document_type_id"] = DOCUMENT_TYPE_ID_CEDULA
+    payload["guardian"]["document_number"] = "123456789012"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "formato_documento_invalido"
+
+
+async def test_registro_tutor_con_pasaporte_alfanumerico_es_aceptado(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor("pasaporte-valido@example.com")
+    payload["guardian"]["document_type_id"] = DOCUMENT_TYPE_ID_PASAPORTE
+    payload["guardian"]["document_number"] = "AB123456"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 201
+
+
+async def test_registro_tutor_con_pasaporte_muy_corto_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor("pasaporte-corto@example.com")
+    payload["guardian"]["document_type_id"] = DOCUMENT_TYPE_ID_PASAPORTE
+    payload["guardian"]["document_number"] = "AB12"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "formato_documento_invalido"
+
+
+async def test_registro_docente_con_cedula_con_letras_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_docente("docente-cedula-letras@example.com", document_number="80AB2345")
+    payload["document_type_id"] = DOCUMENT_TYPE_ID_CEDULA
+
+    response = await client.post("/auth/teachers", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "formato_documento_invalido"
+
+
+# Registers a guardian (with the default first student), logs into that
+# student's own profile by PIN, and returns the student's access token.
 async def _login_como_estudiante(client: AsyncClient, correo_tutor: str) -> str:
-    """Registers a guardian (with the default first student), logs into that
-    student's own profile by PIN, and returns the student's access token."""
     registro = await client.post("/auth/guardians", json=_payload_registro_tutor(correo_tutor))
     access_token = registro.json()["access_token"]
     listado = await client.get("/guardians/me/students", headers={"Authorization": f"Bearer {access_token}"})
@@ -415,12 +526,12 @@ async def test_estudiante_puede_elegir_su_avatar(client: AsyncClient) -> None:
 
     response = await client.patch(
         "/students/me/avatar",
-        json={"avatar": "avatar2"},
+        json={"avatar_id": AVATAR_ID_CORAL},
         headers={"Authorization": f"Bearer {student_token}"},
     )
 
     assert response.status_code == 200
-    assert response.json()["avatar"] == "avatar2"
+    assert response.json()["avatar_id"] == AVATAR_ID_CORAL
 
 
 async def test_elegir_un_avatar_fuera_del_conjunto_fijo_es_rechazado(client: AsyncClient) -> None:
@@ -428,7 +539,7 @@ async def test_elegir_un_avatar_fuera_del_conjunto_fijo_es_rechazado(client: Asy
 
     response = await client.patch(
         "/students/me/avatar",
-        json={"avatar": "avatar99"},
+        json={"avatar_id": 9999},
         headers={"Authorization": f"Bearer {student_token}"},
     )
 
@@ -441,7 +552,7 @@ async def test_tutor_no_puede_usar_el_endpoint_de_avatar_del_estudiante(client: 
 
     response = await client.patch(
         "/students/me/avatar",
-        json={"avatar": "avatar2"},
+        json={"avatar_id": AVATAR_ID_CORAL},
         headers={"Authorization": f"Bearer {guardian_token}"},
     )
 
@@ -450,14 +561,14 @@ async def test_tutor_no_puede_usar_el_endpoint_de_avatar_del_estudiante(client: 
 
 
 async def test_elegir_avatar_sin_autenticacion_es_rechazado(client: AsyncClient) -> None:
-    response = await client.patch("/students/me/avatar", json={"avatar": "avatar2"})
+    response = await client.patch("/students/me/avatar", json={"avatar_id": AVATAR_ID_CORAL})
 
     assert response.status_code == 401
 
 
+# A 422 tells the client which field failed and why, but must never echo
+# back the value it received, since that value can be a password or PIN.
 async def test_error_de_validacion_no_repite_la_contrasena_enviada(client: AsyncClient) -> None:
-    """A 422 tells the client which field failed and why, but must never echo
-    back the value it received, since that value can be a password or PIN."""
     payload = _payload_registro_tutor("clave-corta@example.com")
     payload["guardian"]["password"] = "corta"
 
@@ -479,10 +590,10 @@ async def test_error_de_validacion_no_repite_la_contrasena_enviada(client: Async
         "SinSimbolo123",
     ],
 )
+# Same 5 requirements the registration screen already checks on the
+# frontend. This confirms the API rejects a weak password on its own,
+# for anyone who calls it directly instead of going through the form.
 async def test_registro_tutor_con_contrasena_incompleta_es_rechazado(client: AsyncClient, password: str) -> None:
-    """Same 5 requirements the registration screen already checks on the
-    frontend. This confirms the API rejects a weak password on its own,
-    for anyone who calls it directly instead of going through the form."""
     payload = _payload_registro_tutor("password-debil@example.com")
     payload["guardian"]["password"] = password
 

@@ -1,5 +1,5 @@
-"""Domain errors. Translated to HTTP in app/errors.py. The domain layer
-doesn't know about HTTP status codes, only business semantics."""
+# Domain errors. Translated to HTTP in app/errors.py. The domain layer
+# doesn't know about HTTP status codes, only business semantics.
 
 from __future__ import annotations
 
@@ -30,14 +30,34 @@ class InvalidDocumentType(DomainError):
     message = "El tipo de documento indicado no existe."
 
 
+class InvalidDocumentNumberFormat(DomainError):
+    code = "formato_documento_invalido"
+    message = "El número de documento no tiene un formato válido."
+
+
 class InvalidRelationshipType(DomainError):
     code = "tipo_relacion_invalido"
     message = "El tipo de relación indicado no existe."
 
 
+class InvalidSupportCondition(DomainError):
+    code = "condicion_apoyo_invalida"
+    message = "La condición indicada no existe."
+
+
+class InvalidAvatar(DomainError):
+    code = "avatar_invalido"
+    message = "El avatar indicado no existe."
+
+
 class InvalidCredentials(DomainError):
     code = "credenciales_invalidas"
     message = "Correo o contraseña incorrectos."
+
+
+class InvalidPasswordConfirmation(DomainError):
+    code = "confirmacion_contrasena_invalida"
+    message = "La contraseña no es correcta."
 
 
 class InvalidPin(DomainError):
@@ -73,3 +93,13 @@ class ConsentRequired(DomainError):
 class UnauthorizedInternalAccess(DomainError):
     code = "acceso_interno_no_autorizado"
     message = "Esta operación solo puede ser invocada por otros servicios de IRIS."
+
+
+class InvalidTotpCode(DomainError):
+    code = "codigo_totp_invalido"
+    message = "El código ingresado no es correcto o ya expiró."
+
+
+class TotpSetupNotStarted(DomainError):
+    code = "configuracion_totp_no_iniciada"
+    message = "Primero debes generar el código QR antes de verificar un código."

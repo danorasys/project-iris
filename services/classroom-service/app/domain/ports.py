@@ -1,6 +1,6 @@
-"""Protocols the application layer uses to talk to the outside world,
-implemented in infrastructure/. This is what keeps application/ free of
-direct SQLAlchemy, boto3, httpx or redis imports."""
+# Protocols the application layer uses to talk to the outside world,
+# implemented in infrastructure/. This is what keeps application/ free of
+# direct SQLAlchemy, boto3, httpx or redis imports.
 
 from __future__ import annotations
 
@@ -46,9 +46,8 @@ class UnitOfWork(Protocol):
 
 
 class ObjectStorage(Protocol):
-    async def subir(self, key: str, contenido: bytes, content_type: str) -> str:
-        """Uploads the content and returns the public URL."""
-        ...
+    # Uploads the content and returns the public URL.
+    async def subir(self, key: str, contenido: bytes, content_type: str) -> str: ...
 
 
 class EventPublisher(Protocol):
@@ -56,17 +55,15 @@ class EventPublisher(Protocol):
 
 
 class RateLimiter(Protocol):
-    async def permitir(self, clave: str, maximo: int, ventana_seg: int) -> bool:
-        """Increments the counter for clave and returns False once it passes
-        maximo within the window."""
-        ...
+    # Increments the counter for clave and returns False once it passes
+    # maximo within the window.
+    async def permitir(self, clave: str, maximo: int, ventana_seg: int) -> bool: ...
 
 
+# Client for identity-service. The production implementation
+# (infrastructure/http_clients/identity_client.py) wraps calls with a 2s
+# timeout plus a circuit breaker. Tests inject an in-memory double via
+# dependency_overrides.
 class IdentityGateway(Protocol):
-    """Client for identity-service. The production implementation
-    (infrastructure/http_clients/identity_client.py) wraps calls with a 2s
-    timeout plus a circuit breaker. Tests inject an in-memory double via
-    dependency_overrides."""
-
     async def validar_token(self, access_token: str) -> UserClaims: ...
     async def obtener_estudiante(self, student_id: UUID) -> StudentInfo: ...

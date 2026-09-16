@@ -1,5 +1,5 @@
-"""Translates domain and validation errors into a uniform HTTP envelope,
-{"error": {"code", "message", "details"}}. Same contract across all 5 services."""
+# Translates domain and validation errors into a uniform HTTP envelope,
+# {"error": {"code", "message", "details"}}. Same contract across all 5 services.
 
 from __future__ import annotations
 

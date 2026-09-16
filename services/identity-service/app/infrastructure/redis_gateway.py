@@ -3,9 +3,8 @@ from __future__ import annotations
 from redis.asyncio import Redis
 
 
+# Implements the RateLimiter port with INCR + TTL.
 class RedisRateLimiter:
-    """Implements the RateLimiter port with INCR + TTL."""
-
     def __init__(self, redis: Redis) -> None:
         self._redis = redis
 
@@ -17,9 +16,8 @@ class RedisRateLimiter:
         return current <= maximo
 
 
+# Implements the TokenBlacklist port to invalidate refresh tokens on logout.
 class RedisTokenBlacklist:
-    """Implements the TokenBlacklist port to invalidate refresh tokens on logout."""
-
     def __init__(self, redis: Redis) -> None:
         self._redis = redis
 

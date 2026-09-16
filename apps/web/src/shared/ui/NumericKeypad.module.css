@@ -120,3 +120,14 @@
   align-items: center;
   justify-content: center;
 }
+
+/* Opt-in override for a PIN: same font as the rest of the interface,
+ * instead of the monospace font classroom codes use by default (see
+ * NumericKeypad's `numericFont` prop). Declared last on purpose: it's
+ * combined with .displayCell and .key, both of which set their own
+ * font-family, and CSS breaks an equal-specificity tie by source order, not
+ * by class-list order on the element — so this has to come after both to
+ * actually win. */
+.fontBody {
+  font-family: var(--font-body);
+}

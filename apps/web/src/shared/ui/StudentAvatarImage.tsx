@@ -1,16 +1,21 @@
-import { getAvatarOption } from "./avatarCatalog";
+import { useAvatars } from "@/shared/api/hooks/useAuthApi";
 import styles from "./StudentAvatarImage.module.css";
 
 interface StudentAvatarImageProps {
-  avatarId: string;
+  avatarId: number;
   size?: "small" | "medium" | "large";
   label?: string;
 }
 
-/** Renders one of the 4 predetermined student avatars by id. Falls back to
- * the first one for any unrecognized/legacy value (e.g. an old CSS-animal
- * species id from before the avatar system changed). */
+/** Renders one of the avatars from the avatars catalog (see
+ * `useAvatars`) by id. The catalog is fetched once and cached
+ * (`staleTime: Infinity`), so calling this from several places on the same
+ * screen costs one request, not one per avatar. Renders nothing while the
+ * catalog is still loading or if the id doesn't match any entry, rather
+ * than guessing at a fallback image. */
 export function StudentAvatarImage({ avatarId, size = "medium", label }: StudentAvatarImageProps) {
-  const option = getAvatarOption(avatarId);
-  return <img src={option.image} alt={label ?? ""} className={`${styles.image} ${styles[size]}`} />;
+  const avatarsQuery = useAvatars();
+  const avatar = avatarsQuery.data?.find((a) => a.id === avatarId);
+  if (!avatar) return null;
+  return <img src={avatar.image_path} alt={label ?? avatar.name} className={`${styles.image} ${styles[size]}`} />;
 }

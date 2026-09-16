@@ -1,11 +1,11 @@
-"""Client for identity-service's /internal/tokens/validate.
-
-content-service never sees JWT_SECRET, it always validates the token
-remotely. Fail-closed to IdentityServiceUnavailable (503) if identity-service
-doesn't respond. A missing response is never treated as "authenticated".
-
-The URL path and the JSON response keys ("sub", "role", "extra") are
-identity-service's own wire contract."""
+# Client for identity-service's /internal/tokens/validate.
+#
+# content-service never sees JWT_SECRET, it always validates the token
+# remotely. Fail-closed to IdentityServiceUnavailable (503) if identity-service
+# doesn't respond. A missing response is never treated as "authenticated".
+#
+# The URL path and the JSON response keys ("sub", "role", "extra") are
+# identity-service's own wire contract.
 
 from __future__ import annotations
 

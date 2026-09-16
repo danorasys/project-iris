@@ -1,21 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { Avatar } from "@iris/shared-types";
 import { useAuth } from "@/shared/auth/AuthContext";
-import { useActualizarMiAvatar } from "@/shared/api/hooks/useAuthApi";
+import { useActualizarMiAvatar, useAvatars } from "@/shared/api/hooks/useAuthApi";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { useDwellSelect } from "@/shared/gaze/useDwellSelect";
 import { Mascot } from "@/shared/ui/Mascot";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { ConfirmModal } from "@/shared/ui/ConfirmModal";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
-import { STUDENT_AVATARS, type AvatarOption } from "@/shared/ui/avatarCatalog";
 import { markTourSeen } from "../lib/dwellPreferences";
 import styles from "./AvatarSelectionPage.module.css";
 
 type Phase = "announce" | "gallery";
 
 interface AvatarCornerProps {
-  avatar: AvatarOption;
+  avatar: Avatar;
   onSelect: () => void;
 }
 
@@ -33,8 +33,8 @@ function AvatarCorner({ avatar, onSelect }: AvatarCornerProps) {
       onClick={onSelect}
     >
       <span className={styles.cornerFill} style={{ transform: `scale(${progress})` }} aria-hidden="true" />
-      <StudentAvatarImage avatarId={avatar.id} size="large" label={avatar.label} />
-      <span className={styles.cornerLabel}>{avatar.label}</span>
+      <StudentAvatarImage avatarId={avatar.id} size="large" label={avatar.name} />
+      <span className={styles.cornerLabel}>{avatar.name}</span>
     </button>
   );
 }
@@ -47,9 +47,10 @@ export default function AvatarSelectionPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const updateAvatar = useActualizarMiAvatar();
+  const avatarsQuery = useAvatars();
 
   const [phase, setPhase] = useState<Phase>("announce");
-  const [chosen, setChosen] = useState<AvatarOption | null>(null);
+  const [chosen, setChosen] = useState<Avatar | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const finish = () => {
@@ -61,7 +62,7 @@ export default function AvatarSelectionPage() {
     if (!chosen) return;
     setError(null);
     try {
-      await updateAvatar.mutateAsync({ avatar: chosen.id });
+      await updateAvatar.mutateAsync({ avatar_id: chosen.id });
       finish();
     } catch (err) {
       setError(getAuthErrorMessage(err));
@@ -90,14 +91,14 @@ export default function AvatarSelectionPage() {
         </div>
       </div>
       <div className={styles.stage}>
-        {STUDENT_AVATARS.map((avatar) => (
+        {(avatarsQuery.data ?? []).map((avatar) => (
           <AvatarCorner key={avatar.id} avatar={avatar} onSelect={() => setChosen(avatar)} />
         ))}
       </div>
       {chosen && (
         <ConfirmModal
           message="¿Confirmas que este va a ser tu avatar?"
-          preview={<StudentAvatarImage avatarId={chosen.id} size="large" label={chosen.label} />}
+          preview={<StudentAvatarImage avatarId={chosen.id} size="large" label={chosen.name} />}
           acceptLabel="Sí, aceptar"
           cancelLabel="Cancelar"
           onAccept={confirm}
@@ -105,9 +106,9 @@ export default function AvatarSelectionPage() {
           disabled={updateAvatar.isPending}
         />
       )}
-      {error && (
+      {(error || avatarsQuery.isError) && (
         <div className={styles.errorBanner}>
-          <p role="alert">{error}</p>
+          <p role="alert">{error ?? "No pudimos cargar los avatares. Verifica tu conexión e intenta de nuevo."}</p>
         </div>
       )}
     </>

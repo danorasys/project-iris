@@ -1,13 +1,12 @@
-"""Domain entities.
-
-Plain dataclasses, no FastAPI or SQLAlchemy dependency.
-
-The enum-like string VALUES stored in `status` and `type` ("borrador",
-"publicada", "texto", "imagen") are kept in Spanish on purpose: they're
-existing data already persisted in the database, and this refactor only
-renames identifiers (classes, columns, fields), not stored content. Changing
-them would need a data migration, not a schema rename.
-"""
+# Domain entities.
+#
+# Plain dataclasses, no FastAPI or SQLAlchemy dependency.
+#
+# The enum-like string VALUES stored in `status` and `type` ("borrador",
+# "publicada", "texto", "imagen") are kept in Spanish on purpose: they're
+# existing data already persisted in the database, so only identifiers
+# (classes, columns, fields) got renamed, not the stored content. Changing
+# them would need a data migration, not just a rename.
 
 from __future__ import annotations
 
@@ -38,8 +37,7 @@ class Lesson:
 
 @dataclass
 class ValidatedUser:
-    """Result of validating a token against identity-service."""
-
+    # Result of validating a token against identity-service.
     subject_id: UUID
     role: str  # "guardian", "teacher" or "student". content-service only operates on teacher/student.
     extra: dict[str, object] = field(default_factory=dict)

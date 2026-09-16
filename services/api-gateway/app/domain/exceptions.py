@@ -1,12 +1,12 @@
-"""Domain errors that belong to the gateway itself. Translated to HTTP in
-app/errors.py. The domain layer doesn't know about status codes, only
-semantics.
-
-These are the errors the gateway itself raises when it can't complete the
-forward: it never connected, it connected but didn't get a response in
-time, or the route is blocked. When the target service does respond, with
-any code including its own 4xx/5xx, that response is returned to the
-client as-is, without going through this envelope."""
+# Domain errors that belong to the gateway itself. Translated to HTTP in
+# app/errors.py. The domain layer doesn't know about status codes, only
+# semantics.
+#
+# These are the errors the gateway itself raises when it can't complete the
+# forward: it never connected, it connected but didn't get a response in
+# time, or the route is blocked. When the target service does respond, with
+# any code including its own 4xx/5xx, that response is returned to the
+# client as-is, without going through this envelope.
 
 from __future__ import annotations
 

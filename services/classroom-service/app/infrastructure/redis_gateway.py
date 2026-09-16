@@ -5,10 +5,9 @@ import json
 from redis.asyncio import Redis
 
 
+# Implements the RateLimiter port with INCR + TTL. Copied from the same
+# pattern in identity-service/app/infrastructure/redis_gateway.py.
 class RedisRateLimiter:
-    """Implements the RateLimiter port with INCR + TTL. Copied from the same
-    pattern in identity-service/app/infrastructure/redis_gateway.py."""
-
     def __init__(self, redis: Redis) -> None:
         self._redis = redis
 
@@ -20,10 +19,9 @@ class RedisRateLimiter:
         return current <= maximo
 
 
+# Implements the EventPublisher port. A lightweight event bus toward
+# notification-service via Redis Pub/Sub.
 class RedisEventPublisher:
-    """Implements the EventPublisher port. A lightweight event bus toward
-    notification-service via Redis Pub/Sub."""
-
     def __init__(self, redis: Redis) -> None:
         self._redis = redis
 

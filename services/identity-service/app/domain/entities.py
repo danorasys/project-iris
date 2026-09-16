@@ -1,7 +1,6 @@
-"""Domain entities.
-
-Plain dataclasses, no FastAPI or SQLAlchemy dependency.
-"""
+# Domain entities.
+#
+# Plain dataclasses, no FastAPI or SQLAlchemy dependency.
 
 from __future__ import annotations
 
@@ -27,10 +26,10 @@ class Person:
     # a teacher's Person row is created without it.
     document_issued_at: date | None = None
 
+    # Reassembles the E.164 phone number from its stored parts. Only
+    # needed where a single display string is expected, e.g. the
+    # guardian_phone shown to a teacher in internal_service.py.
     def phone_e164(self) -> str:
-        """Reassembles the E.164 phone number from its stored parts. Only
-        needed where a single display string is expected, e.g. the
-        guardian_phone shown to a teacher in internal_service.py."""
         return f"+{self.phone_country_code}{self.phone_number}"
 
 
@@ -39,6 +38,14 @@ class Guardian:
     id: UUID
     person_id: UUID
     relationship_type_id: int
+    # Encrypted at rest (see infrastructure/security.py's TotpEncryptor), never
+    # stored or logged in plain text. None until the guardian completes 2FA
+    # setup; totp_enabled only flips to True after a real code from their
+    # authenticator app is verified, not just when a secret is generated (see
+    # TotpService.setup vs .verify) — otherwise a half-finished setup (secret
+    # saved, QR never scanned) would lock the guardian out with no way in.
+    totp_secret: str | None = None
+    totp_enabled: bool = False
 
 
 @dataclass
@@ -51,6 +58,27 @@ class DocumentType:
 class RelationshipType:
     id: int
     name: str
+
+
+@dataclass
+class SupportCondition:
+    id: int
+    name: str
+
+
+@dataclass
+class Avatar:
+    id: int
+    name: str
+    image_path: str
+
+
+# The one catalog entry that means "the family will type their own condition
+# instead of picking one of the predetermined ones" (see
+# app/infrastructure/models.py's students.support_condition_other). Matched by
+# name rather than a hardcoded id: the catalog lives in the database (see
+# migration 0004), so its ids are only stable in practice, never guaranteed.
+SUPPORT_CONDITION_NAME_OTHER = "Otra condición (especificar)"
 
 
 @dataclass
@@ -68,8 +96,14 @@ class Student:
     last_name: str
     date_of_birth: date
     hash_pin: str
-    avatar: str
-    support_condition: str | None = None
+    avatar_id: int
+    support_condition_id: int
+    # Only set when support_condition_id points to the "Otra condición
+    # (especificar)" catalog entry.
+    support_condition_other: str | None = None
+    # Unlike support_condition_id, this one stays genuinely optional: a free
+    # text note for anything else the family wants the teacher to know.
+    additional_support_need: str | None = None
 
 
 @dataclass
@@ -79,13 +113,13 @@ class Consent:
     student_id: UUID
     policy_version: str
     granted_at: datetime
+    accepts_data_processing: bool = False
     authorizes_support_condition: bool = False
 
 
+# Bundles the three entities created together in one transaction.
 @dataclass
 class GuardianRegistrationPayload:
-    """Bundles the three entities created together in one transaction."""
-
     person: Person
     guardian: Guardian
     student: Student

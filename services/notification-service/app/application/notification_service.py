@@ -1,5 +1,5 @@
-"""Use case: persist notification events coming from Redis, and let a
-teacher list and read their own notifications over REST."""
+# Use case: persist notification events coming from Redis, and let a
+# teacher list and read their own notifications over REST.
 
 from __future__ import annotations
 
@@ -19,10 +19,10 @@ class NotificationService:
     def __init__(self, uow_factory: UowFactory) -> None:
         self._uow_factory = uow_factory
 
+    # Turns a raw event from the classroom.requests Redis channel into a
+    # stored notification. Unknown event types are ignored, not every
+    # message on the channel has to become a notification.
     async def record_event(self, payload: dict[str, object]) -> None:
-        """Turns a raw event from the classroom.requests Redis channel into a
-        stored notification. Unknown event types are ignored, not every
-        message on the channel has to become a notification."""
         event = payload.get("event")
         teacher_id = payload.get("teacher_id")
         classroom_id = payload.get("classroom_id")
