@@ -11,10 +11,11 @@ interface OtpCodeInputProps {
   onComplete?: (value: string) => void;
   error?: string;
   disabled?: boolean;
-  /** Focuses the first box on mount. Only true on a retry (after a failed
-   * verification, this component is remounted via a `key` change) — on the
-   * very first render the guardian is meant to be looking at the QR code
-   * above, not have their focus and keyboard yanked down to this field. */
+  /** Focuses the first box on mount. The 2FA setup wizard only renders this
+   * component once the guardian has already moved past the QR code slide,
+   * so by the time it shows up they're meant to type into it right away —
+   * and after a failed attempt it's remounted via a `key` change to reset
+   * both the boxes and the focus. */
   autoFocus?: boolean;
 }
 

@@ -409,43 +409,203 @@
   margin-top: var(--space-2);
 }
 
-.totpSteps {
-  margin: var(--space-4) 0 0 0;
-  padding-left: 0;
-  list-style: none;
-  counter-reset: totp-step;
+.totpProgress {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  align-items: center;
+  gap: var(--space-1);
 }
 
-/* display: flex on the <ol> above suppresses the native ::marker, so the
-   step number is rendered explicitly instead — as a "Paso N" label, which
-   also reads better than a bare "1." for a non-technical audience. The
-   list stays a real <ol>/<li> for screen readers, which announce "item N
-   of 7" regardless of this visual marker being hidden. */
-.totpSteps li {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  counter-increment: totp-step;
+.totpProgressTrack {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-iris-pale);
+  overflow: hidden;
 }
 
-.totpSteps li::before {
-  content: "Paso " counter(totp-step);
-  font-weight: 700;
+.totpProgressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-amber);
+  transition: width 260ms ease;
+}
+
+.totpProgressLabel {
   font-size: 0.8rem;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-iris-medium);
 }
 
-.totpSteps li p {
+@keyframes totp-slide-enter {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.totpSlide {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  animation: totp-slide-enter 220ms ease;
+}
+
+/* A bit more breathing room than the plain instruction cards, since the
+   intro stacks two notice boxes plus the arrow demo instead of just one
+   paragraph and one screenshot. */
+.totpIntro {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.totpSlide p {
   margin: 0;
+}
+
+.totpNav {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.totpNavArrow {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--color-iris-medium);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.totpNavArrow svg {
+  width: 20px;
+  height: 20px;
+}
+
+.totpNavArrow:hover:not(:disabled) {
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+  transform: translateY(-1px);
+}
+
+.totpNavArrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Same size as .totpNavArrow, invisible, only there so "Siguiente" stays on
+   the right on the first step instead of the row collapsing to one button
+   on the left. */
+.totpNavArrowPlaceholder {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  visibility: hidden;
+}
+
+/* Same arrow look as .totpNavArrow above, but used on the intro card just to
+   show the guardian what the real buttons look like — not an actual control,
+   so it never reacts to hover or clicks. */
+.totpNavArrowDemo {
+  cursor: default;
+  pointer-events: none;
+}
+
+.totpAppLogos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/* Presented as a small "suggested app" card (icon on top, name below)
+   instead of a plain inline row, so the three options read as a deliberate
+   recommendation rather than a decorative afterthought. */
+.totpAppLogo {
+  flex: 1 1 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+  text-align: center;
+}
+
+.totpAppLogoIcon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+
+.totpNavHint {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-medium);
+}
+
+.totpNavHintItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .totpProgressFill {
+    transition: none;
+  }
+
+  .totpSlide {
+    animation: none;
+  }
+
+  .totpNavArrow:hover:not(:disabled) {
+    transform: none;
+  }
 }
 
 .totpStepImage {
   align-self: center;
+  /* .totpSlide's own gap is tight (it also spaces things like the QR error
+     box), so this step's screenshot gets its own extra breathing room from
+     the notice text above it. */
+  margin-top: var(--space-4);
   max-width: 220px;
   width: 100%;
   border-radius: var(--radius-medium);

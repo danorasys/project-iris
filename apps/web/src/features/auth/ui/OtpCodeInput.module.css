@@ -46,6 +46,13 @@
   opacity: 0.5;
 }
 
+/* Hides the "_" placeholder while the box is focused, so it doesn't sit
+   right on top of the blinking text cursor — it comes back on its own once
+   the box loses focus, as long as it's still empty. */
+.box:focus::placeholder {
+  color: transparent;
+}
+
 .error {
   margin: 0;
   text-align: center;
