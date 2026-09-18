@@ -5,225 +5,255 @@ name: iris
 # actually signs and decodes tokens, gets that one added on its own block
 # below, so a compromise of any other service can't be used to forge tokens.
 x-python-service-env: &python-service-env
-  REDIS_URL: ${REDIS_URL}
-  INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
-  WEB_ORIGIN: ${WEB_ORIGIN}
+    REDIS_URL: ${REDIS_URL}
+    INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+    WEB_ORIGIN: ${WEB_ORIGIN}
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    postgres:
+        image: postgres:16-alpine
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+            - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
 
-  redis:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    volumes:
-      - redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    redis:
+        image: redis:7-alpine
+        command: redis-server --appendonly yes
+        volumes:
+            - redisdata:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
 
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
-    volumes:
-      - miniodata:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    minio:
+        image: quay.io/minio/minio:latest
+        command: server /data --console-address ":9001"
+        environment:
+            MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+            MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+        volumes:
+            - miniodata:/data
+        healthcheck:
+            test: ["CMD", "mc", "ready", "local"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
 
-  minio-init:
-    image: minio/mc:latest
-    depends_on:
-      minio:
-        condition: service_healthy
-    environment:
-      S3_BUCKET: ${S3_BUCKET}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-      S3_SECRET_KEY: ${S3_SECRET_KEY}
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 $$S3_ACCESS_KEY $$S3_SECRET_KEY &&
-      mc mb -p local/$$S3_BUCKET &&
-      mc anonymous set download local/$$S3_BUCKET
-      "
-    restart: "no"
+    minio-init:
+        image: quay.io/minio/mc:latest
+        depends_on:
+            minio:
+                condition: service_healthy
+        environment:
+            S3_BUCKET: ${S3_BUCKET}
+            S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${S3_SECRET_KEY}
+        entrypoint: >
+            /bin/sh -c "
+            mc alias set local http://minio:9000 $$S3_ACCESS_KEY $$S3_SECRET_KEY &&
+            mc mb -p local/$$S3_BUCKET &&
+            mc anonymous set download local/$$S3_BUCKET
+            "
+        restart: "no"
 
-  identity-service:
-    build: ./services/identity-service
-    environment:
-      <<: *python-service-env
-      DATABASE_URL: ${IDENTITY_DATABASE_URL}
-      SERVICE_NAME: identity-service
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ALGORITHM: ${JWT_ALGORITHM}
-      JWT_ACCESS_TTL_MIN: ${JWT_ACCESS_TTL_MIN}
-      JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS}
-      # Encrypts guardians.totp_secret at rest (see infrastructure/security.py's
-      # FernetTotpEncryptor) — a separate secret from JWT_SECRET on purpose,
-      # so rotating one never invalidates the other.
-      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY}
-      # Read only at migration time, to build the avatars catalog's seeded
-      # image URLs (see alembic/versions/0006_add_avatars_catalog.py) — the
-      # avatar images themselves are uploaded to this same bucket once,
-      # out of band, not through this service at runtime.
-      S3_PUBLIC_URL: ${S3_PUBLIC_URL}
-      S3_BUCKET: ${S3_BUCKET}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    identity-service:
+        build: ./services/identity-service
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${IDENTITY_DATABASE_URL}
+            SERVICE_NAME: identity-service
+            JWT_SECRET: ${JWT_SECRET}
+            JWT_ALGORITHM: ${JWT_ALGORITHM}
+            JWT_ACCESS_TTL_MIN: ${JWT_ACCESS_TTL_MIN}
+            JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS}
+            # Encrypts guardians.totp_secret at rest (see infrastructure/security.py's
+            # FernetTotpEncryptor) — a separate secret from JWT_SECRET on purpose,
+            # so rotating one never invalidates the other.
+            TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY}
+            # Read only at migration time, to build the avatars catalog's seeded
+            # image URLs (see alembic/versions/0006_add_avatars_catalog.py) — the
+            # avatar images themselves are uploaded to this same bucket once,
+            # out of band, not through this service at runtime.
+            S3_PUBLIC_URL: ${S3_PUBLIC_URL}
+            S3_BUCKET: ${S3_BUCKET}
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
-  classroom-service:
-    build: ./services/classroom-service
-    environment:
-      <<: *python-service-env
-      DATABASE_URL: ${CLASSROOM_DATABASE_URL}
-      SERVICE_NAME: classroom-service
-      IDENTITY_SERVICE_URL: http://identity-service:8000
-      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
-      S3_PUBLIC_URL: ${S3_PUBLIC_URL}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-      S3_SECRET_KEY: ${S3_SECRET_KEY}
-      S3_BUCKET: ${S3_BUCKET}
-      S3_REGION: ${S3_REGION}
-      RATE_LIMIT_ENROLLMENT_MAX: ${RATE_LIMIT_ENROLLMENT_MAX}
-      RATE_LIMIT_ENROLLMENT_WINDOW_SEC: ${RATE_LIMIT_ENROLLMENT_WINDOW_SEC}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      identity-service:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    classroom-service:
+        build: ./services/classroom-service
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${CLASSROOM_DATABASE_URL}
+            SERVICE_NAME: classroom-service
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+            S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+            S3_PUBLIC_URL: ${S3_PUBLIC_URL}
+            S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${S3_SECRET_KEY}
+            S3_BUCKET: ${S3_BUCKET}
+            S3_REGION: ${S3_REGION}
+            RATE_LIMIT_ENROLLMENT_MAX: ${RATE_LIMIT_ENROLLMENT_MAX}
+            RATE_LIMIT_ENROLLMENT_WINDOW_SEC: ${RATE_LIMIT_ENROLLMENT_WINDOW_SEC}
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            identity-service:
+                condition: service_healthy
+            minio-init:
+                condition: service_completed_successfully
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
-  content-service:
-    build: ./services/content-service
-    environment:
-      <<: *python-service-env
-      DATABASE_URL: ${CONTENT_DATABASE_URL}
-      SERVICE_NAME: content-service
-      IDENTITY_SERVICE_URL: http://identity-service:8000
-      CLASSROOM_SERVICE_URL: http://classroom-service:8000
-      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
-      S3_PUBLIC_URL: ${S3_PUBLIC_URL}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-      S3_SECRET_KEY: ${S3_SECRET_KEY}
-      S3_BUCKET: ${S3_BUCKET}
-      S3_REGION: ${S3_REGION}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      identity-service:
-        condition: service_healthy
-      classroom-service:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    content-service:
+        build: ./services/content-service
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${CONTENT_DATABASE_URL}
+            SERVICE_NAME: content-service
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+            CLASSROOM_SERVICE_URL: http://classroom-service:8000
+            S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+            S3_PUBLIC_URL: ${S3_PUBLIC_URL}
+            S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${S3_SECRET_KEY}
+            S3_BUCKET: ${S3_BUCKET}
+            S3_REGION: ${S3_REGION}
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            identity-service:
+                condition: service_healthy
+            classroom-service:
+                condition: service_healthy
+            minio-init:
+                condition: service_completed_successfully
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
-  notification-service:
-    build: ./services/notification-service
-    environment:
-      <<: *python-service-env
-      DATABASE_URL: ${NOTIFICATION_DATABASE_URL}
-      SERVICE_NAME: notification-service
-      IDENTITY_SERVICE_URL: http://identity-service:8000
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      identity-service:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    notification-service:
+        build: ./services/notification-service
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${NOTIFICATION_DATABASE_URL}
+            SERVICE_NAME: notification-service
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            identity-service:
+                condition: service_healthy
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
-  api-gateway:
-    build: ./services/api-gateway
-    environment:
-      <<: *python-service-env
-      SERVICE_NAME: api-gateway
-      IDENTITY_SERVICE_URL: http://identity-service:8000
-      CLASSROOM_SERVICE_URL: http://classroom-service:8000
-      CONTENT_SERVICE_URL: http://content-service:8000
-      NOTIFICATION_SERVICE_URL: http://notification-service:8000
-    depends_on:
-      identity-service:
-        condition: service_healthy
-      classroom-service:
-        condition: service_healthy
-      content-service:
-        condition: service_healthy
-      notification-service:
-        condition: service_healthy
-    ports:
-      - "${GATEWAY_PORT}:8000"
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    api-gateway:
+        build: ./services/api-gateway
+        environment:
+            <<: *python-service-env
+            SERVICE_NAME: api-gateway
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+            CLASSROOM_SERVICE_URL: http://classroom-service:8000
+            CONTENT_SERVICE_URL: http://content-service:8000
+            NOTIFICATION_SERVICE_URL: http://notification-service:8000
+        depends_on:
+            identity-service:
+                condition: service_healthy
+            classroom-service:
+                condition: service_healthy
+            content-service:
+                condition: service_healthy
+            notification-service:
+                condition: service_healthy
+        ports:
+            - "${GATEWAY_PORT}:8000"
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-      target: dev
-    environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
-      VITE_GAZE_SOURCE: ${VITE_GAZE_SOURCE:-}
-    volumes:
-      - ./apps/web:/app/apps/web
-      - ./packages/shared-types:/app/packages/shared-types
-      - /app/node_modules
-      - /app/apps/web/node_modules
-    ports:
-      - "${WEB_PORT}:5173"
-    depends_on:
-      - api-gateway
-      - notification-service
+    web:
+        build:
+            context: .
+            dockerfile: apps/web/Dockerfile
+            target: dev
+        environment:
+            VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+            VITE_GAZE_SOURCE: ${VITE_GAZE_SOURCE:-}
+        volumes:
+            - ./apps/web:/app/apps/web
+            - ./packages/shared-types:/app/packages/shared-types
+            - /app/node_modules
+            - /app/apps/web/node_modules
+        ports:
+            - "${WEB_PORT}:5173"
+        depends_on:
+            - api-gateway
+            - notification-service
 
 volumes:
-  pgdata:
-  miniodata:
-  redisdata:
+    pgdata:
+    miniodata:
+    redisdata:
