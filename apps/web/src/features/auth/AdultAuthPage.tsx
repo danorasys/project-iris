@@ -17,7 +17,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function AdultAuthPage() {
     const location = useLocation()
-    const navigate = useNavigate()
+
     const [view, setView] = useState<View>(
         (location.state as { vista?: View } | null)?.vista ?? "login",
     )

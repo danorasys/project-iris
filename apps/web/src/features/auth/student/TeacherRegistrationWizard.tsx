@@ -25,7 +25,7 @@ import logoIris from "@/assets/landing/logo-iris.png"
 import styles from "./GuardianRegistrationWizard.module.css"
 import { calculateAge } from "@/features/utils/calculateAge"
 import { formatDate } from "@/features/utils/formatDate"
-import { validateDocumentIssuedAt } from "@/features/utils/validateDocumentIssuedAt"
+//import { validateDocumentIssuedAt } from "@/features/utils/validateDocumentIssuedAt"
 
 const MINIMUM_TEACHER_AGE = 18
 const TODAY_ISO = new Date().toISOString().slice(0, 10)
