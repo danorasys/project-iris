@@ -1,0 +1,292 @@
+name: iris
+
+# Same idea as docker-compose.yml's x-python-service-env: shared config
+# instead of repeating it on every service. Production adds two things dev
+# doesn't need: restart on crash/reboot, and a cap on log file size so a
+# noisy service can't slowly fill the disk over weeks of uptime.
+x-python-service-env: &python-service-env
+    REDIS_URL: ${REDIS_URL}
+    INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+    WEB_ORIGIN: ${WEB_ORIGIN}
+
+x-restart-policy: &restart-policy
+    restart: unless-stopped
+
+x-log-limits: &log-limits
+    logging:
+        driver: json-file
+        options:
+            max-size: "10m"
+            max-file: "3"
+
+services:
+    postgres:
+        image: postgres:16-alpine
+        <<: [*restart-policy, *log-limits]
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+            - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+        # Bound to the VPS's own loopback address, not "5432:5432" — this
+        # never touches ufw or the public network at all, Postgres is only
+        # reachable from inside this same machine. A DB client on a laptop
+        # still gets in through an SSH tunnel (see docs/deployment.md),
+        # since that tunnel's far end is the VPS's own localhost too.
+        ports:
+            - "127.0.0.1:5432:5432"
+
+    redis:
+        image: redis:7-alpine
+        <<: [*restart-policy, *log-limits]
+        command: redis-server --appendonly yes
+        volumes:
+            - redisdata:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+    minio:
+        image: quay.io/minio/minio:latest
+        <<: [*restart-policy, *log-limits]
+        command: server /data --console-address ":9001"
+        environment:
+            MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+            MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+        volumes:
+            - miniodata:/data
+        healthcheck:
+            test: ["CMD", "mc", "ready", "local"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+        # Not published either — reverse-proxy reaches it over the private
+        # network and re-exposes only the public bucket's contents at
+        # /media/*, never the MinIO console or admin API.
+
+    minio-init:
+        image: quay.io/minio/mc:latest
+        depends_on:
+            minio:
+                condition: service_healthy
+        environment:
+            S3_BUCKET: ${S3_BUCKET}
+            S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${S3_SECRET_KEY}
+        entrypoint: >
+            /bin/sh -c "
+            mc alias set local http://minio:9000 $$S3_ACCESS_KEY $$S3_SECRET_KEY &&
+            mc mb -p local/$$S3_BUCKET &&
+            mc anonymous set download local/$$S3_BUCKET
+            "
+        restart: "no"
+
+    identity-service:
+        build: ./services/identity-service
+        <<: [*restart-policy, *log-limits]
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${IDENTITY_DATABASE_URL}
+            SERVICE_NAME: identity-service
+            JWT_SECRET: ${JWT_SECRET}
+            JWT_ALGORITHM: ${JWT_ALGORITHM}
+            JWT_ACCESS_TTL_MIN: ${JWT_ACCESS_TTL_MIN}
+            JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS}
+            TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY}
+            S3_PUBLIC_URL: ${S3_PUBLIC_URL}
+            S3_BUCKET: ${S3_BUCKET}
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    classroom-service:
+        build: ./services/classroom-service
+        <<: [*restart-policy, *log-limits]
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${CLASSROOM_DATABASE_URL}
+            SERVICE_NAME: classroom-service
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+            S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+            S3_PUBLIC_URL: ${S3_PUBLIC_URL}
+            S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${S3_SECRET_KEY}
+            S3_BUCKET: ${S3_BUCKET}
+            S3_REGION: ${S3_REGION}
+            RATE_LIMIT_ENROLLMENT_MAX: ${RATE_LIMIT_ENROLLMENT_MAX}
+            RATE_LIMIT_ENROLLMENT_WINDOW_SEC: ${RATE_LIMIT_ENROLLMENT_WINDOW_SEC}
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            identity-service:
+                condition: service_healthy
+            minio-init:
+                condition: service_completed_successfully
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    content-service:
+        build: ./services/content-service
+        <<: [*restart-policy, *log-limits]
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${CONTENT_DATABASE_URL}
+            SERVICE_NAME: content-service
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+            CLASSROOM_SERVICE_URL: http://classroom-service:8000
+            S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+            S3_PUBLIC_URL: ${S3_PUBLIC_URL}
+            S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${S3_SECRET_KEY}
+            S3_BUCKET: ${S3_BUCKET}
+            S3_REGION: ${S3_REGION}
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            identity-service:
+                condition: service_healthy
+            classroom-service:
+                condition: service_healthy
+            minio-init:
+                condition: service_completed_successfully
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    notification-service:
+        build: ./services/notification-service
+        <<: [*restart-policy, *log-limits]
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${NOTIFICATION_DATABASE_URL}
+            SERVICE_NAME: notification-service
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            identity-service:
+                condition: service_healthy
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    api-gateway:
+        build: ./services/api-gateway
+        <<: [*restart-policy, *log-limits]
+        environment:
+            <<: *python-service-env
+            SERVICE_NAME: api-gateway
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+            CLASSROOM_SERVICE_URL: http://classroom-service:8000
+            CONTENT_SERVICE_URL: http://content-service:8000
+            NOTIFICATION_SERVICE_URL: http://notification-service:8000
+        depends_on:
+            identity-service:
+                condition: service_healthy
+            classroom-service:
+                condition: service_healthy
+            content-service:
+                condition: service_healthy
+            notification-service:
+                condition: service_healthy
+        # No ports: here either — only reverse-proxy talks to it, over
+        # :8000 on the private network. In dev this is published straight
+        # to the host since there's no proxy in front of it yet.
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    web:
+        build:
+            context: .
+            dockerfile: apps/web/Dockerfile
+            target: runtime
+            args:
+                VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        <<: [*restart-policy, *log-limits]
+        depends_on:
+            - api-gateway
+
+    reverse-proxy:
+        image: caddy:2-alpine
+        <<: [*restart-policy, *log-limits]
+        volumes:
+            - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+            - caddy_data:/data
+            - caddy_config:/config
+        environment:
+            DOMAIN: ${DOMAIN}
+        ports:
+            - "80:80"
+            - "443:443"
+        depends_on:
+            - web
+            - api-gateway
+            - minio
+
+volumes:
+    pgdata:
+    miniodata:
+    redisdata:
+    caddy_data:
+    caddy_config:

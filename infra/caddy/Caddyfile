@@ -1,0 +1,34 @@
+# Caddy gets TLS for free here: since {$DOMAIN} already points at this
+# server's public IP, Caddy requests and renews a Let's Encrypt certificate
+# on its own the first time it starts, no certbot cron job to maintain.
+{$DOMAIN} {
+    encode gzip
+
+    # Same three headers apps/web/nginx.conf already sets for static assets
+    # — repeated here too, since this is the edge every request actually
+    # goes through in production.
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    # The BFF already expects the /api prefix itself (see api-gateway's
+    # routes_proxy.py), so this just forwards as-is, no path rewriting.
+    handle /api/* {
+        reverse_proxy api-gateway:8000
+    }
+
+    # MinIO serves objects at /<bucket>/<key> (path-style), so the /media
+    # prefix used here has to be stripped before forwarding — this is the
+    # only way anything ever reaches MinIO from outside the server, it has
+    # no port published of its own.
+    handle /media/* {
+        uri strip_prefix /media
+        reverse_proxy minio:9000
+    }
+
+    handle {
+        reverse_proxy web:80
+    }
+}
