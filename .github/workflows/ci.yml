@@ -144,6 +144,44 @@ jobs:
           file: apps/web/Dockerfile
           target: runtime
           push: true
+          # Vite bakes this into the compiled JS at build time (see
+          # apps/web/Dockerfile), so the published image has to be built
+          # with the real production URL — otherwise it silently ships
+          # with the Dockerfile's localhost default. PROD_API_BASE_URL is
+          # a repo variable (Settings > Secrets and variables > Actions >
+          # Variables), not a secret, since it's just a public URL.
+          build-args: |
+            VITE_API_BASE_URL=${{ vars.PROD_API_BASE_URL }}
           tags: |
             ghcr.io/${{ github.repository }}/web:latest
             ghcr.io/${{ github.repository }}/web:${{ github.sha }}
+
+  deploy:
+    name: Deploy to production (VPS)
+    needs: [build-and-push, build-and-push-web]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    # Requires a "production" GitHub Environment with required reviewers
+    # configured (Settings > Environments) — that's what makes this job
+    # pause for manual approval instead of deploying automatically. The
+    # three secrets below are Environment secrets on "production", not
+    # repo secrets, so only this job (post-approval) can read them.
+    environment:
+      name: production
+      url: https://iris.bucaramanga.upb.edu.co
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          # The SSH server ignores this and always runs the forced
+          # command in the deploy user's authorized_keys (scripts/deploy.sh)
+          # regardless of what's requested here — the script reads this
+          # SHA back out of $SSH_ORIGINAL_COMMAND to know which image tag
+          # to pull. See scripts/deploy.sh for the validation.
+          script: "${{ github.sha }}"
