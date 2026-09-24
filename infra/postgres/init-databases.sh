@@ -7,7 +7,7 @@ set -e
 # by hand (or wipe the pgdata volume and start over).
 for db in identity_db classroom_db content_db notification_db; do
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-    SELECT 'CREATE DATABASE $db OWNER $POSTGRES_USER'
+    SELECT 'CREATE DATABASE $db OWNER ' || quote_ident('$POSTGRES_USER')
     WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$db')\gexec
 EOSQL
 done
