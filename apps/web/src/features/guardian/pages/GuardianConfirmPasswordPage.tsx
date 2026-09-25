@@ -53,7 +53,7 @@ export default function GuardianConfirmPasswordPage() {
             {confirmPassword.isPending ? "Verificando…" : "Continuar"}
           </button>
         </form>
-        <button type="button" className={styles.textLink} onClick={() => navigate("/login/student/profile")}>
+        <button type="button" className={styles.textLink} onClick={() => navigate("/login/guardian/portal")}>
           Volver
         </button>
       </div>

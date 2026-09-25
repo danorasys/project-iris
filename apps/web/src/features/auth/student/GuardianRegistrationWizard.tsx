@@ -214,7 +214,7 @@ function ConfirmationScreen({
  * guardian into their own session. From there the wizard walks them
  * through setting up 2FA (TotpSetupScreen) before handing off to
  * `/guardian/portal` — reaching the student's own session from there
- * always goes through `/login/student/profile`, which asks for the PIN
+ * always goes through `/login/guardian/portal`, which asks for the PIN
  * again rather than reusing the one just typed in this form, the same
  * check any other guardian login has to pass. */
 export default function GuardianRegistrationWizard() {

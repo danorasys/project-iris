@@ -77,7 +77,7 @@ export default function GuardianPortalPage() {
         message: "¿Estás seguro de regresar al selector de perfil?",
         acceptLabel: "Sí, regresar",
         cancelLabel: "Cancelar",
-        onAccept: () => navigate("/login/student/profile", { replace: true }),
+        onAccept: () => navigate("/login/guardian/portal", { replace: true }),
       });
     });
   }

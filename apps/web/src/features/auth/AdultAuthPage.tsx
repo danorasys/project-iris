@@ -25,11 +25,11 @@ export default function AdultAuthPage() {
         <main className={styles.page}>
             <BrandPanel />
             <div className={styles.formColumn}>
-                {view === "login" ? (
+                {view === "elegirRegistro" ? (
                     <button
                         type="button"
                         className={styles.back}
-                        onClick={() => setView("elegirRegistro")}
+                        onClick={() => setView("login")}
                     >
                         <IconArrowLeft /> Volver atrás
                     </button>
@@ -38,7 +38,7 @@ export default function AdultAuthPage() {
                         to="/"
                         className={styles.back}
                     >
-                        <IconArrowLeft /> Volver atrás
+                        <IconArrowLeft /> Volver al inicio
                     </Link>
                 )}
 
@@ -124,7 +124,7 @@ function LoginForm({ onGoToRegister }: { onGoToRegister: () => void }) {
             setSession(tokens)
             navigate(
                 decodeJwtPayload(tokens.access_token)?.role === "guardian"
-                    ? "/login/student/profile"
+                    ? "/login/guardian/portal"
                     : "/teacher/home",
                 { replace: true },
             )

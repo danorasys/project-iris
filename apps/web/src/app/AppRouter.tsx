@@ -24,6 +24,9 @@ const GuardianRegistrationWizard = lazy(
 const TeacherRegistrationWizard = lazy(
     () => import("@/features/auth/student/TeacherRegistrationWizard"),
 )
+const ProfileSelectorAuth = lazy(
+    () => import("@/features/auth/student/ProfileSelectorAuth"),
+)
 const LegalNoticePage = lazy(() => import("@/features/legal/LegalNoticePage"))
 const PrivacyPolicyPage = lazy(
     () => import("@/features/legal/PrivacyPolicyPage"),
@@ -124,6 +127,10 @@ export function AppRouter() {
                     <Route
                         path="/login/guardian/new"
                         element={<GuardianRegistrationWizard />}
+                    />
+                    <Route
+                        path="/login/guardian/portal"
+                        element={<ProfileSelectorAuth />}
                     />
                     <Route
                         path="/login/teacher/new"

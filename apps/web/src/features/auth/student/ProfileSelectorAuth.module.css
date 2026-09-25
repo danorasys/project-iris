@@ -1,10 +1,18 @@
+/* Organic blobs in soft pastel colors, one per corner. They are SVG
+   backgrounds, so they stay behind the content. */
 .page {
+  position: relative;
   min-height: 100%;
+  background:
+    url("../../../assets/auth/blob-blue.svg") left -120px top -110px / 440px no-repeat,
+    url("../../../assets/auth/blob-gold.svg") right -70px top 70px / 290px no-repeat,
+    url("../../../assets/auth/blob-mint.svg") left -90px bottom -90px / 340px no-repeat,
+    url("../../../assets/auth/blob-peach.svg") right -130px bottom -150px / 470px no-repeat;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--space-6) var(--space-4);
-  gap: var(--space-5);
+  padding: var(--space-4);
+  gap: var(--space-3);
   text-align: center;
 }
 
@@ -16,6 +24,7 @@
 
 .subtitle {
   margin: 0;
+  font-size: 1.2rem;
   color: var(--color-ink-soft);
 }
 
@@ -95,27 +104,129 @@
   gap: var(--space-2);
 }
 
-/* Visible, but deliberately plain next to the big colorful gaze tiles
-   above — this is the adult's own way in, not another profile to pick. */
-.guardianPortalLink {
-  display: inline-flex;
+/* Same white cards as the account type choice in AdultAuthPage. */
+.portalChoices {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.portalCard {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
+  justify-content: center;
+  gap: var(--space-4);
+  /* Takes what is left of the screen after the title, the note and the
+     spacing (about 290px), so the page fits without scrolling. */
+  min-height: clamp(320px, calc(100vh - 290px), 680px);
+  min-height: clamp(320px, calc(100dvh - 290px), 680px);
+  padding: var(--space-5) var(--space-4);
   border: 2px solid var(--color-iris-pale);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
-  color: var(--color-iris-deep);
-  padding: var(--space-2) var(--space-4);
-  font-size: 0.95rem;
-  font-weight: 700;
+  color: inherit;
+  font: inherit;
+  text-align: center;
   cursor: pointer;
   transition:
     border-color 120ms ease,
-    background 120ms ease;
+    transform 120ms ease;
 }
 
-.guardianPortalLink:hover {
+.portalCard:hover {
   border-color: var(--color-iris-medium);
-  background: var(--color-canvas);
+  transform: translateY(-1px);
+}
+
+.portalCardText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.portalCardTitle {
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--color-iris-deep);
+}
+
+.portalCardNote {
+  font-size: 0.98rem;
+  line-height: 1.45;
+  color: var(--color-ink-soft);
+}
+
+.portalCardIcon {
+  flex: none;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Same note as the tutor registration steps, with a light blue background
+   and a border so it stands out over the page's colored blobs. */
+.notice {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  background: color-mix(in srgb, var(--color-iris-pale) 45%, var(--color-surface));
+  border-radius: var(--radius-medium);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+  text-align: left;
+}
+
+.noticeIcon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--color-iris-medium);
+}
+
+.noticeText {
+  margin: 0;
+}
+
+/* Top right corner, in the error red so it reads as the way out. On small
+   screens it goes back to the normal flow, under the cards. */
+.logoutButton {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-error) 40%, transparent);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+  color: var(--color-error);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.logoutButton:hover {
+  background: var(--color-error);
+  color: var(--color-surface);
+}
+
+@media (max-width: 560px) {
+  .logoutButton {
+    position: static;
+  }
 }

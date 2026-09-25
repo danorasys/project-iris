@@ -25,7 +25,7 @@ export default function StudentAuthIndex() {
         <BigChoiceButton
           variant="teal"
           icon={<IconUndo className={styles.icon} />}
-          onSelect={() => navigate("/login/student/profile")}
+          onSelect={() => navigate("/login/guardian/portal")}
         >
           Ya soy Mirador
         </BigChoiceButton>
