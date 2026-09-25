@@ -10,6 +10,10 @@ on:
   push:
     branches: [main]
 
+# Read-only by default. Only the jobs that publish images ask for more.
+permissions:
+  contents: read
+
 jobs:
   backend:
     name: backend / ${{ matrix.service }}
@@ -144,12 +148,8 @@ jobs:
           file: apps/web/Dockerfile
           target: runtime
           push: true
-          # Vite bakes this into the compiled JS at build time (see
-          # apps/web/Dockerfile), so the published image has to be built
-          # with the real production URL — otherwise it silently ships
-          # with the Dockerfile's localhost default. PROD_API_BASE_URL is
-          # a repo variable (Settings > Secrets and variables > Actions >
-          # Variables), not a secret, since it's just a public URL.
+          # Vite bakes this URL into the bundle at build time. It is a repo
+          # variable (not a secret) because it is just a public URL.
           build-args: |
             VITE_API_BASE_URL=${{ vars.PROD_API_BASE_URL }}
           tags: |
@@ -164,24 +164,20 @@ jobs:
     concurrency:
       group: production-deploy
       cancel-in-progress: false
-    # Requires a "production" GitHub Environment with required reviewers
-    # configured (Settings > Environments) — that's what makes this job
-    # pause for manual approval instead of deploying automatically. The
-    # three secrets below are Environment secrets on "production", not
-    # repo secrets, so only this job (post-approval) can read them.
+    # The "production" environment needs required reviewers, that is what
+    # makes this job wait for a manual approval. Its three secrets are
+    # environment secrets, so only this job can read them.
     environment:
       name: production
       url: https://iris.bucaramanga.upb.edu.co
     steps:
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+        # Pinned to a commit (v1.2.5) so a moved tag can't run new code with our key.
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          # The SSH server ignores this and always runs the forced
-          # command in the deploy user's authorized_keys (scripts/deploy.sh)
-          # regardless of what's requested here — the script reads this
-          # SHA back out of $SSH_ORIGINAL_COMMAND to know which image tag
-          # to pull. See scripts/deploy.sh for the validation.
+          # The server runs scripts/deploy.sh no matter what is sent here,
+          # and the script only reads this SHA to pick the image tag.
           script: "${{ github.sha }}"

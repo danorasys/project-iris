@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { Accessibility, Footprints, School, Sprout, UserPlus, type LucideIcon } from "lucide-react";
 import howItWorksDiagram from "@/assets/landing/how-it-works-diagram.png";
 import badgeTeachers from "@/assets/landing/badge-teachers.png";
 import badgeStudents from "@/assets/landing/badge-students.png";
@@ -55,31 +56,30 @@ interface DataParagraph {
 }
 
 interface Statistic {
-  finalValue: number;
-  format: (value: number) => string;
-  /** One or more paragraphs under the figure, the first right below the
-   * number, the rest (if any) as supporting facts. Each one can highlight
-   * inline figures. The count-up animation is only for the main figure,
-   * never for these text numbers. */
+  /** Big number and its unit, split so the unit can be smaller. */
+  figure: string;
+  unit: string;
+  /** Paragraphs under the figure. Each one can highlight inline text. */
   paragraphs: DataParagraph[];
   source: string;
   year: string;
   logo: string;
   logoAlt: string;
+  /** Corner icon that hints at the topic. */
+  icon: LucideIcon;
 }
 
-/** The only verified figures for the landing, don't invent more. `format`
- * reproduces the exact verified text at every step of the count-up. */
+/** The only verified figures for the landing, don't invent more. */
 const STATISTICS: Statistic[] = [
   {
-    finalValue: 2500,
-    format: (value) => `${Math.round(value).toLocaleString("es-CO")} millones`,
+    figure: "2.500",
+    unit: "millones",
     paragraphs: [
       {
         segments: [
-          { text: "de personas en el mundo necesitan tecnología de apoyo para vivir con autonomía. Solo el " },
-          { text: "3 %", emphasis: true },
-          { text: " accede a ella en países de bajos ingresos." },
+          { text: "de personas en el mundo necesitan tecnología de apoyo para vivir con autonomía. " },
+          { text: "Solo el 3 % accede", emphasis: true },
+          { text: " a ella en países de bajos ingresos." },
         ],
       },
     ],
@@ -87,10 +87,11 @@ const STATISTICS: Statistic[] = [
     year: "Actualizada el 2 de enero de 2024",
     logo: logoOms,
     logoAlt: "OMS",
+    icon: Accessibility,
   },
   {
-    finalValue: 19.1,
-    format: (value) => `${value.toFixed(1).replace(".", ",")} millones`,
+    figure: "19,1",
+    unit: "millones",
     paragraphs: [
       {
         segments: [
@@ -104,10 +105,11 @@ const STATISTICS: Statistic[] = [
     year: "Publicado en noviembre de 2021",
     logo: logoUnicef1,
     logoAlt: "UNICEF",
+    icon: School,
   },
   {
-    finalValue: 3134037,
-    format: (value) => `${Math.round(value).toLocaleString("es-CO")} personas`,
+    figure: "3.134.037",
+    unit: "personas",
     paragraphs: [
       {
         segments: [
@@ -121,6 +123,7 @@ const STATISTICS: Statistic[] = [
     year: "Datos del censo 2018",
     logo: logoDane,
     logoAlt: "DANE",
+    icon: Footprints,
   },
 ];
 
@@ -150,44 +153,20 @@ function useReveal<T extends Element>(threshold = 0.2) {
   return { ref, inView };
 }
 
-const COUNT_DURATION_MS = 1600;
-
-/** Counts from 0 to `finalValue` with a cubic ease-out, once, starting when
- * `active` turns true, never before the section is on screen. Respects
- * `prefers-reduced-motion` by jumping straight to the final value. */
-function useCountUp(finalValue: number, active: boolean): number {
-  const [value, setValue] = useState(0);
-  const prefersReducedMotion = useRef(
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
-
-  useEffect(() => {
-    if (!active) return;
-    if (prefersReducedMotion.current) {
-      setValue(finalValue);
-      return;
-    }
-    let start: number | null = null;
-    let frameId: number;
-    function step(timestamp: number) {
-      if (start === null) start = timestamp;
-      const progress = Math.min((timestamp - start) / COUNT_DURATION_MS, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(finalValue * eased);
-      if (progress < 1) frameId = requestAnimationFrame(step);
-    }
-    frameId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frameId);
-  }, [active, finalValue]);
-
-  return value;
-}
-
-function StatisticRow({ statistic, active }: { statistic: Statistic; active: boolean }) {
-  const value = useCountUp(statistic.finalValue, active);
+function StatisticRow({ statistic }: { statistic: Statistic }) {
+  const Icon = statistic.icon;
   return (
     <div className={styles.statisticRow}>
-      <dt className={styles.figure}>{statistic.format(value)}</dt>
+      <div className={styles.cardHeader} aria-hidden="true">
+        <span className={styles.cardRule} />
+        <span className={styles.cardIcon}>
+          <Icon size={22} strokeWidth={1.75} />
+        </span>
+      </div>
+      <dt className={styles.figure}>
+        {statistic.figure}
+        <span className={styles.figureUnit}> {statistic.unit}</span>
+      </dt>
       <dd className={styles.figureDescription}>
         {statistic.paragraphs.map((paragraph, index) => (
           <p key={index} className={index === 0 ? styles.figureParagraph : styles.secondaryParagraph}>
@@ -213,15 +192,14 @@ function StatisticRow({ statistic, active }: { statistic: Statistic; active: boo
   );
 }
 
-/** Starts the count-up for all three figures at once, only when the
- * section enters the viewport. */
+/** Cards fade up one after another the first time the section is on screen. */
 function Statistics() {
   const { ref, inView } = useReveal<HTMLDListElement>(0.3);
 
   return (
-    <dl className={styles.statistics} ref={ref}>
+    <dl className={`${styles.statistics} ${inView ? styles.statisticsVisible : ""}`} ref={ref}>
       {STATISTICS.map((statistic) => (
-        <StatisticRow key={statistic.source} statistic={statistic} active={inView} />
+        <StatisticRow key={statistic.source} statistic={statistic} />
       ))}
     </dl>
   );
@@ -288,6 +266,7 @@ function JoinSection() {
           barreras.
         </p>
         <Link to="/login/adult" state={{ vista: "elegirRegistro" }} className={styles.heroButton}>
+          <UserPlus size={20} strokeWidth={2} aria-hidden="true" />
           Quiero unirme
         </Link>
       </div>
@@ -391,6 +370,7 @@ export default function LandingPage() {
         <div className={styles.statsCta}>
           <p className={styles.statsCtaText}>Detrás de cada cifra hay una historia que puede cambiar.</p>
           <Link to="/login/adult" state={{ vista: "elegirRegistro" }} className={styles.statsCtaButton}>
+            <Sprout size={20} strokeWidth={2} aria-hidden="true" />
             Empieza el cambio hoy
           </Link>
         </div>

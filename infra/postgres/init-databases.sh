@@ -1,13 +1,14 @@
 #!/bin/bash
 set -e
 
-# Docker only runs the scripts in docker-entrypoint-initdb.d the first time,
-# when the data volume is still empty. If you add a new database to this
-# list later, it won't show up on an existing volume, you have to create it
-# by hand (or wipe the pgdata volume and start over).
+# Postgres only runs this the first time, when the data volume is empty. A
+# database added to the list later has to be created by hand on an existing
+# volume (or wipe the volume and start over).
+# The names go in as psql variables and %I quotes them, so a user like
+# "change-me-user" (with dashes) works too.
 for db in identity_db classroom_db content_db notification_db; do
-  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-    SELECT 'CREATE DATABASE $db OWNER ' || quote_ident('$POSTGRES_USER')
-    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$db')\gexec
+  psql -v ON_ERROR_STOP=1 -v db="$db" -v owner="$POSTGRES_USER" --username "$POSTGRES_USER" <<-'EOSQL'
+    SELECT format('CREATE DATABASE %I OWNER %I', :'db', :'owner')
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = :'db')\gexec
 EOSQL
 done

@@ -1,33 +1,36 @@
 #!/bin/bash
-# Forced command for the "deploy" user's SSH key (see ~deploy/.ssh/authorized_keys
-# on the VPS and the "deploy" job in .github/workflows/ci.yml). The SSH client
-# (GitHub Actions) requests to run "<git-sha>" as a command, but the
-# authorized_keys entry ignores that and always runs this script instead —
-# the requested command survives in $SSH_ORIGINAL_COMMAND, which is the only
-# thing this script trusts it for: picking which image tag to pull.
+# Forced command of the "deploy" SSH key. The CI sends a commit SHA and sshd
+# hands it to this script in SSH_ORIGINAL_COMMAND. Nothing else is trusted.
 set -euo pipefail
 
-TAG="${SSH_ORIGINAL_COMMAND:-latest}"
-if ! [[ "$TAG" =~ ^([0-9a-f]{40}|latest)$ ]]; then
-    echo "Invalid tag requested: $TAG" >&2
-    exit 1
-fi
-
-cd /opt/iris
-git pull --ff-only
-
-export IMAGE_TAG="$TAG"
-docker compose -f docker-compose.prod.yml --env-file .env.production pull
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d
-docker image prune -af --filter "until=72h"
-
-for _ in $(seq 1 10); do
-    if curl -fsS https://iris.bucaramanga.upb.edu.co/api/health/live > /dev/null; then
-        echo "Deploy OK, tag=$TAG"
-        exit 0
+main() {
+    local tag="${SSH_ORIGINAL_COMMAND:-latest}"
+    if ! [[ "$tag" =~ ^([0-9a-f]{40}|latest)$ ]]; then
+        echo "Invalid tag: $tag" >&2
+        return 1
     fi
-    sleep 3
-done
 
-echo "Health check failed after deploying tag=$TAG" >&2
-exit 1
+    cd /opt/iris
+    git fetch --quiet origin
+
+    # Use the same commit as the images, so a rollback also gets the compose
+    # file that matches them.
+    if [[ "$tag" == "latest" ]]; then
+        git checkout --quiet main
+        git merge --ff-only --quiet origin/main
+    else
+        git checkout --quiet --detach "$tag"
+    fi
+
+    export IMAGE_TAG="$tag"
+    local compose=(docker compose -f docker-compose.prod.yml --env-file .env.production)
+    "${compose[@]}" pull
+    "${compose[@]}" up -d --wait --wait-timeout 180
+    docker image prune -af --filter "until=72h"
+
+    echo "Deploy OK, tag=$tag"
+}
+
+# Same line on purpose: bash reads the file as it runs, and git may replace
+# this script during the checkout above.
+main; exit $?

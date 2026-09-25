@@ -34,11 +34,8 @@ services:
             interval: 5s
             timeout: 5s
             retries: 10
-        # Bound to the VPS's own loopback address, not "5432:5432" — this
-        # never touches ufw or the public network at all, Postgres is only
-        # reachable from inside this same machine. A DB client on a laptop
-        # still gets in through an SSH tunnel (see docs/deployment.md),
-        # since that tunnel's far end is the VPS's own localhost too.
+        # Loopback only, so it never touches the public network. From a laptop
+        # use an SSH tunnel (see docs/deployment.md).
         ports:
             - "127.0.0.1:5432:5432"
 
@@ -68,9 +65,7 @@ services:
             interval: 5s
             timeout: 5s
             retries: 10
-        # Not published either — reverse-proxy reaches it over the private
-        # network and re-exposes only the public bucket's contents at
-        # /media/*, never the MinIO console or admin API.
+        # Not published. Caddy reaches it inside the network and only exposes /media/*.
 
     minio-init:
         image: quay.io/minio/mc:latest
@@ -241,9 +236,7 @@ services:
                 condition: service_healthy
             notification-service:
                 condition: service_healthy
-        # No ports: here either — only reverse-proxy talks to it, over
-        # :8000 on the private network. In dev this is published straight
-        # to the host since there's no proxy in front of it yet.
+        # No ports here, only the reverse proxy talks to it.
         healthcheck:
             test:
                 [
