@@ -1,111 +1,199 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+
+import { useLessonDetail } from "@/shared/api/hooks/useLessonsApi";
+import { useAuth } from "@/shared/auth/AuthContext";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { Mascot } from "@/shared/ui/Mascot";
-import { useAuth } from "@/shared/auth/AuthContext";
-import { useLessonDetail } from "@/shared/api/hooks/useLessonsApi";
+import { LessonBlockRenderer } from "@/features/lessons/components/LessonBlockRenderer";
+
 import { DwellArrow } from "../components/DwellArrow";
 import { getDwellDurationMs } from "../lib/dwellPreferences";
 import styles from "./LessonViewerPage.module.css";
 
-/** `/student/lessons/:lessonId`, a slideshow-style viewer. One block at
- * a time, navigated with big left/right arrows, never scroll. On reaching
- * the last block, the right arrow goes back to the classroom's lesson
- * list instead of staying disabled. */
 export default function LessonViewerPage() {
-  const { lessonId } = useParams<{ lessonId: string }>();
-  const navigate = useNavigate();
-  const { session } = useAuth();
-  const dwellDurationMs = session ? getDwellDurationMs(session.subjectId) : undefined;
+    const { lessonId } = useParams<{ lessonId: string }>();
+    const navigate = useNavigate();
+    const { session } = useAuth();
 
-  const lessonQuery = useLessonDetail(lessonId);
-  const [index, setIndex] = useState(0);
+    const lessonQuery = useLessonDetail(lessonId);
+    const [index, setIndex] = useState(0);
 
-  if (lessonQuery.isLoading) {
-    return (
-      <main className={styles.centered}>
-        <Mascot mood="thinking" size="medium">
-          Abriendo la lección…
-        </Mascot>
-      </main>
+    const dwellDurationMs = session
+        ? getDwellDurationMs(session.subjectId)
+        : undefined;
+
+    const blocks = useMemo(
+        () =>
+            [...(lessonQuery.data?.blocks ?? [])].sort(
+                (left, right) => left.order_index - right.order_index,
+            ),
+        [lessonQuery.data?.blocks],
     );
-  }
 
-  if (lessonQuery.isError || !lessonQuery.data) {
-    return (
-      <main className={styles.centered}>
-        <Mascot mood="thinking" size="medium">
-          No pudimos abrir esta lección.
-        </Mascot>
-        <BigChoiceButton variant="teal" onSelect={() => navigate("/student/classrooms")} dwellDurationMs={dwellDurationMs}>
-          Volver a mis aulas
-        </BigChoiceButton>
-      </main>
-    );
-  }
+    useEffect(() => {
+        setIndex((current) =>
+            Math.min(current, Math.max(blocks.length - 1, 0)),
+        );
+    }, [blocks.length]);
 
-  const lesson = lessonQuery.data;
-  const blocks = [...lesson.blocks].sort((a, b) => a.order_index - b.order_index);
-
-  const goToLessons = () => navigate(`/student/classrooms/${lesson.classroom_id}/lessons`);
-
-  if (blocks.length === 0) {
-    return (
-      <main className={styles.centered}>
-        <Mascot mood="happy" size="medium">
-          Esta lección todavía no tiene contenido.
-        </Mascot>
-        <BigChoiceButton variant="teal" onSelect={goToLessons} dwellDurationMs={dwellDurationMs}>
-          Volver a lecciones
-        </BigChoiceButton>
-      </main>
-    );
-  }
-
-  const currentBlock = blocks[index];
-  const isFirst = index === 0;
-  const isLast = index === blocks.length - 1;
-
-  const previous = () => {
-    if (!isFirst) setIndex((i) => i - 1);
-  };
-
-  const next = () => {
-    if (isLast) {
-      goToLessons();
-    } else {
-      setIndex((i) => i + 1);
+    if (lessonQuery.isLoading) {
+        return (
+            <main className={styles.centered}>
+                <Mascot mood="thinking" size="medium">
+                    Preparando tu lección…
+                </Mascot>
+            </main>
+        );
     }
-  };
 
-  return (
-    <main className={styles.viewer}>
-      <DwellArrow
-        direction="left"
-        label="Bloque anterior"
-        onSelect={previous}
-        disabled={isFirst}
-        dwellDurationMs={dwellDurationMs}
-      />
+    if (lessonQuery.isError || !lessonQuery.data) {
+        return (
+            <main className={styles.centered}>
+                <Mascot mood="thinking" size="medium">
+                    No pudimos abrir esta lección.
+                </Mascot>
 
-      <div className={styles.content}>
-        <p className={styles.progress} aria-live="polite">
-          {index + 1} de {blocks.length}
-        </p>
-        <h1 className={styles.lessonTitle}>{lesson.title}</h1>
-        {currentBlock.type === "texto" ? (
-          <p className={styles.text}>{currentBlock.content}</p>
-        ) : (
-          <img src={currentBlock.image_url ?? ""} alt="" className={styles.image} />
-        )}
-      </div>
+                <BigChoiceButton
+                    variant="teal"
+                    dwellDurationMs={dwellDurationMs}
+                    onSelect={() => navigate("/student/classrooms")}
+                >
+                    Volver a mis aulas
+                </BigChoiceButton>
+            </main>
+        );
+    }
 
-      <DwellArrow
-        direction="right"
-        label={isLast ? "Terminar lección" : "Siguiente bloque"}
-        onSelect={next}
-        dwellDurationMs={dwellDurationMs}
-      />
-    </main>
-  );
+    const lesson = lessonQuery.data;
+
+    const finishLesson = () => {
+        navigate(`/student/classrooms/${lesson.classroom_id}/lessons`);
+    };
+
+    if (blocks.length === 0) {
+        return (
+            <main className={styles.centered}>
+                <Mascot mood="happy" size="medium">
+                    Esta lección todavía no tiene contenido.
+                </Mascot>
+
+                <BigChoiceButton
+                    variant="teal"
+                    dwellDurationMs={dwellDurationMs}
+                    onSelect={finishLesson}
+                >
+                    Volver a lecciones
+                </BigChoiceButton>
+            </main>
+        );
+    }
+
+    const currentBlock = blocks[index];
+    const isFirst = index === 0;
+    const isLast = index === blocks.length - 1;
+
+    return (
+        <main className={styles.viewer}>
+            <header className={styles.header}>
+                <button
+                    type="button"
+                    className={styles.backButton}
+                    onClick={finishLesson}
+                >
+                    <ChevronLeft size={24} />
+                    Lecciones
+                </button>
+
+                <div className={styles.lessonIdentity}>
+                    <span>Lección</span>
+                    <h1>{lesson.title}</h1>
+                </div>
+
+                <div className={styles.progressText} aria-live="polite">
+                    {index + 1} de {blocks.length}
+                </div>
+            </header>
+
+            <div className={styles.progressTrack} aria-hidden="true">
+                <div
+                    className={styles.progressValue}
+                    style={{
+                        width: `${((index + 1) / blocks.length) * 100}%`,
+                    }}
+                />
+            </div>
+
+            <section className={styles.stage}>
+                <DwellArrow
+                    direction="left"
+                    label="Contenido anterior"
+                    disabled={isFirst}
+                    dwellDurationMs={dwellDurationMs}
+                    onSelect={() =>
+                        setIndex((current) => Math.max(current - 1, 0))
+                    }
+                />
+
+                <article className={styles.contentCard}>
+                    <LessonBlockRenderer
+                        key={currentBlock.id}
+                        block={currentBlock}
+                        interactive
+                    />
+                </article>
+
+                {isLast ? (
+                    <button
+                        type="button"
+                        className={styles.finishButton}
+                        onClick={finishLesson}
+                    >
+                        <CheckCircle2 size={34} />
+                        Terminar
+                    </button>
+                ) : (
+                    <DwellArrow
+                        direction="right"
+                        label="Siguiente contenido"
+                        dwellDurationMs={dwellDurationMs}
+                        onSelect={() =>
+                            setIndex((current) =>
+                                Math.min(current + 1, blocks.length - 1),
+                            )
+                        }
+                    />
+                )}
+            </section>
+
+            <footer className={styles.mobileNavigation}>
+                <button
+                    type="button"
+                    disabled={isFirst}
+                    onClick={() =>
+                        setIndex((current) => Math.max(current - 1, 0))
+                    }
+                >
+                    <ChevronLeft />
+                    Anterior
+                </button>
+
+                <button
+                    type="button"
+                    onClick={
+                        isLast
+                            ? finishLesson
+                            : () =>
+                                  setIndex((current) =>
+                                      Math.min(current + 1, blocks.length - 1),
+                                  )
+                    }
+                >
+                    {isLast ? "Terminar" : "Siguiente"}
+                    {isLast ? <CheckCircle2 /> : <ChevronRight />}
+                </button>
+            </footer>
+        </main>
+    );
 }

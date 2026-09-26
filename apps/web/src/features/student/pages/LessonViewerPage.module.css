@@ -1,53 +1,417 @@
 .viewer {
-  min-height: 100%;
-  display: flex;
-  align-items: stretch;
+    width: 100%;
+    height: 100dvh;
+    min-height: 620px;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 6px minmax(0, 1fr);
+    background:
+        radial-gradient(
+            circle at 50% -20%,
+            rgba(62, 110, 142, 0.14),
+            transparent 42%
+        ),
+        var(--color-canvas);
+    color: var(--color-ink);
 }
 
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-6) var(--space-5);
-  text-align: center;
-  overflow-y: auto;
+/* ---------- Encabezado ---------- */
+
+.header {
+    min-height: 88px;
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(0, 2fr) minmax(180px, 1fr);
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-3) clamp(24px, 4vw, 64px);
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid var(--color-iris-pale);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(12px);
+    z-index: 5;
 }
 
-.progress {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 700;
-  color: var(--color-ink-soft);
+.backButton {
+    width: fit-content;
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-iris-pale);
+    border-radius: var(--radius-medium);
+    background: var(--color-surface);
+    color: var(--color-iris-deep);
+    font-size: 1rem;
+    cursor: pointer;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        transform 160ms ease;
 }
 
-.lessonTitle {
-  margin: 0;
+.backButton:hover {
+    background: var(--color-iris-pale);
+    border-color: var(--color-iris-medium);
+    transform: translateY(-1px);
 }
 
-.text {
-  font-size: 1.5rem;
-  line-height: 1.6;
-  max-width: 700px;
-  white-space: pre-wrap;
+.lessonIdentity {
+    min-width: 0;
+    text-align: center;
 }
 
-.image {
-  max-width: 100%;
-  max-height: 55vh;
-  border-radius: var(--radius-medium);
-  box-shadow: var(--shadow-card);
+.lessonIdentity span {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--color-iris-medium);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
+
+.lessonIdentity h1 {
+    margin: 0;
+    overflow: hidden;
+    color: var(--color-iris-deep);
+    font-size: clamp(1.35rem, 2.2vw, 2rem);
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.progressText {
+    justify-self: end;
+    min-width: 88px;
+    padding: 10px 14px;
+    border: 1px solid var(--color-iris-pale);
+    border-radius: var(--radius-medium);
+    background: var(--color-canvas);
+    color: var(--color-ink-soft);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* ---------- Progreso ---------- */
+
+.progressTrack {
+    width: 100%;
+    height: 6px;
+    overflow: hidden;
+    background: var(--color-iris-pale);
+}
+
+.progressValue {
+    height: 100%;
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(
+        90deg,
+        var(--color-iris-medium),
+        var(--color-amber)
+    );
+    transition: width 300ms ease;
+}
+
+/* ---------- Escenario principal ---------- */
+
+.stage {
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns:
+        minmax(var(--dwell-target-min), 180px)
+        minmax(0, 900px)
+        minmax(var(--dwell-target-min), 180px);
+    align-items: stretch;
+    justify-content: space-between;
+    gap: clamp(20px, 4vw, 64px);
+    padding: clamp(24px, 4vh, 48px) 0;
+    overflow: hidden;
+}
+
+/* Fuerza a las flechas laterales a mantenerse dentro del escenario. */
+.stage > button:first-child {
+    align-self: stretch;
+    justify-self: start;
+}
+
+.stage > button:last-child {
+    align-self: stretch;
+    justify-self: end;
+}
+
+.contentCard {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    align-self: stretch;
+    justify-self: center;
+    overflow-y: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(28px, 5vw, 64px);
+    border: 1px solid rgba(62, 110, 142, 0.18);
+    border-radius: var(--radius-large);
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow:
+        0 2px 4px rgba(22, 36, 46, 0.04),
+        0 18px 48px rgba(22, 36, 46, 0.1);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-iris-pale) transparent;
+}
+
+.contentCard > * {
+    width: 100%;
+    max-width: 720px;
+}
+
+/* ---------- Botón de finalización ---------- */
+
+.finishButton {
+    position: relative;
+    width: min(15vw, 180px);
+    min-width: var(--dwell-target-min);
+    height: 100%;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: none;
+    border-radius: var(--radius-large) 0 0 var(--radius-large);
+    background: var(--color-mint);
+    color: white;
+    box-shadow: var(--shadow-card);
+    font-size: 1.05rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition:
+        background-color 160ms ease,
+        transform 160ms ease;
+}
+
+.finishButton:hover {
+    background: #3d7968;
+    transform: translateX(-4px);
+}
+
+/* ---------- Bloques Markdown ---------- */
+
+:global(.lesson-information),
+:global(.lesson-question) {
+    width: 100%;
+    color: var(--color-ink);
+}
+
+:global(.lesson-block-label) {
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: var(--space-4);
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: var(--color-iris-pale);
+    color: var(--color-iris-deep);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+:global(.lesson-question .lesson-block-label) {
+    background: #fbe8dc;
+    color: var(--color-amber-dark);
+}
+
+:global(.lesson-markdown) {
+    font-size: clamp(1.1rem, 1.6vw, 1.35rem);
+    line-height: 1.7;
+}
+
+:global(.lesson-markdown h1),
+:global(.lesson-markdown h2),
+:global(.lesson-markdown h3) {
+    margin: 0 0 var(--space-4);
+    color: var(--color-iris-deep);
+    line-height: 1.2;
+}
+
+:global(.lesson-markdown h1) {
+    font-size: clamp(2rem, 4vw, 3.5rem);
+}
+
+:global(.lesson-markdown h2) {
+    font-size: clamp(1.7rem, 3vw, 2.7rem);
+}
+
+:global(.lesson-markdown h3) {
+    font-size: clamp(1.35rem, 2vw, 2rem);
+}
+
+:global(.lesson-markdown p) {
+    margin: 0 0 var(--space-3);
+}
+
+:global(.lesson-markdown ul),
+:global(.lesson-markdown ol) {
+    margin: var(--space-3) 0;
+    padding-left: 1.6em;
+}
+
+:global(.lesson-markdown li) {
+    margin-bottom: var(--space-2);
+}
+
+:global(.lesson-markdown blockquote) {
+    margin: var(--space-4) 0;
+    padding: var(--space-3) var(--space-4);
+    border-left: 5px solid var(--color-amber);
+    border-radius: 0 var(--radius-medium) var(--radius-medium) 0;
+    background: #fdf5ef;
+    color: var(--color-ink-soft);
+}
+
+:global(.lesson-markdown code) {
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: var(--color-iris-pale);
+    color: var(--color-iris-deep);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+}
+
+/* ---------- Imágenes ---------- */
+
+:global(.lesson-image) {
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+:global(.lesson-image img) {
+    width: auto;
+    max-width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-card);
+}
+
+/* ---------- Preguntas ---------- */
+
+:global(.lesson-question-options) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+}
+
+:global(.lesson-question-option) {
+    min-height: 88px;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 2px solid var(--color-iris-pale);
+    border-radius: var(--radius-medium);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        border-color 160ms ease,
+        background-color 160ms ease,
+        transform 160ms ease;
+}
+
+:global(.lesson-question-option:hover:not(:disabled)) {
+    border-color: var(--color-iris-medium);
+    background: #f4f9fc;
+    transform: translateY(-2px);
+}
+
+:global(.lesson-question-option > span) {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--color-iris-pale);
+    color: var(--color-iris-deep);
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+:global(.lesson-question-option p) {
+    margin: 0;
+}
+
+:global(.lesson-question-option.is-selected) {
+    border-color: var(--color-iris-medium);
+    background: #eaf3f8;
+}
+
+:global(.lesson-question-option.is-correct) {
+    border-color: var(--color-mint);
+    background: #e6f2ee;
+}
+
+:global(.lesson-question-option.is-incorrect) {
+    border-color: var(--color-error);
+    background: #fbeded;
+}
+
+:global(.lesson-question-option:disabled) {
+    cursor: default;
+    opacity: 1;
+}
+
+:global(.lesson-question-feedback) {
+    margin: var(--space-4) 0 0;
+    padding: var(--space-3);
+    border-radius: var(--radius-medium);
+    background: var(--color-canvas);
+    color: var(--color-iris-deep);
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+/* ---------- Estados ---------- */
 
 .centered {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-5);
-  padding: var(--space-6) var(--space-4);
-  text-align: center;
+    width: 100%;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-5);
+    padding: var(--space-6) var(--space-4);
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(62, 110, 142, 0.12),
+            transparent 48%
+        ),
+        var(--color-canvas);
+    text-align: center;
+}
+
+/* Solo se muestra en pantallas pequeñas. */
+.mobileNavigation {
+    display: none;
 }
