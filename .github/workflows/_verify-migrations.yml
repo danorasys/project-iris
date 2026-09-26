@@ -1,0 +1,76 @@
+# Reusable: runs the Alembic migrations of one service against a real
+# Postgres, the same major version as production. The unit tests use SQLite,
+# so this is what catches a migration or query that only breaks on Postgres.
+# It goes up, all the way down and up again, so every migration can also be
+# rolled back.
+name: Verify migrations
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: Folder name under services/
+        required: true
+        type: string
+      database:
+        description: Database the service uses
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  migrations:
+    name: migrations
+    runs-on: ubuntu-latest
+    # Keep this image in step with docker-compose.prod.yml.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          # Throwaway database that only lives during this job.
+          POSTGRES_USER: iris_ci
+          POSTGRES_PASSWORD: iris_ci
+          POSTGRES_DB: ${{ inputs.database }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U iris_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: services/${{ inputs.service }}
+    env:
+      DATABASE_URL: postgresql+asyncpg://iris_ci:iris_ci@localhost:5432/${{ inputs.database }}
+      # Settings the services refuse to start without. Not used by the
+      # migrations, so any value works.
+      JWT_SECRET: ci-only
+      TOTP_ENCRYPTION_KEY: ci-only
+      INTERNAL_SERVICE_KEY: ci-only
+      S3_ACCESS_KEY: ci-only
+      S3_SECRET_KEY: ci-only
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/${{ inputs.service }}/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Upgrade, downgrade and upgrade again
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+          alembic current

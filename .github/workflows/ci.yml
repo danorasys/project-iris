@@ -1,7 +1,7 @@
 # IRIS CI. Checks every pull request and every push to main:
 #   1. verify: lint, types, tests and dependency audit of each service and
-#      the web app, a secrets scan of the whole history and a check of the
-#      Dockerfiles.
+#      the web app, the database migrations on a real Postgres, a secrets
+#      scan of the whole history and a check of the Dockerfiles.
 #   2. images: builds and scans the six images. On main they are published
 #      as release candidates (sha-<commit>), on pull requests they are not.
 # It never deploys. Releases come from a version tag, see release.yml.
@@ -43,6 +43,21 @@ jobs:
     with:
       service: ${{ matrix.service }}
 
+  migrations:
+    name: migrations / ${{ matrix.service }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { service: identity-service, database: identity_db }
+          - { service: classroom-service, database: classroom_db }
+          - { service: content-service, database: content_db }
+          - { service: notification-service, database: notification_db }
+    uses: ./.github/workflows/_verify-migrations.yml
+    with:
+      service: ${{ matrix.service }}
+      database: ${{ matrix.database }}
+
   frontend:
     name: frontend / apps-web
     uses: ./.github/workflows/_verify-web.yml
@@ -75,7 +90,7 @@ jobs:
   # Images are only built when the code itself is fine.
   images:
     name: images / ${{ matrix.name }}
-    needs: [backend, frontend, secrets-scan, dockerfiles]
+    needs: [backend, migrations, frontend, secrets-scan, dockerfiles]
     permissions:
       contents: read
       packages: write # only used on main, pull requests from forks never get it

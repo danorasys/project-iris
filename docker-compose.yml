@@ -11,12 +11,15 @@ x-python-service-env: &python-service-env
 
 services:
     postgres:
-        image: postgres:16-alpine
+        # A new major version needs a data migration, never just a new tag.
+        # See scripts/pg-upgrade.sh.
+        image: postgres:18-alpine
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
         volumes:
-            - pgdata:/var/lib/postgresql/data
+            # From 18 on the image keeps its data in /var/lib/postgresql/<version>.
+            - postgres-data:/var/lib/postgresql
             - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
@@ -76,14 +79,12 @@ services:
             JWT_ALGORITHM: ${JWT_ALGORITHM}
             JWT_ACCESS_TTL_MIN: ${JWT_ACCESS_TTL_MIN}
             JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS}
-            # Encrypts guardians.totp_secret at rest (see infrastructure/security.py's
-            # FernetTotpEncryptor) — a separate secret from JWT_SECRET on purpose,
-            # so rotating one never invalidates the other.
+            # Encrypts guardians.totp_secret at rest (FernetTotpEncryptor). It is
+            # apart from JWT_SECRET on purpose, so changing one never breaks the other.
             TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY}
-            # Read only at migration time, to build the avatars catalog's seeded
-            # image URLs (see alembic/versions/0006_add_avatars_catalog.py) — the
-            # avatar images themselves are uploaded to this same bucket once,
-            # out of band, not through this service at runtime.
+            # Only read by the migrations, to build the URLs of the avatars catalog
+            # (alembic/versions/0006_add_avatars_catalog.py). The images themselves
+            # are uploaded to the bucket once, by hand.
             S3_PUBLIC_URL: ${S3_PUBLIC_URL}
             S3_BUCKET: ${S3_BUCKET}
         depends_on:
@@ -256,6 +257,6 @@ services:
             - notification-service
 
 volumes:
-    pgdata:
+    postgres-data:
     miniodata:
     redisdata:

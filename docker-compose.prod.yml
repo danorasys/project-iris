@@ -21,13 +21,16 @@ x-log-limits: &log-limits
 
 services:
     postgres:
-        image: postgres:16-alpine
+        # A new major version needs a data migration, never just a new tag.
+        # See scripts/pg-upgrade.sh.
+        image: postgres:18-alpine
         <<: [*restart-policy, *log-limits]
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
         volumes:
-            - pgdata:/var/lib/postgresql/data
+            # From 18 on the image keeps its data in /var/lib/postgresql/<version>.
+            - postgres-data:/var/lib/postgresql
             - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
@@ -293,7 +296,7 @@ networks:
                 - subnet: 172.28.0.0/24
 
 volumes:
-    pgdata:
+    postgres-data:
     miniodata:
     redisdata:
     caddy_data:
