@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from datetime import datetime, timezone
 from typing import Callable
@@ -33,9 +34,23 @@ from app.domain.exceptions import (
     InvalidToken,
     ResourceNotFound,
 )
-from app.domain.ports import PasswordHasher, RateLimiter, TokenBlacklist, TokenIssuer, UnitOfWork
+from app.application.session_service import SessionService
+from app.domain.ports import (
+    AttemptLockout,
+    PasswordHasher,
+    PortalAccessStore,
+    TokenBlacklist,
+    TokenIssuer,
+    UnitOfWork,
+)
+from app.security_log import log_security_event
 
 UowFactory = Callable[[], "UnitOfWork"]
+
+
+# Emails and IPs go into lock keys as a hash, so Redis never holds them as text.
+def _anon(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()[:32]
 
 
 class AuthService:
@@ -44,24 +59,26 @@ class AuthService:
         uow_factory: UowFactory,
         password_hasher: PasswordHasher,
         token_issuer: TokenIssuer,
-        rate_limiter: RateLimiter,
         blacklist: TokenBlacklist,
-        rate_limit_login_max: int,
-        rate_limit_login_window_sec: int,
-        rate_limit_pin_max: int,
-        rate_limit_pin_window_sec: int,
+        portal_access: PortalAccessStore,
+        sessions: SessionService,
+        login_lockout: AttemptLockout,
+        account_lockout: AttemptLockout,
+        pin_lockout: AttemptLockout,
         refresh_ttl_seconds: int,
+        refresh_reuse_grace_sec: int,
     ) -> None:
         self._uow_factory = uow_factory
         self._hasher = password_hasher
         self._tokens = token_issuer
-        self._rate_limiter = rate_limiter
         self._blacklist = blacklist
-        self._rate_limit_login_max = rate_limit_login_max
-        self._rate_limit_login_window_sec = rate_limit_login_window_sec
-        self._rate_limit_pin_max = rate_limit_pin_max
-        self._rate_limit_pin_window_sec = rate_limit_pin_window_sec
+        self._portal_access = portal_access
+        self._sessions = sessions
+        self._login_lockout = login_lockout
+        self._account_lockout = account_lockout
+        self._pin_lockout = pin_lockout
         self._refresh_ttl_seconds = refresh_ttl_seconds
+        self._refresh_reuse_grace_sec = refresh_reuse_grace_sec
 
     async def register_guardian(
         self,
@@ -198,39 +215,73 @@ class AuthService:
         return person, teacher, tokens
 
     async def login(self, email: str, password: str, client_ip: str) -> tuple[Person, str, IssuedTokens]:
-        limit_key = f"login:{client_ip}:{email.lower()}"
-        if not await self._rate_limiter.permitir(limit_key, self._rate_limit_login_max, self._rate_limit_login_window_sec):
-            raise AttemptLimitExceeded()
+        # Two locks: one per IP and email (so a stranger can't lock a victim
+        # out from another IP) and one per email alone, with a higher limit, so
+        # trying from many IPs doesn't give unlimited guesses.
+        ip_key = f"login:{_anon(client_ip)}:{_anon(email.lower())}"
+        account_key = f"login-account:{_anon(email.lower())}"
+        wait = max(
+            await self._login_lockout.segundos_bloqueado(ip_key),
+            await self._account_lockout.segundos_bloqueado(account_key),
+        )
+        if wait:
+            raise AttemptLimitExceeded(retry_after_seconds=wait)
 
-        async with self._uow_factory() as uow:
-            person = await uow.people.get_by_email(email)
-            # Runs the same bcrypt check either way, even when there's no matching
-            # email. Skipping it when person is None would make a missing email
-            # respond faster than a wrong password, and that timing gap is enough
-            # to tell an attacker which emails are registered.
-            hash_to_check = person.hash_password if person is not None else self._hasher.dummy_hash
-            password_matches = self._hasher.verificar(password, hash_to_check)
-            if person is None or not password_matches:
-                raise InvalidCredentials()
+        try:
+            async with self._uow_factory() as uow:
+                person = await uow.people.get_by_email(email)
+                # Runs the same bcrypt check either way, even when there's no matching
+                # email. Skipping it when person is None would make a missing email
+                # respond faster than a wrong password, and that timing gap is enough
+                # to tell an attacker which emails are registered.
+                hash_to_check = person.hash_password if person is not None else self._hasher.dummy_hash
+                password_matches = self._hasher.verificar(password, hash_to_check)
+                if person is None or not password_matches:
+                    raise InvalidCredentials()
 
-            guardian = await uow.guardians.get_by_person_id(person.id)
-            role = "guardian" if guardian is not None else "teacher"
+                guardian = await uow.guardians.get_by_person_id(person.id)
+                role = "guardian" if guardian is not None else "teacher"
+        except InvalidCredentials:
+            # Unknown emails are counted too, so the lock can't be used to
+            # tell which emails exist.
+            wait = max(
+                await self._login_lockout.registrar_fallo(ip_key),
+                await self._account_lockout.registrar_fallo(account_key),
+            )
+            if wait:
+                log_security_event("login_locked", wait=wait, key=_anon(email.lower())[:8])
+                raise AttemptLimitExceeded(retry_after_seconds=wait) from None
+            raise
 
+        # The per-email count is not reset here on purpose: it expires by itself,
+        # otherwise a real login in between would give an attacker a fresh start.
+        await self._login_lockout.registrar_exito(ip_key)
+        # A new login is a new session, so the portal asks for the 2FA code again.
+        await self._portal_access.revocar(person.id)
         tokens = self._issue_token_pair(person.id, role)
         return person, role, tokens
 
     async def login_student_profile(self, student_id: UUID, pin: str) -> tuple[Student, IssuedTokens]:
         limit_key = f"pin:{student_id}"
-        if not await self._rate_limiter.permitir(limit_key, self._rate_limit_pin_max, self._rate_limit_pin_window_sec):
-            raise AttemptLimitExceeded()
+        wait = await self._pin_lockout.segundos_bloqueado(limit_key)
+        if wait:
+            raise AttemptLimitExceeded(retry_after_seconds=wait)
 
-        async with self._uow_factory() as uow:
-            student = await uow.students.get_by_id(student_id)
-            if student is None:
-                raise ResourceNotFound("Perfil de estudiante no encontrado.")
-            if not self._hasher.verificar(pin, student.hash_pin):
-                raise InvalidPin()
+        try:
+            async with self._uow_factory() as uow:
+                student = await uow.students.get_by_id(student_id)
+                if student is None:
+                    raise ResourceNotFound("Perfil de estudiante no encontrado.")
+                if not self._hasher.verificar(pin, student.hash_pin):
+                    raise InvalidPin()
+        except InvalidPin:
+            wait = await self._pin_lockout.registrar_fallo(limit_key)
+            if wait:
+                log_security_event("pin_locked", wait=wait, student=student_id)
+                raise AttemptLimitExceeded(retry_after_seconds=wait) from None
+            raise
 
+        await self._pin_lockout.registrar_exito(limit_key)
         tokens = self._issue_token_pair(student.id, "student", extra={"guardian_id": str(student.guardian_id)})
         return student, tokens
 
@@ -239,28 +290,57 @@ class AuthService:
         if claims.get("type") != "refresh":
             raise InvalidToken()
         jti = claims.get("jti")
-        if not isinstance(jti, str) or await self._blacklist.esta_invalidado(jti):
+        if not isinstance(jti, str):
             raise InvalidToken()
+        raw_sid = claims.get("sid")
+        sid = raw_sid if isinstance(raw_sid, str) else None
+
+        used_ago = await self._blacklist.segundos_desde_invalidacion(jti)
+        if used_ago is not None:
+            # A refresh token is single use. Seen again long after it was used
+            # means someone kept a copy, so the whole session is closed. Just
+            # after it was used it is two requests racing each other, and only
+            # the late one is rejected.
+            if used_ago > self._refresh_reuse_grace_sec:
+                await self._sessions.revoke_session(sid, "refresh_token_reuse")
+            raise InvalidToken()
+        await self._sessions.ensure_active(claims)
 
         await self._blacklist.invalidar(jti, self._refresh_ttl_seconds)
         subject_id = UUID(str(claims["sub"]))
         role = str(claims["role"])
         extra = {"guardian_id": str(claims["guardian_id"])} if "guardian_id" in claims else {}
-        return self._issue_token_pair(subject_id, role, extra=extra)
+        return self._issue_token_pair(subject_id, role, extra=extra, sid=sid)
 
     async def logout(self, refresh_token: str) -> None:
         claims = self._tokens.decodificar(refresh_token)
         jti = claims.get("jti")
         if isinstance(jti, str):
             await self._blacklist.invalidar(jti, self._refresh_ttl_seconds)
+        sid = claims.get("sid")
+        await self._sessions.revoke_session(sid if isinstance(sid, str) else None, "logout")
+        subject = claims.get("sub")
+        if isinstance(subject, str):
+            await self._portal_access.revocar(UUID(subject))
+
+    # "Close all my sessions": every token issued before now stops working,
+    # the ones of the person asking included.
+    async def logout_all(self, subject_id: UUID) -> None:
+        await self._sessions.revoke_all(subject_id, "user_request")
+        await self._portal_access.revocar(subject_id)
 
     async def validate_access_token(self, access_token: str) -> dict[str, object]:
         claims = self._tokens.decodificar(access_token)
         if claims.get("type") != "access":
             raise InvalidToken()
+        await self._sessions.ensure_active(claims)
         return claims
 
-    def _issue_token_pair(self, subject_id: UUID, role: str, extra: dict[str, str] | None = None) -> IssuedTokens:
-        access = self._tokens.emitir_access_token(subject_id, role, extra or {})
-        refresh, _jti = self._tokens.emitir_refresh_token(subject_id, role)
+    def _issue_token_pair(
+        self, subject_id: UUID, role: str, extra: dict[str, str] | None = None, sid: str | None = None
+    ) -> IssuedTokens:
+        # A new login starts a new session (new sid), a refresh keeps the same one.
+        session_id = sid or str(uuid.uuid4())
+        access = self._tokens.emitir_access_token(subject_id, role, extra or {}, session_id)
+        refresh, _jti = self._tokens.emitir_refresh_token(subject_id, role, session_id)
         return IssuedTokens(access_token=access, refresh_token=refresh)

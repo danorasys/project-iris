@@ -1,6 +1,11 @@
-# Caddy gets and renews the Let's Encrypt certificate by itself once
-# {$DOMAIN} points to this server.
+# HTTPS uses the university's wildcard certificate, which the server keeps in
+# /etc/ssl/iris (mounted at /certs, see docker-compose.prod.yml). It is not in
+# this repo and must never be. fullchain.pem is the certificate plus its
+# intermediates. When the certificate is renewed, replace those two files and
+# restart the reverse-proxy container.
 {$DOMAIN} {
+    tls /certs/fullchain.pem /certs/webssl.key
+
     encode gzip
 
     # Same headers as apps/web/nginx.conf, repeated because this is the edge.

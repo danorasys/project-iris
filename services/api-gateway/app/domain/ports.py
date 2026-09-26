@@ -1,6 +1,7 @@
-# Protocol that decouples application/ from the concrete HTTP client (httpx,
-# in infrastructure/http_clients/proxy_client.py). The application layer
-# never imports httpx directly, only this abstract shape.
+# Protocols that decouple the rest of the app from the concrete tools: the HTTP
+# client (httpx, in infrastructure/http_clients/proxy_client.py) and the request
+# counter (Redis, in infrastructure/redis_rate_limiter.py). Nothing outside
+# infrastructure/ imports those tools directly, only these abstract shapes.
 
 from __future__ import annotations
 
@@ -26,3 +27,10 @@ class HttpForwarder(Protocol):
         content: bytes,
         timeout_sec: float,
     ) -> UpstreamResponse: ...
+
+
+class RequestCounter(Protocol):
+    # Counts one request for key inside a window of window_sec seconds.
+    # Returns 0 if it is allowed, or the seconds left until the window ends
+    # if the limit was already reached.
+    async def hit(self, key: str, limit: int, window_sec: int) -> int: ...

@@ -47,25 +47,27 @@ class JoseTokenIssuer:
         self._access_ttl = timedelta(minutes=access_ttl_min)
         self._refresh_ttl = timedelta(days=refresh_ttl_days)
 
-    def emitir_access_token(self, subject_id: UUID, role: str, extra: dict[str, str]) -> str:
+    def emitir_access_token(self, subject_id: UUID, role: str, extra: dict[str, str], sid: str) -> str:
         now = datetime.now(timezone.utc)
         payload = {
             "sub": str(subject_id),
             "role": role,
             "type": "access",
+            "sid": sid,
             "iat": now,
             "exp": now + self._access_ttl,
             **extra,
         }
         return jwt.encode(payload, self._secret, algorithm=self._algorithm)
 
-    def emitir_refresh_token(self, subject_id: UUID, role: str) -> tuple[str, str]:
+    def emitir_refresh_token(self, subject_id: UUID, role: str, sid: str) -> tuple[str, str]:
         now = datetime.now(timezone.utc)
         jti = str(uuid.uuid4())
         payload = {
             "sub": str(subject_id),
             "role": role,
             "type": "refresh",
+            "sid": sid,
             "jti": jti,
             "iat": now,
             "exp": now + self._refresh_ttl,

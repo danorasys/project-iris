@@ -135,6 +135,11 @@ export interface TotpVerifyRequest {
   code: string;
 }
 
+/** Answer of the portal 2FA check: wrong codes typed since the last good one. */
+export interface PortalChallengeResponse {
+  failed_attempts_before: number;
+}
+
 export interface GuardianProfile {
   first_name: string;
   last_name: string;
@@ -160,10 +165,6 @@ export interface UpdateGuardianProfileRequest {
 export interface ChangePasswordRequest {
   password: string;
   password_confirmation: string;
-}
-
-export interface ConfirmPasswordRequest {
-  password: string;
 }
 
 export interface Classroom {

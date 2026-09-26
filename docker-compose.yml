@@ -212,6 +212,8 @@ services:
             CONTENT_SERVICE_URL: http://content-service:8000
             NOTIFICATION_SERVICE_URL: http://notification-service:8000
         depends_on:
+            redis:
+                condition: service_healthy
             identity-service:
                 condition: service_healthy
             classroom-service:

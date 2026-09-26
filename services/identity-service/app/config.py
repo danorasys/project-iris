@@ -28,18 +28,31 @@ class Settings(BaseSettings):
 
     web_origin: str = "http://localhost:5173"
 
-    rate_limit_login_max: int = 5
-    rate_limit_login_window_sec: int = 900
-    rate_limit_pin_max: int = 8
-    rate_limit_pin_window_sec: int = 600
+    # Progressive lock for login and the parents' portal 2FA. After
+    # lockout_max_failures wrong attempts inside lockout_fails_window_sec the
+    # key is locked. The wait follows lockout_wait_steps_sec, and the last
+    # step repeats. A success, or lockout_reset_after_sec without new locks,
+    # starts over.
+    lockout_max_failures: int = 5
+    lockout_fails_window_sec: int = 300
+    lockout_wait_steps_sec: list[int] = [60, 300, 900]
+    lockout_reset_after_sec: int = 3600
+    # Cap over a whole account, whatever the session or IP, so many sessions
+    # or many IPs can't add up to unlimited guesses.
+    account_lockout_max_failures: int = 20
+    account_lockout_fails_window_sec: int = 3600
+    account_lockout_wait_sec: int = 900
+    # Student PIN: kids type it with their eyes, so the waits are shorter.
+    pin_lockout_max_failures: int = 6
+    pin_lockout_fails_window_sec: int = 600
+    pin_lockout_wait_steps_sec: list[int] = [30, 120, 300]
+    # A used refresh token shown again after this many seconds is treated as
+    # theft. Before that it is just two requests racing each other.
+    refresh_reuse_grace_sec: int = 10
     rate_limit_totp_max: int = 5
     rate_limit_totp_window_sec: int = 300
-    # Limits how many times someone can try re-entering the guardian's
-    # password before opening the parents' portal (see confirm_password in
-    # GuardianService). This limit is tied to the account, not the IP
-    # address, since a family computer could share the same IP.
-    rate_limit_confirm_password_max: int = 5
-    rate_limit_confirm_password_window_sec: int = 300
+    # How long a passed 2FA check keeps the parents' portal open.
+    portal_access_ttl_sec: int = 900
 
     # Must be a valid Fernet key (32 url-safe base64-encoded bytes). You can
     # generate one with:

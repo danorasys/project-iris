@@ -4,13 +4,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from app.api.deps import CurrentUser, get_guardian_service, get_totp_service, require_role
+from app.api.deps import CurrentUser, get_guardian_service, get_totp_service, require_portal_access, require_role
 from app.api.schemas import (
     ChangePasswordRequest,
-    ConfirmPasswordRequest,
     CreateAdditionalStudentRequest,
     GuardianProfileResponse,
     StudentProfileResponse,
+    PortalChallengeResponse,
     TotpSetupResponse,
     TotpVerifyRequest,
     UpdateGuardianProfileRequest,
@@ -25,6 +25,9 @@ router = APIRouter(prefix="/guardians", tags=["guardians"])
 GuardianServiceDep = Annotated[GuardianService, Depends(get_guardian_service)]
 TotpServiceDep = Annotated[TotpService, Depends(get_totp_service)]
 CurrentGuardianDep = Annotated[CurrentUser, Depends(require_role("guardian"))]
+# For everything inside the parents' portal. Listing the children stays open, the
+# profile picker of the kids' portal needs it without the 2FA code.
+PortalAccessDep = Depends(require_portal_access)
 
 
 def _to_profile_response(person: Person, guardian: Guardian) -> GuardianProfileResponse:
@@ -52,7 +55,12 @@ async def list_my_students(user: CurrentGuardianDep, guardians: GuardianServiceD
     return [StudentProfileResponse(**s.__dict__) for s in students]
 
 
-@router.post("/me/students", response_model=StudentProfileResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/me/students",
+    response_model=StudentProfileResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[PortalAccessDep],
+)
 async def create_additional_student(
     payload: CreateAdditionalStudentRequest,
     user: CurrentGuardianDep,
@@ -74,28 +82,19 @@ async def create_additional_student(
     return StudentProfileResponse(**student.__dict__)
 
 
-@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, response_model=None, dependencies=[PortalAccessDep])
 async def delete_my_account(user: CurrentGuardianDep, guardians: GuardianServiceDep) -> None:
     """Right to erasure."""
     await guardians.delete_account(user.subject_id)
 
 
-@router.post("/me/confirm-password", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
-async def confirm_my_password(
-    payload: ConfirmPasswordRequest, user: CurrentGuardianDep, guardians: GuardianServiceDep
-) -> None:
-    """Checked right before entering the parents' portal, so a session left
-    open on a shared computer can't be used to reach it."""
-    await guardians.confirm_password(user.subject_id, payload.password)
-
-
-@router.get("/me", response_model=GuardianProfileResponse)
+@router.get("/me", response_model=GuardianProfileResponse, dependencies=[PortalAccessDep])
 async def get_my_profile(user: CurrentGuardianDep, guardians: GuardianServiceDep) -> GuardianProfileResponse:
     person, guardian = await guardians.get_profile(user.subject_id)
     return _to_profile_response(person, guardian)
 
 
-@router.patch("/me", response_model=GuardianProfileResponse)
+@router.patch("/me", response_model=GuardianProfileResponse, dependencies=[PortalAccessDep])
 async def update_my_profile(
     payload: UpdateGuardianProfileRequest, user: CurrentGuardianDep, guardians: GuardianServiceDep
 ) -> GuardianProfileResponse:
@@ -117,7 +116,7 @@ async def update_my_profile(
     return _to_profile_response(person, guardian)
 
 
-@router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+@router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT, response_model=None, dependencies=[PortalAccessDep])
 async def change_my_password(
     payload: ChangePasswordRequest, user: CurrentGuardianDep, guardians: GuardianServiceDep
 ) -> None:
@@ -139,3 +138,20 @@ async def verify_totp(payload: TotpVerifyRequest, user: CurrentGuardianDep, totp
     """Confirms the guardian's authenticator app is actually producing valid
     codes for the secret from /me/2fa/setup, and only then turns 2FA on."""
     await totp.verify(user.subject_id, payload.code)
+
+
+@router.post("/me/2fa/challenge", response_model=PortalChallengeResponse)
+async def confirm_portal_access(
+    payload: TotpVerifyRequest, user: CurrentGuardianDep, totp: TotpServiceDep
+) -> PortalChallengeResponse:
+    """Asked before entering the parents' portal: checks a fresh code from
+    the guardian's authenticator app. Needs 2FA to be already enabled. Says
+    how many wrong attempts there were since the last entry."""
+    missed = await totp.confirm_portal_access(user.subject_id, user.session_id, payload.code)
+    return PortalChallengeResponse(failed_attempts_before=missed)
+
+
+@router.get("/me/portal-access", status_code=status.HTTP_204_NO_CONTENT, response_model=None, dependencies=[PortalAccessDep])
+async def check_portal_access() -> None:
+    """204 if the guardian passed the 2FA check recently, 403 if not. The
+    frontend asks this before showing the portal."""

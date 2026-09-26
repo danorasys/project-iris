@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/shared/auth/AuthContext";
-import { IconArrowLeft, IconBell, IconChild, IconLogOut, IconUserCircle } from "@/shared/ui/icons";
+import { useCerrarTodasMisSesiones } from "@/shared/api/hooks/useAuthApi";
+import { IconArrowLeft, IconBell, IconChild, IconInfo, IconLogOut, IconUserCircle } from "@/shared/ui/icons";
 import { IrisMark } from "@/shared/ui/IrisMark";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { MiPerfilSection } from "../sections/MiPerfilSection";
@@ -31,11 +32,16 @@ interface PendingConfirm {
  *
  * A guardian reaches this page either right after finishing 2FA setup
  * during registration, or, later on, through the "Portal de padres" link
- * on the student profile screen, which first asks them to confirm their
- * password again at `/guardian/confirm-password`. */
+ * on the student profile screen, which first asks for a 2FA code at
+ * `/guardian/verify-2fa`. `RequirePortalAccess` keeps the URL from being
+ * used to skip that step. */
 export default function GuardianPortalPage() {
   const navigate = useNavigate();
-  const { closeSession } = useAuth();
+  const { closeSession, discardSession } = useAuth();
+  const closeAllSessions = useCerrarTodasMisSesiones();
+  // Sent by the 2FA page: wrong codes typed since the last good one.
+  const failedAttempts = (useLocation().state as { failedAttempts?: number } | null)?.failedAttempts ?? 0;
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>("perfil");
   const [isProfileDirty, setIsProfileDirty] = useState(false);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
@@ -99,6 +105,30 @@ export default function GuardianPortalPage() {
     });
   }
 
+  function requestCloseAllSessions() {
+    guardWithDirtyCheck(() => {
+      setConfirm({
+        message: "Vamos a cerrar tu sesión en todos los dispositivos, incluido este. ¿Continuar?",
+        acceptLabel: "Sí, cerrar todas",
+        cancelLabel: "Cancelar",
+        danger: true,
+        onAccept: () => {
+          setConfirm(null);
+          void closeAllSessions.mutateAsync().then(
+            () => {
+              discardSession();
+              navigate("/login/adult", {
+                replace: true,
+                state: { aviso: "Cerramos tus sesiones en todos los dispositivos. Inicia sesión de nuevo." },
+              });
+            },
+            () => setConfirm(null),
+          );
+        },
+      });
+    });
+  }
+
   return (
     <div className={styles.page}>
       <aside className={styles.sidebar}>
@@ -148,10 +178,32 @@ export default function GuardianPortalPage() {
             <IconLogOut width={20} height={20} />
             Cerrar sesión
           </button>
+          <button
+            type="button"
+            className={`${styles.navItem} ${styles.navItemDanger}`}
+            onClick={requestCloseAllSessions}
+          >
+            <IconLogOut width={20} height={20} />
+            Cerrar todas las sesiones
+          </button>
         </nav>
       </aside>
 
       <main className={styles.content}>
+        {failedAttempts > 0 && !noticeDismissed && (
+          <div className={styles.securityNotice} role="alert">
+            <IconInfo width={20} height={20} className={styles.securityNoticeIcon} />
+            <p className={styles.securityNoticeText}>
+              {failedAttempts === 1
+                ? "Desde tu última entrada alguien escribió 1 código incorrecto en tu cuenta."
+                : `Desde tu última entrada alguien escribió ${failedAttempts} códigos incorrectos en tu cuenta.`}{" "}
+              Si no fuiste tú, cierra todas tus sesiones y cambia tu contraseña.
+            </p>
+            <button type="button" className={styles.securityNoticeClose} onClick={() => setNoticeDismissed(true)}>
+              Entendido
+            </button>
+          </div>
+        )}
         {activeSection === "perfil" && <MiPerfilSection onDirtyChange={setIsProfileDirty} />}
         {activeSection === "peques" && <MisPequesSection />}
         {activeSection === "notificaciones" && (

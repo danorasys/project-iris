@@ -223,11 +223,18 @@ services:
         environment:
             <<: *python-service-env
             SERVICE_NAME: api-gateway
+            # Only Caddy (fixed IP, see the network at the bottom) is trusted to
+            # say who the client is. Without this every client would look like
+            # Caddy's IP and share one rate limit. With a fixed IP, even if this
+            # port got published by mistake, nobody else could fake X-Forwarded-For.
+            FORWARDED_ALLOW_IPS: 172.28.0.10
             IDENTITY_SERVICE_URL: http://identity-service:8000
             CLASSROOM_SERVICE_URL: http://classroom-service:8000
             CONTENT_SERVICE_URL: http://content-service:8000
             NOTIFICATION_SERVICE_URL: http://notification-service:8000
         depends_on:
+            redis:
+                condition: service_healthy
             identity-service:
                 condition: service_healthy
             classroom-service:
@@ -260,10 +267,15 @@ services:
         <<: [*restart-policy, *log-limits]
         volumes:
             - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+            # Institutional certificate, lives only on the server.
+            - /etc/ssl/iris:/certs:ro
             - caddy_data:/data
             - caddy_config:/config
         environment:
             DOMAIN: ${DOMAIN}
+        networks:
+            default:
+                ipv4_address: 172.28.0.10
         ports:
             - "80:80"
             - "443:443"
@@ -271,6 +283,14 @@ services:
             - web
             - api-gateway
             - minio
+
+# Fixed subnet so the reverse proxy always gets the same IP, which the
+# api-gateway trusts for X-Forwarded-For.
+networks:
+    default:
+        ipam:
+            config:
+                - subnet: 172.28.0.0/24
 
 volumes:
     pgdata:

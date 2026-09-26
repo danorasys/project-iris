@@ -56,3 +56,9 @@ apps/web/PRODUCT.md
 
 # No .md files get pushed to GitHub for now.
 *.md
+
+# TLS certificates and private keys must never be committed
+*.pem
+*.key
+*.crt
+*.ca-bundle

@@ -8,6 +8,7 @@ import {
     useLocation,
 } from "react-router-dom"
 import { RequireRol } from "./RequireRol"
+import { RequirePortalAccess } from "@/features/guardian/RequirePortalAccess"
 import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext"
 import { GazeCursor } from "@/shared/ui/GazeCursor"
 import { LoadingScreen } from "@/shared/ui/LoadingScreen"
@@ -32,8 +33,8 @@ const PrivacyPolicyPage = lazy(
     () => import("@/features/legal/PrivacyPolicyPage"),
 )
 
-const GuardianConfirmPasswordPage = lazy(
-    () => import("@/features/guardian/pages/GuardianConfirmPasswordPage"),
+const GuardianVerify2faPage = lazy(
+    () => import("@/features/guardian/pages/GuardianVerify2faPage"),
 )
 const GuardianPortalPage = lazy(
     () => import("@/features/guardian/pages/GuardianPortalPage"),
@@ -225,12 +226,16 @@ export function AppRouter() {
                             }
                         />
                         <Route
-                            path="confirm-password"
-                            element={<GuardianConfirmPasswordPage />}
+                            path="verify-2fa"
+                            element={<GuardianVerify2faPage />}
                         />
                         <Route
                             path="portal"
-                            element={<GuardianPortalPage />}
+                            element={
+                                <RequirePortalAccess>
+                                    <GuardianPortalPage />
+                                </RequirePortalAccess>
+                            }
                         />
                     </Route>
 

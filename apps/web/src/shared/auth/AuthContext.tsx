@@ -18,6 +18,9 @@ interface AuthContextValue {
   loading: boolean;
   setSession: (tokens: TokensAuth) => void;
   closeSession: () => Promise<void>;
+  /** Drops the local session without calling the server, for when the server
+   * already closed it (password change, "close all sessions", security lock). */
+  discardSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -109,8 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ session, loading, setSession, closeSession }),
-    [session, loading, setSession, closeSession]
+    () => ({ session, loading, setSession, closeSession, discardSession: clearSession }),
+    [session, loading, setSession, closeSession, clearSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

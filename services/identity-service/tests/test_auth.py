@@ -5,6 +5,7 @@ from httpx import AsyncClient
 
 from app.config import get_settings
 from tests.conftest import (
+    activar_2fa_y_abrir_portal,
     AVATAR_ID_CORAL,
     AVATAR_ID_VIOLETA,
     DOCUMENT_TYPE_ID_CEDULA,
@@ -273,22 +274,18 @@ async def test_login_credenciales_invalidas(client: AsyncClient) -> None:
 # lock out a victim's email from any IP.
 async def test_login_usa_x_forwarded_for_para_separar_el_limite_por_ip(client: AsyncClient) -> None:
     await client.post("/auth/guardians", json=_payload_registro_tutor("ip-separada@example.com"))
-    maximo = get_settings().rate_limit_login_max
+    maximo = get_settings().lockout_max_failures
 
-    for _ in range(maximo):
-        respuesta = await client.post(
+    respuestas = [
+        await client.post(
             "/auth/login",
             json={"email": "ip-separada@example.com", "password": "clave-incorrecta"},
             headers={"X-Forwarded-For": "1.1.1.1"},
         )
-    assert respuesta.status_code == 401
-
-    bloqueada = await client.post(
-        "/auth/login",
-        json={"email": "ip-separada@example.com", "password": "clave-incorrecta"},
-        headers={"X-Forwarded-For": "1.1.1.1"},
-    )
-    assert bloqueada.status_code == 429
+        for _ in range(maximo)
+    ]
+    assert [r.status_code for r in respuestas[:-1]] == [401] * (maximo - 1)
+    assert respuestas[-1].status_code == 429
 
     # A different X-Forwarded-For is a different bucket, so it's not blocked yet.
     otra_ip = await client.post(
@@ -299,12 +296,12 @@ async def test_login_usa_x_forwarded_for_para_separar_el_limite_por_ip(client: A
     assert otra_ip.status_code == 401
 
 
-async def test_login_fuerza_bruta_bloqueada_tras_maximo_de_intentos(client: AsyncClient) -> None:
+async def test_login_se_bloquea_al_llegar_al_maximo_de_fallos_con_la_primera_espera(client: AsyncClient) -> None:
     await client.post("/auth/guardians", json=_payload_registro_tutor("bruteforce@example.com"))
-    maximo = get_settings().rate_limit_login_max
+    ajustes = get_settings()
 
     ultima_respuesta = None
-    for _ in range(maximo + 1):
+    for _ in range(ajustes.lockout_max_failures):
         ultima_respuesta = await client.post(
             "/auth/login", json={"email": "bruteforce@example.com", "password": "clave-incorrecta"}
         )
@@ -312,6 +309,48 @@ async def test_login_fuerza_bruta_bloqueada_tras_maximo_de_intentos(client: Asyn
     assert ultima_respuesta is not None
     assert ultima_respuesta.status_code == 429
     assert ultima_respuesta.json()["error"]["code"] == "limite_intentos_excedido"
+    assert ultima_respuesta.json()["error"]["details"]["retry_after_seconds"] == ajustes.lockout_wait_steps_sec[0]
+
+
+async def test_login_bloqueado_rechaza_incluso_la_clave_correcta(client: AsyncClient) -> None:
+    await client.post("/auth/guardians", json=_payload_registro_tutor("bloqueado-clave-ok@example.com"))
+    for _ in range(get_settings().lockout_max_failures):
+        await client.post("/auth/login", json={"email": "bloqueado-clave-ok@example.com", "password": "mala"})
+
+    respuesta = await client.post(
+        "/auth/login", json={"email": "bloqueado-clave-ok@example.com", "password": "Clave-Segura-123"}
+    )
+
+    assert respuesta.status_code == 429
+
+
+async def test_login_correcto_reinicia_el_conteo_de_fallos(client: AsyncClient) -> None:
+    await client.post("/auth/guardians", json=_payload_registro_tutor("reinicia-conteo@example.com"))
+    maximo = get_settings().lockout_max_failures
+    credenciales = {"email": "reinicia-conteo@example.com", "password": "mala"}
+
+    for _ in range(maximo - 1):
+        await client.post("/auth/login", json=credenciales)
+    bueno = await client.post(
+        "/auth/login", json={"email": "reinicia-conteo@example.com", "password": "Clave-Segura-123"}
+    )
+    for _ in range(maximo - 1):
+        despues = await client.post("/auth/login", json=credenciales)
+
+    assert bueno.status_code == 200
+    assert despues.status_code == 401
+
+
+async def test_login_con_correo_inexistente_tambien_se_bloquea(client: AsyncClient) -> None:
+    # Same behavior as a real email, so the lock can't be used to find out which emails exist.
+    ultima_respuesta = None
+    for _ in range(get_settings().lockout_max_failures):
+        ultima_respuesta = await client.post(
+            "/auth/login", json={"email": "no-existe@example.com", "password": "cualquiera"}
+        )
+
+    assert ultima_respuesta is not None
+    assert ultima_respuesta.status_code == 429
 
 
 async def test_login_perfil_estudiante_con_pin_correcto(client: AsyncClient) -> None:
@@ -679,6 +718,7 @@ async def test_usuario_actual_como_estudiante_es_rechazado(client: AsyncClient) 
 async def test_tutor_puede_eliminar_su_cuenta_y_pierde_acceso(client: AsyncClient) -> None:
     registro = await client.post("/auth/guardians", json=_payload_registro_tutor("borrar-cuenta@example.com"))
     access_token = registro.json()["access_token"]
+    await activar_2fa_y_abrir_portal(client, access_token)
 
     response = await client.delete("/guardians/me", headers={"Authorization": f"Bearer {access_token}"})
     assert response.status_code == 204

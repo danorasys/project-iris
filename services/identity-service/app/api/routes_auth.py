@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, status
 
-from app.api.deps import CurrentUser, get_auth_service, get_current_user
+from app.api.deps import CurrentUser, get_auth_service, get_current_user, require_role
 from app.api.schemas import (
     GuardianRegistrationRequest,
     LoginRequest,
@@ -111,3 +111,12 @@ async def logout(
     _user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> None:
     await auth.logout(payload.refresh_token)
+
+
+@router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def logout_all(
+    auth: AuthServiceDep,
+    user: Annotated[CurrentUser, Depends(require_role("guardian", "teacher"))],
+) -> None:
+    """Closes every session of this account, this one included."""
+    await auth.logout_all(user.subject_id)

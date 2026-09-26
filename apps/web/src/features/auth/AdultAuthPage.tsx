@@ -46,6 +46,10 @@ export default function AdultAuthPage() {
                     {view === "login" ? (
                         <LoginForm
                             onGoToRegister={() => setView("elegirRegistro")}
+                            notice={
+                                (location.state as { aviso?: string } | null)
+                                    ?.aviso
+                            }
                         />
                     ) : (
                         <ChooseAccountType
@@ -98,7 +102,13 @@ function BrandPanel() {
     )
 }
 
-function LoginForm({ onGoToRegister }: { onGoToRegister: () => void }) {
+function LoginForm({
+    onGoToRegister,
+    notice,
+}: {
+    onGoToRegister: () => void
+    notice?: string
+}) {
     const { setSession } = useAuth()
     const navigate = useNavigate()
     const login = useLogin()
@@ -144,6 +154,14 @@ function LoginForm({ onGoToRegister }: { onGoToRegister: () => void }) {
                 docentes
             </p>
             <h1 className={styles.title}>Iniciar sesión</h1>
+            {notice && (
+                <p
+                    role="status"
+                    className={styles.recoveryNotice}
+                >
+                    {notice}
+                </p>
+            )}
             <TextField
                 id="adulto-login-correo"
                 label="Correo electrónico"

@@ -52,7 +52,7 @@ function GuardianPortalChoice() {
       <p className={styles.subtitle}>Entra a tu portal o pásale el equipo a tu peque.</p>
 
       <div className={styles.portalChoices}>
-        <button type="button" className={styles.portalCard} onClick={() => navigate("/guardian/confirm-password")}>
+        <button type="button" className={styles.portalCard} onClick={() => navigate("/guardian/verify-2fa")}>
           <img src={avatarGuardian} alt="" className={styles.portalCardIcon} />
           <span className={styles.portalCardText}>
             <span className={styles.portalCardTitle}>Portal Padres</span>

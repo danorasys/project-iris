@@ -55,11 +55,6 @@ class InvalidCredentials(DomainError):
     message = "Correo o contraseña incorrectos."
 
 
-class InvalidPasswordConfirmation(DomainError):
-    code = "confirmacion_contrasena_invalida"
-    message = "La contraseña no es correcta."
-
-
 class InvalidPin(DomainError):
     code = "pin_invalido"
     message = "El PIN ingresado no es correcto."
@@ -98,6 +93,21 @@ class UnauthorizedInternalAccess(DomainError):
 class InvalidTotpCode(DomainError):
     code = "codigo_totp_invalido"
     message = "El código ingresado no es correcto o ya expiró."
+
+
+class SessionClosedForSecurity(DomainError):
+    code = "sesion_cerrada_por_seguridad"
+    message = "Cerramos tu sesión por seguridad, hubo demasiados intentos fallidos. Inicia sesión de nuevo."
+
+
+class PortalAccessRequired(DomainError):
+    code = "acceso_portal_requerido"
+    message = "Confirma tu identidad con el código de verificación para entrar al Portal Padres."
+
+
+class TotpNotEnabled(DomainError):
+    code = "totp_no_activado"
+    message = "Tu cuenta todavía no tiene la verificación en dos pasos activada."
 
 
 class TotpSetupNotStarted(DomainError):

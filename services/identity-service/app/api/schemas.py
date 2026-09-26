@@ -285,6 +285,11 @@ class TotpVerifyRequest(BaseModel):
     code: str = Field(pattern=r"^\d{6}$")
 
 
+class PortalChallengeResponse(BaseModel):
+    # Wrong attempts since the last time the guardian got into the portal.
+    failed_attempts_before: int
+
+
 class RelationshipTypeResponse(BaseModel):
     id: int
     name: str
@@ -358,5 +363,3 @@ class ChangePasswordRequest(BaseModel):
         return self
 
 
-class ConfirmPasswordRequest(BaseModel):
-    password: str = Field(min_length=1, max_length=128)
