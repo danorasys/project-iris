@@ -26,7 +26,7 @@ from app.infrastructure.redis_gateway import (
     RedisSessionRegistry,
     RedisTokenBlacklist,
 )
-from app.infrastructure.security import BcryptPasswordHasher, FernetTotpEncryptor, JoseTokenIssuer, PyotpTotpProvider
+from app.infrastructure.security import BcryptPasswordHasher, FernetTotpEncryptor, JwtTokenIssuer, PyotpTotpProvider
 from app.infrastructure.uow import SqlAlchemyUnitOfWork
 
 _bearer = HTTPBearer(auto_error=False)
@@ -38,9 +38,9 @@ def get_password_hasher() -> BcryptPasswordHasher:
 
 
 @lru_cache
-def get_token_issuer() -> JoseTokenIssuer:
+def get_token_issuer() -> JwtTokenIssuer:
     settings = get_settings()
-    return JoseTokenIssuer(
+    return JwtTokenIssuer(
         secret=settings.jwt_secret,
         algorithm=settings.jwt_algorithm,
         access_ttl_min=settings.jwt_access_ttl_min,
@@ -114,7 +114,7 @@ def get_portal_access_store(redis: Annotated[Redis, Depends(get_redis)]) -> Redi
 def get_auth_service(
     settings: Annotated[Settings, Depends(get_settings)],
     hasher: Annotated[BcryptPasswordHasher, Depends(get_password_hasher)],
-    tokens: Annotated[JoseTokenIssuer, Depends(get_token_issuer)],
+    tokens: Annotated[JwtTokenIssuer, Depends(get_token_issuer)],
     blacklist: Annotated[RedisTokenBlacklist, Depends(get_blacklist)],
     portal_access: Annotated[RedisPortalAccessStore, Depends(get_portal_access_store)],
     sessions: Annotated[SessionService, Depends(get_session_service)],
@@ -206,7 +206,7 @@ class CurrentUser:
 
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
-    tokens: Annotated[JoseTokenIssuer, Depends(get_token_issuer)],
+    tokens: Annotated[JwtTokenIssuer, Depends(get_token_issuer)],
     sessions: Annotated[SessionService, Depends(get_session_service)],
 ) -> CurrentUser:
     if credentials is None:

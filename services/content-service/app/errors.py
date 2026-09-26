@@ -26,7 +26,7 @@ _STATUS_BY_ERROR: dict[type[DomainError], int] = {
     IdentityServiceUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
     PermissionDenied: status.HTTP_403_FORBIDDEN,
     ResourceNotFound: status.HTTP_404_NOT_FOUND,
-    InvalidFile: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    InvalidFile: status.HTTP_422_UNPROCESSABLE_CONTENT,
 }
 
 
@@ -49,7 +49,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             {**e, "ctx": {k: str(v) for k, v in e["ctx"].items()}} if e.get("ctx") else e for e in exc.errors()
         ]
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content=_envelope(
                 "datos_invalidos", "Los datos enviados no son válidos.", {"errores": jsonable_encoder(errores_serializables)}
             ),

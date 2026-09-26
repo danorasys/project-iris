@@ -9,8 +9,8 @@ from uuid import UUID
 import bcrypt
 import pyotp
 import qrcode  # type: ignore[import-untyped]  # no bundled type stubs
+import jwt
 from cryptography.fernet import Fernet, InvalidToken as InvalidFernetToken
-from jose import JWTError, jwt
 
 from app.domain.exceptions import InvalidToken
 
@@ -38,9 +38,9 @@ class BcryptPasswordHasher:
         return self.DUMMY_HASH
 
 
-# Implements the TokenIssuer port with JWT. Access tokens last 15 minutes,
-# refresh tokens 7 days.
-class JoseTokenIssuer:
+# Implements the TokenIssuer port with JWT (PyJWT). Access tokens last 15
+# minutes, refresh tokens 7 days.
+class JwtTokenIssuer:
     def __init__(self, secret: str, algorithm: str, access_ttl_min: int, refresh_ttl_days: int) -> None:
         self._secret = secret
         self._algorithm = algorithm
@@ -75,9 +75,16 @@ class JoseTokenIssuer:
         return jwt.encode(payload, self._secret, algorithm=self._algorithm), jti
 
     def decodificar(self, token: str) -> dict[str, object]:
+        # Only our algorithm is accepted, and a token without an expiry, issue
+        # date or subject is rejected even if the signature is fine.
         try:
-            payload: dict[str, object] = jwt.decode(token, self._secret, algorithms=[self._algorithm])
-        except JWTError as exc:
+            payload: dict[str, object] = jwt.decode(
+                token,
+                self._secret,
+                algorithms=[self._algorithm],
+                options={"require": ["exp", "iat", "sub"]},
+            )
+        except jwt.PyJWTError as exc:
             raise InvalidToken() from exc
         return payload
 
@@ -87,9 +94,9 @@ class JoseTokenIssuer:
 
 
 # Implements the TotpProvider port with pyotp (RFC 6238) and qrcode.
-# Any authenticator app that follows the same standard — Google
-# Authenticator, Microsoft Authenticator, Authy, 1Password, etc. — can
-# scan what this produces; nothing here is tied to one vendor.
+# Any authenticator app that follows that standard (Google Authenticator,
+# Microsoft Authenticator, Authy, 1Password...) can scan what this makes,
+# nothing here is tied to one vendor.
 class PyotpTotpProvider:
     def generar_secreto(self) -> str:
         return pyotp.random_base32()
@@ -108,9 +115,9 @@ class PyotpTotpProvider:
         return f"data:image/png;base64,{encoded}"
 
 
-# Implements the TotpEncryptor port. Symmetric encryption, not hashing —
-# unlike a password or PIN, a TOTP secret has to be read back in plain text
-# to compute the expected code and compare it against what the app shows.
+# Implements the TotpEncryptor port. Encrypted, not hashed: unlike a password
+# or PIN, the TOTP secret has to be read back to work out the code the app
+# should be showing.
 class FernetTotpEncryptor:
     def __init__(self, key: str) -> None:
         self._fernet = Fernet(key.encode("utf-8"))

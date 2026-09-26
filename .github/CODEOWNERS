@@ -1,0 +1,10 @@
+# Changes to the pipeline, the deploy and the infrastructure need a review
+# from the owner. Only enforced when the main branch protection has
+# "Require review from Code Owners" turned on.
+/.github/                @danorasys
+/scripts/                @danorasys
+/infra/                  @danorasys
+/docker-compose.prod.yml @danorasys
+/trivy.yaml              @danorasys
+/.trivyignore.yaml       @danorasys
+/.gitleaks.toml          @danorasys

@@ -1,6 +1,6 @@
 # Auth use cases.
 #
-# Pure orchestration. No SQLAlchemy, jose or bcrypt imports here, only the
+# Pure orchestration. No SQLAlchemy, jwt or bcrypt imports here, only the
 # ports defined in app.domain.ports.
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 # Protocols the application layer uses to talk to the outside world,
 # implemented in infrastructure/. This is what keeps application/ free of
-# direct SQLAlchemy, jose or bcrypt imports.
+# direct SQLAlchemy, jwt or bcrypt imports.
 
 from __future__ import annotations
 
@@ -225,7 +225,7 @@ class SessionRegistry(Protocol):
 
 # Wraps the TOTP (RFC 6238) algorithm itself, so the application layer
 # never imports pyotp or qrcode directly — same reason PasswordHasher wraps
-# bcrypt and TokenIssuer wraps jose.
+# bcrypt and TokenIssuer wraps PyJWT.
 class TotpProvider(Protocol):
     def generar_secreto(self) -> str: ...
     def uri_aprovisionamiento(self, secreto: str, nombre_cuenta: str, emisor: str) -> str: ...

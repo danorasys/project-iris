@@ -1,0 +1,44 @@
+# Every push to main publishes six release candidates (sha-<commit>). This
+# removes the old ones that were never released, so GHCR does not fill up.
+# Released images keep their version tag and are never touched.
+name: Clean old candidates
+
+on:
+  schedule:
+    - cron: "0 13 * * 1" # Mondays, after the security scan
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only list what would be deleted
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# An explicit bash shell runs with pipefail, the default one does not.
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: cleanup-images
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Clean candidates
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # A scheduled run has no inputs, so it deletes for real.
+      - name: Delete candidates older than 30 days
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run == true }}
+          KEEP_DAYS: "30"
+        run: bash scripts/ci/cleanup-candidates.sh

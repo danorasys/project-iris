@@ -45,18 +45,18 @@ _STATUS_POR_ERROR: dict[type[DomainError], int] = {
     AttemptLimitExceeded: status.HTTP_429_TOO_MANY_REQUESTS,
     ResourceNotFound: status.HTTP_404_NOT_FOUND,
     PermissionDenied: status.HTTP_403_FORBIDDEN,
-    ConsentRequired: status.HTTP_422_UNPROCESSABLE_ENTITY,
-    InvalidDocumentType: status.HTTP_422_UNPROCESSABLE_ENTITY,
-    InvalidDocumentNumberFormat: status.HTTP_422_UNPROCESSABLE_ENTITY,
-    InvalidRelationshipType: status.HTTP_422_UNPROCESSABLE_ENTITY,
-    InvalidSupportCondition: status.HTTP_422_UNPROCESSABLE_ENTITY,
-    InvalidAvatar: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    ConsentRequired: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    InvalidDocumentType: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    InvalidDocumentNumberFormat: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    InvalidRelationshipType: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    InvalidSupportCondition: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    InvalidAvatar: status.HTTP_422_UNPROCESSABLE_CONTENT,
     UnauthorizedInternalAccess: status.HTTP_401_UNAUTHORIZED,
     InvalidTotpCode: status.HTTP_401_UNAUTHORIZED,
     PortalAccessRequired: status.HTTP_403_FORBIDDEN,
     SessionClosedForSecurity: status.HTTP_401_UNAUTHORIZED,
     TotpNotEnabled: status.HTTP_409_CONFLICT,
-    TotpSetupNotStarted: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    TotpSetupNotStarted: status.HTTP_422_UNPROCESSABLE_CONTENT,
 }
 
 
@@ -96,7 +96,7 @@ def register_exception_handlers(app: FastAPI) -> None:
                 error["ctx"] = {k: str(v) for k, v in error["ctx"].items()}
             errores_serializables.append(error)
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content=_envelope(
                 "datos_invalidos", "Los datos enviados no son válidos.", {"errores": jsonable_encoder(errores_serializables)}
             ),

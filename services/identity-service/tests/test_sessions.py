@@ -8,7 +8,7 @@ import fakeredis.aioredis
 import pyotp
 import pytest
 from httpx import AsyncClient
-from jose import jwt
+import jwt
 
 from app.config import get_settings
 from tests.conftest import payload_registro_tutor, registrar_tutor, registrar_tutor_con_2fa
@@ -21,7 +21,7 @@ def _headers(token: str) -> dict[str, str]:
 
 
 def _claims(token: str) -> dict:
-    return jwt.get_unverified_claims(token)
+    return jwt.decode(token, options={"verify_signature": False})
 
 
 async def _login(client: AsyncClient, correo: str, ip: str | None = None) -> dict:

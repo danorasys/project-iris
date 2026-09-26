@@ -56,6 +56,8 @@ apps/web/PRODUCT.md
 
 # No .md files get pushed to GitHub for now.
 *.md
+# Except the security policy, GitHub shows it in the Security tab.
+!SECURITY.md
 
 # TLS certificates and private keys must never be committed
 *.pem
