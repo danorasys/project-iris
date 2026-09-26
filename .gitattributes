@@ -3,3 +3,5 @@
 # interpreter, which doesn't exist. Force LF regardless of what a Windows
 # checkout (core.autocrlf=true) would otherwise do.
 *.sh text eol=lf
+*.service text eol=lf
+*.timer text eol=lf

@@ -1,0 +1,12 @@
+# Gitleaks config. It keeps the default rules and only adds one exception.
+
+[extend]
+useDefault = true
+
+# The tests use made up passwords (like "Clave-Segura-123") that the generic
+# rule takes for real keys. The exception is only for that rule and only for
+# test folders, so a real secret anywhere else still fails the CI.
+[[allowlists]]
+description = "Made up credentials in tests"
+targetRules = ["generic-api-key"]
+paths = ['''services/[a-z-]+/tests/.*''']

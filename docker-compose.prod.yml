@@ -85,7 +85,7 @@ services:
         restart: "no"
 
     identity-service:
-        image: ghcr.io/danorasys/project-iris/identity-service:${IMAGE_TAG:-latest}
+        image: ghcr.io/danorasys/project-iris/identity-service:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
         <<: [*restart-policy, *log-limits]
         environment:
             <<: *python-service-env
@@ -116,7 +116,7 @@ services:
             retries: 5
 
     classroom-service:
-        image: ghcr.io/danorasys/project-iris/classroom-service:${IMAGE_TAG:-latest}
+        image: ghcr.io/danorasys/project-iris/classroom-service:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
         <<: [*restart-policy, *log-limits]
         environment:
             <<: *python-service-env
@@ -153,7 +153,7 @@ services:
             retries: 5
 
     content-service:
-        image: ghcr.io/danorasys/project-iris/content-service:${IMAGE_TAG:-latest}
+        image: ghcr.io/danorasys/project-iris/content-service:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
         <<: [*restart-policy, *log-limits]
         environment:
             <<: *python-service-env
@@ -191,7 +191,7 @@ services:
             retries: 5
 
     notification-service:
-        image: ghcr.io/danorasys/project-iris/notification-service:${IMAGE_TAG:-latest}
+        image: ghcr.io/danorasys/project-iris/notification-service:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
         <<: [*restart-policy, *log-limits]
         environment:
             <<: *python-service-env
@@ -218,7 +218,7 @@ services:
             retries: 5
 
     api-gateway:
-        image: ghcr.io/danorasys/project-iris/api-gateway:${IMAGE_TAG:-latest}
+        image: ghcr.io/danorasys/project-iris/api-gateway:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
         <<: [*restart-policy, *log-limits]
         environment:
             <<: *python-service-env
@@ -257,7 +257,7 @@ services:
             retries: 5
 
     web:
-        image: ghcr.io/danorasys/project-iris/web:${IMAGE_TAG:-latest}
+        image: ghcr.io/danorasys/project-iris/web:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
         <<: [*restart-policy, *log-limits]
         depends_on:
             - api-gateway
