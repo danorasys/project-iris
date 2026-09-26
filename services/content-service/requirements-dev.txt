@@ -1,10 +1,10 @@
 -r requirements.txt
-pytest==8.3.3
-pytest-asyncio==0.24.0
-aiosqlite==0.20.0
-fakeredis==2.26.1
-respx==0.21.1
-types-cachetools==5.5.0.20240820
-boto3-stubs[s3]==1.35.36
-ruff==0.7.4
-mypy==1.13.0
+pytest==9.1.1
+pytest-asyncio==1.4.0
+aiosqlite==0.22.1
+fakeredis==2.38.0
+respx==0.23.1
+types-cachetools==7.0.0.20260713
+boto3-stubs[s3]==1.43.100
+ruff==0.16.8
+mypy==2.3.1
