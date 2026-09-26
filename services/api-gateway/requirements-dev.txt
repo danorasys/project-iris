@@ -1,7 +1,7 @@
 -r requirements.txt
-pytest==8.3.3
-pytest-asyncio==0.24.0
-respx==0.21.1
-ruff==0.7.4
-mypy==1.13.0
-fakeredis==2.26.1
+pytest==9.1.1
+pytest-asyncio==1.4.0
+respx==0.23.1
+ruff==0.16.8
+mypy==2.3.1
+fakeredis==2.38.0
