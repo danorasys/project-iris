@@ -1,10 +1,18 @@
 # Dependabot opens weekly pull requests to update dependencies. Each one goes
-# through the same CI (tests and image scan) before it can be merged.
+# through the same CI (tests, migrations and image scan) before it can be merged.
 #
-# Updates are grouped by risk. Minor versions, patches and dev tools come
-# grouped, one pull request for all the services at once. A major version of
-# something that runs in production gets its own pull request, because it is
-# the kind that can break things and needs its release notes read.
+# How updates are split:
+#   - Minor versions and patches are grouped by area of the system (web
+#     framework, database, security...). Each pull request touches one area,
+#     so it is small, keeps the full release notes and can be reverted alone.
+#     A library and the tool that fakes it in tests (httpx and respx, redis
+#     and fakeredis) share a group, so they always move together.
+#   - A major version of anything gets its own pull request, because it is the
+#     kind of change that can break things and needs its notes read. The only
+#     exception are packages that can't work on different majors (fastapi and
+#     starlette, react and react-dom...), which move together.
+#   - Dependabot uses the first group that matches a package, so the order of
+#     the groups matters. The last minor/patch group catches new packages.
 #
 # The service folders are listed one by one on purpose. With a "/services/*"
 # pattern Dependabot also scans "/services" as a whole and every update shows
@@ -16,6 +24,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: ci
+      include: scope
     groups:
       actions:
         patterns: ["*"]
@@ -31,6 +42,9 @@ updates:
       - /services/notification-service
     schedule:
       interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
     groups:
       base-images:
         patterns: ["*"]
@@ -40,6 +54,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
     # Postgres gets its own pull request. A new major one is still suggested,
     # but the CI keeps it red until the data migration of scripts/pg-upgrade.sh
     # is done (see scripts/ci/postgres-version.sh).
@@ -57,25 +74,72 @@ updates:
       - /services/notification-service
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build
+      include: scope
     groups:
-      # Test and lint tools, any version: they never reach production.
-      python-dev-tools:
-        dependency-type: development
-      python-minor-and-patch:
-        dependency-type: production
+      python-web:
+        patterns: [fastapi, starlette, "uvicorn*", "pydantic*", email-validator, python-multipart]
         update-types: [minor, patch]
+      python-database:
+        patterns: ["sqlalchemy*", asyncpg, alembic, aiosqlite]
+        update-types: [minor, patch]
+      python-http-and-cache:
+        patterns: [httpx, respx, redis, fakeredis, cachetools, types-cachetools]
+        update-types: [minor, patch]
+      python-security:
+        patterns: [bcrypt, pyjwt, cryptography, pyotp, "qrcode*"]
+        update-types: [minor, patch]
+      python-storage:
+        patterns: ["boto3*"]
+        update-types: [minor, patch]
+      # Test and lint tools never reach production, so any version goes here.
+      python-dev-tools:
+        patterns: ["pytest*", mypy, ruff, "types-*"]
+      python-other:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      # Packages that only work on matching majors, so they move together.
+      python-web-framework-major:
+        patterns: [fastapi, starlette]
+        update-types: [major]
+      python-pydantic-major:
+        patterns: ["pydantic*"]
+        update-types: [major]
       # One pull request per package, still covering the five services.
       python-major:
-        dependency-type: production
+        patterns: ["*"]
         update-types: [major]
         group-by: dependency-name
 
+  # Only apps/web has dependencies, the root package.json just links the
+  # workspaces. A major version not listed in a group gets its own pull request.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
-    # Major versions are left out of the group, so each one gets its own
-    # pull request.
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build
+      include: scope
     groups:
-      npm-minor-and-patch:
+      npm-react:
+        patterns: [react, react-dom, "@types/react*", "react-router*", "@tanstack/*", react-phone-number-input, lucide-react]
         update-types: [minor, patch]
+      npm-build-and-test:
+        patterns: [vite, "@vitejs/*", vitest, jsdom, "@testing-library/*", typescript, "@types/node"]
+        update-types: [minor, patch]
+      npm-lint:
+        patterns: [eslint, "@eslint/*", "eslint-plugin-*", typescript-eslint, globals]
+        update-types: [minor, patch]
+      npm-other:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      # Packages that only work on matching majors, so they move together.
+      npm-react-major:
+        patterns: [react, react-dom, "@types/react", "@types/react-dom"]
+        update-types: [major]
+      npm-eslint-major:
+        patterns: [eslint, "@eslint/js"]
+        update-types: [major]
