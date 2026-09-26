@@ -5,6 +5,10 @@
 #
 #   bash scripts/pg-upgrade.sh --env-file .env.production
 #
+# Before, in the repo: the change that moves the compose files to the new
+# image also sets infra/postgres/MAJOR to the new major (the CI stays red
+# until both match) and the defaults below, then it is released as usual.
+#
 # Steps on the server (the release with the new Postgres is NOT marked as
 # latest yet, or the auto deploy would start it on an empty volume):
 #   1. sudo systemctl stop iris-deploy.timer

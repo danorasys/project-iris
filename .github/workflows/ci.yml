@@ -43,8 +43,30 @@ jobs:
     with:
       service: ${{ matrix.service }}
 
+  # Reads the Postgres version of the compose files. It fails when the major
+  # version changes without the planned data migration, but still passes the
+  # image on, so the migrations below get tested on the new version anyway.
+  postgres:
+    name: postgres / version check
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.version.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check the Postgres version
+        id: version
+        run: |
+          set +e
+          image="$(bash scripts/ci/postgres-version.sh)"
+          status=$?
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
   migrations:
     name: migrations / ${{ matrix.service }}
+    needs: postgres
+    if: ${{ !cancelled() && needs.postgres.outputs.image != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -57,6 +79,7 @@ jobs:
     with:
       service: ${{ matrix.service }}
       database: ${{ matrix.database }}
+      postgres_image: ${{ needs.postgres.outputs.image }}
 
   frontend:
     name: frontend / apps-web
@@ -90,7 +113,7 @@ jobs:
   # Images are only built when the code itself is fine.
   images:
     name: images / ${{ matrix.name }}
-    needs: [backend, migrations, frontend, secrets-scan, dockerfiles]
+    needs: [backend, postgres, migrations, frontend, secrets-scan, dockerfiles]
     permissions:
       contents: read
       packages: write # only used on main, pull requests from forks never get it

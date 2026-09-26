@@ -28,14 +28,13 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Postgres gets its own pull request. A new major one is still suggested,
+    # but the CI keeps it red until the data migration of scripts/pg-upgrade.sh
+    # is done (see scripts/ci/postgres-version.sh).
     groups:
       compose-images:
         patterns: ["*"]
-    # A new Postgres major can not read the old data, it needs the planned
-    # migration of scripts/pg-upgrade.sh. Minor versions are fine.
-    ignore:
-      - dependency-name: postgres
-        update-types: ["version-update:semver-major"]
+        exclude-patterns: ["postgres"]
 
   - package-ecosystem: pip
     directories:

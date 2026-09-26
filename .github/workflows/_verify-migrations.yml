@@ -16,6 +16,10 @@ on:
         description: Database the service uses
         required: true
         type: string
+      postgres_image:
+        description: Postgres image of the compose files, like postgres:18-alpine
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -28,10 +32,10 @@ jobs:
   migrations:
     name: migrations
     runs-on: ubuntu-latest
-    # Keep this image in step with docker-compose.prod.yml.
+    # The same image the compose files use, read by scripts/ci/postgres-version.sh.
     services:
       postgres:
-        image: postgres:18-alpine
+        image: ${{ inputs.postgres_image }}
         env:
           # Throwaway database that only lives during this job.
           POSTGRES_USER: iris_ci
