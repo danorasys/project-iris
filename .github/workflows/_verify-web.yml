@@ -19,9 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Same Node major as apps/web/Dockerfile, so the tests run on the version
+      # that builds the bundle. Dependabot only bumps the Dockerfile.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22"
+          node-version: "26"
           cache: npm
 
       - name: Install workspace dependencies
