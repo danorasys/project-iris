@@ -34,7 +34,7 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Lint (ruff)
-        run: ruff check app tests --line-length 120
+        run: ruff check app tests
 
       - name: Type check (mypy)
         run: mypy app --ignore-missing-imports

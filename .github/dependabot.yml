@@ -1,6 +1,13 @@
 # Dependabot opens weekly pull requests to update dependencies. Each one goes
-# through the same CI (tests and image scan) before it can be merged. Updates
-# are grouped so there are a few pull requests a week instead of dozens.
+# through the same CI (tests and image scan) before it can be merged.
+#
+# Everything is grouped, so a normal week brings a handful of pull requests:
+# one per group, covering all the services at once. Major versions get their
+# own group because they are the ones that can break things.
+#
+# The service folders are listed one by one on purpose. With a "/services/*"
+# pattern Dependabot also scans "/services" as a whole and every update shows
+# up twice.
 version: 2
 updates:
   # The actions are pinned by SHA, Dependabot moves the SHA and the version comment.
@@ -16,7 +23,11 @@ updates:
   - package-ecosystem: docker
     directories:
       - /apps/web
-      - /services/*
+      - /services/api-gateway
+      - /services/classroom-service
+      - /services/content-service
+      - /services/identity-service
+      - /services/notification-service
     schedule:
       interval: weekly
     groups:
@@ -38,12 +49,23 @@ updates:
 
   - package-ecosystem: pip
     directories:
-      - /services/*
+      - /services/api-gateway
+      - /services/classroom-service
+      - /services/content-service
+      - /services/identity-service
+      - /services/notification-service
     schedule:
       interval: weekly
     groups:
+      # Test and lint tools, any version: they never reach production.
+      python-dev-tools:
+        dependency-type: development
       python-minor-and-patch:
+        dependency-type: production
         update-types: [minor, patch]
+      python-major:
+        dependency-type: production
+        update-types: [major]
 
   - package-ecosystem: npm
     directory: /
@@ -52,3 +74,5 @@ updates:
     groups:
       npm-minor-and-patch:
         update-types: [minor, patch]
+      npm-major:
+        update-types: [major]
