@@ -1,9 +1,10 @@
 # Dependabot opens weekly pull requests to update dependencies. Each one goes
 # through the same CI (tests and image scan) before it can be merged.
 #
-# Everything is grouped, so a normal week brings a handful of pull requests:
-# one per group, covering all the services at once. Major versions get their
-# own group because they are the ones that can break things.
+# Updates are grouped by risk. Minor versions, patches and dev tools come
+# grouped, one pull request for all the services at once. A major version of
+# something that runs in production gets its own pull request, because it is
+# the kind that can break things and needs its release notes read.
 #
 # The service folders are listed one by one on purpose. With a "/services/*"
 # pattern Dependabot also scans "/services" as a whole and every update shows
@@ -63,16 +64,18 @@ updates:
       python-minor-and-patch:
         dependency-type: production
         update-types: [minor, patch]
+      # One pull request per package, still covering the five services.
       python-major:
         dependency-type: production
         update-types: [major]
+        group-by: dependency-name
 
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    # Major versions are left out of the group, so each one gets its own
+    # pull request.
     groups:
       npm-minor-and-patch:
         update-types: [minor, patch]
-      npm-major:
-        update-types: [major]
