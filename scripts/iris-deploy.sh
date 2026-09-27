@@ -13,6 +13,9 @@ readonly APP_DIR="${IRIS_APP_DIR:-/opt/iris}"
 readonly STATE_DIR="${IRIS_STATE_DIR:-/var/lib/iris-deploy}"
 readonly IMAGE_PREFIX="ghcr.io/${REPO}"
 readonly SERVICES=(identity-service classroom-service content-service notification-service api-gateway web)
+# Services of docker-compose.prod.yml, split by who builds the image.
+readonly APP_SERVICES=("${SERVICES[@]}")
+readonly THIRD_PARTY_SERVICES=(postgres redis minio minio-init reverse-proxy)
 readonly TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+$'
 readonly OIDC_ISSUER="https://token.actions.githubusercontent.com"
 
@@ -83,7 +86,12 @@ apply_version() {
     local tag="$1"
     checkout_tag "$tag" || return 1
     export IMAGE_TAG="$tag"
-    compose pull --quiet || return 1
+    # Our images must download, they are the release. Third party images are
+    # only refreshed when their registry answers: if it doesn't, the copy the
+    # server already has is used (MinIO stopped publishing its images).
+    compose pull --quiet "${APP_SERVICES[@]}" || return 1
+    compose pull --quiet --ignore-pull-failures "${THIRD_PARTY_SERVICES[@]}" \
+        || log "could not refresh some third party images, using the local ones"
     compose up -d --wait --wait-timeout 180 || return 1
     health_check
 }

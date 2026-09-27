@@ -288,12 +288,16 @@ services:
             - minio
 
 # Fixed subnet so the reverse proxy always gets the same IP, which the
-# api-gateway trusts for X-Forwarded-For.
+# api-gateway trusts for X-Forwarded-For. Docker hands out addresses to the
+# other containers only from ip_range (.128 to .255), so the proxy's .10 can
+# never be taken by a container that happened to start first.
 networks:
     default:
         ipam:
             config:
                 - subnet: 172.28.0.0/24
+                  ip_range: 172.28.0.128/25
+                  gateway: 172.28.0.1
 
 volumes:
     postgres-data:
