@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { LessonBlockRenderer } from "@/features/lessons/components/LessonBlockRenderer";
 import { useLessonDetail } from "@/shared/api/hooks/useLessonsApi";
+import { lessonImagePath } from "@/shared/api/mediaPaths";
 import { useAuth } from "@/shared/auth/AuthContext";
+import { AuthImage } from "@/shared/ui/AuthImage";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { Mascot } from "@/shared/ui/Mascot";
-import { useAuth } from "@/shared/auth/AuthContext";
-import { useLessonDetail } from "@/shared/api/hooks/useLessonsApi";
-import { lessonImagePath } from "@/shared/api/mediaPaths";
-import { AuthImage } from "@/shared/ui/AuthImage";
+
 import { DwellArrow } from "../components/DwellArrow";
 import { getDwellDurationMs } from "../lib/dwellPreferences";
 
@@ -39,8 +38,8 @@ export default function LessonViewerPage() {
     );
 
     /*
-     * Evita que el índice quede fuera del arreglo si los
-     * bloques cambian durante una actualización de caché.
+     * Evita que el índice quede fuera del arreglo
+     * cuando TanStack Query actualiza la lección.
      */
     useEffect(() => {
         setIndex((current) =>
@@ -48,9 +47,13 @@ export default function LessonViewerPage() {
         );
     }, [blocks.length]);
 
+    const goToClassrooms = () => {
+        navigate("/student/classrooms");
+    };
+
     const goToLessons = () => {
         if (!lessonQuery.data) {
-            navigate("/student/classrooms");
+            goToClassrooms();
             return;
         }
 
@@ -88,46 +91,146 @@ export default function LessonViewerPage() {
                     variant="teal"
                     icon={<ChevronLeft width={32} height={32} />}
                     dwellDurationMs={dwellDurationMs}
-                    onSelect={() => navigate("/student/classrooms")}
+                    onSelect={goToClassrooms}
                 >
                     Volver a mis aulas
                 </BigChoiceButton>
             </main>
         );
     }
-  };
 
-  return (
-    <main className={styles.viewer}>
-      <DwellArrow
-        direction="left"
-        label="Bloque anterior"
-        onSelect={previous}
-        disabled={isFirst}
-        dwellDurationMs={dwellDurationMs}
-      />
+    const lesson = lessonQuery.data;
 
-      <div className={styles.content}>
-        <p className={styles.progress} aria-live="polite">
-          {index + 1} de {blocks.length}
-        </p>
-        <h1 className={styles.lessonTitle}>{lesson.title}</h1>
-        {currentBlock.type === "texto" ? (
-          <p className={styles.text}>{currentBlock.content}</p>
-        ) : (
-          <AuthImage
-            path={currentBlock.image_file ? lessonImagePath(currentBlock.lesson_id, currentBlock.image_file) : null}
-            className={styles.image}
-          />
-        )}
-      </div>
+    if (blocks.length === 0) {
+        return (
+            <main className={styles.centered}>
+                <Mascot mood="happy" size="medium">
+                    Esta lección todavía no tiene contenido.
+                </Mascot>
 
-      <DwellArrow
-        direction="right"
-        label={isLast ? "Terminar lección" : "Siguiente bloque"}
-        onSelect={next}
-        dwellDurationMs={dwellDurationMs}
-      />
-    </main>
-  );
+                <BigChoiceButton
+                    variant="teal"
+                    icon={<ChevronLeft width={32} height={32} />}
+                    dwellDurationMs={dwellDurationMs}
+                    onSelect={goToLessons}
+                >
+                    Volver a lecciones
+                </BigChoiceButton>
+            </main>
+        );
+    }
+
+    const currentBlock = blocks[index];
+    const isFirst = index === 0;
+    const isLast = index === blocks.length - 1;
+
+    const renderCurrentBlock = () => {
+        /*
+         * Las imágenes privadas deben descargarse mediante
+         * AuthImage, porque un <img src> normal no puede
+         * enviar el token del estudiante.
+         */
+        if (currentBlock.type === "imagen") {
+            return (
+                <figure className="lesson-image">
+                    <AuthImage
+                        path={
+                            currentBlock.image_file
+                                ? lessonImagePath(
+                                      currentBlock.lesson_id,
+                                      currentBlock.image_file,
+                                  )
+                                : null
+                        }
+                        alt="Contenido visual de la lección"
+                        fallback={<p>No se pudo cargar esta imagen.</p>}
+                    />
+                </figure>
+            );
+        }
+
+        /*
+         * Los bloques de texto pueden representar
+         * información Markdown o preguntas.
+         */
+        return (
+            <LessonBlockRenderer
+                key={currentBlock.id}
+                block={currentBlock}
+                interactive
+                dwellDurationMs={dwellDurationMs}
+                /*
+                 * No se revela correcto/incorrecto hasta que
+                 * la validación se realice en FastAPI.
+                 */
+                showCorrectness={false}
+            />
+        );
+    };
+
+    return (
+        <main className={styles.viewer}>
+            <header className={styles.header}>
+                <div className={styles.backAction}>
+                    <BigChoiceButton
+                        variant="teal"
+                        icon={<ChevronLeft width={28} height={28} />}
+                        dwellDurationMs={dwellDurationMs}
+                        onSelect={goToLessons}
+                    >
+                        Lecciones
+                    </BigChoiceButton>
+                </div>
+
+                <div className={styles.lessonIdentity}>
+                    <span>Lección</span>
+
+                    <h1>{lesson.title}</h1>
+                </div>
+
+                <div className={styles.progressText} aria-live="polite">
+                    {index + 1} de {blocks.length}
+                </div>
+            </header>
+
+            <div className={styles.progressTrack} aria-hidden="true">
+                <div
+                    className={styles.progressValue}
+                    style={{
+                        width: `${((index + 1) / blocks.length) * 100}%`,
+                    }}
+                />
+            </div>
+
+            <section className={styles.stage}>
+                <DwellArrow
+                    direction="left"
+                    label="Contenido anterior"
+                    disabled={isFirst}
+                    dwellDurationMs={dwellDurationMs}
+                    onSelect={previous}
+                />
+
+                <article className={styles.contentCard}>
+                    {renderCurrentBlock()}
+                </article>
+
+                {isLast ? (
+                    <DwellArrow
+                        direction="finish"
+                        label="Terminar lección"
+                        dwellDurationMs={dwellDurationMs}
+                        onSelect={goToLessons}
+                    />
+                ) : (
+                    <DwellArrow
+                        direction="right"
+                        label="Siguiente contenido"
+                        dwellDurationMs={dwellDurationMs}
+                        onSelect={next}
+                    />
+                )}
+            </section>
+        </main>
+    );
 }

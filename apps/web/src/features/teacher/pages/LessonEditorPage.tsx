@@ -19,6 +19,13 @@ import {
     Trash2,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+
+import {
+    decodeTextBlock,
+    encodeInformation,
+    encodeQuestion,
+    LessonBlockRenderer,
+} from "@/features/lessons/components/LessonBlockRenderer";
 import { ApiError } from "@/shared/api/httpClient";
 import {
     type ContentBlockInput,
@@ -27,20 +34,17 @@ import {
     useUpdateLesson,
     useUploadLessonImage,
 } from "@/shared/api/hooks/useLessonsApi";
-import { ApiError } from "@/shared/api/httpClient";
 import { lessonImagePath } from "@/shared/api/mediaPaths";
 import { AuthImage } from "@/shared/ui/AuthImage";
-import { IconImage, IconUndo, IconText } from "@/shared/ui/icons";
-import styles from "./LessonEditorPage.module.css";
 
-interface EditorBlock extends ContentBlockInput {
-  /** Local id, only for React's `key` and moving blocks around. Never
-   * sent to the backend, the real `ContentBlockInput` doesn't carry it. */
-  clientId: string;
-}
+import styles from "./CourseBuilderPage.module.css";
 
 type EditorBlock =
-    | { id: string; kind: "information"; markdown: string }
+    | {
+          id: string;
+          kind: "information";
+          markdown: string;
+      }
     | {
           id: string;
           kind: "question";
@@ -48,30 +52,46 @@ type EditorBlock =
           options: string[];
           correctOption?: number;
       }
-    | { id: string; kind: "image"; imageUrl: string };
+    | {
+          id: string;
+          kind: "image";
+          imageFile: string;
+      };
 
-const createId = () => crypto.randomUUID();
-const errorMessage = (error: unknown, fallback: string) =>
-    error instanceof ApiError ? error.message : fallback;
+function createId(): string {
+    return crypto.randomUUID();
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof ApiError ? error.message : fallback;
+}
 
 function toApiBlocks(blocks: EditorBlock[]): ContentBlockInput[] {
     return blocks.map((block, orderIndex) => {
-        if (block.kind === "image")
+        if (block.kind === "image") {
             return {
                 type: "imagen",
-                image_url: block.imageUrl,
+                image_file: block.imageFile,
                 order_index: orderIndex,
             };
-        if (block.kind === "question")
+        }
+
+        if (block.kind === "question") {
+            const options = block.options
+                .map((option) => option.trim())
+                .filter(Boolean);
+
             return {
                 type: "texto",
                 content: encodeQuestion(
                     block.markdown.trim() || "## Escribe la pregunta",
-                    block.options.map((value) => value.trim()).filter(Boolean),
+                    options,
                     block.correctOption,
                 ),
                 order_index: orderIndex,
             };
+        }
+
         return {
             type: "texto",
             content: encodeInformation(
@@ -87,243 +107,553 @@ export default function LessonEditorPage() {
         classroomId: string;
         lessonId?: string;
     }>();
+
     const navigate = useNavigate();
     const isEditMode = Boolean(lessonIdParam);
+
     const createLesson = useCreateLesson(classroomId ?? "");
     const lessonQuery = useLessonDetail(lessonIdParam);
     const updateLesson = useUpdateLesson();
     const uploadImage = useUploadLessonImage();
 
-  const [lessonId, setLessonId] = useState<string | null>(lessonIdParam ?? null);
-  const [title, setTitle] = useState("");
-  const [blocks, setBlocks] = useState<EditorBlock[]>([]);
-  const [existingLessonLoaded, setExistingLessonLoaded] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [imageError, setImageError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Seeds the editor's local state from the fetched lesson exactly once,
-  // then leaves it alone, so the user's own edits never get overwritten by
-  // a background refetch.
-  useEffect(() => {
-    if (!isEditMode || existingLessonLoaded || !existingLessonQuery.data) return;
-    const lesson = existingLessonQuery.data;
-    setTitle(lesson.title);
-    setBlocks(
-      [...lesson.blocks]
-        .sort((a, b) => a.order_index - b.order_index)
-        .map((block) => ({
-          clientId: generateClientId(),
-          type: block.type,
-          content: block.content ?? undefined,
-          image_file: block.image_file ?? undefined,
-          order_index: block.order_index,
-        }))
+    const [lessonId, setLessonId] = useState<string | null>(
+        lessonIdParam ?? null,
     );
+
     const [title, setTitle] = useState("");
     const [blocks, setBlocks] = useState<EditorBlock[]>([]);
-    const [loaded, setLoaded] = useState(false);
+
+    const [lessonLoaded, setLessonLoaded] = useState(false);
+
     const [previewEnabled, setPreviewEnabled] = useState(true);
+
     const [previewIndex, setPreviewIndex] = useState(0);
+
     const [error, setError] = useState<string | null>(null);
+
     const [message, setMessage] = useState<string | null>(null);
+
     const imageInputRef = useRef<HTMLInputElement>(null);
 
+    /*
+     * Carga una lección existente una sola vez.
+     * Los refetch posteriores no sobrescriben lo que el
+     * docente esté editando localmente.
+     */
     useEffect(() => {
-        if (!isEditMode || loaded || !lessonQuery.data) return;
+        if (!isEditMode || lessonLoaded || !lessonQuery.data) {
+            return;
+        }
+
         const lesson = lessonQuery.data;
-        setTitle(lesson.title);
-        setBlocks(
-            [...lesson.blocks]
-                .sort((a, b) => a.order_index - b.order_index)
-                .map((block): EditorBlock => {
-                    if (block.type === "imagen")
-                        return {
-                            id: createId(),
-                            kind: "image",
-                            imageUrl: block.image_url ?? "",
-                        };
-                    const decoded = decodeTextBlock(block.content);
-                    if (decoded.metadata.kind === "question")
-                        return {
-                            id: createId(),
-                            kind: "question",
-                            markdown: decoded.markdown,
-                            options: decoded.metadata.question?.options.length
-                                ? decoded.metadata.question.options
-                                : ["Opción A", "Opción B"],
-                            correctOption:
-                                decoded.metadata.question?.correctOption,
-                        };
+
+        const editorBlocks: EditorBlock[] = [...lesson.blocks]
+            .sort((left, right) => left.order_index - right.order_index)
+            .map((block): EditorBlock => {
+                if (block.type === "imagen") {
                     return {
                         id: createId(),
-                        kind: "information",
-                        markdown: decoded.markdown,
+                        kind: "image",
+                        imageFile: block.image_file ?? "",
                     };
-                }),
-        );
+                }
+
+                const decoded = decodeTextBlock(block.content);
+
+                if (decoded.metadata.kind === "question") {
+                    const storedOptions = decoded.metadata.question?.options;
+
+                    return {
+                        id: createId(),
+                        kind: "question",
+                        markdown: decoded.markdown,
+                        options:
+                            storedOptions && storedOptions.length > 0
+                                ? storedOptions
+                                : ["Opción A", "Opción B"],
+                        correctOption: decoded.metadata.question?.correctOption,
+                    };
+                }
+
+                return {
+                    id: createId(),
+                    kind: "information",
+                    markdown: decoded.markdown,
+                };
+            });
+
         setLessonId(lesson.id);
-        setLoaded(true);
-    }, [isEditMode, loaded, lessonQuery.data]);
+        setTitle(lesson.title);
+        setBlocks(editorBlocks);
+        setLessonLoaded(true);
+    }, [isEditMode, lessonLoaded, lessonQuery.data]);
 
     const previewBlocks = useMemo(() => toApiBlocks(blocks), [blocks]);
-    const currentPreviewBlock = previewBlocks[previewIndex];
-    const previewIsFirst = previewIndex === 0;
-    const previewIsLast =
-        !previewBlocks.length || previewIndex === previewBlocks.length - 1;
 
+    const currentPreviewBlock = previewBlocks[previewIndex];
+
+    const previewIsFirst = previewIndex === 0;
+
+    const previewIsLast =
+        previewBlocks.length === 0 || previewIndex === previewBlocks.length - 1;
+
+    /*
+     * Si se elimina el último bloque visible, ajusta el
+     * índice para que el preview no quede fuera del arreglo.
+     */
     useEffect(() => {
         setPreviewIndex((current) =>
             Math.min(current, Math.max(previewBlocks.length - 1, 0)),
         );
     }, [previewBlocks.length]);
 
-  const handleFileSelected = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file || !lessonId) return;
-    setImageError(null);
-    uploadImage.mutate(
-      { lessonId, file },
-      {
-        onSuccess: ({ image_file }) => {
-          setBlocks((current) =>
-            reorder([...current, { clientId: generateClientId(), type: "imagen", image_file, order_index: 0 }])
-          );
-        },
-        onError: (err) => {
-          setImageError(err instanceof ApiError ? err.message : "No se pudo subir la imagen. Intenta de nuevo.");
-        },
-      }
-    );
-  };
+    const goBack = () => {
+        navigate(
+            classroomId
+                ? `/teacher/classrooms/${classroomId}`
+                : "/teacher/home",
+        );
+    };
+
+    const createDraft = () => {
+        if (!classroomId || !title.trim()) {
+            return;
+        }
+
+        setError(null);
+        setMessage(null);
+
+        createLesson.mutate(
+            {
+                title: title.trim(),
+                blocks: [],
+            },
+            {
+                onSuccess: (lesson) => {
+                    setLessonId(lesson.id);
+                    setLessonLoaded(true);
+
+                    setMessage(
+                        "Lección creada como borrador. Ya puedes añadir contenido.",
+                    );
+                },
+
+                onError: (reason) => {
+                    setError(
+                        getErrorMessage(reason, "No se pudo crear la lección."),
+                    );
+                },
+            },
+        );
+    };
+
+    const updateBlock = (
+        blockId: string,
+        updater: (block: EditorBlock) => EditorBlock,
+    ) => {
+        setBlocks((current) =>
+            current.map((block) =>
+                block.id === blockId ? updater(block) : block,
+            ),
+        );
+    };
+
+    const removeBlock = (blockId: string) => {
+        setBlocks((current) => current.filter((block) => block.id !== blockId));
+    };
 
     const handleDragEnd = ({ source, destination }: DropResult) => {
-        if (!destination || source.index === destination.index) return;
+        if (!destination || source.index === destination.index) {
+            return;
+        }
+
         setBlocks((current) => {
             const next = [...current];
-            const [moved] = next.splice(source.index, 1);
-            next.splice(destination.index, 0, moved);
+
+            const [movedBlock] = next.splice(source.index, 1);
+
+            next.splice(destination.index, 0, movedBlock);
+
             return next;
         });
     };
 
-    const createDraft = () => {
-        if (!classroomId || !title.trim()) return;
-        createLesson.mutate(
-            { title: title.trim(), blocks: [] },
+    const addInformationBlock = () => {
+        setBlocks((current) => [
+            ...current,
             {
-                onSuccess: (lesson) => {
-                    setLessonId(lesson.id);
-                    setLoaded(true);
-                    setMessage("Lección creada como borrador.");
-                },
-                onError: (reason) =>
-                    setError(
-                        errorMessage(reason, "No se pudo crear la lección."),
-                    ),
+                id: createId(),
+                kind: "information",
+                markdown:
+                    "## Nuevo contenido\n\nEscribe aquí la información usando **Markdown**.",
             },
-        );
+        ]);
     };
 
-    const selectImage = () =>
-        lessonId
-            ? imageInputRef.current?.click()
-            : setError("Primero crea la lección.");
-    const uploadSelectedImage = (event: ChangeEvent<HTMLInputElement>) => {
+    const addQuestionBlock = () => {
+        setBlocks((current) => [
+            ...current,
+            {
+                id: createId(),
+                kind: "question",
+                markdown: "## ¿Cuál es la respuesta correcta?",
+                options: ["Opción A", "Opción B", "Opción C"],
+                correctOption: 0,
+            },
+        ]);
+    };
+
+    const selectImage = () => {
+        if (!lessonId) {
+            setError("Primero debes crear la lección para subir imágenes.");
+
+            return;
+        }
+
+        imageInputRef.current?.click();
+    };
+
+    const handleImageSelected = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        event.target.value = "";
-        if (!file || !lessonId) return;
-        uploadImage.mutate(
-            { lessonId, file },
-            {
-                onSuccess: ({ image_url }) =>
-                    setBlocks((current) => [
-                        ...current,
-                        { id: createId(), kind: "image", imageUrl: image_url },
-                    ]),
-                onError: (reason) =>
-                    setError(
-                        errorMessage(reason, "No se pudo subir la imagen."),
-                    ),
-            },
-        );
-    };
 
-    const save = (publish = false) => {
-        if (!lessonId || !title.trim()) return;
+        event.target.value = "";
+
+        if (!file || !lessonId) {
+            return;
+        }
+
         setError(null);
         setMessage(null);
+
+        uploadImage.mutate(
+            {
+                lessonId,
+                file,
+            },
+            {
+                onSuccess: (response) => {
+                    const imageFile = response.image_file;
+
+                    if (!imageFile) {
+                        console.error(
+                            "Respuesta inesperada al subir la imagen:",
+                            response,
+                        );
+
+                        setError(
+                            "La imagen se subió, pero el servidor no devolvió el nombre del archivo.",
+                        );
+
+                        return;
+                    }
+
+                    setBlocks((current) => [
+                        ...current,
+                        {
+                            id: createId(),
+                            kind: "image",
+                            imageFile,
+                        },
+                    ]);
+
+                    setError(null);
+
+                    setMessage("Imagen añadida a la lección.");
+                },
+
+                onError: (reason) => {
+                    setError(
+                        getErrorMessage(reason, "No se pudo subir la imagen."),
+                    );
+                },
+            },
+        );
+    };
+
+    const updateQuestionOption = (
+        blockId: string,
+        optionIndex: number,
+        value: string,
+    ) => {
+        updateBlock(blockId, (block) => {
+            if (block.kind !== "question") {
+                return block;
+            }
+
+            const options = [...block.options];
+
+            options[optionIndex] = value;
+
+            return {
+                ...block,
+                options,
+            };
+        });
+    };
+
+    const selectCorrectOption = (blockId: string, optionIndex: number) => {
+        updateBlock(blockId, (block) =>
+            block.kind === "question"
+                ? {
+                      ...block,
+                      correctOption: optionIndex,
+                  }
+                : block,
+        );
+    };
+
+    const addQuestionOption = (blockId: string) => {
+        updateBlock(blockId, (block) => {
+            if (block.kind !== "question") {
+                return block;
+            }
+
+            return {
+                ...block,
+                options: [
+                    ...block.options,
+                    `Opción ${block.options.length + 1}`,
+                ],
+            };
+        });
+    };
+
+    const removeQuestionOption = (blockId: string, optionIndex: number) => {
+        updateBlock(blockId, (block) => {
+            if (block.kind !== "question" || block.options.length <= 2) {
+                return block;
+            }
+
+            const options = block.options.filter(
+                (_, index) => index !== optionIndex,
+            );
+
+            let correctOption = block.correctOption;
+
+            if (correctOption === optionIndex) {
+                correctOption = undefined;
+            } else if (
+                correctOption !== undefined &&
+                correctOption > optionIndex
+            ) {
+                correctOption -= 1;
+            }
+
+            return {
+                ...block,
+                options,
+                correctOption,
+            };
+        });
+    };
+
+    const validateForPublish = (): string | null => {
+        if (!title.trim()) {
+            return "La lección necesita un título.";
+        }
+
+        if (blocks.length === 0) {
+            return "Añade al menos un bloque antes de publicar.";
+        }
+
+        for (const block of blocks) {
+            if (block.kind !== "image" && !block.markdown.trim()) {
+                return "Los bloques de texto no pueden estar vacíos.";
+            }
+
+            if (block.kind === "image" && !block.imageFile) {
+                return "Hay una imagen que no se cargó correctamente.";
+            }
+
+            if (block.kind === "question") {
+                const validOptions = block.options.filter((option) =>
+                    option.trim(),
+                );
+
+                if (validOptions.length < 2) {
+                    return "Cada pregunta necesita al menos dos opciones.";
+                }
+
+                if (block.correctOption === undefined) {
+                    return "Selecciona una respuesta correcta para cada pregunta.";
+                }
+
+                if (!block.options[block.correctOption]?.trim()) {
+                    return "La respuesta correcta no puede estar vacía.";
+                }
+            }
+        }
+
+        return null;
+    };
+
+    const saveLesson = (publish = false) => {
+        if (!lessonId) {
+            return;
+        }
+
+        if (!title.trim()) {
+            setError("La lección necesita un título.");
+
+            return;
+        }
+
+        if (publish) {
+            const validationError = validateForPublish();
+
+            if (validationError) {
+                setError(validationError);
+                return;
+            }
+        }
+
+        setError(null);
+        setMessage(null);
+
         updateLesson.mutate(
             {
                 lessonId,
                 body: {
                     title: title.trim(),
                     blocks: toApiBlocks(blocks),
-                    ...(publish ? { status: "publicada" as const } : {}),
+
+                    ...(publish
+                        ? {
+                              status: "publicada" as const,
+                          }
+                        : {}),
                 },
             },
             {
-                onSuccess: () =>
-                    publish
-                        ? navigate(`/teacher/classrooms/${classroomId}`)
-                        : setMessage("Cambios guardados."),
-                onError: (reason) =>
+                onSuccess: () => {
+                    if (publish) {
+                        goBack();
+                        return;
+                    }
+
+                    setMessage("Los cambios se guardaron correctamente.");
+                },
+
+                onError: (reason) => {
                     setError(
-                        errorMessage(reason, "No se pudo guardar la lección."),
-                    ),
+                        getErrorMessage(
+                            reason,
+                            "No se pudo guardar la lección.",
+                        ),
+                    );
+                },
             },
         );
     };
 
-    if (isEditMode && lessonQuery.isLoading && !loaded)
+    const renderPreviewBlock = () => {
+        if (!currentPreviewBlock) {
+            return (
+                <div className={styles.previewEmpty}>
+                    <span>La vista previa está vacía</span>
+
+                    <p>
+                        Añade información, preguntas o imágenes para visualizar
+                        la lección.
+                    </p>
+                </div>
+            );
+        }
+
+        if (currentPreviewBlock.type === "imagen") {
+            return (
+                <figure className="lesson-image">
+                    <AuthImage
+                        path={
+                            lessonId && currentPreviewBlock.image_file
+                                ? lessonImagePath(
+                                      lessonId,
+                                      currentPreviewBlock.image_file,
+                                  )
+                                : null
+                        }
+                        alt="Contenido visual de la lección"
+                        fallback={<p>No se pudo cargar esta imagen.</p>}
+                    />
+                </figure>
+            );
+        }
+
         return (
-            <main className={styles.page}>
-                <div className={styles.courseForm}>Cargando lección…</div>
-            </main>
+            <LessonBlockRenderer
+                key={`${previewIndex}-${currentPreviewBlock.type}`}
+                block={currentPreviewBlock}
+                interactive={false}
+                showCorrectness={false}
+            />
         );
-    if (isEditMode && lessonQuery.isError && !loaded)
+    };
+
+    if (isEditMode && lessonQuery.isLoading && !lessonLoaded) {
         return (
             <main className={styles.page}>
                 <div className={styles.courseForm}>
-                    <p>No se pudo cargar la lección.</p>
+                    <div className={styles.emptyState}>
+                        Cargando la lección…
+                    </div>
                 </div>
             </main>
         );
+    }
+
+    if (isEditMode && lessonQuery.isError && !lessonLoaded) {
+        return (
+            <main className={styles.page}>
+                <div className={styles.courseForm}>
+                    <p className={styles.error} role="alert">
+                        No se pudo cargar esta lección. Puede que ya no exista o
+                        que no tengas acceso.
+                    </p>
+
+                    <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={goBack}
+                    >
+                        <ChevronLeft size={20} />
+                        Volver al aula
+                    </button>
+                </div>
+            </main>
+        );
+    }
 
     return (
         <main className={styles.page}>
             <header className={styles.header}>
                 <div>
                     <span className={styles.eyebrow}>Panel docente</span>
+
                     <h1>{isEditMode ? "Editar lección" : "Crear lección"}</h1>
+
                     <p>
-                        Organiza el contenido y comprueba un bloque a la vez
-                        cómo lo verá el estudiante.
+                        Organiza el contenido con bloques arrastrables y
+                        comprueba cómo lo verá el estudiante.
                     </p>
                 </div>
+
                 <div className={styles.headerControls}>
                     <button
                         type="button"
                         className={styles.previewToggle}
-                        onClick={() =>
-                            navigate(
-                                classroomId
-                                    ? `/teacher/classrooms/${classroomId}`
-                                    : "/teacher/home",
-                            )
-                        }
+                        onClick={goBack}
                     >
-                        <ChevronLeft size={20} /> Volver al aula
+                        <ChevronLeft size={20} />
+                        Volver al aula
                     </button>
+
                     <button
                         type="button"
                         className={styles.previewToggle}
-                        onClick={() => setPreviewEnabled((value) => !value)}
+                        onClick={() => setPreviewEnabled((current) => !current)}
                     >
-                        <Eye size={20} />{" "}
+                        <Eye size={20} />
+
                         {previewEnabled
                             ? "Ocultar vista previa"
                             : "Mostrar vista previa"}
@@ -332,7 +662,9 @@ export default function LessonEditorPage() {
             </header>
 
             <div
-                className={`${styles.workspace} ${previewEnabled ? styles.withPreview : ""}`}
+                className={`${styles.workspace} ${
+                    previewEnabled ? styles.withPreview : ""
+                }`}
             >
                 <section className={styles.builder}>
                     <div className={styles.lessonHeader}>
@@ -342,14 +674,17 @@ export default function LessonEditorPage() {
                                     ? "Lección guardada"
                                     : "Nueva lección"}
                             </span>
+
                             <h2>
                                 {isEditMode
                                     ? "Editando contenido"
                                     : "Primera versión"}
                             </h2>
                         </div>
+
                         <input
                             className={styles.lessonTitle}
+                            aria-label="Título de la lección"
                             value={title}
                             maxLength={200}
                             placeholder="Título de la lección"
@@ -357,23 +692,62 @@ export default function LessonEditorPage() {
                         />
                     </div>
 
-                  {block.type === "texto" ? (
-                    <textarea
-                      className={styles.blockText}
-                      value={block.content ?? ""}
-                      onChange={(e) => updateBlockText(block.clientId, e.target.value)}
-                      placeholder="Escribe el contenido de este bloque…"
-                    />
-                  ) : (
-                    <AuthImage
-                      path={lessonId && block.image_file ? lessonImagePath(lessonId, block.image_file) : null}
-                      className={styles.blockImage}
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+                    {!lessonId ? (
+                        <button
+                            type="button"
+                            className={styles.primaryButton}
+                            disabled={
+                                createLesson.isPending ||
+                                !title.trim() ||
+                                !classroomId
+                            }
+                            onClick={createDraft}
+                        >
+                            <Plus size={20} />
+
+                            {createLesson.isPending
+                                ? "Creando borrador…"
+                                : "Crear lección y abrir editor"}
+                        </button>
+                    ) : (
+                        <>
+                            <div className={styles.blockPalette}>
+                                <button
+                                    type="button"
+                                    onClick={addInformationBlock}
+                                >
+                                    <Info size={20} />
+                                    Información
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={addQuestionBlock}
+                                >
+                                    <HelpCircle size={20} />
+                                    Pregunta
+                                </button>
+
+                                <button
+                                    type="button"
+                                    disabled={uploadImage.isPending}
+                                    onClick={selectImage}
+                                >
+                                    <ImagePlus size={20} />
+
+                                    {uploadImage.isPending
+                                        ? "Subiendo…"
+                                        : "Imagen"}
+                                </button>
+
+                                <input
+                                    ref={imageInputRef}
+                                    type="file"
+                                    hidden
+                                    accept="image/png,image/jpeg,image/webp"
+                                    onChange={handleImageSelected}
+                                />
+                            </div>
 
                             <DragDropContext onDragEnd={handleDragEnd}>
                                 <Droppable droppableId="lesson-blocks">
@@ -395,7 +769,11 @@ export default function LessonEditorPage() {
                                                                 draggable.innerRef
                                                             }
                                                             {...draggable.draggableProps}
-                                                            className={`${styles.editorBlock} ${snapshot.isDragging ? styles.dragging : ""}`}
+                                                            className={`${styles.editorBlock} ${
+                                                                snapshot.isDragging
+                                                                    ? styles.dragging
+                                                                    : ""
+                                                            }`}
                                                         >
                                                             <header
                                                                 className={
@@ -407,6 +785,7 @@ export default function LessonEditorPage() {
                                                                     className={
                                                                         styles.dragHandle
                                                                     }
+                                                                    aria-label="Arrastrar bloque"
                                                                     {...draggable.dragHandleProps}
                                                                 >
                                                                     <GripVertical
@@ -415,29 +794,27 @@ export default function LessonEditorPage() {
                                                                         }
                                                                     />
                                                                 </button>
+
                                                                 <strong>
                                                                     {block.kind ===
-                                                                    "information"
-                                                                        ? "Información"
-                                                                        : block.kind ===
-                                                                            "question"
-                                                                          ? "Pregunta"
-                                                                          : "Imagen"}
+                                                                        "information" &&
+                                                                        "Información"}
+
+                                                                    {block.kind ===
+                                                                        "question" &&
+                                                                        "Pregunta"}
+
+                                                                    {block.kind ===
+                                                                        "image" &&
+                                                                        "Imagen"}
                                                                 </strong>
+
                                                                 <button
                                                                     type="button"
+                                                                    aria-label="Eliminar bloque"
                                                                     onClick={() =>
-                                                                        setBlocks(
-                                                                            (
-                                                                                current,
-                                                                            ) =>
-                                                                                current.filter(
-                                                                                    (
-                                                                                        item,
-                                                                                    ) =>
-                                                                                        item.id !==
-                                                                                        block.id,
-                                                                                ),
+                                                                        removeBlock(
+                                                                            block.id,
                                                                         )
                                                                     }
                                                                 >
@@ -448,15 +825,31 @@ export default function LessonEditorPage() {
                                                                     />
                                                                 </button>
                                                             </header>
+
                                                             {block.kind ===
                                                             "image" ? (
-                                                                <img
-                                                                    src={
-                                                                        block.imageUrl
+                                                                <AuthImage
+                                                                    path={
+                                                                        lessonId
+                                                                            ? lessonImagePath(
+                                                                                  lessonId,
+                                                                                  block.imageFile,
+                                                                              )
+                                                                            : null
                                                                     }
-                                                                    alt="Contenido"
+                                                                    alt="Contenido de la lección"
                                                                     className={
                                                                         styles.editorImage
+                                                                    }
+                                                                    fallback={
+                                                                        <p>
+                                                                            No
+                                                                            se
+                                                                            pudo
+                                                                            cargar
+                                                                            la
+                                                                            imagen.
+                                                                        </p>
                                                                     }
                                                                 />
                                                             ) : (
@@ -465,6 +858,7 @@ export default function LessonEditorPage() {
                                                                         block.markdown
                                                                     }
                                                                     rows={8}
+                                                                    placeholder="Puedes utilizar títulos, listas, negrita, citas y enlaces Markdown."
                                                                     onChange={(
                                                                         event,
                                                                     ) =>
@@ -487,6 +881,7 @@ export default function LessonEditorPage() {
                                                                     }
                                                                 />
                                                             )}
+
                                                             {block.kind ===
                                                                 "question" && (
                                                                 <div
@@ -500,9 +895,7 @@ export default function LessonEditorPage() {
                                                                             optionIndex,
                                                                         ) => (
                                                                             <label
-                                                                                key={
-                                                                                    optionIndex
-                                                                                }
+                                                                                key={`${block.id}-${optionIndex}`}
                                                                             >
                                                                                 <input
                                                                                     type="radio"
@@ -511,57 +904,40 @@ export default function LessonEditorPage() {
                                                                                         block.correctOption ===
                                                                                         optionIndex
                                                                                     }
+                                                                                    aria-label={`Marcar opción ${
+                                                                                        optionIndex +
+                                                                                        1
+                                                                                    } como correcta`}
                                                                                     onChange={() =>
-                                                                                        updateBlock(
+                                                                                        selectCorrectOption(
                                                                                             block.id,
-                                                                                            (
-                                                                                                current,
-                                                                                            ) =>
-                                                                                                current.kind ===
-                                                                                                "question"
-                                                                                                    ? {
-                                                                                                          ...current,
-                                                                                                          correctOption:
-                                                                                                              optionIndex,
-                                                                                                      }
-                                                                                                    : current,
+                                                                                            optionIndex,
                                                                                         )
                                                                                     }
                                                                                 />
+
                                                                                 <input
                                                                                     type="text"
                                                                                     value={
                                                                                         option
                                                                                     }
+                                                                                    aria-label={`Opción ${
+                                                                                        optionIndex +
+                                                                                        1
+                                                                                    }`}
                                                                                     onChange={(
                                                                                         event,
                                                                                     ) =>
-                                                                                        updateBlock(
+                                                                                        updateQuestionOption(
                                                                                             block.id,
-                                                                                            (
-                                                                                                current,
-                                                                                            ) => {
-                                                                                                if (
-                                                                                                    current.kind !==
-                                                                                                    "question"
-                                                                                                )
-                                                                                                    return current;
-                                                                                                const options =
-                                                                                                    [
-                                                                                                        ...current.options,
-                                                                                                    ];
-                                                                                                options[
-                                                                                                    optionIndex
-                                                                                                ] =
-                                                                                                    event.target.value;
-                                                                                                return {
-                                                                                                    ...current,
-                                                                                                    options,
-                                                                                                };
-                                                                                            },
+                                                                                            optionIndex,
+                                                                                            event
+                                                                                                .target
+                                                                                                .value,
                                                                                         )
                                                                                     }
                                                                                 />
+
                                                                                 <button
                                                                                     type="button"
                                                                                     className={
@@ -573,32 +949,14 @@ export default function LessonEditorPage() {
                                                                                             .length <=
                                                                                         2
                                                                                     }
+                                                                                    aria-label={`Eliminar opción ${
+                                                                                        optionIndex +
+                                                                                        1
+                                                                                    }`}
                                                                                     onClick={() =>
-                                                                                        updateBlock(
+                                                                                        removeQuestionOption(
                                                                                             block.id,
-                                                                                            (
-                                                                                                current,
-                                                                                            ) =>
-                                                                                                current.kind ===
-                                                                                                "question"
-                                                                                                    ? {
-                                                                                                          ...current,
-                                                                                                          options:
-                                                                                                              current.options.filter(
-                                                                                                                  (
-                                                                                                                      _,
-                                                                                                                      i,
-                                                                                                                  ) =>
-                                                                                                                      i !==
-                                                                                                                      optionIndex,
-                                                                                                              ),
-                                                                                                          correctOption:
-                                                                                                              current.correctOption ===
-                                                                                                              optionIndex
-                                                                                                                  ? undefined
-                                                                                                                  : current.correctOption,
-                                                                                                      }
-                                                                                                    : current,
+                                                                                            optionIndex,
                                                                                         )
                                                                                     }
                                                                                 >
@@ -611,25 +969,12 @@ export default function LessonEditorPage() {
                                                                             </label>
                                                                         ),
                                                                     )}
+
                                                                     <button
                                                                         type="button"
                                                                         onClick={() =>
-                                                                            updateBlock(
+                                                                            addQuestionOption(
                                                                                 block.id,
-                                                                                (
-                                                                                    current,
-                                                                                ) =>
-                                                                                    current.kind ===
-                                                                                    "question"
-                                                                                        ? {
-                                                                                              ...current,
-                                                                                              options:
-                                                                                                  [
-                                                                                                      ...current.options,
-                                                                                                      `Opción ${current.options.length + 1}`,
-                                                                                                  ],
-                                                                                          }
-                                                                                        : current,
                                                                             )
                                                                         }
                                                                     >
@@ -637,7 +982,7 @@ export default function LessonEditorPage() {
                                                                             size={
                                                                                 16
                                                                             }
-                                                                        />{" "}
+                                                                        />
                                                                         Añadir
                                                                         opción
                                                                     </button>
@@ -647,14 +992,17 @@ export default function LessonEditorPage() {
                                                     )}
                                                 </Draggable>
                                             ))}
+
                                             {droppable.placeholder}
-                                            {!blocks.length && (
+
+                                            {blocks.length === 0 && (
                                                 <div
                                                     className={
                                                         styles.emptyState
                                                     }
                                                 >
-                                                    Añade bloques para comenzar.
+                                                    Añade información, preguntas
+                                                    o imágenes para comenzar.
                                                 </div>
                                             )}
                                         </div>
@@ -665,17 +1013,30 @@ export default function LessonEditorPage() {
                             <footer className={styles.actions}>
                                 <button
                                     type="button"
-                                    onClick={() => save(false)}
+                                    disabled={
+                                        updateLesson.isPending || !title.trim()
+                                    }
+                                    onClick={() => saveLesson(false)}
                                 >
-                                    <Save size={20} /> Guardar borrador
+                                    <Save size={20} />
+
+                                    {updateLesson.isPending
+                                        ? "Guardando…"
+                                        : "Guardar borrador"}
                                 </button>
+
                                 <button
                                     type="button"
                                     className={styles.publishButton}
-                                    disabled={!blocks.length}
-                                    onClick={() => save(true)}
+                                    disabled={
+                                        updateLesson.isPending ||
+                                        !title.trim() ||
+                                        blocks.length === 0
+                                    }
+                                    onClick={() => saveLesson(true)}
                                 >
-                                    <Send size={20} /> Publicar lección
+                                    <Send size={20} />
+                                    Publicar lección
                                 </button>
                             </footer>
                         </>
@@ -685,12 +1046,18 @@ export default function LessonEditorPage() {
                 {previewEnabled && (
                     <aside className={styles.preview}>
                         <div className={styles.previewDevice}>
-                            <div className={styles.previewSpeaker} />
+                            <div
+                                className={styles.previewSpeaker}
+                                aria-hidden="true"
+                            />
+
                             <header className={styles.previewHeader}>
                                 <div>
                                     <span>Vista del estudiante</span>
+
                                     <strong>{title || "Nueva lección"}</strong>
                                 </div>
+
                                 {previewBlocks.length > 0 && (
                                     <small>
                                         {previewIndex + 1} de{" "}
@@ -698,29 +1065,29 @@ export default function LessonEditorPage() {
                                     </small>
                                 )}
                             </header>
-                            <div className={styles.previewProgress}>
+
+                            <div
+                                className={styles.previewProgress}
+                                aria-hidden="true"
+                            >
                                 <div
                                     style={{
-                                        width: previewBlocks.length
-                                            ? `${((previewIndex + 1) / previewBlocks.length) * 100}%`
-                                            : "0%",
+                                        width:
+                                            previewBlocks.length > 0
+                                                ? `${
+                                                      ((previewIndex + 1) /
+                                                          previewBlocks.length) *
+                                                      100
+                                                  }%`
+                                                : "0%",
                                     }}
                                 />
                             </div>
+
                             <div className={styles.previewContent}>
-                                {currentPreviewBlock ? (
-                                    <LessonBlockRenderer
-                                        key={`${previewIndex}-${currentPreviewBlock.type}`}
-                                        block={currentPreviewBlock}
-                                        interactive={false}
-                                    />
-                                ) : (
-                                    <div className={styles.previewEmpty}>
-                                        <span>La vista previa está vacía</span>
-                                        <p>Añade contenido para comenzar.</p>
-                                    </div>
-                                )}
+                                {renderPreviewBlock()}
                             </div>
+
                             <footer className={styles.previewNavigation}>
                                 <button
                                     type="button"
@@ -731,15 +1098,18 @@ export default function LessonEditorPage() {
                                         )
                                     }
                                 >
-                                    <ChevronLeft size={18} /> Anterior
+                                    <ChevronLeft size={18} />
+                                    Anterior
                                 </button>
+
                                 <span>
-                                    {!previewBlocks.length
+                                    {previewBlocks.length === 0
                                         ? "Sin contenido"
                                         : previewIsLast
                                           ? "Último bloque"
                                           : "Continúa"}
                                 </span>
+
                                 <button
                                     type="button"
                                     disabled={previewIsLast}
@@ -752,15 +1122,26 @@ export default function LessonEditorPage() {
                                         )
                                     }
                                 >
-                                    Siguiente <ChevronRight size={18} />
+                                    Siguiente
+                                    <ChevronRight size={18} />
                                 </button>
                             </footer>
                         </div>
                     </aside>
                 )}
             </div>
-            {error && <p className={styles.error}>{error}</p>}
-            {message && <p className={styles.success}>{message}</p>}
+
+            {error && (
+                <p className={styles.error} role="alert">
+                    {error}
+                </p>
+            )}
+
+            {message && (
+                <p className={styles.success} role="status">
+                    {message}
+                </p>
+            )}
         </main>
     );
 }
