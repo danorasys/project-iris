@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, Depends, File, Path, Response, UploadFile, status
 
 from app.api.deps import CurrentUser, get_classroom_service, require_role
 from app.api.schemas import (
@@ -28,6 +28,19 @@ router = APIRouter(prefix="/classrooms", tags=["classrooms"])
 ClassroomServiceDep = Annotated[ClassroomService, Depends(get_classroom_service)]
 TeacherDep = Annotated[CurrentUser, Depends(require_role("teacher"))]
 StudentDep = Annotated[CurrentUser, Depends(require_role("student"))]
+ReaderDep = Annotated[CurrentUser, Depends(require_role("teacher", "student"))]
+
+# Same shape as the names this service creates (32 hex chars and an
+# extension), anything else is rejected before touching the database.
+LogoFileName = Annotated[str, Path(pattern=r"^[0-9a-f]{32}\.[a-z0-9]{1,5}$")]
+
+# Only the user's browser may cache the image, never a shared cache.
+_IMAGE_HEADERS = {
+    "Cache-Control": "private, max-age=3600",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Disposition": "inline",
+    "Content-Security-Policy": "default-src 'none'; sandbox",
+}
 
 
 def _classroom_response(classroom: Classroom) -> ClassroomResponse:
@@ -36,7 +49,7 @@ def _classroom_response(classroom: Classroom) -> ClassroomResponse:
         teacher_id=classroom.teacher_id,
         name=classroom.name,
         description=classroom.description,
-        logo_url=classroom.logo_url,
+        logo_file=classroom.logo_file,
         enrollment_code=classroom.enrollment_code,
         created_at=classroom.created_at,
     )
@@ -104,8 +117,20 @@ async def upload_logo(
     if file.content_type is None:
         raise InvalidFile("El archivo debe ser una imagen.")
     contenido = await file.read()
-    classroom = await classrooms.upload_logo(classroom_id, user.subject_id, contenido, file.content_type, file.filename)
+    classroom = await classrooms.upload_logo(classroom_id, user.subject_id, contenido, file.content_type)
     return _classroom_response(classroom)
+
+
+@router.get(
+    "/{classroom_id}/logo/{file_name}",
+    response_class=Response,
+    responses={200: {"content": {"image/*": {}}}, 404: {"description": "No existe o no tienes acceso."}},
+)
+async def get_logo(
+    classroom_id: UUID, file_name: LogoFileName, user: ReaderDep, classrooms: ClassroomServiceDep
+) -> Response:
+    stored = await classrooms.get_logo(classroom_id, file_name, user.subject_id, user.role)
+    return Response(content=stored.content, media_type=stored.content_type, headers=_IMAGE_HEADERS)
 
 
 @router.get("/{classroom_id}/requests", response_model=list[RequestResponse])

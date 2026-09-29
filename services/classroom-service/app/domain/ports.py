@@ -8,7 +8,7 @@ from types import TracebackType
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.entities import Classroom, Enrollment, StudentInfo, UserClaims
+from app.domain.entities import Classroom, Enrollment, StoredObject, StudentInfo, UserClaims
 
 
 class ClassroomRepository(Protocol):
@@ -45,9 +45,13 @@ class UnitOfWork(Protocol):
     async def rollback(self) -> None: ...
 
 
+# The bucket is private: nothing in it has a public URL. Files only reach
+# the browser through an endpoint of this service that checks access first.
 class ObjectStorage(Protocol):
-    # Uploads the content and returns the public URL.
-    async def subir(self, key: str, contenido: bytes, content_type: str) -> str: ...
+    async def upload(self, key: str, content: bytes, content_type: str) -> None: ...
+
+    # Returns None when the key doesn't exist.
+    async def download(self, key: str) -> StoredObject | None: ...
 
 
 class EventPublisher(Protocol):

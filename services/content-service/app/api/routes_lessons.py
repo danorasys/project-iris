@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, Depends, File, Path, Response, UploadFile, status
 
 from app.api.deps import get_lesson_service, require_role
 from app.api.schemas import (
+    IMAGE_FILE_PATTERN,
     ContentBlockResponse,
     CreateLessonRequest,
     ImageUploadResponse,
@@ -27,10 +28,19 @@ router = APIRouter(tags=["lessons"])
 TeacherUser = Annotated[ValidatedUser, Depends(require_role("teacher"))]
 ReaderUser = Annotated[ValidatedUser, Depends(require_role("teacher", "student"))]
 Service = Annotated[LessonService, Depends(get_lesson_service)]
+ImageFileName = Annotated[str, Path(pattern=IMAGE_FILE_PATTERN)]
+
+# Only the user's browser may cache the image, never a shared cache.
+_IMAGE_HEADERS = {
+    "Cache-Control": "private, max-age=3600",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Disposition": "inline",
+    "Content-Security-Policy": "default-src 'none'; sandbox",
+}
 
 
 def _to_block_inputs(blocks: list) -> list[ContentBlockInput]:
-    return [ContentBlockInput(type=b.type, order_index=b.order_index, content=b.content, image_url=b.image_url) for b in blocks]
+    return [ContentBlockInput(type=b.type, order_index=b.order_index, content=b.content, image_file=b.image_file) for b in blocks]
 
 
 def _to_lesson_response(lesson: Lesson) -> LessonResponse:
@@ -49,7 +59,7 @@ def _to_lesson_detail_response(lesson: Lesson) -> LessonDetailResponse:
         **_to_lesson_response(lesson).model_dump(),
         blocks=[
             ContentBlockResponse(
-                id=b.id, lesson_id=b.lesson_id, type=b.type, content=b.content, image_url=b.image_url, order_index=b.order_index
+                id=b.id, lesson_id=b.lesson_id, type=b.type, content=b.content, image_file=b.image_file, order_index=b.order_index
             )
             for b in sorted(lesson.blocks, key=lambda b: b.order_index)
         ],
@@ -113,5 +123,20 @@ async def upload_image(
     if file.content_type is None:
         raise InvalidFile("El archivo debe ser una imagen.")
     content = await file.read()
-    url = await service.upload_image(lesson_id, user, file.filename or "imagen", file.content_type, content)
-    return ImageUploadResponse(image_url=url)
+    image_file = await service.upload_image(lesson_id, user, file.content_type, content)
+    return ImageUploadResponse(image_file=image_file)
+
+
+@router.get(
+    "/lessons/{lesson_id}/images/{file_name}",
+    response_class=Response,
+    responses={200: {"content": {"image/*": {}}}, 404: {"description": "No existe o no tienes acceso."}},
+)
+async def get_image(
+    lesson_id: UUID,
+    file_name: ImageFileName,
+    user: ReaderUser,
+    service: Service,
+) -> Response:
+    stored = await service.get_image(lesson_id, file_name, user, get_correlation_id())
+    return Response(content=stored.content, media_type=stored.content_type, headers=_IMAGE_HEADERS)

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { TokensAuth } from "@iris/shared-types";
 import { apiFetch, configureAuthHandlers } from "@/shared/api/httpClient";
+import { queryClient } from "@/shared/api/queryClient";
 import { decodeJwtPayload } from "./jwt";
 import { borrarRefreshToken, guardarRefreshToken, leerRefreshToken } from "./tokenStorage";
 
@@ -51,6 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = null;
     borrarRefreshToken();
     setSessionState(null);
+    // Nothing the previous user loaded (data, private images) should stay
+    // around for whoever uses this browser next.
+    queryClient.clear();
   }, []);
 
   const refreshSession = useCallback((): Promise<string | null> => {

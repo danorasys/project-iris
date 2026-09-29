@@ -24,7 +24,13 @@ class Classroom:
     description: str
     enrollment_code: str
     created_at: datetime
-    logo_url: str | None = None
+    # Where the logo lives inside the private bucket, never a public URL.
+    logo_key: str | None = None
+
+    @property
+    def logo_file(self) -> str | None:
+        # Last part of the key. It's random and changes on every upload.
+        return self.logo_key.rsplit("/", 1)[-1] if self.logo_key else None
 
 
 @dataclass
@@ -35,6 +41,13 @@ class Enrollment:
     status: str
     requested_at: datetime
     resolved_at: datetime | None = None
+
+
+# An object read back from storage, ready to be sent to the browser.
+@dataclass
+class StoredObject:
+    content: bytes
+    content_type: str
 
 
 # Result of validating an access token against

@@ -54,7 +54,8 @@ export interface SupportCondition {
 export interface Avatar {
   id: number;
   name: string;
-  image_path: string;
+  /** Public URL: avatars are IRIS artwork, shown before an account exists. */
+  image_url: string;
 }
 
 export interface GuardianRegistrationRequest {
@@ -172,7 +173,8 @@ export interface Classroom {
   teacher_id: string;
   name: string;
   description: string;
-  logo_url?: string | null;
+  /** File name of the private logo. Show it with `classroomLogoPath` + `AuthImage`. */
+  logo_file?: string | null;
   enrollment_code: string;
   created_at: string;
 }
@@ -211,7 +213,8 @@ export interface ContentBlock {
   lesson_id: string;
   type: BlockType;
   content?: string | null;
-  image_url?: string | null;
+  /** File name of the private image. Show it with `lessonImagePath` + `AuthImage`. */
+  image_file?: string | null;
   order_index: number;
 }
 

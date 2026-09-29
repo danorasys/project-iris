@@ -15,7 +15,7 @@ export const lessonKeys = {
 export interface ContentBlockInput {
   type: "texto" | "imagen";
   content?: string;
-  image_url?: string;
+  image_file?: string;
   order_index: number;
 }
 
@@ -86,13 +86,13 @@ interface UploadLessonImageVariables {
 }
 
 /** `POST /content/lessons/{lesson_id}/images`. Uploads an image and
- * returns the URL to insert as a block. */
+ * returns its file name, to insert as an image block. */
 export function useUploadLessonImage() {
   return useMutation({
     mutationFn: ({ lessonId, file }: UploadLessonImageVariables) => {
       const formData = new FormData();
       formData.append("file", file);
-      return apiUpload<{ image_url: string }>(`/content/lessons/${lessonId}/images`, formData);
+      return apiUpload<{ image_file: string }>(`/content/lessons/${lessonId}/images`, formData);
     },
   });
 }

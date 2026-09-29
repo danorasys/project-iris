@@ -17,7 +17,7 @@ def _classroom_to_entity(m: ClassroomModel) -> Classroom:
         description=m.description,
         enrollment_code=m.enrollment_code,
         created_at=m.created_at,
-        logo_url=m.logo_url,
+        logo_key=m.logo_key,
     )
 
 
@@ -64,7 +64,7 @@ class SqlAlchemyClassroomRepository:
                 teacher_id=classroom.teacher_id,
                 name=classroom.name,
                 description=classroom.description,
-                logo_url=classroom.logo_url,
+                logo_key=classroom.logo_key,
                 enrollment_code=classroom.enrollment_code,
                 created_at=classroom.created_at,
             )
@@ -76,7 +76,7 @@ class SqlAlchemyClassroomRepository:
             return
         m.name = classroom.name
         m.description = classroom.description
-        m.logo_url = classroom.logo_url
+        m.logo_key = classroom.logo_key
 
 
 class SqlAlchemyEnrollmentRepository:

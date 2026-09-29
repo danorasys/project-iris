@@ -4,6 +4,8 @@ import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { Mascot } from "@/shared/ui/Mascot";
 import { useAuth } from "@/shared/auth/AuthContext";
 import { useLessonDetail } from "@/shared/api/hooks/useLessonsApi";
+import { lessonImagePath } from "@/shared/api/mediaPaths";
+import { AuthImage } from "@/shared/ui/AuthImage";
 import { DwellArrow } from "../components/DwellArrow";
 import { getDwellDurationMs } from "../lib/dwellPreferences";
 import styles from "./LessonViewerPage.module.css";
@@ -96,7 +98,10 @@ export default function LessonViewerPage() {
         {currentBlock.type === "texto" ? (
           <p className={styles.text}>{currentBlock.content}</p>
         ) : (
-          <img src={currentBlock.image_url ?? ""} alt="" className={styles.image} />
+          <AuthImage
+            path={currentBlock.image_file ? lessonImagePath(currentBlock.lesson_id, currentBlock.image_file) : null}
+            className={styles.image}
+          />
         )}
       </div>
 

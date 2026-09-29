@@ -71,7 +71,6 @@ def get_object_storage() -> S3ObjectStorage:
         secret_key=settings.s3_secret_key,
         bucket=settings.s3_bucket,
         region=settings.s3_region,
-        public_url=settings.s3_public_url,
     )
 
 

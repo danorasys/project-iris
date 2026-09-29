@@ -8,6 +8,8 @@ import {
   type ContentBlockInput,
 } from "@/shared/api/hooks/useLessonsApi";
 import { ApiError } from "@/shared/api/httpClient";
+import { lessonImagePath } from "@/shared/api/mediaPaths";
+import { AuthImage } from "@/shared/ui/AuthImage";
 import { IconImage, IconUndo, IconText } from "@/shared/ui/icons";
 import styles from "./LessonEditorPage.module.css";
 
@@ -71,7 +73,7 @@ export default function LessonEditorPage() {
           clientId: generateClientId(),
           type: block.type,
           content: block.content ?? undefined,
-          image_url: block.image_url ?? undefined,
+          image_file: block.image_file ?? undefined,
           order_index: block.order_index,
         }))
     );
@@ -107,9 +109,9 @@ export default function LessonEditorPage() {
     uploadImage.mutate(
       { lessonId, file },
       {
-        onSuccess: ({ image_url }) => {
+        onSuccess: ({ image_file }) => {
           setBlocks((current) =>
-            reorder([...current, { clientId: generateClientId(), type: "imagen", image_url, order_index: 0 }])
+            reorder([...current, { clientId: generateClientId(), type: "imagen", image_file, order_index: 0 }])
           );
         },
         onError: (err) => {
@@ -281,7 +283,10 @@ export default function LessonEditorPage() {
                       placeholder="Escribe el contenido de este bloque…"
                     />
                   ) : (
-                    <img src={block.image_url} alt="" className={styles.blockImage} />
+                    <AuthImage
+                      path={lessonId && block.image_file ? lessonImagePath(lessonId, block.image_file) : null}
+                      className={styles.blockImage}
+                    />
                   )}
                 </li>
               ))}

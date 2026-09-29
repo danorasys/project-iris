@@ -10,7 +10,7 @@ from typing import Callable
 from uuid import UUID
 
 from app.application.dtos import ContentBlockInput
-from app.domain.entities import ContentBlock, Lesson, ValidatedUser
+from app.domain.entities import ContentBlock, Lesson, StoredObject, ValidatedUser
 from app.domain.exceptions import InvalidFile, PermissionDenied, ResourceNotFound
 from app.domain.ports import ClassroomClient, ObjectStorage, UnitOfWork
 
@@ -19,6 +19,14 @@ UowFactory = Callable[[], "UnitOfWork"]
 # SVG technically starts with "image/" but can carry a <script> tag, and it
 # gets served back with the same content type, so it's excluded on purpose.
 _ALLOWED_IMAGE_CONTENT_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+# The extension comes from the already checked content type, never from the
+# name the user sent, so "foto.exe" can't end up stored as an .exe.
+_EXTENSION_BY_CONTENT_TYPE = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif"}
+
+
+def _image_key(lesson_id: UUID, file_name: str) -> str:
+    # Each lesson has its own folder, so a block can't point at another lesson's image.
+    return f"lessons/{lesson_id}/images/{file_name}"
 
 
 class LessonService:
@@ -57,7 +65,7 @@ class LessonService:
                 type=b.type,
                 order_index=b.order_index,
                 content=b.content,
-                image_url=b.image_url,
+                image_file=b.image_file,
             )
             for b in blocks
         ]
@@ -156,7 +164,7 @@ class LessonService:
                         type=b.type,
                         order_index=b.order_index,
                         content=b.content,
-                        image_url=b.image_url,
+                        image_file=b.image_file,
                     )
                     for b in blocks
                 ]
@@ -169,13 +177,12 @@ class LessonService:
         self,
         lesson_id: UUID,
         user: ValidatedUser,
-        file_name: str,
         content_type: str,
         content: bytes,
     ) -> str:
         # POST /lessons/{lesson_id}/images. Only the authoring teacher, a
-        # local check. Uploads to S3/MinIO and returns the URL to insert as a
-        # block via PATCH.
+        # local check. Uploads to the private bucket and returns the file
+        # name to insert as a block via PATCH.
         self._require_role(user, "teacher")
         if content_type not in _ALLOWED_IMAGE_CONTENT_TYPES:
             raise InvalidFile("El archivo debe ser una imagen.")
@@ -189,7 +196,26 @@ class LessonService:
         if lesson.teacher_id != user.subject_id:
             raise PermissionDenied("No eres el autor de esta lección.")
 
-        return await self._storage.upload_image(lesson_id, file_name, content_type, content)
+        file_name = f"{uuid.uuid4().hex}.{_EXTENSION_BY_CONTENT_TYPE[content_type]}"
+        await self._storage.upload(_image_key(lesson_id, file_name), content, content_type)
+        return file_name
+
+    async def get_image(
+        self, lesson_id: UUID, file_name: str, user: ValidatedUser, correlation_id: str | None
+    ) -> StoredObject:
+        # Same rule as get_lesson, and a student only gets images the lesson
+        # actually shows. Any "no" is the same 404, so it doesn't reveal what exists.
+        try:
+            lesson = await self.get_lesson(lesson_id, user, correlation_id)
+        except PermissionDenied:
+            raise ResourceNotFound("La imagen solicitada no existe.") from None
+        if user.role == "student" and not any(b.image_file == file_name for b in lesson.blocks):
+            raise ResourceNotFound("La imagen solicitada no existe.")
+
+        stored = await self._storage.download(_image_key(lesson_id, file_name))
+        if stored is None:
+            raise ResourceNotFound("La imagen solicitada no existe.")
+        return stored
 
     @staticmethod
     def _require_role(user: ValidatedUser, *roles: str) -> None:

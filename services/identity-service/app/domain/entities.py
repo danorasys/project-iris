@@ -70,7 +70,9 @@ class SupportCondition:
 class Avatar:
     id: int
     name: str
-    image_path: str
+    # Place in the public bucket, e.g. "avatars/avatar-1.png". The API
+    # builds the URL, so moving the storage doesn't touch the data.
+    image_key: str
 
 
 # The one catalog entry that means "the family will type their own condition

@@ -8,7 +8,7 @@ from types import TracebackType
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.entities import Lesson, ValidatedUser
+from app.domain.entities import Lesson, StoredObject, ValidatedUser
 
 
 class LessonRepository(Protocol):
@@ -41,11 +41,13 @@ class UnitOfWork(Protocol):
     async def rollback(self) -> None: ...
 
 
+# The bucket is private: nothing in it has a public URL. Images only reach
+# the browser through GET /lessons/{id}/images/{file}, after an access check.
 class ObjectStorage(Protocol):
-    # Uploads the file and returns the public URL.
-    async def upload_image(
-        self, lesson_id: UUID, file_name: str, content_type: str, content: bytes
-    ) -> str: ...
+    async def upload(self, key: str, content: bytes, content_type: str) -> None: ...
+
+    # Returns None when the key doesn't exist.
+    async def download(self, key: str) -> StoredObject | None: ...
 
 
 class IdentityClient(Protocol):

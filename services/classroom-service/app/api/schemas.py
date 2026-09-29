@@ -37,7 +37,9 @@ class ClassroomResponse(BaseModel):
     teacher_id: UUID
     name: str
     description: str
-    logo_url: str | None = None
+    # File name of the logo, to build GET /classrooms/{id}/logo/{logo_file}.
+    # Not a URL: the logo is private and needs the user's session.
+    logo_file: str | None = None
     enrollment_code: str
     created_at: datetime
 

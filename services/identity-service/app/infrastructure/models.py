@@ -101,7 +101,7 @@ class AvatarModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
-    image_path: Mapped[str] = mapped_column(Text)
+    image_key: Mapped[str] = mapped_column(Text)
 
 
 class StudentModel(Base):

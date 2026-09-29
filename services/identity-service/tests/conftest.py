@@ -76,10 +76,10 @@ async def _prepare_database() -> AsyncIterator[None]:
         await conn.execute(
             AvatarModel.__table__.insert(),
             [
-                {"name": "Violeta", "image_path": "http://localhost:9000/iris-media/avatars/avatar-1.png"},
-                {"name": "Coral", "image_path": "http://localhost:9000/iris-media/avatars/avatar-2.png"},
-                {"name": "Bosque", "image_path": "http://localhost:9000/iris-media/avatars/avatar-3.png"},
-                {"name": "Cielo", "image_path": "http://localhost:9000/iris-media/avatars/avatar-4.png"},
+                {"name": "Violeta", "image_key": "avatars/avatar-1.png"},
+                {"name": "Coral", "image_key": "avatars/avatar-2.png"},
+                {"name": "Bosque", "image_key": "avatars/avatar-3.png"},
+                {"name": "Cielo", "image_key": "avatars/avatar-4.png"},
             ],
         )
     yield

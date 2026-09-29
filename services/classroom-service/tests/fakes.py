@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from app.domain.entities import StudentInfo, UserClaims
+from app.domain.entities import StoredObject, StudentInfo, UserClaims
 from app.domain.exceptions import IdentityServiceUnavailable, ResourceNotFound, InvalidToken
 
 
@@ -63,8 +63,10 @@ class FakeIdentityGateway:
 
 class FakeObjectStorage:
     def __init__(self) -> None:
-        self.archivos: dict[str, bytes] = {}
+        self.archivos: dict[str, StoredObject] = {}
 
-    async def subir(self, key: str, contenido: bytes, content_type: str) -> str:
-        self.archivos[key] = contenido
-        return f"http://fake-storage.local/iris-media/{key}"
+    async def upload(self, key: str, content: bytes, content_type: str) -> None:
+        self.archivos[key] = StoredObject(content=content, content_type=content_type)
+
+    async def download(self, key: str) -> StoredObject | None:
+        return self.archivos.get(key)

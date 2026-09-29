@@ -441,6 +441,17 @@ async def test_health_live_y_ready(client: AsyncClient) -> None:
     assert ready.status_code == 200
 
 
+async def test_avatars_catalog_is_public_and_points_at_the_public_bucket(client: AsyncClient) -> None:
+    response = await client.get("/catalogs/avatars")
+
+    assert response.status_code == 200
+    avatars = response.json()
+    assert [a["name"] for a in avatars] == ["Violeta", "Coral", "Bosque", "Cielo"]
+    assert avatars[0]["image_url"] == "http://localhost:9000/iris-public/avatars/avatar-1.png"
+    # Nothing of the private bucket shows up in a public response.
+    assert all("iris-media" not in a["image_url"] for a in avatars)
+
+
 async def test_listar_tipos_de_documento(client: AsyncClient) -> None:
     response = await client.get("/catalogs/document-types")
 

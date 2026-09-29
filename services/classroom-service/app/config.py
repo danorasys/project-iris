@@ -27,12 +27,12 @@ class Settings(BaseSettings):
     identity_service_url: str = "http://localhost:8001"
 
     s3_endpoint_url: str = "http://localhost:9000"
-    s3_public_url: str = "http://localhost:9000"
     s3_access_key: str = "iris"
     # No default, same reasoning as internal_service_key above — this is the
     # MinIO/S3 root password, s3_access_key alone (the root user) grants
     # nothing without it.
     s3_secret_key: str
+    # Private bucket. Logos are only served through this service.
     s3_bucket: str = "iris-media"
     s3_region: str = "us-east-1"
 

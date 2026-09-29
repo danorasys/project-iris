@@ -28,6 +28,10 @@ class Settings(BaseSettings):
 
     web_origin: str = "http://localhost:5173"
 
+    # Base URL of the public bucket, where only the avatars live. In
+    # production Caddy serves it at /public.
+    public_media_url: str = "http://localhost:9000/iris-public"
+
     # Progressive lock for login and the parents' portal 2FA. After
     # lockout_max_failures wrong attempts inside lockout_fails_window_sec the
     # key is locked. The wait follows lockout_wait_steps_sec, and the last

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -39,8 +39,10 @@ async def test_happy_path_create_lesson_upload_image_insert_it_and_see_it_in_det
         headers=_auth("token-docente"),
     )
     assert resp_image.status_code == 201
-    image_url = resp_image.json()["image_url"]
-    assert image_url
+    image_file = resp_image.json()["image_file"]
+    # Only a file name comes back, never a storage URL.
+    assert image_file.endswith(".png")
+    assert "/" not in image_file
 
     resp_patch = await client.patch(
         f"/lessons/{lesson_id}",
@@ -48,7 +50,7 @@ async def test_happy_path_create_lesson_upload_image_insert_it_and_see_it_in_det
             "status": "publicada",
             "blocks": [
                 {"type": "texto", "content": "Bienvenida", "order_index": 0},
-                {"type": "imagen", "image_url": image_url, "order_index": 1},
+                {"type": "imagen", "image_file": image_file, "order_index": 1},
             ],
         },
         headers=_auth("token-docente"),
@@ -61,7 +63,7 @@ async def test_happy_path_create_lesson_upload_image_insert_it_and_see_it_in_det
     detail = resp_detail.json()
     assert detail["status"] == "publicada"
     assert [b["order_index"] for b in detail["blocks"]] == [0, 1]
-    assert detail["blocks"][1]["image_url"] == image_url
+    assert detail["blocks"][1]["image_file"] == image_file
 
 
 async def test_create_lesson_requires_being_the_owning_teacher_of_the_classroom(
@@ -306,3 +308,156 @@ async def test_health_live_and_ready(client: AsyncClient) -> None:
 
     resp_ready = await client.get("/health/ready")
     assert resp_ready.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Lesson images: private, same access rule as the lesson
+# ---------------------------------------------------------------------------
+
+
+async def _published_lesson_with_image(
+    client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
+) -> tuple[UUID, str, str]:
+    classroom_id = uuid4()
+    teacher_id = uuid4()
+    identity_client.register("token-docente", teacher_id, "teacher")
+    classroom_client.authorize(classroom_id, teacher_id, "teacher", authorized=True)
+
+    lesson = await client.post(
+        f"/classrooms/{classroom_id}/lessons", json={"title": "Con imagen", "blocks": []}, headers=_auth("token-docente")
+    )
+    lesson_id = lesson.json()["id"]
+    upload = await client.post(
+        f"/lessons/{lesson_id}/images",
+        files={"file": ("figura.png", b"bytes-de-la-imagen", "image/png")},
+        headers=_auth("token-docente"),
+    )
+    image_file = upload.json()["image_file"]
+    await client.patch(
+        f"/lessons/{lesson_id}",
+        json={"status": "publicada", "blocks": [{"type": "imagen", "image_file": image_file, "order_index": 0}]},
+        headers=_auth("token-docente"),
+    )
+    return classroom_id, lesson_id, image_file
+
+
+async def test_teacher_downloads_an_image_of_their_lesson(
+    client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
+) -> None:
+    _classroom_id, lesson_id, image_file = await _published_lesson_with_image(client, identity_client, classroom_client)
+
+    response = await client.get(f"/lessons/{lesson_id}/images/{image_file}", headers=_auth("token-docente"))
+
+    assert response.status_code == 200
+    assert response.content == b"bytes-de-la-imagen"
+    assert response.headers["content-type"] == "image/png"
+    assert response.headers["cache-control"] == "private, max-age=3600"
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+async def test_enrolled_student_downloads_an_image_of_a_published_lesson(
+    client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
+) -> None:
+    classroom_id, lesson_id, image_file = await _published_lesson_with_image(client, identity_client, classroom_client)
+    student_id = uuid4()
+    identity_client.register("token-estudiante", student_id, "student")
+    classroom_client.authorize(classroom_id, student_id, "student", authorized=True)
+
+    response = await client.get(f"/lessons/{lesson_id}/images/{image_file}", headers=_auth("token-estudiante"))
+
+    assert response.status_code == 200
+    assert response.content == b"bytes-de-la-imagen"
+
+
+async def test_student_outside_the_classroom_gets_404_not_403(
+    client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
+) -> None:
+    _classroom_id, lesson_id, image_file = await _published_lesson_with_image(client, identity_client, classroom_client)
+    identity_client.register("token-intruso", uuid4(), "student")
+
+    response = await client.get(f"/lessons/{lesson_id}/images/{image_file}", headers=_auth("token-intruso"))
+
+    # Same answer as an image that doesn't exist, so nothing leaks.
+    assert response.status_code == 404
+
+
+async def test_other_teacher_gets_404(
+    client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
+) -> None:
+    _classroom_id, lesson_id, image_file = await _published_lesson_with_image(client, identity_client, classroom_client)
+    identity_client.register("token-otro-docente", uuid4(), "teacher")
+
+    response = await client.get(f"/lessons/{lesson_id}/images/{image_file}", headers=_auth("token-otro-docente"))
+
+    assert response.status_code == 404
+
+
+async def test_student_does_not_get_uploaded_images_the_lesson_does_not_show(
+    client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
+) -> None:
+    classroom_id, lesson_id, _image_file = await _published_lesson_with_image(client, identity_client, classroom_client)
+    leftover = await client.post(
+        f"/lessons/{lesson_id}/images",
+        files={"file": ("borrador.png", b"imagen-sin-usar", "image/png")},
+        headers=_auth("token-docente"),
+    )
+    student_id = uuid4()
+    identity_client.register("token-estudiante", student_id, "student")
+    classroom_client.authorize(classroom_id, student_id, "student", authorized=True)
+
+    response = await client.get(
+        f"/lessons/{lesson_id}/images/{leftover.json()['image_file']}", headers=_auth("token-estudiante")
+    )
+
+    assert response.status_code == 404
+
+
+async def test_image_without_a_session_is_401(
+    client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
+) -> None:
+    _classroom_id, lesson_id, image_file = await _published_lesson_with_image(client, identity_client, classroom_client)
+
+    response = await client.get(f"/lessons/{lesson_id}/images/{image_file}")
+
+    assert response.status_code == 401
+
+
+async def test_block_with_an_external_url_is_rejected(
+    client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
+) -> None:
+    classroom_id = uuid4()
+    teacher_id = uuid4()
+    identity_client.register("token-docente", teacher_id, "teacher")
+    classroom_client.authorize(classroom_id, teacher_id, "teacher", authorized=True)
+
+    response = await client.post(
+        f"/classrooms/{classroom_id}/lessons",
+        json={
+            "title": "Con enlace externo",
+            "blocks": [{"type": "imagen", "image_file": "https://tracker.example/pixel.png", "order_index": 0}],
+        },
+        headers=_auth("token-docente"),
+    )
+
+    assert response.status_code == 422
+
+
+async def test_uploaded_image_extension_comes_from_the_content_type(
+    client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
+) -> None:
+    classroom_id = uuid4()
+    teacher_id = uuid4()
+    identity_client.register("token-docente", teacher_id, "teacher")
+    classroom_client.authorize(classroom_id, teacher_id, "teacher", authorized=True)
+    lesson = await client.post(
+        f"/classrooms/{classroom_id}/lessons", json={"title": "Extension", "blocks": []}, headers=_auth("token-docente")
+    )
+
+    response = await client.post(
+        f"/lessons/{lesson.json()['id']}/images",
+        files={"file": ("foto.exe", b"bytes", "image/jpeg")},
+        headers=_auth("token-docente"),
+    )
+
+    assert response.status_code == 201
+    assert response.json()["image_file"].endswith(".jpg")

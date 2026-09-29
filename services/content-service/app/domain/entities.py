@@ -21,7 +21,9 @@ class ContentBlock:
     type: str  # "texto" | "imagen" (stored value, kept as-is, see note below)
     order_index: int
     content: str | None = None
-    image_url: str | None = None
+    # File name inside the lesson's folder of the private bucket, e.g.
+    # "<hex>.png". Never a URL, see get_image in lesson_service.py.
+    image_file: str | None = None
 
 
 @dataclass
@@ -33,6 +35,13 @@ class Lesson:
     order_index: int
     status: str  # "borrador" | "publicada" (stored value, kept as-is, see note below)
     blocks: list[ContentBlock] = field(default_factory=list)
+
+
+# An object read back from storage, ready to be sent to the browser.
+@dataclass
+class StoredObject:
+    content: bytes
+    content_type: str
 
 
 @dataclass

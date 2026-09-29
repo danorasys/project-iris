@@ -27,7 +27,6 @@ class Settings(BaseSettings):
     web_origin: str = "http://localhost:5173"
 
     s3_endpoint_url: str = "http://minio:9000"
-    s3_public_url: str = "http://localhost:9000"
     s3_access_key: str = "iris"
     # No default, same reasoning as internal_service_key above — this is the
     # MinIO/S3 root password, s3_access_key alone (the root user) grants

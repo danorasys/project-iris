@@ -21,11 +21,19 @@
         reverse_proxy api-gateway:8000
     }
 
-    # MinIO uses path-style URLs (/<bucket>/<key>), so /media is stripped
-    # before forwarding. It has no public port, this is the only way in.
-    handle /media/* {
-        uri strip_prefix /media
-        reverse_proxy minio:9000
+    # Only the public bucket (avatars) is reachable here, and only to read a
+    # file. Logos and lesson images are private and go through /api.
+    # /public/x becomes /<public bucket>/x, MinIO has no other way in.
+    handle_path /public/* {
+        @read method GET HEAD
+        handle @read {
+            rewrite * /{$S3_PUBLIC_BUCKET}{uri}
+            header Cache-Control "public, max-age=86400"
+            reverse_proxy minio:9000
+        }
+        handle {
+            respond 405
+        }
     }
 
     handle {

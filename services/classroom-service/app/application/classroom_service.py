@@ -19,7 +19,14 @@ from app.application.dtos import (
     EnrichedRequest,
     UpdateClassroomData,
 )
-from app.domain.entities import STATUS_ACCEPTED, STATUS_PENDING, STATUS_REJECTED, Classroom, Enrollment
+from app.domain.entities import (
+    STATUS_ACCEPTED,
+    STATUS_PENDING,
+    STATUS_REJECTED,
+    Classroom,
+    Enrollment,
+    StoredObject,
+)
 from app.domain.exceptions import (
     AlreadyEnrolledOrPending,
     AttemptLimitExceeded,
@@ -48,10 +55,9 @@ _MAX_LOGO_SIZE_BYTES = 5 * 1024 * 1024
 _ALLOWED_LOGO_CONTENT_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
 
 
-def _extension_from(content_type: str, filename: str | None) -> str:
-    if filename and "." in filename:
-        return filename.rsplit(".", 1)[-1].lower()
-    return content_type.split("/")[-1].lower() or "bin"
+# The extension comes from the already checked content type, never from the
+# name the user sent, so "logo.exe" can't end up stored as an .exe.
+_EXTENSION_BY_CONTENT_TYPE = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif"}
 
 
 def _generate_enrollment_code() -> str:
@@ -99,7 +105,7 @@ class ClassroomService:
                 description=description,
                 enrollment_code=code,
                 created_at=datetime.now(timezone.utc),
-                logo_url=None,
+                logo_key=None,
             )
             await uow.classrooms.add(classroom)
             await uow.commit()
@@ -150,7 +156,7 @@ class ClassroomService:
         return classroom
 
     async def upload_logo(
-        self, classroom_id: UUID, teacher_id: UUID, contenido: bytes, content_type: str, filename: str | None
+        self, classroom_id: UUID, teacher_id: UUID, contenido: bytes, content_type: str
     ) -> Classroom:
         # Free upload by the teacher, no moderation in the MVP. Validates
         # type and size before touching storage.
@@ -162,14 +168,36 @@ class ClassroomService:
         async with self._uow_factory() as uow:
             classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
 
-            ext = _extension_from(content_type, filename)
+            ext = _EXTENSION_BY_CONTENT_TYPE[content_type]
             key = f"classrooms/{classroom_id}/logo/{uuid.uuid4().hex}.{ext}"
-            url = await self._storage.subir(key, contenido, content_type)
+            await self._storage.upload(key, contenido, content_type)
 
-            classroom.logo_url = url
+            classroom.logo_key = key
             await uow.classrooms.update(classroom)
             await uow.commit()
         return classroom
+
+    async def get_logo(self, classroom_id: UUID, file_name: str, subject_id: UUID, role: str) -> StoredObject:
+        # Same rule as the classroom: its teacher and its accepted students.
+        # Any "no" is the same 404, so it doesn't reveal what exists.
+        async with self._uow_factory() as uow:
+            classroom = await uow.classrooms.get_by_id(classroom_id)
+            if classroom is None or classroom.logo_key is None or classroom.logo_file != file_name:
+                raise ResourceNotFound("La imagen solicitada no existe.")
+            allowed = False
+            if role == "teacher":
+                allowed = classroom.teacher_id == subject_id
+            elif role == "student":
+                enrollment = await uow.enrollments.get_by_student_and_classroom(subject_id, classroom_id)
+                allowed = enrollment is not None and enrollment.status == STATUS_ACCEPTED
+            if not allowed:
+                raise ResourceNotFound("La imagen solicitada no existe.")
+            key = classroom.logo_key
+
+        stored = await self._storage.download(key)
+        if stored is None:
+            raise ResourceNotFound("La imagen solicitada no existe.")
+        return stored
 
     async def list_requests(self, classroom_id: UUID, teacher_id: UUID) -> list[EnrichedRequest]:
         async with self._uow_factory() as uow:

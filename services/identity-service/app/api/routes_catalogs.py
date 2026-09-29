@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 from app.api.deps import get_catalog_query_service
 from app.api.schemas import AvatarResponse, DocumentTypeResponse, RelationshipTypeResponse, SupportConditionResponse
 from app.application.catalog_service import CatalogQueryService
+from app.config import Settings, get_settings
 
 router = APIRouter(prefix="/catalogs", tags=["catalogs"])
 
@@ -32,6 +33,9 @@ async def list_support_conditions(catalogs: CatalogServiceDep) -> list[SupportCo
 
 
 @router.get("/avatars", response_model=list[AvatarResponse])
-async def list_avatars(catalogs: CatalogServiceDep) -> list[AvatarResponse]:
+async def list_avatars(
+    catalogs: CatalogServiceDep, settings: Annotated[Settings, Depends(get_settings)]
+) -> list[AvatarResponse]:
     avatars = await catalogs.list_avatars()
-    return [AvatarResponse(**a.__dict__) for a in avatars]
+    base_url = settings.public_media_url.rstrip("/")
+    return [AvatarResponse(id=a.id, name=a.name, image_url=f"{base_url}/{a.image_key}") for a in avatars]
