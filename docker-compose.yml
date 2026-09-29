@@ -103,47 +103,6 @@ services:
                 condition: service_healthy
         restart: "no"
 
-    # Only for an install that still has its files in MinIO. Copies them to
-    # the Garage buckets once (see infra/garage/migrate-from-minio.sh):
-    #   docker compose --profile media-migration run --rm media-migrate
-    minio:
-        image: quay.io/minio/minio:latest
-        profiles: [media-migration]
-        command: server /data
-        environment:
-            MINIO_ROOT_USER: ${LEGACY_MINIO_ACCESS_KEY:-}
-            MINIO_ROOT_PASSWORD: ${LEGACY_MINIO_SECRET_KEY:-}
-        volumes:
-            - miniodata:/data
-        healthcheck:
-            test: ["CMD", "mc", "ready", "local"]
-            interval: 5s
-            timeout: 5s
-            retries: 10
-
-    media-migrate:
-        image: quay.io/minio/mc:latest
-        profiles: [media-migration]
-        depends_on:
-            minio:
-                condition: service_healthy
-            garage-init:
-                condition: service_completed_successfully
-        environment:
-            LEGACY_MINIO_ACCESS_KEY: ${LEGACY_MINIO_ACCESS_KEY:-}
-            LEGACY_MINIO_SECRET_KEY: ${LEGACY_MINIO_SECRET_KEY:-}
-            LEGACY_MINIO_BUCKET: ${LEGACY_MINIO_BUCKET:-}
-            LEGACY_MINIO_PUBLIC_BUCKET: ${LEGACY_MINIO_PUBLIC_BUCKET:-}
-            STORAGE_ADMIN_ACCESS_KEY: ${STORAGE_ADMIN_ACCESS_KEY}
-            STORAGE_ADMIN_SECRET_KEY: ${STORAGE_ADMIN_SECRET_KEY}
-            CLASSROOM_S3_BUCKET: ${CLASSROOM_S3_BUCKET}
-            CONTENT_S3_BUCKET: ${CONTENT_S3_BUCKET}
-            IDENTITY_S3_BUCKET: ${IDENTITY_S3_BUCKET}
-        entrypoint: ["/bin/sh", "/migrate-from-minio.sh"]
-        volumes:
-            - ./infra/garage/migrate-from-minio.sh:/migrate-from-minio.sh:ro
-        restart: "no"
-
     identity-service:
         build: ./services/identity-service
         environment:
@@ -354,5 +313,4 @@ services:
 volumes:
     postgres-data:
     garage-data:
-    miniodata:
     redisdata:

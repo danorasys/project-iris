@@ -10,6 +10,9 @@ set -euo pipefail
 
 readonly REPO="${IRIS_REPO:-danorasys/project-iris}"
 readonly APP_DIR="${IRIS_APP_DIR:-/opt/iris}"
+# Same as "name:" in docker-compose.prod.yml. It's how the script finds the
+# containers and the network of IRIS, so both have to match.
+readonly PROJECT="iris"
 readonly STATE_DIR="${IRIS_STATE_DIR:-/var/lib/iris-deploy}"
 readonly IMAGE_PREFIX="ghcr.io/${REPO}"
 readonly SERVICES=(identity-service classroom-service content-service notification-service api-gateway web)
@@ -62,7 +65,60 @@ checkout_tag() {
 }
 
 compose() {
-    docker compose -f "$APP_DIR/docker-compose.prod.yml" --env-file "$APP_DIR/.env.production" "$@"
+    docker compose -p "$PROJECT" -f "$APP_DIR/docker-compose.prod.yml" --env-file "$APP_DIR/.env.production" "$@"
+}
+
+# Containers of the project that this version doesn't start: services that
+# were removed or moved to a profile, and orphans. If they stay running they
+# keep the network busy, and compose can't recreate it when its settings
+# change (that once left the whole site down). The data is in volumes, so
+# removing the containers loses nothing.
+remove_stray_containers() {
+    local active name service
+    active=$(compose config --services) || return 1
+    while read -r name service; do
+        [[ -n "$name" ]] || continue
+        grep -qxF "$service" <<<"$active" && continue
+        log "removing ${name}, it is not part of this version"
+        docker stop -t 30 "$name" >/dev/null && docker rm "$name" >/dev/null || return 1
+    done < <(docker ps -a --filter "label=com.docker.compose.project=${PROJECT}" \
+        --format '{{.Names}} {{.Label "com.docker.compose.service"}}')
+}
+
+# Removes every container of the project and its network, so the next
+# start is from scratch. Volumes (the data) are never touched. Postgres
+# gets time to close cleanly.
+reset_project() {
+    local ids
+    mapfile -t ids < <(docker ps -aq --filter "label=com.docker.compose.project=${PROJECT}")
+    if ((${#ids[@]} > 0)); then
+        docker stop -t 60 "${ids[@]}" >/dev/null || return 1
+        docker rm "${ids[@]}" >/dev/null || return 1
+    fi
+    docker network rm "${PROJECT}_default" >/dev/null 2>&1 || true
+}
+
+# The deploy and backup scripts and their units are copies installed by
+# install.sh, the deploy user can't change what it runs. This only warns
+# when the deployed release brings new versions of them.
+check_installed_copies() {
+    local tag="$1" pair stale=()
+    # Same files install.sh installs, keep both lists in sync.
+    local pairs=(
+        "scripts/iris-deploy.sh:/usr/local/sbin/iris-deploy"
+        "scripts/iris-backup-media.sh:/usr/local/sbin/iris-backup-media"
+        "infra/systemd/iris-deploy.service:/etc/systemd/system/iris-deploy.service"
+        "infra/systemd/iris-deploy.timer:/etc/systemd/system/iris-deploy.timer"
+        "infra/systemd/iris-backup-media.service:/etc/systemd/system/iris-backup-media.service"
+        "infra/systemd/iris-backup-media.timer:/etc/systemd/system/iris-backup-media.timer"
+    )
+    for pair in "${pairs[@]}"; do
+        cmp -s "$APP_DIR/${pair%%:*}" "${pair#*:}" || stale+=("${pair#*:}")
+    done
+    ((${#stale[@]} == 0)) && return 0
+    log "${tag} brings new versions of: ${stale[*]}"
+    log "install them with: sudo bash ${APP_DIR}/infra/systemd/install.sh"
+    notify "${tag} changes how the server deploys or backs up. Run on the server: sudo bash ${APP_DIR}/infra/systemd/install.sh"
 }
 
 # Containers healthy, then the site through Caddy and the gateway readiness.
@@ -80,6 +136,21 @@ health_check() {
     return 1
 }
 
+# Starts the containers of the checked out version. Stray containers go
+# first, and if the start fails it is tried once more from scratch.
+start_containers() {
+    local tag="$1"
+    remove_stray_containers || return 1
+    if ! compose up -d --wait --wait-timeout 180 --remove-orphans; then
+        # Some changes, like the network settings, can't be applied on top of
+        # the running containers and leave them half connected. One more try
+        # from clean containers.
+        log "start failed, trying ${tag} again from clean containers"
+        reset_project || return 1
+        compose up -d --wait --wait-timeout 180 --remove-orphans || return 1
+    fi
+}
+
 # Starts the given version and waits until it is healthy. Every step returns
 # on its own because this runs inside an "if", where "set -e" does not apply.
 apply_version() {
@@ -88,11 +159,11 @@ apply_version() {
     export IMAGE_TAG="$tag"
     # Our images must download, they are the release. Third party images are
     # only refreshed when their registry answers: if it doesn't, the copy the
-    # server already has is used (MinIO stopped publishing its images).
+    # server already has is used.
     compose pull --quiet "${APP_SERVICES[@]}" || return 1
     compose pull --quiet --ignore-pull-failures "${THIRD_PARTY_SERVICES[@]}" \
         || log "could not refresh some third party images, using the local ones"
-    compose up -d --wait --wait-timeout 180 || return 1
+    start_containers "$tag" || return 1
     # The Caddy files are mounted, so "up" doesn't restart Caddy when only they
     # changed. Reload them; a broken config fails here and Caddy keeps the old one.
     compose exec -T reverse-proxy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile || return 1
@@ -140,6 +211,7 @@ main() {
         docker image prune -af --filter "until=168h" >/dev/null
         log "deployed ${desired}"
         notify "${desired} deployed."
+        check_installed_copies "$desired"
         return 0
     fi
 
