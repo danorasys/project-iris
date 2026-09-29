@@ -105,6 +105,9 @@ interface UploadLessonImageVariables {
     lessonId: string;
     file: File;
 }
+interface UploadLessonImageResponse {
+    image_file: string;
+}
 /** `POST /content/lessons/{lesson_id}/images`. Uploads an image and
  * returns its file name, to insert as an image block. */
 export function useUploadLessonImage() {
@@ -114,7 +117,7 @@ export function useUploadLessonImage() {
 
             formData.append("file", file);
 
-            return apiUpload<{ image_file: string }>(
+            return apiUpload<UploadLessonImageResponse>(
                 `/content/lessons/${lessonId}/images`,
                 formData,
             );

@@ -6,12 +6,12 @@ import {
     Route,
     Routes,
     useLocation,
-} from "react-router-dom"
-import { RequireRol } from "./RequireRol"
-import { RequirePortalAccess } from "@/features/guardian/RequirePortalAccess"
-import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext"
-import { GazeCursor } from "@/shared/ui/GazeCursor"
-import { LoadingScreen } from "@/shared/ui/LoadingScreen"
+} from "react-router-dom";
+import { RequireRol } from "./RequireRol";
+import { RequirePortalAccess } from "@/features/guardian/RequirePortalAccess";
+import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext";
+import { GazeCursor } from "@/shared/ui/GazeCursor";
+import { LoadingScreen } from "@/shared/ui/LoadingScreen";
 
 // We split the code by role, so the /student/* pages, and the gaze
 // engine that comes with them, only get downloaded if the user goes there.
@@ -24,18 +24,18 @@ const GuardianRegistrationWizard = lazy(
 );
 const TeacherRegistrationWizard = lazy(
     () => import("@/features/auth/student/TeacherRegistrationWizard"),
-)
+);
 const ProfileSelectorAuth = lazy(
     () => import("@/features/auth/student/ProfileSelectorAuth"),
-)
-const LegalNoticePage = lazy(() => import("@/features/legal/LegalNoticePage"))
+);
+const LegalNoticePage = lazy(() => import("@/features/legal/LegalNoticePage"));
 const PrivacyPolicyPage = lazy(
     () => import("@/features/legal/PrivacyPolicyPage"),
 );
 
 const GuardianVerify2faPage = lazy(
     () => import("@/features/guardian/pages/GuardianVerify2faPage"),
-)
+);
 const GuardianPortalPage = lazy(
     () => import("@/features/guardian/pages/GuardianPortalPage"),
 );
@@ -80,9 +80,7 @@ const TotpSuccessPreviewPage = lazy(
 const TeacherDashboardPage = lazy(
     () => import("@/features/teacher/pages/DashboardPage"),
 );
-const CreateClassroomPage = lazy(
-    () => import("@/features/teacher/pages/CreateClassroomPage"),
-);
+
 const ClassroomDetailPage = lazy(
     () => import("@/features/teacher/pages/ClassroomDetailPage"),
 );

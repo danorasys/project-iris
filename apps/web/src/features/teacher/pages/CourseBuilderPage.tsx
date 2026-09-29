@@ -66,7 +66,7 @@ function toApiBlocks(blocks: EditorBlock[]): ContentBlockInput[] {
         if (block.kind === "image") {
             return {
                 type: "imagen",
-                image_url: block.imageUrl,
+                image_file: block.imageUrl,
                 order_index: orderIndex,
             };
         }
@@ -226,10 +226,10 @@ export default function CourseBuilderPage() {
         uploadImage.mutate(
             { lessonId, file },
             {
-                onSuccess: ({ image_url }) => {
+                onSuccess: ({ image_file }) => {
                     setBlocks((current) => [
                         ...current,
-                        { id: createId(), kind: "image", imageUrl: image_url },
+                        { id: createId(), kind: "image", imageUrl: image_file },
                     ]);
                     setMessage("Imagen añadida a la lección.");
                 },
