@@ -1,4 +1,5 @@
 import {
+    useEffect,
     useMemo,
     useRef,
     useState,
@@ -13,6 +14,8 @@ import {
 } from "@hello-pangea/dnd";
 import {
     BookOpen,
+    ChevronLeft,
+    ChevronRight,
     Eye,
     GripVertical,
     HelpCircle,
@@ -42,11 +45,7 @@ import {
 import styles from "./CourseBuilderPage.module.css";
 
 type EditorBlock =
-    | {
-          id: string;
-          kind: "information";
-          markdown: string;
-      }
+    | { id: string; kind: "information"; markdown: string }
     | {
           id: string;
           kind: "question";
@@ -54,14 +53,12 @@ type EditorBlock =
           options: string[];
           correctOption?: number;
       }
-    | {
-          id: string;
-          kind: "image";
-          imageUrl: string;
-      };
+    | { id: string; kind: "image"; imageUrl: string };
 
-function createId(): string {
-    return crypto.randomUUID();
+const createId = () => crypto.randomUUID();
+
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof ApiError ? error.message : fallback;
 }
 
 function toApiBlocks(blocks: EditorBlock[]): ContentBlockInput[] {
@@ -73,19 +70,19 @@ function toApiBlocks(blocks: EditorBlock[]): ContentBlockInput[] {
                 order_index: orderIndex,
             };
         }
-
         if (block.kind === "question") {
             return {
                 type: "texto",
                 content: encodeQuestion(
                     block.markdown.trim() || "## Escribe la pregunta",
-                    block.options.filter((option) => option.trim()),
+                    block.options
+                        .map((option) => option.trim())
+                        .filter(Boolean),
                     block.correctOption,
                 ),
                 order_index: orderIndex,
             };
         }
-
         return {
             type: "texto",
             content: encodeInformation(
@@ -98,7 +95,6 @@ function toApiBlocks(blocks: EditorBlock[]): ContentBlockInput[] {
 
 export default function CourseBuilderPage() {
     const navigate = useNavigate();
-
     const createClassroom = useCreateClassroom();
     const updateLesson = useUpdateLesson();
     const uploadImage = useUploadLessonImage();
@@ -106,28 +102,32 @@ export default function CourseBuilderPage() {
     const [classroomId, setClassroomId] = useState<string | null>(null);
     const [classroomName, setClassroomName] = useState("");
     const [classroomDescription, setClassroomDescription] = useState("");
-
     const createLesson = useCreateLesson(classroomId ?? "");
 
     const [lessonId, setLessonId] = useState<string | null>(null);
     const [lessonTitle, setLessonTitle] = useState("");
     const [blocks, setBlocks] = useState<EditorBlock[]>([]);
     const [previewEnabled, setPreviewEnabled] = useState(true);
-
+    const [previewIndex, setPreviewIndex] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
-
     const imageInputRef = useRef<HTMLInputElement>(null);
 
     const previewBlocks = useMemo(() => toApiBlocks(blocks), [blocks]);
+    const currentPreviewBlock = previewBlocks[previewIndex];
+    const previewIsFirst = previewIndex === 0;
+    const previewIsLast =
+        previewBlocks.length === 0 || previewIndex === previewBlocks.length - 1;
 
-    const getErrorMessage = (reason: unknown, fallback: string) =>
-        reason instanceof ApiError ? reason.message : fallback;
+    useEffect(() => {
+        setPreviewIndex((current) =>
+            Math.min(current, Math.max(previewBlocks.length - 1, 0)),
+        );
+    }, [previewBlocks.length]);
 
     const handleCreateClassroom = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError(null);
-
         createClassroom.mutate(
             {
                 name: classroomName.trim(),
@@ -140,36 +140,49 @@ export default function CourseBuilderPage() {
                         "Curso creado. Ahora puedes construir su primera lección.",
                     );
                 },
-                onError: (reason) => {
+                onError: (reason) =>
                     setError(
                         getErrorMessage(reason, "No se pudo crear el curso."),
-                    );
-                },
+                    ),
             },
         );
     };
 
     const handleCreateLesson = () => {
         if (!classroomId || !lessonTitle.trim()) return;
-
         setError(null);
         createLesson.mutate(
-            {
-                title: lessonTitle.trim(),
-                blocks: [],
-            },
+            { title: lessonTitle.trim(), blocks: [] },
             {
                 onSuccess: (lesson) => {
                     setLessonId(lesson.id);
                     setMessage("Lección creada como borrador.");
                 },
-                onError: (reason) => {
+                onError: (reason) =>
                     setError(
                         getErrorMessage(reason, "No se pudo crear la lección."),
-                    );
-                },
+                    ),
             },
         );
+    };
+
+    const updateBlock = (
+        id: string,
+        updater: (block: EditorBlock) => EditorBlock,
+    ) => {
+        setBlocks((current) =>
+            current.map((block) => (block.id === id ? updater(block) : block)),
+        );
+    };
+
+    const handleDragEnd = ({ source, destination }: DropResult) => {
+        if (!destination || source.index === destination.index) return;
+        setBlocks((current) => {
+            const next = [...current];
+            const [moved] = next.splice(source.index, 1);
+            next.splice(destination.index, 0, moved);
+            return next;
+        });
     };
 
     const addInformation = () => {
@@ -179,7 +192,7 @@ export default function CourseBuilderPage() {
                 id: createId(),
                 kind: "information",
                 markdown:
-                    "## Nuevo tema\n\nEscribe el contenido usando **Markdown**.",
+                    "## Nuevo contenido\n\nEscribe aquí la información usando **Markdown**.",
             },
         ]);
     };
@@ -197,21 +210,18 @@ export default function CourseBuilderPage() {
         ]);
     };
 
-    const handleSelectImage = () => {
+    const selectImage = () => {
         if (!lessonId) {
             setError("Primero crea la lección para poder subir imágenes.");
             return;
         }
-
         imageInputRef.current?.click();
     };
 
-    const handleUploadImage = (event: ChangeEvent<HTMLInputElement>) => {
+    const handleImageSelected = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         event.target.value = "";
-
         if (!file || !lessonId) return;
-
         setError(null);
         uploadImage.mutate(
             { lessonId, file },
@@ -219,52 +229,22 @@ export default function CourseBuilderPage() {
                 onSuccess: ({ image_url }) => {
                     setBlocks((current) => [
                         ...current,
-                        {
-                            id: createId(),
-                            kind: "image",
-                            imageUrl: image_url,
-                        },
+                        { id: createId(), kind: "image", imageUrl: image_url },
                     ]);
+                    setMessage("Imagen añadida a la lección.");
                 },
-                onError: (reason) => {
+                onError: (reason) =>
                     setError(
                         getErrorMessage(reason, "No se pudo subir la imagen."),
-                    );
-                },
+                    ),
             },
         );
     };
 
-    const handleDragEnd = ({ source, destination }: DropResult) => {
-        if (!destination || source.index === destination.index) return;
-
-        setBlocks((current) => {
-            const next = [...current];
-            const [movedBlock] = next.splice(source.index, 1);
-            next.splice(destination.index, 0, movedBlock);
-            return next;
-        });
-    };
-
-    const updateBlock = (
-        id: string,
-        updater: (block: EditorBlock) => EditorBlock,
-    ) => {
-        setBlocks((current) =>
-            current.map((block) => (block.id === id ? updater(block) : block)),
-        );
-    };
-
-    const removeBlock = (id: string) => {
-        setBlocks((current) => current.filter((block) => block.id !== id));
-    };
-
     const saveLesson = (publish = false) => {
         if (!lessonId || !lessonTitle.trim()) return;
-
         setError(null);
         setMessage(null);
-
         updateLesson.mutate(
             {
                 lessonId,
@@ -278,19 +258,17 @@ export default function CourseBuilderPage() {
                 onSuccess: () => {
                     if (publish && classroomId) {
                         navigate(`/teacher/classrooms/${classroomId}`);
-                        return;
+                    } else {
+                        setMessage("Los cambios se guardaron correctamente.");
                     }
-
-                    setMessage("Los cambios se guardaron correctamente.");
                 },
-                onError: (reason) => {
+                onError: (reason) =>
                     setError(
                         getErrorMessage(
                             reason,
                             "No se pudo guardar la lección.",
                         ),
-                    );
-                },
+                    ),
             },
         );
     };
@@ -302,21 +280,31 @@ export default function CourseBuilderPage() {
                     <span className={styles.eyebrow}>Panel docente</span>
                     <h1>Crear curso y lecciones</h1>
                     <p>
-                        Organiza la experiencia del estudiante mediante bloques
-                        visuales, preguntas e información.
+                        Organiza la experiencia del estudiante con bloques
+                        visuales y una vista previa fiel.
                     </p>
                 </div>
-
-                <button
-                    type="button"
-                    className={styles.previewToggle}
-                    onClick={() => setPreviewEnabled((value) => !value)}
-                >
-                    <Eye size={20} />
-                    {previewEnabled
-                        ? "Ocultar vista previa"
-                        : "Mostrar vista previa"}
-                </button>
+                <div className={styles.headerControls}>
+                    <button
+                        type="button"
+                        className={styles.previewToggle}
+                        onClick={() => navigate("/teacher/home")}
+                    >
+                        <ChevronLeft size={20} /> Volver
+                    </button>
+                    {classroomId && (
+                        <button
+                            type="button"
+                            className={styles.previewToggle}
+                            onClick={() => setPreviewEnabled((value) => !value)}
+                        >
+                            <Eye size={20} />{" "}
+                            {previewEnabled
+                                ? "Ocultar vista previa"
+                                : "Mostrar vista previa"}
+                        </button>
+                    )}
+                </div>
             </header>
 
             {!classroomId ? (
@@ -334,7 +322,6 @@ export default function CourseBuilderPage() {
                             </p>
                         </div>
                     </div>
-
                     <label>
                         Nombre del curso
                         <input
@@ -347,7 +334,6 @@ export default function CourseBuilderPage() {
                             }
                         />
                     </label>
-
                     <label>
                         Descripción
                         <textarea
@@ -359,7 +345,6 @@ export default function CourseBuilderPage() {
                             }
                         />
                     </label>
-
                     <button
                         type="submit"
                         className={styles.primaryButton}
@@ -367,7 +352,7 @@ export default function CourseBuilderPage() {
                             createClassroom.isPending || !classroomName.trim()
                         }
                     >
-                        <Plus size={20} />
+                        <Plus size={20} />{" "}
                         {createClassroom.isPending
                             ? "Creando curso…"
                             : "Crear curso y añadir lección"}
@@ -375,9 +360,7 @@ export default function CourseBuilderPage() {
                 </form>
             ) : (
                 <div
-                    className={`${styles.workspace} ${
-                        previewEnabled ? styles.withPreview : ""
-                    }`}
+                    className={`${styles.workspace} ${previewEnabled ? styles.withPreview : ""}`}
                 >
                     <section className={styles.builder}>
                         <div className={styles.lessonHeader}>
@@ -387,10 +370,9 @@ export default function CourseBuilderPage() {
                                 </span>
                                 <h2>{classroomName}</h2>
                             </div>
-
                             <input
-                                aria-label="Título de la lección"
                                 className={styles.lessonTitle}
+                                aria-label="Título de la lección"
                                 value={lessonTitle}
                                 placeholder="Título de la lección"
                                 maxLength={200}
@@ -410,7 +392,7 @@ export default function CourseBuilderPage() {
                                 }
                                 onClick={handleCreateLesson}
                             >
-                                <Plus size={20} />
+                                <Plus size={20} />{" "}
                                 {createLesson.isPending
                                     ? "Creando borrador…"
                                     : "Crear lección y abrir editor"}
@@ -422,32 +404,27 @@ export default function CourseBuilderPage() {
                                         type="button"
                                         onClick={addInformation}
                                     >
-                                        <Info size={20} />
-                                        Información
+                                        <Info size={20} /> Información
                                     </button>
-
                                     <button type="button" onClick={addQuestion}>
-                                        <HelpCircle size={20} />
-                                        Pregunta
+                                        <HelpCircle size={20} /> Pregunta
                                     </button>
-
                                     <button
                                         type="button"
-                                        onClick={handleSelectImage}
+                                        onClick={selectImage}
                                         disabled={uploadImage.isPending}
                                     >
-                                        <ImagePlus size={20} />
+                                        <ImagePlus size={20} />{" "}
                                         {uploadImage.isPending
                                             ? "Subiendo…"
                                             : "Imagen"}
                                     </button>
-
                                     <input
                                         ref={imageInputRef}
                                         type="file"
                                         hidden
                                         accept="image/png,image/jpeg,image/webp"
-                                        onChange={handleUploadImage}
+                                        onChange={handleImageSelected}
                                     />
                                 </div>
 
@@ -474,11 +451,7 @@ export default function CourseBuilderPage() {
                                                                     draggable.innerRef
                                                                 }
                                                                 {...draggable.draggableProps}
-                                                                className={`${styles.editorBlock} ${
-                                                                    snapshot.isDragging
-                                                                        ? styles.dragging
-                                                                        : ""
-                                                                }`}
+                                                                className={`${styles.editorBlock} ${snapshot.isDragging ? styles.dragging : ""}`}
                                                             >
                                                                 <header
                                                                     className={
@@ -493,27 +466,36 @@ export default function CourseBuilderPage() {
                                                                         aria-label="Arrastrar bloque"
                                                                         {...draggable.dragHandleProps}
                                                                     >
-                                                                        <GripVertical />
+                                                                        <GripVertical
+                                                                            size={
+                                                                                20
+                                                                            }
+                                                                        />
                                                                     </button>
-
                                                                     <strong>
                                                                         {block.kind ===
-                                                                            "information" &&
-                                                                            "Información"}
-                                                                        {block.kind ===
-                                                                            "question" &&
-                                                                            "Pregunta"}
-                                                                        {block.kind ===
-                                                                            "image" &&
-                                                                            "Imagen"}
+                                                                        "information"
+                                                                            ? "Información"
+                                                                            : block.kind ===
+                                                                                "question"
+                                                                              ? "Pregunta"
+                                                                              : "Imagen"}
                                                                     </strong>
-
                                                                     <button
                                                                         type="button"
                                                                         aria-label="Eliminar bloque"
                                                                         onClick={() =>
-                                                                            removeBlock(
-                                                                                block.id,
+                                                                            setBlocks(
+                                                                                (
+                                                                                    current,
+                                                                                ) =>
+                                                                                    current.filter(
+                                                                                        (
+                                                                                            item,
+                                                                                        ) =>
+                                                                                            item.id !==
+                                                                                            block.id,
+                                                                                    ),
                                                                             )
                                                                         }
                                                                     >
@@ -526,26 +508,23 @@ export default function CourseBuilderPage() {
                                                                 </header>
 
                                                                 {block.kind ===
-                                                                    "image" && (
+                                                                "image" ? (
                                                                     <img
                                                                         src={
                                                                             block.imageUrl
                                                                         }
-                                                                        alt=""
+                                                                        alt="Contenido de la lección"
                                                                         className={
                                                                             styles.editorImage
                                                                         }
                                                                     />
-                                                                )}
-
-                                                                {block.kind !==
-                                                                    "image" && (
+                                                                ) : (
                                                                     <textarea
                                                                         value={
                                                                             block.markdown
                                                                         }
                                                                         rows={8}
-                                                                        placeholder="Puedes utilizar títulos, listas, negrita y enlaces Markdown."
+                                                                        placeholder="Escribe Markdown…"
                                                                         onChange={(
                                                                             event,
                                                                         ) =>
@@ -608,15 +587,12 @@ export default function CourseBuilderPage() {
                                                                                             )
                                                                                         }
                                                                                     />
-
                                                                                     <input
+                                                                                        type="text"
                                                                                         value={
                                                                                             option
                                                                                         }
-                                                                                        aria-label={`Opción ${
-                                                                                            optionIndex +
-                                                                                            1
-                                                                                        }`}
+                                                                                        aria-label={`Opción ${optionIndex + 1}`}
                                                                                         onChange={(
                                                                                             event,
                                                                                         ) =>
@@ -628,10 +604,8 @@ export default function CourseBuilderPage() {
                                                                                                     if (
                                                                                                         current.kind !==
                                                                                                         "question"
-                                                                                                    ) {
+                                                                                                    )
                                                                                                         return current;
-                                                                                                    }
-
                                                                                                     const options =
                                                                                                         [
                                                                                                             ...current.options,
@@ -640,7 +614,6 @@ export default function CourseBuilderPage() {
                                                                                                         optionIndex
                                                                                                     ] =
                                                                                                         event.target.value;
-
                                                                                                     return {
                                                                                                         ...current,
                                                                                                         options,
@@ -649,10 +622,70 @@ export default function CourseBuilderPage() {
                                                                                             )
                                                                                         }
                                                                                     />
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className={
+                                                                                            styles.removeOption
+                                                                                        }
+                                                                                        disabled={
+                                                                                            block
+                                                                                                .options
+                                                                                                .length <=
+                                                                                            2
+                                                                                        }
+                                                                                        onClick={() =>
+                                                                                            updateBlock(
+                                                                                                block.id,
+                                                                                                (
+                                                                                                    current,
+                                                                                                ) => {
+                                                                                                    if (
+                                                                                                        current.kind !==
+                                                                                                            "question" ||
+                                                                                                        current
+                                                                                                            .options
+                                                                                                            .length <=
+                                                                                                            2
+                                                                                                    )
+                                                                                                        return current;
+                                                                                                    const options =
+                                                                                                        current.options.filter(
+                                                                                                            (
+                                                                                                                _,
+                                                                                                                itemIndex,
+                                                                                                            ) =>
+                                                                                                                itemIndex !==
+                                                                                                                optionIndex,
+                                                                                                        );
+                                                                                                    const correctOption =
+                                                                                                        current.correctOption ===
+                                                                                                        optionIndex
+                                                                                                            ? undefined
+                                                                                                            : current.correctOption !==
+                                                                                                                    undefined &&
+                                                                                                                current.correctOption >
+                                                                                                                    optionIndex
+                                                                                                              ? current.correctOption -
+                                                                                                                1
+                                                                                                              : current.correctOption;
+                                                                                                    return {
+                                                                                                        ...current,
+                                                                                                        options,
+                                                                                                        correctOption,
+                                                                                                    };
+                                                                                                },
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        <Trash2
+                                                                                            size={
+                                                                                                16
+                                                                                            }
+                                                                                        />
+                                                                                    </button>
                                                                                 </label>
                                                                             ),
                                                                         )}
-
                                                                         <button
                                                                             type="button"
                                                                             onClick={() =>
@@ -668,12 +701,7 @@ export default function CourseBuilderPage() {
                                                                                                   options:
                                                                                                       [
                                                                                                           ...current.options,
-                                                                                                          `Opción ${
-                                                                                                              current
-                                                                                                                  .options
-                                                                                                                  .length +
-                                                                                                              1
-                                                                                                          }`,
+                                                                                                          `Opción ${current.options.length + 1}`,
                                                                                                       ],
                                                                                               }
                                                                                             : current,
@@ -684,7 +712,7 @@ export default function CourseBuilderPage() {
                                                                                 size={
                                                                                     16
                                                                                 }
-                                                                            />
+                                                                            />{" "}
                                                                             Añadir
                                                                             opción
                                                                         </button>
@@ -694,18 +722,15 @@ export default function CourseBuilderPage() {
                                                         )}
                                                     </Draggable>
                                                 ))}
-
                                                 {droppable.placeholder}
-
                                                 {blocks.length === 0 && (
                                                     <div
                                                         className={
                                                             styles.emptyState
                                                         }
                                                     >
-                                                        Arrastra y organiza aquí
-                                                        el contenido de la
-                                                        lección.
+                                                        Añade bloques para
+                                                        comenzar.
                                                     </div>
                                                 )}
                                             </div>
@@ -717,24 +742,24 @@ export default function CourseBuilderPage() {
                                     <button
                                         type="button"
                                         onClick={() => saveLesson(false)}
-                                        disabled={updateLesson.isPending}
+                                        disabled={
+                                            updateLesson.isPending ||
+                                            !lessonTitle.trim()
+                                        }
                                     >
-                                        <Save size={20} />
-                                        Guardar borrador
+                                        <Save size={20} /> Guardar borrador
                                     </button>
-
                                     <button
                                         type="button"
                                         className={styles.publishButton}
                                         onClick={() => saveLesson(true)}
                                         disabled={
                                             updateLesson.isPending ||
-                                            blocks.length === 0 ||
-                                            !lessonTitle.trim()
+                                            !lessonTitle.trim() ||
+                                            blocks.length === 0
                                         }
                                     >
-                                        <Send size={20} />
-                                        Publicar
+                                        <Send size={20} /> Publicar lección
                                     </button>
                                 </footer>
                             </>
@@ -744,29 +769,89 @@ export default function CourseBuilderPage() {
                     {previewEnabled && (
                         <aside className={styles.preview}>
                             <div className={styles.previewDevice}>
-                                <header>
-                                    <span>Vista del estudiante</span>
-                                    <strong>
-                                        {lessonTitle || "Nueva lección"}
-                                    </strong>
+                                <div
+                                    className={styles.previewSpeaker}
+                                    aria-hidden="true"
+                                />
+                                <header className={styles.previewHeader}>
+                                    <div>
+                                        <span>Vista del estudiante</span>
+                                        <strong>
+                                            {lessonTitle || "Nueva lección"}
+                                        </strong>
+                                    </div>
+                                    {previewBlocks.length > 0 && (
+                                        <small>
+                                            {previewIndex + 1} de{" "}
+                                            {previewBlocks.length}
+                                        </small>
+                                    )}
                                 </header>
-
+                                <div
+                                    className={styles.previewProgress}
+                                    aria-hidden="true"
+                                >
+                                    <div
+                                        style={{
+                                            width: previewBlocks.length
+                                                ? `${((previewIndex + 1) / previewBlocks.length) * 100}%`
+                                                : "0%",
+                                        }}
+                                    />
+                                </div>
                                 <div className={styles.previewContent}>
-                                    {previewBlocks.length === 0 ? (
-                                        <p>
-                                            Añade bloques para visualizar la
-                                            lección.
-                                        </p>
+                                    {currentPreviewBlock ? (
+                                        <LessonBlockRenderer
+                                            block={currentPreviewBlock}
+                                            interactive={false}
+                                            showCorrectness={false}
+                                        />
                                     ) : (
-                                        previewBlocks.map((block, index) => (
-                                            <LessonBlockRenderer
-                                                key={`${block.type}-${index}`}
-                                                block={block}
-                                                interactive
-                                            />
-                                        ))
+                                        <div className={styles.previewEmpty}>
+                                            <span>
+                                                La vista previa está vacía
+                                            </span>
+                                            <p>
+                                                Añade información, preguntas o
+                                                imágenes.
+                                            </p>
+                                        </div>
                                     )}
                                 </div>
+                                <footer className={styles.previewNavigation}>
+                                    <button
+                                        type="button"
+                                        disabled={previewIsFirst}
+                                        onClick={() =>
+                                            setPreviewIndex((current) =>
+                                                Math.max(current - 1, 0),
+                                            )
+                                        }
+                                    >
+                                        <ChevronLeft size={18} /> Anterior
+                                    </button>
+                                    <span>
+                                        {!previewBlocks.length
+                                            ? "Sin contenido"
+                                            : previewIsLast
+                                              ? "Último bloque"
+                                              : "Continúa"}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        disabled={previewIsLast}
+                                        onClick={() =>
+                                            setPreviewIndex((current) =>
+                                                Math.min(
+                                                    current + 1,
+                                                    previewBlocks.length - 1,
+                                                ),
+                                            )
+                                        }
+                                    >
+                                        Siguiente <ChevronRight size={18} />
+                                    </button>
+                                </footer>
                             </div>
                         </aside>
                     )}
@@ -778,7 +863,6 @@ export default function CourseBuilderPage() {
                     {error}
                 </p>
             )}
-
             {message && (
                 <p className={styles.success} role="status">
                     {message}

@@ -1,10 +1,10 @@
 .viewer {
     width: 100%;
     height: 100dvh;
-    min-height: 620px;
+    min-height: 720px;
     overflow: hidden;
     display: grid;
-    grid-template-rows: auto 6px minmax(0, 1fr);
+    grid-template-rows: 188px 6px minmax(0, 1fr);
     background:
         radial-gradient(
             circle at 50% -20%,
@@ -15,46 +15,43 @@
     color: var(--color-ink);
 }
 
-/* ---------- Encabezado ---------- */
-
 .header {
-    min-height: 88px;
+    min-width: 0;
     display: grid;
-    grid-template-columns: minmax(180px, 1fr) minmax(0, 2fr) minmax(180px, 1fr);
+    grid-template-columns: 180px minmax(0, 1fr) 110px;
     align-items: center;
-    gap: var(--space-4);
-    padding: var(--space-3) clamp(24px, 4vw, 64px);
-    background: rgba(255, 255, 255, 0.94);
+    gap: var(--space-5);
+    padding: 14px clamp(24px, 4vw, 64px);
     border-bottom: 1px solid var(--color-iris-pale);
+    background: rgba(255, 255, 255, 0.95);
     box-shadow: var(--shadow-soft);
     backdrop-filter: blur(12px);
     z-index: 5;
 }
 
-.backButton {
-    width: fit-content;
-    min-height: 48px;
-    display: inline-flex;
+.backAction {
+    width: 180px;
+    height: 160px;
+    display: flex;
     align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    padding: 0 var(--space-3);
-    border: 1px solid var(--color-iris-pale);
-    border-radius: var(--radius-medium);
-    background: var(--color-surface);
-    color: var(--color-iris-deep);
-    font-size: 1rem;
-    cursor: pointer;
-    transition:
-        background-color 160ms ease,
-        border-color 160ms ease,
-        transform 160ms ease;
+    justify-content: flex-start;
 }
 
-.backButton:hover {
-    background: var(--color-iris-pale);
-    border-color: var(--color-iris-medium);
-    transform: translateY(-1px);
+.backAction > div {
+    width: 160px;
+    height: 160px;
+}
+
+.backAction button {
+    width: 160px;
+    min-width: 160px;
+    height: 160px;
+    min-height: 160px;
+    padding: var(--space-3);
+}
+
+.backAction button span {
+    font-size: 1rem;
 }
 
 .lessonIdentity {
@@ -64,7 +61,7 @@
 
 .lessonIdentity span {
     display: block;
-    margin-bottom: 2px;
+    margin-bottom: var(--space-1);
     color: var(--color-iris-medium);
     font-size: 0.75rem;
     font-weight: 800;
@@ -73,10 +70,11 @@
 }
 
 .lessonIdentity h1 {
-    margin: 0;
+    max-width: 760px;
+    margin: 0 auto;
     overflow: hidden;
     color: var(--color-iris-deep);
-    font-size: clamp(1.35rem, 2.2vw, 2rem);
+    font-size: clamp(1.7rem, 2.7vw, 2.6rem);
     line-height: 1.15;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -84,8 +82,8 @@
 
 .progressText {
     justify-self: end;
-    min-width: 88px;
-    padding: 10px 14px;
+    min-width: 100px;
+    padding: 12px 14px;
     border: 1px solid var(--color-iris-pale);
     border-radius: var(--radius-medium);
     background: var(--color-canvas);
@@ -95,8 +93,6 @@
     font-weight: 700;
     text-align: center;
 }
-
-/* ---------- Progreso ---------- */
 
 .progressTrack {
     width: 100%;
@@ -116,32 +112,19 @@
     transition: width 300ms ease;
 }
 
-/* ---------- Escenario principal ---------- */
-
 .stage {
     min-width: 0;
     min-height: 0;
     display: grid;
     grid-template-columns:
         minmax(var(--dwell-target-min), 180px)
-        minmax(0, 900px)
+        minmax(560px, 920px)
         minmax(var(--dwell-target-min), 180px);
     align-items: stretch;
     justify-content: space-between;
-    gap: clamp(20px, 4vw, 64px);
-    padding: clamp(24px, 4vh, 48px) 0;
+    gap: clamp(20px, 3vw, 52px);
+    padding: clamp(24px, 4vh, 44px) 0;
     overflow: hidden;
-}
-
-/* Fuerza a las flechas laterales a mantenerse dentro del escenario. */
-.stage > button:first-child {
-    align-self: stretch;
-    justify-self: start;
-}
-
-.stage > button:last-child {
-    align-self: stretch;
-    justify-self: end;
 }
 
 .contentCard {
@@ -154,10 +137,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: clamp(28px, 5vw, 64px);
+    padding: clamp(28px, 4vw, 56px);
     border: 1px solid rgba(62, 110, 142, 0.18);
     border-radius: var(--radius-large);
-    background: rgba(255, 255, 255, 0.97);
+    background: rgba(255, 255, 255, 0.98);
     box-shadow:
         0 2px 4px rgba(22, 36, 46, 0.04),
         0 18px 48px rgba(22, 36, 46, 0.1);
@@ -167,42 +150,28 @@
 
 .contentCard > * {
     width: 100%;
-    max-width: 720px;
+    max-width: 760px;
 }
 
-/* ---------- Botón de finalización ---------- */
-
-.finishButton {
-    position: relative;
+.finishAction {
     width: min(15vw, 180px);
     min-width: var(--dwell-target-min);
     height: 100%;
-    align-self: stretch;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--space-3);
-    padding: var(--space-4);
-    border: none;
-    border-radius: var(--radius-large) 0 0 var(--radius-large);
-    background: var(--color-mint);
-    color: white;
-    box-shadow: var(--shadow-card);
-    font-size: 1.05rem;
-    font-weight: 800;
-    cursor: pointer;
-    transition:
-        background-color 160ms ease,
-        transform 160ms ease;
+    padding-right: var(--space-3);
 }
 
-.finishButton:hover {
-    background: #3d7968;
-    transform: translateX(-4px);
+.finishAction > div {
+    width: 160px;
 }
 
-/* ---------- Bloques Markdown ---------- */
+.finishAction button {
+    width: 160px;
+    min-width: 160px;
+    min-height: 160px;
+}
 
 :global(.lesson-information),
 :global(.lesson-question) {
@@ -231,8 +200,8 @@
 }
 
 :global(.lesson-markdown) {
-    font-size: clamp(1.1rem, 1.6vw, 1.35rem);
-    line-height: 1.7;
+    font-size: clamp(1.1rem, 1.5vw, 1.32rem);
+    line-height: 1.68;
 }
 
 :global(.lesson-markdown h1),
@@ -244,19 +213,23 @@
 }
 
 :global(.lesson-markdown h1) {
-    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-size: clamp(2rem, 3.5vw, 3.25rem);
 }
 
 :global(.lesson-markdown h2) {
-    font-size: clamp(1.7rem, 3vw, 2.7rem);
+    font-size: clamp(1.7rem, 2.7vw, 2.55rem);
 }
 
 :global(.lesson-markdown h3) {
-    font-size: clamp(1.35rem, 2vw, 2rem);
+    font-size: clamp(1.35rem, 2vw, 1.9rem);
 }
 
 :global(.lesson-markdown p) {
     margin: 0 0 var(--space-3);
+}
+
+:global(.lesson-markdown p:last-child) {
+    margin-bottom: 0;
 }
 
 :global(.lesson-markdown ul),
@@ -287,8 +260,6 @@
     font-size: 0.9em;
 }
 
-/* ---------- Imágenes ---------- */
-
 :global(.lesson-image) {
     width: 100%;
     height: 100%;
@@ -302,13 +273,11 @@
 :global(.lesson-image img) {
     width: auto;
     max-width: 100%;
-    max-height: 60vh;
+    max-height: 58vh;
     object-fit: contain;
     border-radius: var(--radius-medium);
     box-shadow: var(--shadow-card);
 }
-
-/* ---------- Preguntas ---------- */
 
 :global(.lesson-question-options) {
     display: grid;
@@ -318,9 +287,13 @@
 }
 
 :global(.lesson-question-option) {
-    min-height: 88px;
+    position: relative;
+    min-width: 0;
+    min-height: 112px;
+    overflow: hidden;
+    isolation: isolate;
     display: grid;
-    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-columns: 48px minmax(0, 1fr);
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-3);
@@ -333,18 +306,36 @@
     transition:
         border-color 160ms ease,
         background-color 160ms ease,
-        transform 160ms ease;
+        transform 160ms ease,
+        box-shadow 160ms ease;
 }
 
-:global(.lesson-question-option:hover:not(:disabled)) {
+:global(.lesson-question-option:hover:not(:disabled)),
+:global(.lesson-question-option.is-dwell-focused) {
     border-color: var(--color-iris-medium);
     background: #f4f9fc;
     transform: translateY(-2px);
+    box-shadow:
+        0 0 0 4px rgba(62, 110, 142, 0.14),
+        0 8px 18px rgba(22, 36, 46, 0.1);
 }
 
-:global(.lesson-question-option > span) {
-    width: 42px;
-    height: 42px;
+:global(.lesson-question-option-progress) {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: rgba(62, 110, 142, 0.2);
+    transform: scaleX(var(--dwell-progress, 0));
+    transform-origin: left center;
+    transition: transform 40ms linear;
+    pointer-events: none;
+}
+
+:global(.lesson-question-letter) {
+    position: relative;
+    z-index: 1;
+    width: 48px;
+    height: 48px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -355,7 +346,14 @@
     font-weight: 900;
 }
 
-:global(.lesson-question-option p) {
+:global(.lesson-question-option-content) {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+:global(.lesson-question-option-content p) {
     margin: 0;
 }
 
@@ -390,8 +388,6 @@
     text-align: center;
 }
 
-/* ---------- Estados ---------- */
-
 .centered {
     width: 100%;
     min-height: 100dvh;
@@ -410,8 +406,19 @@
         var(--color-canvas);
     text-align: center;
 }
-
-/* Solo se muestra en pantallas pequeñas. */
 .mobileNavigation {
     display: none;
+}
+.viewer button:focus-visible {
+    outline: 4px solid var(--color-amber);
+    outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .viewer *,
+    .viewer *::before,
+    .viewer *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
 }
