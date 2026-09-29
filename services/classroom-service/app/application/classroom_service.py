@@ -19,7 +19,15 @@ from app.application.dtos import (
     EnrichedRequest,
     UpdateClassroomData,
 )
-from app.domain.entities import STATUS_ACCEPTED, STATUS_PENDING, STATUS_REJECTED, Classroom, Enrollment
+from app.application.image_rules import EXTENSION_BY_CONTENT_TYPE, matches_declared_type
+from app.domain.entities import (
+    STATUS_ACCEPTED,
+    STATUS_PENDING,
+    STATUS_REJECTED,
+    Classroom,
+    Enrollment,
+    SignedDownload,
+)
 from app.domain.exceptions import (
     AlreadyEnrolledOrPending,
     AttemptLimitExceeded,
@@ -41,17 +49,6 @@ UowFactory = Callable[[], "UnitOfWork"]
 REQUESTS_CHANNEL = "classroom.requests"
 _MAX_CODE_ATTEMPTS = 25
 _MAX_LOGO_SIZE_BYTES = 5 * 1024 * 1024
-# A fixed list of real image formats, not just anything starting with
-# "image/". SVG is deliberately left out, it can carry a <script> tag and
-# gets served back with the same content type, which is a stored XSS risk
-# if the file is ever opened directly instead of shown inside an <img> tag.
-_ALLOWED_LOGO_CONTENT_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
-
-
-def _extension_from(content_type: str, filename: str | None) -> str:
-    if filename and "." in filename:
-        return filename.rsplit(".", 1)[-1].lower()
-    return content_type.split("/")[-1].lower() or "bin"
 
 
 def _generate_enrollment_code() -> str:
@@ -99,7 +96,7 @@ class ClassroomService:
                 description=description,
                 enrollment_code=code,
                 created_at=datetime.now(timezone.utc),
-                logo_url=None,
+                logo_key=None,
             )
             await uow.classrooms.add(classroom)
             await uow.commit()
@@ -150,26 +147,56 @@ class ClassroomService:
         return classroom
 
     async def upload_logo(
-        self, classroom_id: UUID, teacher_id: UUID, contenido: bytes, content_type: str, filename: str | None
+        self, classroom_id: UUID, teacher_id: UUID, contenido: bytes, content_type: str
     ) -> Classroom:
         # Free upload by the teacher, no moderation in the MVP. Validates
-        # type and size before touching storage.
-        if content_type not in _ALLOWED_LOGO_CONTENT_TYPES:
+        # type, real content and size before touching storage.
+        if content_type not in EXTENSION_BY_CONTENT_TYPE:
             raise InvalidFile("El archivo debe ser una imagen PNG, JPEG, WEBP o GIF.")
+        if not matches_declared_type(content_type, contenido):
+            raise InvalidFile("El archivo no es una imagen válida.")
         if len(contenido) > _MAX_LOGO_SIZE_BYTES:
             raise InvalidFile("La imagen no puede superar 5MB.")
 
         async with self._uow_factory() as uow:
             classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            old_key = classroom.logo_key
+            # The extension comes from the checked type, never from the file name.
+            key = f"classrooms/{classroom_id}/logo/{uuid.uuid4().hex}.{EXTENSION_BY_CONTENT_TYPE[content_type]}"
+            await self._storage.upload(key, contenido, content_type)
 
-            ext = _extension_from(content_type, filename)
-            key = f"classrooms/{classroom_id}/logo/{uuid.uuid4().hex}.{ext}"
-            url = await self._storage.subir(key, contenido, content_type)
-
-            classroom.logo_url = url
+            classroom.logo_key = key
             await uow.classrooms.update(classroom)
-            await uow.commit()
+            try:
+                await uow.commit()
+            except Exception:
+                # The row didn't change, so the new file would be left with nobody pointing at it.
+                await self._delete_quietly(key)
+                raise
+
+        # The old logo isn't used anymore. If deleting it fails, it's only
+        # wasted space, the upload itself already worked.
+        if old_key:
+            await self._delete_quietly(old_key)
         return classroom
+
+    async def get_logo(self, classroom_id: UUID, file_name: str, subject_id: UUID, role: str) -> SignedDownload:
+        # Same rule as the classroom: its teacher and its accepted students.
+        # Any "no" is the same 404, so it doesn't reveal what exists.
+        async with self._uow_factory() as uow:
+            classroom = await uow.classrooms.get_by_id(classroom_id)
+            if classroom is None or classroom.logo_key is None or classroom.logo_file != file_name:
+                raise ResourceNotFound("La imagen solicitada no existe.")
+            allowed = False
+            if role == "teacher":
+                allowed = classroom.teacher_id == subject_id
+            elif role == "student":
+                enrollment = await uow.enrollments.get_by_student_and_classroom(subject_id, classroom_id)
+                allowed = enrollment is not None and enrollment.status == STATUS_ACCEPTED
+            if not allowed:
+                raise ResourceNotFound("La imagen solicitada no existe.")
+            key = classroom.logo_key
+        return self._storage.sign_download(key)
 
     async def list_requests(self, classroom_id: UUID, teacher_id: UUID) -> list[EnrichedRequest]:
         async with self._uow_factory() as uow:
@@ -301,6 +328,12 @@ class ClassroomService:
                 enrollment = await uow.enrollments.get_by_student_and_classroom(subject_id, classroom_id)
                 return enrollment is not None and enrollment.status == STATUS_ACCEPTED
             return False
+
+    async def _delete_quietly(self, key: str) -> None:
+        try:
+            await self._storage.delete(key)
+        except Exception:  # noqa: BLE001, cleaning up storage is never worth failing the request
+            logger.warning("No fue posible borrar el archivo %s del almacenamiento.", key)
 
     # ------------------------------------------------------------------
     # Publishing to Redis is a non-critical side effect. If Redis doesn't

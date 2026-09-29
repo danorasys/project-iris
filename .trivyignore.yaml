@@ -1,0 +1,8 @@
+# Findings accepted on purpose. Every entry needs a reason (statement) and an
+# end date (expired_at). When the date passes the finding blocks again, so an
+# exception is checked again instead of staying here forever. Example:
+#
+# vulnerabilities:
+#   - id: CVE-0000-00000
+#     statement: Only affects 32 bit systems, our servers are x86_64.
+#     expired_at: 2026-12-31

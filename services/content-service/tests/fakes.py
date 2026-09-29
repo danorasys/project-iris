@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import UUID
 
-from app.domain.entities import ValidatedUser
-from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken
+from app.domain.entities import SignedDownload, ValidatedUser
+from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken, StorageFull
 
 
 class FakeIdentityClient:
@@ -46,13 +46,22 @@ class FakeClassroomClient:
 
 
 class FakeObjectStorage:
-    # Implements the ObjectStorage port in memory. There's no MinIO in this setup.
+    # Implements the ObjectStorage port in memory. No real storage in tests.
 
     def __init__(self) -> None:
         self.files: dict[str, bytes] = {}
+        self.full = False
 
-    async def upload_image(self, lesson_id: UUID, file_name: str, content_type: str, content: bytes) -> str:
-        extension = file_name.rsplit(".", 1)[-1] if "." in file_name else "bin"
-        key = f"lessons/{lesson_id}/images/{uuid4().hex}.{extension}"
+    async def upload(self, key: str, content: bytes, content_type: str) -> None:
+        if self.full:
+            raise StorageFull()
         self.files[key] = content
-        return f"http://fake-s3.local/iris-media/{key}"
+
+    def sign_download(self, key: str) -> SignedDownload:
+        return SignedDownload(
+            path=f"/test-bucket/{key}", authorization="AWS4-HMAC-SHA256 test", amz_date="20260101T000000Z",
+            content_sha256="UNSIGNED-PAYLOAD",
+        )
+
+    async def delete(self, key: str) -> None:
+        self.files.pop(key, None)

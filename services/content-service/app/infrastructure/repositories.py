@@ -17,7 +17,7 @@ def _block_to_entity(m: ContentBlockModel) -> ContentBlock:
         type=m.type,
         order_index=m.order_index,
         content=m.content,
-        image_url=m.image_url,
+        image_file=m.image_file,
     )
 
 
@@ -83,7 +83,7 @@ class SqlAlchemyLessonRepository:
                         lesson_id=b.lesson_id,
                         type=b.type,
                         content=b.content,
-                        image_url=b.image_url,
+                        image_file=b.image_file,
                         order_index=b.order_index,
                     )
                     for b in lesson.blocks
@@ -109,7 +109,7 @@ class SqlAlchemyLessonRepository:
                         lesson_id=lesson.id,
                         type=b.type,
                         content=b.content,
-                        image_url=b.image_url,
+                        image_file=b.image_file,
                         order_index=b.order_index,
                     )
                 )

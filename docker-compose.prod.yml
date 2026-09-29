@@ -1,0 +1,351 @@
+name: iris
+
+# Same idea as docker-compose.yml's x-python-service-env: shared config
+# instead of repeating it on every service. Production adds two things dev
+# doesn't need: restart on crash/reboot, and a cap on log file size so a
+# noisy service can't slowly fill the disk over weeks of uptime.
+x-python-service-env: &python-service-env
+    REDIS_URL: ${REDIS_URL}
+    INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+    WEB_ORIGIN: ${WEB_ORIGIN}
+
+x-restart-policy: &restart-policy
+    restart: unless-stopped
+
+x-log-limits: &log-limits
+    logging:
+        driver: json-file
+        options:
+            max-size: "10m"
+            max-file: "3"
+
+services:
+    postgres:
+        # A new major version needs a data migration, never just a new tag.
+        # See scripts/pg-upgrade.sh.
+        image: postgres:18-alpine
+        <<: [*restart-policy, *log-limits]
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        volumes:
+            # From 18 on the image keeps its data in /var/lib/postgresql/<version>.
+            - postgres-data:/var/lib/postgresql
+            - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+        # Loopback only, so it never touches the public network. From a laptop
+        # use an SSH tunnel (see docs/deployment.md).
+        ports:
+            - "127.0.0.1:5432:5432"
+
+    redis:
+        image: redis:7-alpine
+        <<: [*restart-policy, *log-limits]
+        command: redis-server --appendonly yes
+        volumes:
+            - redisdata:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+    # Storage for logos, lesson images and avatars (S3 compatible). Runs as a
+    # normal user with a read only filesystem and no extra privileges.
+    garage:
+        image: dxflrs/garage:v2.4.1
+        <<: [*restart-policy, *log-limits]
+        user: "1000:1000"
+        read_only: true
+        cap_drop: [ALL]
+        security_opt: ["no-new-privileges:true"]
+        environment:
+            GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+            GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+        volumes:
+            - ./infra/garage/garage.toml:/etc/garage.toml:ro
+            - garage-data:/var/lib/garage
+        depends_on:
+            garage-volume:
+                condition: service_completed_successfully
+        healthcheck:
+            test: ["CMD", "/garage", "status"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+    # Docker creates the volume as root, this hands it to the user Garage runs as.
+    garage-volume:
+        image: busybox:1.38
+        command: ["sh", "-c", "mkdir -p /var/lib/garage/meta /var/lib/garage/data && chown 1000:1000 /var/lib/garage /var/lib/garage/meta /var/lib/garage/data"]
+        volumes:
+            - garage-data:/var/lib/garage
+        restart: "no"
+
+    # Creates one bucket and one key per service, plus the admin key. Runs on
+    # every start and puts the permissions back (see infra/garage/init.py).
+    garage-init:
+        image: python:3.13-alpine
+        command: ["python", "/init.py"]
+        user: "65534:65534"
+        read_only: true
+        cap_drop: [ALL]
+        security_opt: ["no-new-privileges:true"]
+        environment:
+            GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+            STORAGE_ADMIN_ACCESS_KEY: ${STORAGE_ADMIN_ACCESS_KEY}
+            STORAGE_ADMIN_SECRET_KEY: ${STORAGE_ADMIN_SECRET_KEY}
+            CLASSROOM_S3_ACCESS_KEY: ${CLASSROOM_S3_ACCESS_KEY}
+            CLASSROOM_S3_SECRET_KEY: ${CLASSROOM_S3_SECRET_KEY}
+            CLASSROOM_S3_BUCKET: ${CLASSROOM_S3_BUCKET}
+            CONTENT_S3_ACCESS_KEY: ${CONTENT_S3_ACCESS_KEY}
+            CONTENT_S3_SECRET_KEY: ${CONTENT_S3_SECRET_KEY}
+            CONTENT_S3_BUCKET: ${CONTENT_S3_BUCKET}
+            IDENTITY_S3_ACCESS_KEY: ${IDENTITY_S3_ACCESS_KEY}
+            IDENTITY_S3_SECRET_KEY: ${IDENTITY_S3_SECRET_KEY}
+            IDENTITY_S3_BUCKET: ${IDENTITY_S3_BUCKET}
+            # Optional, bucket size limits in MB (defaults in infra/garage/init.py).
+            CLASSROOM_S3_QUOTA_MB: ${CLASSROOM_S3_QUOTA_MB:-}
+            CONTENT_S3_QUOTA_MB: ${CONTENT_S3_QUOTA_MB:-}
+            IDENTITY_S3_QUOTA_MB: ${IDENTITY_S3_QUOTA_MB:-}
+            PYTHONDONTWRITEBYTECODE: "1"
+        volumes:
+            - ./infra/garage/init.py:/init.py:ro
+        depends_on:
+            garage:
+                condition: service_healthy
+        restart: "no"
+
+    identity-service:
+        image: ghcr.io/danorasys/project-iris/identity-service:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
+        <<: [*restart-policy, *log-limits]
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${IDENTITY_DATABASE_URL}
+            SERVICE_NAME: identity-service
+            JWT_SECRET: ${JWT_SECRET}
+            JWT_ALGORITHM: ${JWT_ALGORITHM}
+            JWT_ACCESS_TTL_MIN: ${JWT_ACCESS_TTL_MIN}
+            JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS}
+            TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY}
+            # Avatar images. Its key can only read its own bucket, new avatars
+            # are uploaded by an administrator (see docs/deployment.md).
+            S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+            S3_ACCESS_KEY: ${IDENTITY_S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${IDENTITY_S3_SECRET_KEY}
+            S3_BUCKET: ${IDENTITY_S3_BUCKET}
+            S3_REGION: ${S3_REGION}
+            # Only read by old migrations and their downgrades (0006, 0008).
+            S3_PUBLIC_URL: ${S3_PUBLIC_URL}
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            garage-init:
+                condition: service_completed_successfully
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    classroom-service:
+        image: ghcr.io/danorasys/project-iris/classroom-service:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
+        <<: [*restart-policy, *log-limits]
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${CLASSROOM_DATABASE_URL}
+            SERVICE_NAME: classroom-service
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+            # Its own key, only valid for its own bucket.
+            S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+            S3_ACCESS_KEY: ${CLASSROOM_S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${CLASSROOM_S3_SECRET_KEY}
+            S3_BUCKET: ${CLASSROOM_S3_BUCKET}
+            S3_REGION: ${S3_REGION}
+            RATE_LIMIT_ENROLLMENT_MAX: ${RATE_LIMIT_ENROLLMENT_MAX}
+            RATE_LIMIT_ENROLLMENT_WINDOW_SEC: ${RATE_LIMIT_ENROLLMENT_WINDOW_SEC}
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            identity-service:
+                condition: service_healthy
+            garage-init:
+                condition: service_completed_successfully
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    content-service:
+        image: ghcr.io/danorasys/project-iris/content-service:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
+        <<: [*restart-policy, *log-limits]
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${CONTENT_DATABASE_URL}
+            SERVICE_NAME: content-service
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+            CLASSROOM_SERVICE_URL: http://classroom-service:8000
+            # Its own key, only valid for its own bucket.
+            S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+            S3_ACCESS_KEY: ${CONTENT_S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${CONTENT_S3_SECRET_KEY}
+            S3_BUCKET: ${CONTENT_S3_BUCKET}
+            S3_REGION: ${S3_REGION}
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            identity-service:
+                condition: service_healthy
+            classroom-service:
+                condition: service_healthy
+            garage-init:
+                condition: service_completed_successfully
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    notification-service:
+        image: ghcr.io/danorasys/project-iris/notification-service:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
+        <<: [*restart-policy, *log-limits]
+        environment:
+            <<: *python-service-env
+            DATABASE_URL: ${NOTIFICATION_DATABASE_URL}
+            SERVICE_NAME: notification-service
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            identity-service:
+                condition: service_healthy
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    api-gateway:
+        image: ghcr.io/danorasys/project-iris/api-gateway:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
+        <<: [*restart-policy, *log-limits]
+        environment:
+            <<: *python-service-env
+            SERVICE_NAME: api-gateway
+            # Only Caddy (fixed IP, see the network at the bottom) is trusted to
+            # say who the client is. Without this every client would look like
+            # Caddy's IP and share one rate limit. With a fixed IP, even if this
+            # port got published by mistake, nobody else could fake X-Forwarded-For.
+            FORWARDED_ALLOW_IPS: 172.28.0.10
+            IDENTITY_SERVICE_URL: http://identity-service:8000
+            CLASSROOM_SERVICE_URL: http://classroom-service:8000
+            CONTENT_SERVICE_URL: http://content-service:8000
+            NOTIFICATION_SERVICE_URL: http://notification-service:8000
+        depends_on:
+            redis:
+                condition: service_healthy
+            identity-service:
+                condition: service_healthy
+            classroom-service:
+                condition: service_healthy
+            content-service:
+                condition: service_healthy
+            notification-service:
+                condition: service_healthy
+        # No ports here, only the reverse proxy talks to it.
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    web:
+        image: ghcr.io/danorasys/project-iris/web:${IMAGE_TAG:?IMAGE_TAG is required, iris-deploy sets it}
+        <<: [*restart-policy, *log-limits]
+        depends_on:
+            - api-gateway
+
+    reverse-proxy:
+        # Pinned: the private images depend on handle_response and
+        # copy_response_headers behaving exactly like this version.
+        image: caddy:2.11.4-alpine
+        <<: [*restart-policy, *log-limits]
+        volumes:
+            # The whole folder, the Caddyfile imports api.caddy from it.
+            - ./infra/caddy:/etc/caddy:ro
+            # Institutional certificate, lives only on the server.
+            - /etc/ssl/iris:/certs:ro
+            - caddy_data:/data
+            - caddy_config:/config
+        environment:
+            DOMAIN: ${DOMAIN}
+        networks:
+            default:
+                ipv4_address: 172.28.0.10
+        ports:
+            - "80:80"
+            - "443:443"
+        depends_on:
+            - web
+            - api-gateway
+
+# Fixed subnet so the reverse proxy always gets the same IP, which the
+# api-gateway trusts for X-Forwarded-For. Docker hands out addresses to the
+# other containers only from ip_range (.128 to .255), so the proxy's .10 can
+# never be taken by a container that happened to start first.
+networks:
+    default:
+        ipam:
+            config:
+                - subnet: 172.28.0.0/24
+                  ip_range: 172.28.0.128/25
+                  gateway: 172.28.0.1
+
+volumes:
+    postgres-data:
+    garage-data:
+    redisdata:
+    caddy_data:
+    caddy_config:

@@ -1,0 +1,22 @@
+# Garage, the S3 compatible storage for logos, lesson images and avatars.
+# One node, so replication_factor is 1. The secrets are not here: Garage
+# reads them from GARAGE_RPC_SECRET and GARAGE_ADMIN_TOKEN (see .env).
+#
+# Nothing in here is reachable from the internet. The services read and write
+# through the S3 API inside the Docker network, and the browser only gets
+# files through the API gateway. That's why there's no [s3_web] section.
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "lmdb"
+replication_factor = 1
+rpc_bind_addr = "[::]:3901"
+
+# The region has to match S3_REGION, the clients sign their requests with it.
+[s3_api]
+s3_region = "us-east-1"
+api_bind_addr = "[::]:3900"
+
+# Used by garage-init to create the buckets and the keys.
+[admin]
+api_bind_addr = "[::]:3903"

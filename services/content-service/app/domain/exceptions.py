@@ -47,3 +47,8 @@ class ResourceNotFound(DomainError):
 class InvalidFile(DomainError):
     code = "archivo_invalido"
     message = "El archivo enviado no es válido."
+
+
+class StorageFull(DomainError):
+    code = "almacenamiento_lleno"
+    message = "Se llenó el espacio para imágenes. Avísale al administrador de IRIS."

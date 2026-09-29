@@ -1,0 +1,12 @@
+[Unit]
+Description=Check for a new IRIS release every few minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+# A small random delay so the checks do not always hit GitHub on the same second.
+RandomizedDelaySec=30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -27,13 +27,17 @@ import {
     useUpdateLesson,
     useUploadLessonImage,
 } from "@/shared/api/hooks/useLessonsApi";
-import {
-    decodeTextBlock,
-    encodeInformation,
-    encodeQuestion,
-    LessonBlockRenderer,
-} from "@/features/lessons/components/LessonBlockRenderer";
-import styles from "./CourseBuilderPage.module.css";
+import { ApiError } from "@/shared/api/httpClient";
+import { lessonImagePath } from "@/shared/api/mediaPaths";
+import { AuthImage } from "@/shared/ui/AuthImage";
+import { IconImage, IconUndo, IconText } from "@/shared/ui/icons";
+import styles from "./LessonEditorPage.module.css";
+
+interface EditorBlock extends ContentBlockInput {
+  /** Local id, only for React's `key` and moving blocks around. Never
+   * sent to the backend, the real `ContentBlockInput` doesn't carry it. */
+  clientId: string;
+}
 
 type EditorBlock =
     | { id: string; kind: "information"; markdown: string }
@@ -90,8 +94,33 @@ export default function LessonEditorPage() {
     const updateLesson = useUpdateLesson();
     const uploadImage = useUploadLessonImage();
 
-    const [lessonId, setLessonId] = useState<string | null>(
-        lessonIdParam ?? null,
+  const [lessonId, setLessonId] = useState<string | null>(lessonIdParam ?? null);
+  const [title, setTitle] = useState("");
+  const [blocks, setBlocks] = useState<EditorBlock[]>([]);
+  const [existingLessonLoaded, setExistingLessonLoaded] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Seeds the editor's local state from the fetched lesson exactly once,
+  // then leaves it alone, so the user's own edits never get overwritten by
+  // a background refetch.
+  useEffect(() => {
+    if (!isEditMode || existingLessonLoaded || !existingLessonQuery.data) return;
+    const lesson = existingLessonQuery.data;
+    setTitle(lesson.title);
+    setBlocks(
+      [...lesson.blocks]
+        .sort((a, b) => a.order_index - b.order_index)
+        .map((block) => ({
+          clientId: generateClientId(),
+          type: block.type,
+          content: block.content ?? undefined,
+          image_file: block.image_file ?? undefined,
+          order_index: block.order_index,
+        }))
     );
     const [title, setTitle] = useState("");
     const [blocks, setBlocks] = useState<EditorBlock[]>([]);
@@ -151,13 +180,25 @@ export default function LessonEditorPage() {
         );
     }, [previewBlocks.length]);
 
-    const updateBlock = (
-        id: string,
-        updater: (block: EditorBlock) => EditorBlock,
-    ) =>
-        setBlocks((current) =>
-            current.map((block) => (block.id === id ? updater(block) : block)),
-        );
+  const handleFileSelected = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !lessonId) return;
+    setImageError(null);
+    uploadImage.mutate(
+      { lessonId, file },
+      {
+        onSuccess: ({ image_file }) => {
+          setBlocks((current) =>
+            reorder([...current, { clientId: generateClientId(), type: "imagen", image_file, order_index: 0 }])
+          );
+        },
+        onError: (err) => {
+          setImageError(err instanceof ApiError ? err.message : "No se pudo subir la imagen. Intenta de nuevo.");
+        },
+      }
+    );
+  };
 
     const handleDragEnd = ({ source, destination }: DropResult) => {
         if (!destination || source.index === destination.index) return;
@@ -316,67 +357,23 @@ export default function LessonEditorPage() {
                         />
                     </div>
 
-                    {!lessonId ? (
-                        <button
-                            type="button"
-                            className={styles.primaryButton}
-                            disabled={!title.trim() || createLesson.isPending}
-                            onClick={createDraft}
-                        >
-                            <Plus size={20} /> Crear lección y abrir editor
-                        </button>
-                    ) : (
-                        <>
-                            <div className={styles.blockPalette}>
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setBlocks((current) => [
-                                            ...current,
-                                            {
-                                                id: createId(),
-                                                kind: "information",
-                                                markdown:
-                                                    "## Nuevo contenido\n\nEscribe aquí usando **Markdown**.",
-                                            },
-                                        ])
-                                    }
-                                >
-                                    <Info size={20} /> Información
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setBlocks((current) => [
-                                            ...current,
-                                            {
-                                                id: createId(),
-                                                kind: "question",
-                                                markdown:
-                                                    "## ¿Cuál es la respuesta correcta?",
-                                                options: [
-                                                    "Opción A",
-                                                    "Opción B",
-                                                    "Opción C",
-                                                ],
-                                                correctOption: 0,
-                                            },
-                                        ])
-                                    }
-                                >
-                                    <HelpCircle size={20} /> Pregunta
-                                </button>
-                                <button type="button" onClick={selectImage}>
-                                    <ImagePlus size={20} /> Imagen
-                                </button>
-                                <input
-                                    ref={imageInputRef}
-                                    hidden
-                                    type="file"
-                                    accept="image/png,image/jpeg,image/webp"
-                                    onChange={uploadSelectedImage}
-                                />
-                            </div>
+                  {block.type === "texto" ? (
+                    <textarea
+                      className={styles.blockText}
+                      value={block.content ?? ""}
+                      onChange={(e) => updateBlockText(block.clientId, e.target.value)}
+                      placeholder="Escribe el contenido de este bloque…"
+                    />
+                  ) : (
+                    <AuthImage
+                      path={lessonId && block.image_file ? lessonImagePath(lessonId, block.image_file) : null}
+                      className={styles.blockImage}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
 
                             <DragDropContext onDragEnd={handleDragEnd}>
                                 <Droppable droppableId="lesson-blocks">

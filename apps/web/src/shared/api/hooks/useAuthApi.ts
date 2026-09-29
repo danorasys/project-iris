@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Avatar,
   ChangePasswordRequest,
-  ConfirmPasswordRequest,
   DocumentType,
   GuardianProfile,
   GuardianRegistrationRequest,
@@ -10,6 +9,7 @@ import type {
   StudentProfile,
   StudentProfileLoginRequest,
   LoginRequest,
+  PortalChallengeResponse,
   SupportCondition,
   TeacherRegistrationRequest,
   TokensAuth,
@@ -127,15 +127,38 @@ export function useVerificarTotp() {
   });
 }
 
-/** Checks the guardian's password again right before letting them into the
+/** Checks a fresh 2FA code right before letting the guardian into the
  * parents' portal, in case their session was left open on a shared
- * computer. This does not issue new tokens, since the session is already
- * active — it only proves the person at the keyboard still knows the
- * password. */
-export function useConfirmarMiPassword() {
+ * computer. A good code makes the server open the portal for a while. */
+export function useConfirmarAccesoPortal() {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: ConfirmPasswordRequest) =>
-      apiFetch<void>("/identity/guardians/me/confirm-password", { method: "POST", body }),
+    mutationFn: (body: TotpVerifyRequest) =>
+      apiFetch<PortalChallengeResponse>("/identity/guardians/me/2fa/challenge", { method: "POST", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["guardian", "portal-access"] }),
+  });
+}
+
+/** Closes every session of this account, the current one included. */
+export function useCerrarTodasMisSesiones() {
+  return useMutation({
+    mutationFn: () => apiFetch<void>("/identity/auth/logout-all", { method: "POST" }),
+  });
+}
+
+/** Asks the server if the portal is open for this guardian right now. It
+ * answers with an error (403) when the 2FA code is still needed. */
+export function useAccesoPortal() {
+  return useQuery({
+    queryKey: ["guardian", "portal-access"],
+    // The server answers 204 with no body, and a query can't return undefined,
+    // so it returns true once the request went through.
+    queryFn: async () => {
+      await apiFetch<void>("/identity/guardians/me/portal-access");
+      return true;
+    },
+    retry: false,
+    gcTime: 0,
   });
 }
 
@@ -159,9 +182,8 @@ export function useActualizarMiPerfilTutor() {
   });
 }
 
-/** There's no current-password field here — see the backend's
- * GuardianService.change_password for why that check already happened
- * earlier, when entering the portal. */
+/** There's no current-password field here, see the backend's
+ * GuardianService.change_password for why. */
 export function useCambiarMiPassword() {
   return useMutation({
     mutationFn: (body: ChangePasswordRequest) =>

@@ -6,11 +6,12 @@ import {
     Route,
     Routes,
     useLocation,
-} from "react-router-dom";
-import { RequireRol } from "./RequireRol";
-import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext";
-import { GazeCursor } from "@/shared/ui/GazeCursor";
-import { LoadingScreen } from "@/shared/ui/LoadingScreen";
+} from "react-router-dom"
+import { RequireRol } from "./RequireRol"
+import { RequirePortalAccess } from "@/features/guardian/RequirePortalAccess"
+import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext"
+import { GazeCursor } from "@/shared/ui/GazeCursor"
+import { LoadingScreen } from "@/shared/ui/LoadingScreen"
 
 // We split the code by role, so the /student/* pages, and the gaze
 // engine that comes with them, only get downloaded if the user goes there.
@@ -23,15 +24,18 @@ const GuardianRegistrationWizard = lazy(
 );
 const TeacherRegistrationWizard = lazy(
     () => import("@/features/auth/student/TeacherRegistrationWizard"),
-);
-const LegalNoticePage = lazy(() => import("@/features/legal/LegalNoticePage"));
+)
+const ProfileSelectorAuth = lazy(
+    () => import("@/features/auth/student/ProfileSelectorAuth"),
+)
+const LegalNoticePage = lazy(() => import("@/features/legal/LegalNoticePage"))
 const PrivacyPolicyPage = lazy(
     () => import("@/features/legal/PrivacyPolicyPage"),
 );
 
-const GuardianConfirmPasswordPage = lazy(
-    () => import("@/features/guardian/pages/GuardianConfirmPasswordPage"),
-);
+const GuardianVerify2faPage = lazy(
+    () => import("@/features/guardian/pages/GuardianVerify2faPage"),
+)
 const GuardianPortalPage = lazy(
     () => import("@/features/guardian/pages/GuardianPortalPage"),
 );
@@ -120,6 +124,10 @@ export function AppRouter() {
                         element={<GuardianRegistrationWizard />}
                     />
                     <Route
+                        path="/login/guardian/portal"
+                        element={<ProfileSelectorAuth />}
+                    />
+                    <Route
                         path="/login/teacher/new"
                         element={<TeacherRegistrationWizard />}
                     />
@@ -187,10 +195,17 @@ export function AppRouter() {
                             element={<Navigate to="portal" replace />}
                         />
                         <Route
-                            path="confirm-password"
-                            element={<GuardianConfirmPasswordPage />}
+                            path="verify-2fa"
+                            element={<GuardianVerify2faPage />}
                         />
-                        <Route path="portal" element={<GuardianPortalPage />} />
+                        <Route
+                            path="portal"
+                            element={
+                                <RequirePortalAccess>
+                                    <GuardianPortalPage />
+                                </RequirePortalAccess>
+                            }
+                        />
                     </Route>
 
                     <Route

@@ -9,6 +9,8 @@ import {
 } from "@/shared/api/hooks/useClassroomsApi";
 import { useClassroomLessons } from "@/shared/api/hooks/useLessonsApi";
 import { ApiError } from "@/shared/api/httpClient";
+import { classroomLogoPath } from "@/shared/api/mediaPaths";
+import { AuthImage } from "@/shared/ui/AuthImage";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
 import { IconSchool, IconUndo } from "@/shared/ui/icons";
 import styles from "./ClassroomDetailPage.module.css";
@@ -111,13 +113,15 @@ export default function ClassroomDetailPage() {
 
       <div className={styles.classroomHeader}>
         <div className={styles.logoColumn}>
-          {classroom.logo_url ? (
-            <img src={classroom.logo_url} alt="" className={styles.logo} />
-          ) : (
-            <div className={styles.logoPlaceholder} aria-hidden="true">
-              <IconSchool width={32} height={32} />
-            </div>
-          )}
+          <AuthImage
+            path={classroom.logo_file ? classroomLogoPath(classroom.id, classroom.logo_file) : null}
+            className={styles.logo}
+            fallback={
+              <div className={styles.logoPlaceholder} aria-hidden="true">
+                <IconSchool width={32} height={32} />
+              </div>
+            }
+          />
           <button type="button" className={styles.textLink} onClick={selectLogo} disabled={uploadLogo.isPending}>
             {uploadLogo.isPending ? "Subiendo…" : "Cambiar logo"}
           </button>

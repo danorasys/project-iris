@@ -7,14 +7,13 @@ from uuid import UUID
 from app.application.dtos import FirstStudentData, UpdateGuardianProfileData
 from app.domain.entities import SUPPORT_CONDITION_NAME_OTHER, Guardian, Person, Student
 from app.domain.exceptions import (
-    AttemptLimitExceeded,
     InvalidAvatar,
-    InvalidPasswordConfirmation,
     InvalidRelationshipType,
     InvalidSupportCondition,
     ResourceNotFound,
 )
-from app.domain.ports import PasswordHasher, RateLimiter, UnitOfWork
+from app.application.session_service import SessionService
+from app.domain.ports import PasswordHasher, UnitOfWork
 
 UowFactory = Callable[[], "UnitOfWork"]
 
@@ -24,15 +23,11 @@ class GuardianService:
         self,
         uow_factory: UowFactory,
         password_hasher: PasswordHasher,
-        rate_limiter: RateLimiter,
-        rate_limit_confirm_password_max: int,
-        rate_limit_confirm_password_window_sec: int,
+        sessions: SessionService,
     ) -> None:
         self._uow_factory = uow_factory
         self._hasher = password_hasher
-        self._rate_limiter = rate_limiter
-        self._rate_limit_confirm_password_max = rate_limit_confirm_password_max
-        self._rate_limit_confirm_password_window_sec = rate_limit_confirm_password_window_sec
+        self._sessions = sessions
 
     async def list_students(self, person_id: UUID) -> list[Student]:
         async with self._uow_factory() as uow:
@@ -78,26 +73,6 @@ class GuardianService:
             await uow.commit()
             return student
 
-    # Checks the guardian's password again before letting them into the
-    # parents' portal. This protects the account if a session was left
-    # open on a shared family computer. The attempt limit is tied to the
-    # account instead of the IP address, so it still works even if the
-    # page is closed and reopened, and even if the whole family shares
-    # one IP address.
-    async def confirm_password(self, person_id: UUID, password: str) -> None:
-        limit_key = f"confirm-password:{person_id}"
-        if not await self._rate_limiter.permitir(
-            limit_key, self._rate_limit_confirm_password_max, self._rate_limit_confirm_password_window_sec
-        ):
-            raise AttemptLimitExceeded()
-
-        async with self._uow_factory() as uow:
-            person = await uow.people.get_by_id(person_id)
-            if person is None:
-                raise ResourceNotFound("No existe una cuenta asociada a este tutor.")
-            if not self._hasher.verificar(password, person.hash_password):
-                raise InvalidPasswordConfirmation()
-
     async def get_profile(self, person_id: UUID) -> tuple[Person, Guardian]:
         async with self._uow_factory() as uow:
             person = await uow.people.get_by_id(person_id)
@@ -141,11 +116,11 @@ class GuardianService:
 
     # Changes the guardian's password. The strength rules are already
     # checked in the API schema (the same _validar_password used at
-    # registration), so this method just hashes the new password and
-    # saves it. There's no "current password" field here on purpose: the
-    # guardian already had to re-type their password to get into the
-    # portal in the first place, so asking again here would just repeat
-    # a check they already passed a few minutes earlier.
+    # registration), so this method just hashes the new password and saves
+    # it. There's no "current password" field on purpose: to reach this the
+    # guardian already passed the 2FA check for the portal. All their
+    # sessions are closed after the change, in case the old password was known
+    # by someone else.
     async def change_password(self, person_id: UUID, new_password: str) -> None:
         async with self._uow_factory() as uow:
             person = await uow.people.get_by_id(person_id)
@@ -153,6 +128,7 @@ class GuardianService:
                 raise ResourceNotFound("No existe una cuenta asociada a este tutor.")
             await uow.people.update_password(person_id, self._hasher.hash(new_password))
             await uow.commit()
+        await self._sessions.revoke_all(person_id, "password_changed")
 
     # Right to erasure. Deletes the guardian and cascades to their students and
     # consents in this service's own database. It doesn't reach into

@@ -1,0 +1,107 @@
+# Reusable: builds one image and scans it with the shared Trivy rules.
+# With push: false (pull requests) the image stays on the runner. With
+# push: true (main) it is published as a release candidate, tagged
+# sha-<commit>. release.yml later promotes that same image, it never builds
+# again, so what gets deployed is exactly what was scanned and tested here.
+name: Build image
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        description: Image name, like identity-service or web
+        required: true
+        type: string
+      context:
+        required: true
+        type: string
+      file:
+        description: Dockerfile path, empty means <context>/Dockerfile
+        required: false
+        type: string
+        default: ""
+      target:
+        required: false
+        type: string
+        default: ""
+      push:
+        description: Publish the image as a release candidate
+        required: true
+        type: boolean
+    outputs:
+      digest:
+        description: Digest of the published image (empty when not pushed)
+        value: ${{ jobs.build.outputs.digest }}
+
+permissions:
+  contents: read
+
+# An explicit bash shell runs with pipefail, the default one does not.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: build and scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write # upload the scan report on main
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    env:
+      CANDIDATE: ghcr.io/${{ github.repository }}/${{ inputs.name }}:sha-${{ github.sha }}
+      LOCAL: iris-${{ inputs.name }}:ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        if: inputs.push
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # SBOM and provenance only exist in the registry, so they are added only
+      # when the image is pushed. The layer cache makes rebuilds fast.
+      - name: Build
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.file }}
+          target: ${{ inputs.target }}
+          push: ${{ inputs.push }}
+          load: ${{ !inputs.push }}
+          sbom: ${{ inputs.push }}
+          provenance: ${{ inputs.push && 'mode=max' || 'false' }}
+          tags: ${{ inputs.push && env.CANDIDATE || env.LOCAL }}
+          cache-from: type=gha,scope=${{ inputs.name }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.name }}
+          # Vite bakes this public URL into the bundle, the other images ignore it.
+          build-args: |
+            VITE_API_BASE_URL=${{ vars.PROD_API_BASE_URL }}
+
+      - name: Scan (Trivy)
+        env:
+          IMAGE_REF: ${{ inputs.push && format('ghcr.io/{0}/{1}@{2}', github.repository, inputs.name, steps.build.outputs.digest) || env.LOCAL }}
+          # Only needed to read from the registry, a pull request never gets it.
+          TRIVY_USERNAME: ${{ inputs.push && github.actor || '' }}
+          TRIVY_PASSWORD: ${{ inputs.push && secrets.GITHUB_TOKEN || '' }}
+          # The full report is only kept for main, pull requests just block.
+          SARIF: ${{ inputs.push && 'trivy.sarif' || '' }}
+        run: bash scripts/ci/trivy-scan.sh "$IMAGE_REF" ${SARIF:+"$SARIF"}
+
+      # Every finding, blocking or not, goes to the Security tab of GitHub with
+      # its history. Also when the scan above failed, that is when it matters.
+      - name: Upload the report to GitHub Security
+        if: always() && inputs.push && hashFiles('trivy.sarif') != ''
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-image-${{ inputs.name }}

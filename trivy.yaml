@@ -1,0 +1,17 @@
+# Shared rules for the image scan. The CI, the release, the weekly scan and
+# the local script all run scripts/ci/trivy-scan.sh with this file, so they
+# can never disagree about what fails.
+
+# Critical and high findings block, vulnerabilities and secrets baked into
+# an image alike. Only the ones that already have a fix: there is nothing to
+# update until the vendor releases one. Medium and low ones are handled by
+# the weekly Dependabot updates instead of stopping every build.
+severity:
+  - CRITICAL
+  - HIGH
+exit-code: 1
+vulnerability:
+  ignore-unfixed: true
+
+# Findings we accepted on purpose, each one with a reason and an end date.
+ignorefile: /config/.trivyignore.yaml

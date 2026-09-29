@@ -21,7 +21,9 @@ class ContentBlock:
     type: str  # "texto" | "imagen" (stored value, kept as-is, see note below)
     order_index: int
     content: str | None = None
-    image_url: str | None = None
+    # File name inside the lesson's folder of the private bucket, e.g.
+    # "<hex>.png". Never a URL, see get_image in lesson_service.py.
+    image_file: str | None = None
 
 
 @dataclass
@@ -33,6 +35,16 @@ class Lesson:
     order_index: int
     status: str  # "borrador" | "publicada" (stored value, kept as-is, see note below)
     blocks: list[ContentBlock] = field(default_factory=list)
+
+
+# Where Caddy has to fetch a file from in Garage, with a signature that is
+# only valid for that one GET. The service never reads the file itself.
+@dataclass(frozen=True)
+class SignedDownload:
+    path: str
+    authorization: str
+    amz_date: str
+    content_sha256: str
 
 
 @dataclass

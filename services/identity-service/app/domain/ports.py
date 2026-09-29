@@ -1,6 +1,6 @@
 # Protocols the application layer uses to talk to the outside world,
 # implemented in infrastructure/. This is what keeps application/ free of
-# direct SQLAlchemy, jose or bcrypt imports.
+# direct SQLAlchemy, jwt or bcrypt imports.
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from app.domain.entities import (
     Guardian,
     Person,
     RelationshipType,
+    SignedDownload,
     Student,
     SupportCondition,
     Teacher,
@@ -86,6 +87,14 @@ class SupportConditionRepository(Protocol):
     async def get_by_id(self, support_condition_id: int) -> SupportCondition | None: ...
 
 
+# Garage, read only. identity-service never uploads, new avatars are added
+# by an administrator.
+class ObjectStorage(Protocol):
+    # Signs a GET of the key for Caddy (see app/api/media.py). No network
+    # call: if the file is missing, Garage answers 404 when Caddy asks.
+    def sign_download(self, key: str) -> SignedDownload: ...
+
+
 class AvatarRepository(Protocol):
     async def list_all(self) -> list[Avatar]: ...
     async def get_by_id(self, avatar_id: int) -> Avatar | None: ...
@@ -146,8 +155,8 @@ class PasswordHasher(Protocol):
 
 
 class TokenIssuer(Protocol):
-    def emitir_access_token(self, subject_id: UUID, role: str, extra: dict[str, str]) -> str: ...
-    def emitir_refresh_token(self, subject_id: UUID, role: str) -> tuple[str, str]:
+    def emitir_access_token(self, subject_id: UUID, role: str, extra: dict[str, str], sid: str) -> str: ...
+    def emitir_refresh_token(self, subject_id: UUID, role: str, sid: str) -> tuple[str, str]:
         # Returns (token, jti). The jti lets logout invalidate it later.
         # subject_id is person_id for guardian/teacher, and student_id for a
         # student profile, since Student isn't a Person in this model.
@@ -156,21 +165,76 @@ class TokenIssuer(Protocol):
     def decodificar(self, token: str) -> dict[str, object]: ...
 
 
+class PortalAccessStore(Protocol):
+    # Short lived proof that a guardian passed the 2FA check for the parents'
+    # portal. Kept per account, so a new login or a logout must revoke it.
+    async def conceder(self, person_id: UUID, ttl_seg: int) -> None: ...
+
+    async def revocar(self, person_id: UUID) -> None: ...
+
+    async def esta_concedido(self, person_id: UUID) -> bool: ...
+
+
+class AttemptLockout(Protocol):
+    # Locks a key after too many failed attempts, and the wait grows each
+    # time it happens again. Only failures count, a success starts over.
+    async def segundos_bloqueado(self, clave: str) -> int:
+        # Seconds left of the current lock, 0 when the key is free.
+        ...
+
+    async def registrar_fallo(self, clave: str) -> int:
+        # Counts one failure. Returns the wait in seconds if this failure
+        # locked the key, 0 if not.
+        ...
+
+    async def registrar_exito(self, clave: str) -> None: ...
+
+    async def nivel(self, clave: str) -> int:
+        # How many times the key got locked recently (0 if never).
+        ...
+
+
 class RateLimiter(Protocol):
     async def permitir(self, clave: str, maximo: int, ventana_seg: int) -> bool:
         # Increments the counter for clave and returns False once it passes
         # maximo within the window.
         ...
 
+    async def segundos_restantes(self, clave: str) -> int:
+        # Seconds until the window of clave ends, when the counter starts over.
+        ...
+
+    async def intentos(self, clave: str) -> int: ...
+
+    async def olvidar(self, clave: str) -> None: ...
+
 
 class TokenBlacklist(Protocol):
     async def invalidar(self, jti: str, ttl_seg: int) -> None: ...
-    async def esta_invalidado(self, jti: str) -> bool: ...
+
+    async def segundos_desde_invalidacion(self, jti: str) -> float | None:
+        # None if the token was never invalidated. Used to tell a real
+        # reuse (a stolen copy) from two requests racing each other.
+        ...
+
+
+# Sessions are told apart by a sid inside every token, and it stays the same
+# when the tokens are refreshed. Revoking a sid kills that session at once,
+# access token included. Closing all sessions of a person is a "tokens
+# issued before this moment are void" mark.
+class SessionRegistry(Protocol):
+    async def revocar_sesion(self, sid: str, ttl_seg: int) -> None: ...
+
+    async def sesion_revocada(self, sid: str) -> bool: ...
+
+    async def cerrar_todas(self, person_id: UUID, ttl_seg: int) -> None: ...
+
+    async def emitida_antes_del_cierre(self, person_id: UUID, emitido_en: int) -> bool: ...
 
 
 # Wraps the TOTP (RFC 6238) algorithm itself, so the application layer
 # never imports pyotp or qrcode directly — same reason PasswordHasher wraps
-# bcrypt and TokenIssuer wraps jose.
+# bcrypt and TokenIssuer wraps PyJWT.
 class TotpProvider(Protocol):
     def generar_secreto(self) -> str: ...
     def uri_aprovisionamiento(self, secreto: str, nombre_cuenta: str, emisor: str) -> str: ...

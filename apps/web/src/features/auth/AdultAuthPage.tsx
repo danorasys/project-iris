@@ -25,11 +25,11 @@ export default function AdultAuthPage() {
         <main className={styles.page}>
             <BrandPanel />
             <div className={styles.formColumn}>
-                {view === "login" ? (
+                {view === "elegirRegistro" ? (
                     <button
                         type="button"
                         className={styles.back}
-                        onClick={() => setView("elegirRegistro")}
+                        onClick={() => setView("login")}
                     >
                         <IconArrowLeft /> Volver atrás
                     </button>
@@ -38,7 +38,7 @@ export default function AdultAuthPage() {
                         to="/"
                         className={styles.back}
                     >
-                        <IconArrowLeft /> Volver atrás
+                        <IconArrowLeft /> Volver al inicio
                     </Link>
                 )}
 
@@ -46,6 +46,10 @@ export default function AdultAuthPage() {
                     {view === "login" ? (
                         <LoginForm
                             onGoToRegister={() => setView("elegirRegistro")}
+                            notice={
+                                (location.state as { aviso?: string } | null)
+                                    ?.aviso
+                            }
                         />
                     ) : (
                         <ChooseAccountType
@@ -98,7 +102,13 @@ function BrandPanel() {
     )
 }
 
-function LoginForm({ onGoToRegister }: { onGoToRegister: () => void }) {
+function LoginForm({
+    onGoToRegister,
+    notice,
+}: {
+    onGoToRegister: () => void
+    notice?: string
+}) {
     const { setSession } = useAuth()
     const navigate = useNavigate()
     const login = useLogin()
@@ -124,7 +134,7 @@ function LoginForm({ onGoToRegister }: { onGoToRegister: () => void }) {
             setSession(tokens)
             navigate(
                 decodeJwtPayload(tokens.access_token)?.role === "guardian"
-                    ? "/login/student/profile"
+                    ? "/login/guardian/portal"
                     : "/teacher/home",
                 { replace: true },
             )
@@ -144,6 +154,14 @@ function LoginForm({ onGoToRegister }: { onGoToRegister: () => void }) {
                 docentes
             </p>
             <h1 className={styles.title}>Iniciar sesión</h1>
+            {notice && (
+                <p
+                    role="status"
+                    className={styles.recoveryNotice}
+                >
+                    {notice}
+                </p>
+            )}
             <TextField
                 id="adulto-login-correo"
                 label="Correo electrónico"

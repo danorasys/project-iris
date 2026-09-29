@@ -24,7 +24,13 @@ class Classroom:
     description: str
     enrollment_code: str
     created_at: datetime
-    logo_url: str | None = None
+    # Where the logo lives inside the private bucket, never a public URL.
+    logo_key: str | None = None
+
+    @property
+    def logo_file(self) -> str | None:
+        # Last part of the key. It's random and changes on every upload.
+        return self.logo_key.rsplit("/", 1)[-1] if self.logo_key else None
 
 
 @dataclass
@@ -35,6 +41,16 @@ class Enrollment:
     status: str
     requested_at: datetime
     resolved_at: datetime | None = None
+
+
+# Where Caddy has to fetch a file from in Garage, with a signature that is
+# only valid for that one GET. The service never reads the file itself.
+@dataclass(frozen=True)
+class SignedDownload:
+    path: str
+    authorization: str
+    amz_date: str
+    content_sha256: str
 
 
 # Result of validating an access token against

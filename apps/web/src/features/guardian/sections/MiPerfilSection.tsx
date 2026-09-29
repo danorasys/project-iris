@@ -7,6 +7,8 @@ import {
   useMiPerfilTutor,
   useRelationshipTypes,
 } from "@/shared/api/hooks/useAuthApi";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/shared/auth/AuthContext";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { TextField } from "@/features/auth/ui/TextField";
 import { PhoneField } from "@/features/auth/ui/PhoneField";
@@ -271,7 +273,7 @@ export function MiPerfilSection({ onDirtyChange }: MiPerfilSectionProps) {
         )}
       </form>
 
-      <CambiarPasswordForm onSuccess={() => setProfileToast("Tu contraseña se actualizó correctamente.")} />
+      <CambiarPasswordForm />
 
       {profileToast && <Toast message={profileToast} onDismiss={() => setProfileToast(null)} />}
     </div>
@@ -321,7 +323,9 @@ function ReadOnlyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CambiarPasswordForm({ onSuccess }: { onSuccess: () => void }) {
+function CambiarPasswordForm() {
+  const navigate = useNavigate();
+  const { discardSession } = useAuth();
   const changePassword = useCambiarMiPassword();
   const [expanded, setExpanded] = useState(false);
   const [password, setPassword] = useState("");
@@ -339,7 +343,13 @@ function CambiarPasswordForm({ onSuccess }: { onSuccess: () => void }) {
       setPassword("");
       setPasswordConfirmation("");
       setExpanded(false);
-      onSuccess();
+      // The server closes every session when the password changes, this one
+      // included, so the guardian signs in again with the new password.
+      discardSession();
+      navigate("/login/adult", {
+        replace: true,
+        state: { aviso: "Tu contraseña se actualizó. Por seguridad cerramos tus sesiones, inicia sesión de nuevo." },
+      });
     } catch (err) {
       setError(getAuthErrorMessage(err));
     }

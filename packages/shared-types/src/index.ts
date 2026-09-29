@@ -52,9 +52,9 @@ export interface SupportCondition {
 }
 
 export interface Avatar {
+  /** The image is at `avatarImageUrl(id)`, see mediaPaths.ts. */
   id: number;
   name: string;
-  image_path: string;
 }
 
 export interface GuardianRegistrationRequest {
@@ -135,6 +135,11 @@ export interface TotpVerifyRequest {
   code: string;
 }
 
+/** Answer of the portal 2FA check: wrong codes typed since the last good one. */
+export interface PortalChallengeResponse {
+  failed_attempts_before: number;
+}
+
 export interface GuardianProfile {
   first_name: string;
   last_name: string;
@@ -162,16 +167,13 @@ export interface ChangePasswordRequest {
   password_confirmation: string;
 }
 
-export interface ConfirmPasswordRequest {
-  password: string;
-}
-
 export interface Classroom {
   id: string;
   teacher_id: string;
   name: string;
   description: string;
-  logo_url?: string | null;
+  /** File name of the private logo. Show it with `classroomLogoPath` + `AuthImage`. */
+  logo_file?: string | null;
   enrollment_code: string;
   created_at: string;
 }
@@ -210,7 +212,8 @@ export interface ContentBlock {
   lesson_id: string;
   type: BlockType;
   content?: string | null;
-  image_url?: string | null;
+  /** File name of the private image. Show it with `lessonImagePath` + `AuthImage`. */
+  image_file?: string | null;
   order_index: number;
 }
 

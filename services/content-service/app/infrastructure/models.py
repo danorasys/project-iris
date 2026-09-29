@@ -56,7 +56,7 @@ class ContentBlockModel(Base):
     )
     type: Mapped[str] = mapped_column(String(20))
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
-    image_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    image_file: Mapped[str | None] = mapped_column(String(64), nullable=True)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
 
     lesson: Mapped[LessonModel] = relationship(back_populates="blocks")

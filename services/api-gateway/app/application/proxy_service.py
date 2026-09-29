@@ -19,7 +19,9 @@ from app.domain.ports import HttpForwarder, UpstreamResponse
 # gateway itself observed, never from whatever a caller sent, otherwise
 # anyone could fake it to dodge per-IP rate limits downstream.
 _EXCLUDED_OUTGOING_HEADERS = {"host", "content-length", "connection", CORRELATION_HEADER.lower(), "x-forwarded-for"}
-_EXCLUDED_INCOMING_HEADERS = {"content-length", "transfer-encoding", "connection"}
+# date and server are set again by the gateway's own server, keeping the
+# service's ones too would send each of them twice.
+_EXCLUDED_INCOMING_HEADERS = {"content-length", "transfer-encoding", "connection", "date", "server"}
 FORWARDED_FOR_HEADER = "X-Forwarded-For"
 
 BLOCKED_SEGMENT = "internal"

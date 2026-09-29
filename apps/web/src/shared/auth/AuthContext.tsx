@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { TokensAuth } from "@iris/shared-types";
 import { apiFetch, configureAuthHandlers } from "@/shared/api/httpClient";
+import { queryClient } from "@/shared/api/queryClient";
 import { decodeJwtPayload } from "./jwt";
 import { borrarRefreshToken, guardarRefreshToken, leerRefreshToken } from "./tokenStorage";
 
@@ -18,6 +19,9 @@ interface AuthContextValue {
   loading: boolean;
   setSession: (tokens: TokensAuth) => void;
   closeSession: () => Promise<void>;
+  /** Drops the local session without calling the server, for when the server
+   * already closed it (password change, "close all sessions", security lock). */
+  discardSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -48,6 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = null;
     borrarRefreshToken();
     setSessionState(null);
+    // Nothing the previous user loaded (data, private images) should stay
+    // around for whoever uses this browser next.
+    queryClient.clear();
   }, []);
 
   const refreshSession = useCallback((): Promise<string | null> => {
@@ -109,8 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ session, loading, setSession, closeSession }),
-    [session, loading, setSession, closeSession]
+    () => ({ session, loading, setSession, closeSession, discardSession: clearSession }),
+    [session, loading, setSession, closeSession, clearSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

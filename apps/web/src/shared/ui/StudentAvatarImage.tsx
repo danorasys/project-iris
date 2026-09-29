@@ -1,4 +1,5 @@
 import { useAvatars } from "@/shared/api/hooks/useAuthApi";
+import { avatarImageUrl } from "@/shared/api/mediaPaths";
 import styles from "./StudentAvatarImage.module.css";
 
 interface StudentAvatarImageProps {
@@ -17,5 +18,5 @@ export function StudentAvatarImage({ avatarId, size = "medium", label }: Student
   const avatarsQuery = useAvatars();
   const avatar = avatarsQuery.data?.find((a) => a.id === avatarId);
   if (!avatar) return null;
-  return <img src={avatar.image_path} alt={label ?? avatar.name} className={`${styles.image} ${styles[size]}`} />;
+  return <img src={avatarImageUrl(avatar.id)} alt={label ?? avatar.name} className={`${styles.image} ${styles[size]}`} />;
 }

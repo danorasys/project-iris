@@ -3,8 +3,7 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
-from app.config import get_settings
-from tests.conftest import AVATAR_ID_VIOLETA, SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR
+from tests.conftest import AVATAR_ID_VIOLETA, SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR, activar_2fa_y_abrir_portal
 
 pytestmark = pytest.mark.asyncio
 
@@ -48,6 +47,7 @@ async def _registrar_y_obtener_token(client: AsyncClient, correo: str, document_
     respuesta = await client.post("/auth/guardians", json=_payload_registro_tutor(correo, document_number))
     assert respuesta.status_code == 201
     token: str = respuesta.json()["access_token"]
+    await activar_2fa_y_abrir_portal(client, token)
     return token
 
 
@@ -226,48 +226,3 @@ async def test_cambiar_password_requiere_autenticacion(client: AsyncClient) -> N
     )
 
     assert respuesta.status_code == 401
-
-
-# --- POST /guardians/me/confirm-password ---
-
-
-async def test_confirmar_password_correcta(client: AsyncClient) -> None:
-    token = await _registrar_y_obtener_token(client, "confirmar-ok@example.com", "6000000008")
-
-    respuesta = await client.post(
-        "/guardians/me/confirm-password", json={"password": _PASSWORD_REGISTRO}, headers=_headers(token)
-    )
-
-    assert respuesta.status_code == 204
-
-
-async def test_confirmar_password_incorrecta_es_rechazada(client: AsyncClient) -> None:
-    token = await _registrar_y_obtener_token(client, "confirmar-mal@example.com", "6000000009")
-
-    respuesta = await client.post(
-        "/guardians/me/confirm-password", json={"password": "clave-equivocada"}, headers=_headers(token)
-    )
-
-    assert respuesta.status_code == 401
-    assert respuesta.json()["error"]["code"] == "confirmacion_contrasena_invalida"
-
-
-async def test_confirmar_password_requiere_autenticacion(client: AsyncClient) -> None:
-    respuesta = await client.post("/guardians/me/confirm-password", json={"password": _PASSWORD_REGISTRO})
-
-    assert respuesta.status_code == 401
-
-
-async def test_confirmar_password_bloqueada_tras_maximo_de_intentos(client: AsyncClient) -> None:
-    token = await _registrar_y_obtener_token(client, "confirmar-fuerza-bruta@example.com", "6000000010")
-    maximo = get_settings().rate_limit_confirm_password_max
-
-    ultima_respuesta = None
-    for _ in range(maximo + 1):
-        ultima_respuesta = await client.post(
-            "/guardians/me/confirm-password", json={"password": "clave-equivocada"}, headers=_headers(token)
-        )
-
-    assert ultima_respuesta is not None
-    assert ultima_respuesta.status_code == 429
-    assert ultima_respuesta.json()["error"]["code"] == "limite_intentos_excedido"

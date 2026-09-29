@@ -1,0 +1,23 @@
+[Unit]
+Description=IRIS pull based deploy
+Documentation=file:///opt/iris/docs/deployment.md
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+# Optional settings, like IRIS_NOTIFY_URL. The file is not in the repo.
+EnvironmentFile=-/etc/iris-deploy.env
+ExecStart=/usr/local/sbin/iris-deploy
+# A deploy that hangs is stopped, the next tick starts clean.
+TimeoutStartSec=20min
+
+# The script only needs Docker, Git and the network, so the rest is closed.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/opt/iris /var/lib/iris-deploy /home/deploy

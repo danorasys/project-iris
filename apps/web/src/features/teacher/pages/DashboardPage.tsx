@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useTeacherClassrooms } from "@/shared/api/hooks/useClassroomsApi";
 import { useTeacherNotifications } from "@/shared/api/hooks/useNotifications";
+import { classroomLogoPath } from "@/shared/api/mediaPaths";
+import { AuthImage } from "@/shared/ui/AuthImage";
 import { IconBell, IconSchool } from "@/shared/ui/icons";
 import { IrisMark } from "@/shared/ui/IrisMark";
 import styles from "./DashboardPage.module.css";
@@ -70,13 +72,15 @@ export default function DashboardPage() {
         <div className={styles.grid}>
           {classroomsQuery.data.map((classroom) => (
             <Link key={classroom.id} to={`/teacher/classrooms/${classroom.id}`} className={styles.card}>
-              {classroom.logo_url ? (
-                <img src={classroom.logo_url} alt="" className={styles.logo} />
-              ) : (
-                <div className={styles.logoPlaceholder} aria-hidden="true">
-                  <IconSchool width={24} height={24} />
-                </div>
-              )}
+              <AuthImage
+                path={classroom.logo_file ? classroomLogoPath(classroom.id, classroom.logo_file) : null}
+                className={styles.logo}
+                fallback={
+                  <div className={styles.logoPlaceholder} aria-hidden="true">
+                    <IconSchool width={24} height={24} />
+                  </div>
+                }
+              />
               <h2>{classroom.name}</h2>
               <p>{classroom.description}</p>
               <p className={styles.code}>Código: {classroom.enrollment_code}</p>

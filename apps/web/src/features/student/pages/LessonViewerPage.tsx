@@ -7,7 +7,10 @@ import { useLessonDetail } from "@/shared/api/hooks/useLessonsApi";
 import { useAuth } from "@/shared/auth/AuthContext";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { Mascot } from "@/shared/ui/Mascot";
-
+import { useAuth } from "@/shared/auth/AuthContext";
+import { useLessonDetail } from "@/shared/api/hooks/useLessonsApi";
+import { lessonImagePath } from "@/shared/api/mediaPaths";
+import { AuthImage } from "@/shared/ui/AuthImage";
 import { DwellArrow } from "../components/DwellArrow";
 import { getDwellDurationMs } from "../lib/dwellPreferences";
 
@@ -92,136 +95,39 @@ export default function LessonViewerPage() {
             </main>
         );
     }
+  };
 
-    const lesson = lessonQuery.data;
+  return (
+    <main className={styles.viewer}>
+      <DwellArrow
+        direction="left"
+        label="Bloque anterior"
+        onSelect={previous}
+        disabled={isFirst}
+        dwellDurationMs={dwellDurationMs}
+      />
 
-    if (blocks.length === 0) {
-        return (
-            <main className={styles.centered}>
-                <Mascot mood="happy" size="medium">
-                    Esta lección todavía no tiene contenido.
-                </Mascot>
+      <div className={styles.content}>
+        <p className={styles.progress} aria-live="polite">
+          {index + 1} de {blocks.length}
+        </p>
+        <h1 className={styles.lessonTitle}>{lesson.title}</h1>
+        {currentBlock.type === "texto" ? (
+          <p className={styles.text}>{currentBlock.content}</p>
+        ) : (
+          <AuthImage
+            path={currentBlock.image_file ? lessonImagePath(currentBlock.lesson_id, currentBlock.image_file) : null}
+            className={styles.image}
+          />
+        )}
+      </div>
 
-                <BigChoiceButton
-                    variant="teal"
-                    icon={<ChevronLeft width={32} height={32} />}
-                    dwellDurationMs={dwellDurationMs}
-                    onSelect={goToLessons}
-                >
-                    Volver a lecciones
-                </BigChoiceButton>
-            </main>
-        );
-    }
-
-    const currentBlock = blocks[index];
-    const isFirst = index === 0;
-    const isLast = index === blocks.length - 1;
-
-    return (
-        <main className={styles.viewer}>
-            <header className={styles.header}>
-                <div className={styles.backAction}>
-                    <BigChoiceButton
-                        variant="teal"
-                        icon={<ChevronLeft width={28} height={28} />}
-                        dwellDurationMs={dwellDurationMs}
-                        onSelect={goToLessons}
-                    >
-                        Lecciones
-                    </BigChoiceButton>
-                </div>
-
-                <div className={styles.lessonIdentity}>
-                    <span>Lección</span>
-
-                    <h1>{lesson.title}</h1>
-                </div>
-
-                <div className={styles.progressText} aria-live="polite">
-                    {index + 1} de {blocks.length}
-                </div>
-            </header>
-
-            <div className={styles.progressTrack} aria-hidden="true">
-                <div
-                    className={styles.progressValue}
-                    style={{
-                        width: `${((index + 1) / blocks.length) * 100}%`,
-                    }}
-                />
-            </div>
-
-            <section className={styles.stage}>
-                <DwellArrow
-                    direction="left"
-                    label="Contenido anterior"
-                    disabled={isFirst}
-                    dwellDurationMs={dwellDurationMs}
-                    onSelect={previous}
-                />
-
-                <article className={styles.contentCard}>
-                    <LessonBlockRenderer
-                        /*
-                         * Cambiar la key reinicia la respuesta local
-                         * cuando el estudiante avanza de bloque.
-                         */
-                        key={currentBlock.id}
-                        block={currentBlock}
-                        interactive
-                        dwellDurationMs={dwellDurationMs}
-                        /*
-                         * Se mantiene desactivado hasta que FastAPI
-                         * valide la respuesta sin enviar la correcta.
-                         */
-                        showCorrectness={false}
-                    />
-                </article>
-                {isLast ? (
-                    <DwellArrow
-                        direction="finish"
-                        label="Terminar lección"
-                        dwellDurationMs={dwellDurationMs}
-                        onSelect={goToLessons}
-                    />
-                ) : (
-                    <DwellArrow
-                        direction="right"
-                        label="Siguiente contenido"
-                        dwellDurationMs={dwellDurationMs}
-                        onSelect={next}
-                    />
-                )}
-            </section>
-
-            <footer className={styles.mobileNavigation}>
-                <BigChoiceButton
-                    variant="teal"
-                    icon={<ChevronLeft width={28} height={28} />}
-                    disabled={isFirst}
-                    dwellDurationMs={dwellDurationMs}
-                    onSelect={previous}
-                >
-                    Anterior
-                </BigChoiceButton>
-
-                {isLast ? (
-                    <DwellArrow
-                        direction="finish"
-                        label="Terminar lección"
-                        dwellDurationMs={dwellDurationMs}
-                        onSelect={goToLessons}
-                    />
-                ) : (
-                    <DwellArrow
-                        direction="right"
-                        label="Siguiente contenido"
-                        dwellDurationMs={dwellDurationMs}
-                        onSelect={next}
-                    />
-                )}
-            </footer>
-        </main>
-    );
+      <DwellArrow
+        direction="right"
+        label={isLast ? "Terminar lección" : "Siguiente bloque"}
+        onSelect={next}
+        dwellDurationMs={dwellDurationMs}
+      />
+    </main>
+  );
 }

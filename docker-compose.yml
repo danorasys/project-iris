@@ -11,12 +11,15 @@ x-python-service-env: &python-service-env
 
 services:
     postgres:
-        image: postgres:16-alpine
+        # A new major version needs a data migration, never just a new tag.
+        # See scripts/pg-upgrade.sh.
+        image: postgres:18-alpine
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
         volumes:
-            - pgdata:/var/lib/postgresql/data
+            # From 18 on the image keeps its data in /var/lib/postgresql/<version>.
+            - postgres-data:/var/lib/postgresql
             - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
@@ -35,35 +38,69 @@ services:
             timeout: 5s
             retries: 10
 
-    minio:
-        image: quay.io/minio/minio:latest
-        command: server /data --console-address ":9001"
+    # Storage for logos, lesson images and avatars (S3 compatible). Runs as a
+    # normal user with a read only filesystem and no extra privileges.
+    garage:
+        image: dxflrs/garage:v2.4.1
+        user: "1000:1000"
+        read_only: true
+        cap_drop: [ALL]
+        security_opt: ["no-new-privileges:true"]
         environment:
-            MINIO_ROOT_USER: ${S3_ACCESS_KEY}
-            MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+            GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+            GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
         volumes:
-            - miniodata:/data
+            - ./infra/garage/garage.toml:/etc/garage.toml:ro
+            - garage-data:/var/lib/garage
+        depends_on:
+            garage-volume:
+                condition: service_completed_successfully
         healthcheck:
-            test: ["CMD", "mc", "ready", "local"]
+            test: ["CMD", "/garage", "status"]
             interval: 5s
             timeout: 5s
             retries: 10
 
-    minio-init:
-        image: quay.io/minio/mc:latest
-        depends_on:
-            minio:
-                condition: service_healthy
+    # Docker creates the volume as root, this hands it to the user Garage runs as.
+    garage-volume:
+        image: busybox:1.38
+        command: ["sh", "-c", "mkdir -p /var/lib/garage/meta /var/lib/garage/data && chown 1000:1000 /var/lib/garage /var/lib/garage/meta /var/lib/garage/data"]
+        volumes:
+            - garage-data:/var/lib/garage
+        restart: "no"
+
+    # Creates one bucket and one key per service, plus the admin key. Runs on
+    # every start and puts the permissions back (see infra/garage/init.py).
+    garage-init:
+        image: python:3.13-alpine
+        command: ["python", "/init.py"]
+        user: "65534:65534"
+        read_only: true
+        cap_drop: [ALL]
+        security_opt: ["no-new-privileges:true"]
         environment:
-            S3_BUCKET: ${S3_BUCKET}
-            S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-            S3_SECRET_KEY: ${S3_SECRET_KEY}
-        entrypoint: >
-            /bin/sh -c "
-            mc alias set local http://minio:9000 $$S3_ACCESS_KEY $$S3_SECRET_KEY &&
-            mc mb -p local/$$S3_BUCKET &&
-            mc anonymous set download local/$$S3_BUCKET
-            "
+            GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+            STORAGE_ADMIN_ACCESS_KEY: ${STORAGE_ADMIN_ACCESS_KEY}
+            STORAGE_ADMIN_SECRET_KEY: ${STORAGE_ADMIN_SECRET_KEY}
+            CLASSROOM_S3_ACCESS_KEY: ${CLASSROOM_S3_ACCESS_KEY}
+            CLASSROOM_S3_SECRET_KEY: ${CLASSROOM_S3_SECRET_KEY}
+            CLASSROOM_S3_BUCKET: ${CLASSROOM_S3_BUCKET}
+            CONTENT_S3_ACCESS_KEY: ${CONTENT_S3_ACCESS_KEY}
+            CONTENT_S3_SECRET_KEY: ${CONTENT_S3_SECRET_KEY}
+            CONTENT_S3_BUCKET: ${CONTENT_S3_BUCKET}
+            IDENTITY_S3_ACCESS_KEY: ${IDENTITY_S3_ACCESS_KEY}
+            IDENTITY_S3_SECRET_KEY: ${IDENTITY_S3_SECRET_KEY}
+            IDENTITY_S3_BUCKET: ${IDENTITY_S3_BUCKET}
+            # Optional, bucket size limits in MB (defaults in infra/garage/init.py).
+            CLASSROOM_S3_QUOTA_MB: ${CLASSROOM_S3_QUOTA_MB:-}
+            CONTENT_S3_QUOTA_MB: ${CONTENT_S3_QUOTA_MB:-}
+            IDENTITY_S3_QUOTA_MB: ${IDENTITY_S3_QUOTA_MB:-}
+            PYTHONDONTWRITEBYTECODE: "1"
+        volumes:
+            - ./infra/garage/init.py:/init.py:ro
+        depends_on:
+            garage:
+                condition: service_healthy
         restart: "no"
 
     identity-service:
@@ -76,21 +113,25 @@ services:
             JWT_ALGORITHM: ${JWT_ALGORITHM}
             JWT_ACCESS_TTL_MIN: ${JWT_ACCESS_TTL_MIN}
             JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS}
-            # Encrypts guardians.totp_secret at rest (see infrastructure/security.py's
-            # FernetTotpEncryptor) — a separate secret from JWT_SECRET on purpose,
-            # so rotating one never invalidates the other.
+            # Encrypts guardians.totp_secret at rest (FernetTotpEncryptor). It is
+            # apart from JWT_SECRET on purpose, so changing one never breaks the other.
             TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY}
-            # Read only at migration time, to build the avatars catalog's seeded
-            # image URLs (see alembic/versions/0006_add_avatars_catalog.py) — the
-            # avatar images themselves are uploaded to this same bucket once,
-            # out of band, not through this service at runtime.
+            # Avatar images. Its key can only read its own bucket, new avatars
+            # are uploaded by an administrator (see docs/deployment.md).
+            S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+            S3_ACCESS_KEY: ${IDENTITY_S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${IDENTITY_S3_SECRET_KEY}
+            S3_BUCKET: ${IDENTITY_S3_BUCKET}
+            S3_REGION: ${S3_REGION}
+            # Only read by old migrations and their downgrades (0006, 0008).
             S3_PUBLIC_URL: ${S3_PUBLIC_URL}
-            S3_BUCKET: ${S3_BUCKET}
         depends_on:
             postgres:
                 condition: service_healthy
             redis:
                 condition: service_healthy
+            garage-init:
+                condition: service_completed_successfully
         healthcheck:
             test:
                 [
@@ -110,11 +151,11 @@ services:
             DATABASE_URL: ${CLASSROOM_DATABASE_URL}
             SERVICE_NAME: classroom-service
             IDENTITY_SERVICE_URL: http://identity-service:8000
+            # Its own key, only valid for its own bucket.
             S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
-            S3_PUBLIC_URL: ${S3_PUBLIC_URL}
-            S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-            S3_SECRET_KEY: ${S3_SECRET_KEY}
-            S3_BUCKET: ${S3_BUCKET}
+            S3_ACCESS_KEY: ${CLASSROOM_S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${CLASSROOM_S3_SECRET_KEY}
+            S3_BUCKET: ${CLASSROOM_S3_BUCKET}
             S3_REGION: ${S3_REGION}
             RATE_LIMIT_ENROLLMENT_MAX: ${RATE_LIMIT_ENROLLMENT_MAX}
             RATE_LIMIT_ENROLLMENT_WINDOW_SEC: ${RATE_LIMIT_ENROLLMENT_WINDOW_SEC}
@@ -125,7 +166,7 @@ services:
                 condition: service_healthy
             identity-service:
                 condition: service_healthy
-            minio-init:
+            garage-init:
                 condition: service_completed_successfully
         healthcheck:
             test:
@@ -147,11 +188,11 @@ services:
             SERVICE_NAME: content-service
             IDENTITY_SERVICE_URL: http://identity-service:8000
             CLASSROOM_SERVICE_URL: http://classroom-service:8000
+            # Its own key, only valid for its own bucket.
             S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
-            S3_PUBLIC_URL: ${S3_PUBLIC_URL}
-            S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-            S3_SECRET_KEY: ${S3_SECRET_KEY}
-            S3_BUCKET: ${S3_BUCKET}
+            S3_ACCESS_KEY: ${CONTENT_S3_ACCESS_KEY}
+            S3_SECRET_KEY: ${CONTENT_S3_SECRET_KEY}
+            S3_BUCKET: ${CONTENT_S3_BUCKET}
             S3_REGION: ${S3_REGION}
         depends_on:
             postgres:
@@ -162,7 +203,7 @@ services:
                 condition: service_healthy
             classroom-service:
                 condition: service_healthy
-            minio-init:
+            garage-init:
                 condition: service_completed_successfully
         healthcheck:
             test:
@@ -212,6 +253,8 @@ services:
             CONTENT_SERVICE_URL: http://content-service:8000
             NOTIFICATION_SERVICE_URL: http://notification-service:8000
         depends_on:
+            redis:
+                condition: service_healthy
             identity-service:
                 condition: service_healthy
             classroom-service:
@@ -220,8 +263,6 @@ services:
                 condition: service_healthy
             notification-service:
                 condition: service_healthy
-        ports:
-            - "${GATEWAY_PORT}:8000"
         healthcheck:
             test:
                 [
@@ -233,6 +274,22 @@ services:
             interval: 10s
             timeout: 5s
             retries: 5
+
+    # Same edge as production (infra/caddy/api.caddy) but plain HTTP. The API
+    # is only reachable through here, so private images work like in prod:
+    # the service checks access and Caddy streams the file from Garage.
+    reverse-proxy:
+        image: caddy:2.11.4-alpine
+        command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile.dev", "--adapter", "caddyfile"]
+        volumes:
+            - ./infra/caddy:/etc/caddy:ro
+        depends_on:
+            api-gateway:
+                condition: service_healthy
+            garage:
+                condition: service_healthy
+        ports:
+            - "${GATEWAY_PORT}:80"
 
     web:
         build:
@@ -254,6 +311,6 @@ services:
             - notification-service
 
 volumes:
-    pgdata:
-    miniodata:
+    postgres-data:
+    garage-data:
     redisdata:

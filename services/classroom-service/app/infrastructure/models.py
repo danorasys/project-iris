@@ -32,7 +32,7 @@ class ClassroomModel(Base):
     teacher_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), index=True)
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str] = mapped_column(String(1000))
-    logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    logo_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     enrollment_code: Mapped[str] = mapped_column(String(7), unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 

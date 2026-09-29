@@ -6,6 +6,9 @@ from httpx import AsyncClient
 from app.config import get_settings
 from tests.fakes import FakeIdentityGateway, FakeObjectStorage
 
+PNG = b"\x89PNG\r\n\x1a\n" + b"datos-de-prueba"
+JPEG = b"\xff\xd8\xff" + b"datos-de-prueba"
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -33,7 +36,7 @@ async def test_crear_aula_devuelve_codigo_ingreso_y_logo_null(
 
     assert len(aula["enrollment_code"]) == 7
     assert aula["enrollment_code"].isdigit()
-    assert aula["logo_url"] is None
+    assert aula["logo_file"] is None
 
 
 async def test_listar_aulas_docente(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
@@ -83,7 +86,7 @@ async def test_tutor_no_puede_acceder_a_rutas_de_aula(
 
 
 # ---------------------------------------------------------------------------
-# Logo (S3/MinIO via FakeObjectStorage)
+# Logo (storage via FakeObjectStorage)
 # ---------------------------------------------------------------------------
 
 
@@ -96,12 +99,31 @@ async def test_subir_logo(
     response = await client.post(
         f"/classrooms/{aula['id']}/logo",
         headers=_auth(token),
-        files={"file": ("logo.png", b"contenido-fake-png", "image/png")},
+        files={"file": ("logo.png", PNG, "image/png")},
     )
 
     assert response.status_code == 200
-    assert response.json()["logo_url"] is not None
+    logo_file = response.json()["logo_file"]
+    assert logo_file.endswith(".png")
+    # The API never hands out a storage URL, only the file name.
+    assert "/" not in logo_file
     assert len(object_storage.archivos) == 1
+
+
+async def test_extension_del_logo_sale_del_content_type_no_del_nombre(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    aula = await _crear_aula(client, token)
+
+    response = await client.post(
+        f"/classrooms/{aula['id']}/logo",
+        headers=_auth(token),
+        files={"file": ("logo.exe", JPEG, "image/jpeg")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["logo_file"].endswith(".jpg")
 
 
 async def test_subir_logo_content_type_invalido_es_rechazado(
@@ -157,6 +179,182 @@ async def test_subir_logo_demasiado_grande_es_rechazado(
 # ---------------------------------------------------------------------------
 # Student: enrollment code, brute force, duplicates
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Logo download: private, same access rule as the classroom
+# ---------------------------------------------------------------------------
+
+
+async def _aula_con_logo(client: AsyncClient, token_docente: str) -> tuple[dict, str]:
+    aula = await _crear_aula(client, token_docente)
+    response = await client.post(
+        f"/classrooms/{aula['id']}/logo",
+        headers=_auth(token_docente),
+        files={"file": ("logo.png", PNG, "image/png")},
+    )
+    assert response.status_code == 200
+    return aula, response.json()["logo_file"]
+
+
+async def _inscribir_y_aceptar(client: AsyncClient, aula: dict, token_docente: str, token_estudiante: str) -> None:
+    ingreso = await client.post(
+        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
+    )
+    assert ingreso.status_code == 201
+    resolver = await client.post(
+        f"/classrooms/{aula['id']}/requests/{ingreso.json()['enrollment_id']}/resolve",
+        json={"decision": "aceptar"},
+        headers=_auth(token_docente),
+    )
+    assert resolver.status_code == 200
+
+
+async def test_docente_dueno_descarga_el_logo(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    aula, logo_file = await _aula_con_logo(client, token)
+
+    response = await client.get(f"/classrooms/{aula['id']}/logo/{logo_file}", headers=_auth(token))
+
+    # The service only answers with where Caddy has to fetch the file from.
+    assert response.status_code == 200
+    assert response.content == b""
+    assert response.headers["x-iris-media"] == f"/test-bucket/classrooms/{aula['id']}/logo/{logo_file}"
+    assert response.headers["x-iris-media-authorization"].startswith("AWS4-HMAC-SHA256")
+    assert response.headers["cache-control"] == "private, max-age=3600"
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["content-security-policy"] == "default-src 'none'; sandbox"
+
+
+async def test_estudiante_aceptado_descarga_el_logo(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
+    token_docente, _ = identity_gateway.registrar_docente()
+    token_estudiante, _ = identity_gateway.registrar_estudiante_token()
+    aula, logo_file = await _aula_con_logo(client, token_docente)
+    await _inscribir_y_aceptar(client, aula, token_docente, token_estudiante)
+
+    response = await client.get(f"/classrooms/{aula['id']}/logo/{logo_file}", headers=_auth(token_estudiante))
+
+    assert response.status_code == 200
+    assert response.headers["x-iris-media"] == f"/test-bucket/classrooms/{aula['id']}/logo/{logo_file}"
+
+
+async def test_estudiante_con_solicitud_pendiente_no_ve_el_logo(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway
+) -> None:
+    token_docente, _ = identity_gateway.registrar_docente()
+    token_estudiante, _ = identity_gateway.registrar_estudiante_token()
+    aula, logo_file = await _aula_con_logo(client, token_docente)
+    await client.post(
+        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
+    )
+
+    response = await client.get(f"/classrooms/{aula['id']}/logo/{logo_file}", headers=_auth(token_estudiante))
+
+    assert response.status_code == 404
+
+
+async def test_otro_docente_recibe_404_y_no_403(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
+    token_a, _ = identity_gateway.registrar_docente()
+    token_b, _ = identity_gateway.registrar_docente()
+    aula, logo_file = await _aula_con_logo(client, token_a)
+
+    response = await client.get(f"/classrooms/{aula['id']}/logo/{logo_file}", headers=_auth(token_b))
+
+    # Same answer as a logo that doesn't exist, so nothing leaks.
+    assert response.status_code == 404
+
+
+async def test_logo_sin_sesion_es_401(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    aula, logo_file = await _aula_con_logo(client, token)
+
+    response = await client.get(f"/classrooms/{aula['id']}/logo/{logo_file}")
+
+    assert response.status_code == 401
+
+
+async def test_tutor_no_descarga_logos(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
+    token_docente, _ = identity_gateway.registrar_docente()
+    aula, logo_file = await _aula_con_logo(client, token_docente)
+
+    response = await client.get(
+        f"/classrooms/{aula['id']}/logo/{logo_file}", headers=_auth(identity_gateway.registrar_tutor_token())
+    )
+
+    assert response.status_code == 403
+
+
+async def test_logo_anterior_deja_de_estar_disponible_al_cambiarlo(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    aula, logo_viejo = await _aula_con_logo(client, token)
+    await client.post(
+        f"/classrooms/{aula['id']}/logo",
+        headers=_auth(token),
+        files={"file": ("nuevo.png", PNG + b"nuevo", "image/png")},
+    )
+
+    response = await client.get(f"/classrooms/{aula['id']}/logo/{logo_viejo}", headers=_auth(token))
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize("file_name", ["..%2F..%2Fetc%2Fpasswd", "logo.png", "ABCDEF0123456789ABCDEF0123456789.png"])
+async def test_nombre_de_logo_con_forma_invalida_es_rechazado(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway, file_name: str
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    aula, _logo_file = await _aula_con_logo(client, token)
+
+    response = await client.get(f"/classrooms/{aula['id']}/logo/{file_name}", headers=_auth(token))
+
+    assert response.status_code in (404, 422)
+
+
+async def test_archivo_que_no_es_imagen_es_rechazado_aunque_diga_png(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway, object_storage: FakeObjectStorage
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    aula = await _crear_aula(client, token)
+
+    response = await client.post(
+        f"/classrooms/{aula['id']}/logo",
+        headers=_auth(token),
+        files={"file": ("logo.png", b"<html><script>alert(1)</script></html>", "image/png")},
+    )
+
+    assert response.status_code == 422
+    assert object_storage.archivos == {}
+
+
+async def test_cambiar_el_logo_borra_el_anterior_del_almacenamiento(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway, object_storage: FakeObjectStorage
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    aula, _logo_viejo = await _aula_con_logo(client, token)
+
+    await client.post(
+        f"/classrooms/{aula['id']}/logo", headers=_auth(token), files={"file": ("nuevo.png", PNG + b"2", "image/png")}
+    )
+
+    # Only the new logo is left, the old file doesn't stay behind.
+    assert len(object_storage.archivos) == 1
+
+
+async def test_almacenamiento_lleno_responde_507(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway, object_storage: FakeObjectStorage
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    aula = await _crear_aula(client, token)
+    object_storage.lleno = True
+
+    response = await client.post(
+        f"/classrooms/{aula['id']}/logo", headers=_auth(token), files={"file": ("logo.png", PNG, "image/png")}
+    )
+
+    assert response.status_code == 507
+    assert response.json()["error"]["code"] == "almacenamiento_lleno"
 
 
 async def test_codigo_ingreso_invalido(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:

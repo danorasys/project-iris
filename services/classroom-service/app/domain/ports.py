@@ -8,7 +8,7 @@ from types import TracebackType
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.entities import Classroom, Enrollment, StudentInfo, UserClaims
+from app.domain.entities import Classroom, Enrollment, SignedDownload, StudentInfo, UserClaims
 
 
 class ClassroomRepository(Protocol):
@@ -45,9 +45,17 @@ class UnitOfWork(Protocol):
     async def rollback(self) -> None: ...
 
 
+# The bucket is private: nothing in it has a public URL. Files only reach
+# the browser through an endpoint of this service that checks access first.
 class ObjectStorage(Protocol):
-    # Uploads the content and returns the public URL.
-    async def subir(self, key: str, contenido: bytes, content_type: str) -> str: ...
+    async def upload(self, key: str, content: bytes, content_type: str) -> None: ...
+
+    # Signs a GET of the key for Caddy (see app/api/media.py). No network
+    # call: if the file is missing, Garage answers 404 when Caddy asks.
+    def sign_download(self, key: str) -> SignedDownload: ...
+
+    # Does nothing if the key is already gone.
+    async def delete(self, key: str) -> None: ...
 
 
 class EventPublisher(Protocol):

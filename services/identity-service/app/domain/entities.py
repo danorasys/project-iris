@@ -66,11 +66,23 @@ class SupportCondition:
     name: str
 
 
+# Where Caddy has to fetch a file from in Garage, with a signature that is
+# only valid for that one GET. The service never reads the file itself.
+@dataclass(frozen=True)
+class SignedDownload:
+    path: str
+    authorization: str
+    amz_date: str
+    content_sha256: str
+
+
 @dataclass
 class Avatar:
     id: int
     name: str
-    image_path: str
+    # Place in identity-service's bucket, e.g. "avatars/avatar-1.png". The
+    # image is served by GET /catalogs/avatars/{id}/image.
+    image_key: str
 
 
 # The one catalog entry that means "the family will type their own condition

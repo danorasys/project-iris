@@ -1,6 +1,6 @@
 import type { ErrorApi } from "@iris/shared-types";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -81,24 +81,18 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   return (await response.json()) as T;
 }
 
-export async function apiUpload<T>(path: string, formData: FormData, _isRetry = false): Promise<T> {
-  const finalHeaders = new Headers();
-  if (authHandlers) {
-    const token = authHandlers.getAccessToken();
-    if (token) finalHeaders.set("Authorization", `Bearer ${token}`);
-  }
+// Shared by uploads and image downloads: sends the access token and, on a
+// 401, refreshes the session once and retries. Any other error becomes an ApiError.
+async function fetchWithSession(path: string, init: RequestInit = {}, isRetry = false): Promise<Response> {
+  const headers = new Headers(init.headers);
+  const token = authHandlers?.getAccessToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: finalHeaders,
-    body: formData,
-  });
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
 
-  if (response.status === 401 && authHandlers && !_isRetry) {
+  if (response.status === 401 && authHandlers && !isRetry) {
     const nuevoToken = await authHandlers.refresh();
-    if (nuevoToken) {
-      return apiUpload<T>(path, formData, true);
-    }
+    if (nuevoToken) return fetchWithSession(path, init, true);
     authHandlers.onAuthFailure();
   }
 
@@ -106,5 +100,18 @@ export async function apiUpload<T>(path: string, formData: FormData, _isRetry = 
     const error = await parseErrorBody(response);
     throw new ApiError(response.status, error.code, error.message, error.details);
   }
+  return response;
+}
+
+/** Downloads a private file (a classroom logo, a lesson image) with the
+ * user's session. An `<img src>` can't send the Authorization header, so
+ * images are fetched here and shown from the returned Blob. */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const response = await fetchWithSession(path);
+  return response.blob();
+}
+
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const response = await fetchWithSession(path, { method: "POST", body: formData });
   return (await response.json()) as T;
 }

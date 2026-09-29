@@ -1,0 +1,12 @@
+# Local version of the edge: same /api routes and headers as production, but
+# plain HTTP and the Vite dev server stays on its own port (see
+# docker-compose.yml).
+:80 {
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	import api.caddy
+}

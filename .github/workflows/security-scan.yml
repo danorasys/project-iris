@@ -1,0 +1,72 @@
+# Weekly scan of the version running in production (the latest release).
+# New vulnerabilities are published every day, so an image that was clean
+# when it was released may not be clean now. A failed run sends the usual
+# GitHub email, and the fix is a new release with updated images.
+name: Security scan
+
+on:
+  schedule:
+    - cron: "0 12 * * 1" # Mondays, 7:00 in Colombia
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# An explicit bash shell runs with pipefail, the default one does not.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  latest:
+    name: Find the latest release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.latest.outputs.tag }}
+    steps:
+      - name: Latest release
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null || true)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          [ -n "$tag" ] || echo "::notice::No release marked as latest yet, nothing to scan."
+
+  scan:
+    name: Scan / ${{ matrix.name }}
+    needs: latest
+    if: needs.latest.outputs.tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - identity-service
+          - classroom-service
+          - content-service
+          - notification-service
+          - api-gateway
+          - web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Scan (Trivy)
+        env:
+          IMAGE_REF: ghcr.io/${{ github.repository }}/${{ matrix.name }}:${{ needs.latest.outputs.tag }}
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci/trivy-scan.sh "$IMAGE_REF" trivy.sarif
+
+      # Every finding, blocking or not, goes to the Security tab of GitHub with
+      # its history. Also when the scan above failed, that is when it matters.
+      - name: Upload the report to GitHub Security
+        if: always() && hashFiles('trivy.sarif') != ''
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-image-${{ matrix.name }}

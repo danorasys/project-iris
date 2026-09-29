@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { HeartHandshake } from "lucide-react";
 import logoIris from "@/assets/landing/logo-iris.png";
 import styles from "./MeetIris.module.css";
 
@@ -61,7 +62,8 @@ export function MeetIris() {
         <p className={styles.srOnly}>{IRIS_MESSAGE}</p>
         {done && (
           <Link to="/login/adult" state={{ vista: "elegirRegistro" }} className={styles.cta}>
-            Quiero que acompañe a mi hijo o hija
+            <HeartHandshake size={20} strokeWidth={2} aria-hidden="true" />
+            Vamos juntos
           </Link>
         )}
       </div>

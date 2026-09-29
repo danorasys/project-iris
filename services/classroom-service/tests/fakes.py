@@ -1,13 +1,13 @@
 # Test doubles for the ports that talk to the outside world (identity-service,
-# S3/MinIO), injected via app.dependency_overrides to avoid hitting the real
+# Garage), injected via app.dependency_overrides to avoid hitting the real
 # network in tests.
 
 from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from app.domain.entities import StudentInfo, UserClaims
-from app.domain.exceptions import IdentityServiceUnavailable, ResourceNotFound, InvalidToken
+from app.domain.entities import SignedDownload, StudentInfo, UserClaims
+from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken, ResourceNotFound, StorageFull
 
 
 class FakeIdentityGateway:
@@ -64,7 +64,18 @@ class FakeIdentityGateway:
 class FakeObjectStorage:
     def __init__(self) -> None:
         self.archivos: dict[str, bytes] = {}
+        self.lleno = False
 
-    async def subir(self, key: str, contenido: bytes, content_type: str) -> str:
-        self.archivos[key] = contenido
-        return f"http://fake-storage.local/iris-media/{key}"
+    async def upload(self, key: str, content: bytes, content_type: str) -> None:
+        if self.lleno:
+            raise StorageFull()
+        self.archivos[key] = content
+
+    def sign_download(self, key: str) -> SignedDownload:
+        return SignedDownload(
+            path=f"/test-bucket/{key}", authorization="AWS4-HMAC-SHA256 test", amz_date="20260101T000000Z",
+            content_sha256="UNSIGNED-PAYLOAD",
+        )
+
+    async def delete(self, key: str) -> None:
+        self.archivos.pop(key, None)
