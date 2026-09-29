@@ -52,10 +52,9 @@ export interface SupportCondition {
 }
 
 export interface Avatar {
+  /** The image is at `avatarImageUrl(id)`, see mediaPaths.ts. */
   id: number;
   name: string;
-  /** Public URL: avatars are IRIS artwork, shown before an account exists. */
-  image_url: string;
 }
 
 export interface GuardianRegistrationRequest {

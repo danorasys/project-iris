@@ -16,6 +16,7 @@ from app.domain.entities import (
     Guardian,
     Person,
     RelationshipType,
+    SignedDownload,
     Student,
     SupportCondition,
     Teacher,
@@ -84,6 +85,14 @@ class RelationshipTypeRepository(Protocol):
 class SupportConditionRepository(Protocol):
     async def list_all(self) -> list[SupportCondition]: ...
     async def get_by_id(self, support_condition_id: int) -> SupportCondition | None: ...
+
+
+# Garage, read only. identity-service never uploads, new avatars are added
+# by an administrator.
+class ObjectStorage(Protocol):
+    # Signs a GET of the key for Caddy (see app/api/media.py). No network
+    # call: if the file is missing, Garage answers 404 when Caddy asks.
+    def sign_download(self, key: str) -> SignedDownload: ...
 
 
 class AvatarRepository(Protocol):

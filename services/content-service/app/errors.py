@@ -17,6 +17,7 @@ from app.domain.exceptions import (
     InvalidToken,
     PermissionDenied,
     ResourceNotFound,
+    StorageFull,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ _STATUS_BY_ERROR: dict[type[DomainError], int] = {
     PermissionDenied: status.HTTP_403_FORBIDDEN,
     ResourceNotFound: status.HTTP_404_NOT_FOUND,
     InvalidFile: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    StorageFull: status.HTTP_507_INSUFFICIENT_STORAGE,
 }
 
 

@@ -10,6 +10,8 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
 os.environ.setdefault("JWT_SECRET", "test-secret")
 os.environ.setdefault("INTERNAL_SERVICE_KEY", "test-internal-key")
 os.environ.setdefault("WEB_ORIGIN", "http://localhost:5173")
+os.environ.setdefault("S3_ACCESS_KEY", "GKtest")
+os.environ.setdefault("S3_SECRET_KEY", "test-s3-secret")
 # A real Fernet key is required here (unlike the plain strings above) because
 # FernetTotpEncryptor actually encrypts/decrypts with it in tests. It's a
 # throwaway key that only ever protects data in the ephemeral test database.
@@ -25,6 +27,7 @@ from app.api import deps
 from app.infrastructure.db import Base, engine
 from app.infrastructure.models import AvatarModel, DocumentTypeModel, RelationshipTypeModel, SupportConditionModel
 from app.main import app
+from tests.fakes import FakeObjectStorage
 
 _TEST_DB_FILE = os.environ["DATABASE_URL"].removeprefix("sqlite+aiosqlite:///")
 
@@ -96,8 +99,18 @@ async def redis_client() -> AsyncIterator[fakeredis.aioredis.FakeRedis]:
     await fake.aclose()
 
 
+@pytest.fixture
+def object_storage() -> Iterator[FakeObjectStorage]:
+    fake = FakeObjectStorage()
+    app.dependency_overrides[deps.get_object_storage] = lambda: fake
+    yield fake
+    app.dependency_overrides.pop(deps.get_object_storage, None)
+
+
 @pytest_asyncio.fixture
-async def client(redis_client: fakeredis.aioredis.FakeRedis) -> AsyncIterator[AsyncClient]:
+async def client(
+    redis_client: fakeredis.aioredis.FakeRedis, object_storage: FakeObjectStorage
+) -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

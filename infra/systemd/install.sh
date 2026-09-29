@@ -11,6 +11,7 @@ readonly COSIGN_VERSION="v3.1.3"
 readonly COSIGN_SHA256="4629c757b7618056f8ddd7e2625ae9fdd94c0372a65049520bc7d9df9efc7f71"
 readonly DEPLOY_USER="deploy"
 readonly STATE_DIR="/var/lib/iris-deploy"
+readonly MEDIA_BACKUP_DIR="/var/backups/iris-media"
 
 if [[ "$(id -u)" -ne 0 ]]; then
     echo "Run this as root (sudo)." >&2
@@ -41,8 +42,14 @@ install -m 0644 -o root -g root "$repo_dir/infra/systemd/iris-deploy.service" /e
 install -m 0644 -o root -g root "$repo_dir/infra/systemd/iris-deploy.timer" /etc/systemd/system/iris-deploy.timer
 install -d -m 0755 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$STATE_DIR"
 
+# Nightly backup of the images, same idea: root owned script, run as "deploy".
+install -m 0755 -o root -g root "$repo_dir/scripts/iris-backup-media.sh" /usr/local/sbin/iris-backup-media
+install -m 0644 -o root -g root "$repo_dir/infra/systemd/iris-backup-media.service" /etc/systemd/system/iris-backup-media.service
+install -m 0644 -o root -g root "$repo_dir/infra/systemd/iris-backup-media.timer" /etc/systemd/system/iris-backup-media.timer
+install -d -m 0700 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$MEDIA_BACKUP_DIR"
+
 systemctl daemon-reload
-systemctl enable --now iris-deploy.timer
+systemctl enable --now iris-deploy.timer iris-backup-media.timer
 
 echo "Installed. Next runs:"
-systemctl list-timers iris-deploy.timer --no-pager
+systemctl list-timers iris-deploy.timer iris-backup-media.timer --no-pager

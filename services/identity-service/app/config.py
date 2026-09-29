@@ -28,9 +28,13 @@ class Settings(BaseSettings):
 
     web_origin: str = "http://localhost:5173"
 
-    # Base URL of the public bucket, where only the avatars live. In
-    # production Caddy serves it at /public.
-    public_media_url: str = "http://localhost:9000/iris-public"
+    # Garage, where the avatar images live. The key only has read access to
+    # this bucket. No default for the key pair, same reason as jwt_secret.
+    s3_endpoint_url: str = "http://garage:3900"
+    s3_access_key: str
+    s3_secret_key: str
+    s3_bucket: str = "iris-identity"
+    s3_region: str = "us-east-1"
 
     # Progressive lock for login and the parents' portal 2FA. After
     # lockout_max_failures wrong attempts inside lockout_fails_window_sec the

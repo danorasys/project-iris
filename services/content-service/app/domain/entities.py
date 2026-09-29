@@ -37,11 +37,14 @@ class Lesson:
     blocks: list[ContentBlock] = field(default_factory=list)
 
 
-# An object read back from storage, ready to be sent to the browser.
-@dataclass
-class StoredObject:
-    content: bytes
-    content_type: str
+# Where Caddy has to fetch a file from in Garage, with a signature that is
+# only valid for that one GET. The service never reads the file itself.
+@dataclass(frozen=True)
+class SignedDownload:
+    path: str
+    authorization: str
+    amz_date: str
+    content_sha256: str
 
 
 @dataclass

@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Path, Response, UploadFile, status
 
 from app.api.deps import get_lesson_service, require_role
+from app.api.media import media_response
 from app.api.schemas import (
     IMAGE_FILE_PATTERN,
     ContentBlockResponse,
@@ -31,12 +32,7 @@ Service = Annotated[LessonService, Depends(get_lesson_service)]
 ImageFileName = Annotated[str, Path(pattern=IMAGE_FILE_PATTERN)]
 
 # Only the user's browser may cache the image, never a shared cache.
-_IMAGE_HEADERS = {
-    "Cache-Control": "private, max-age=3600",
-    "X-Content-Type-Options": "nosniff",
-    "Content-Disposition": "inline",
-    "Content-Security-Policy": "default-src 'none'; sandbox",
-}
+_IMAGE_CACHE = "private, max-age=3600"
 
 
 def _to_block_inputs(blocks: list) -> list[ContentBlockInput]:
@@ -138,5 +134,5 @@ async def get_image(
     user: ReaderUser,
     service: Service,
 ) -> Response:
-    stored = await service.get_image(lesson_id, file_name, user, get_correlation_id())
-    return Response(content=stored.content, media_type=stored.content_type, headers=_IMAGE_HEADERS)
+    signed = await service.get_image(lesson_id, file_name, user, get_correlation_id())
+    return media_response(signed, _IMAGE_CACHE)

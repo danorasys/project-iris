@@ -1,0 +1,38 @@
+# Routes for /api, shared by the production Caddyfile and Caddyfile.dev so
+# both behave the same. Imported inside a site block.
+#
+# The BFF already expects the /api prefix itself (see api-gateway's
+# routes_proxy.py), so requests are forwarded as-is, no path rewriting.
+handle /api/* {
+	reverse_proxy api-gateway:8000 {
+		# Private images: the service only checks access and answers with
+		# X-Iris-Media (the Garage path) plus a signature for that one GET
+		# (see app/api/media.py in each service). Caddy fetches the file from
+		# Garage and streams it, so the bytes never go through the backend.
+		@media header X-Iris-Media *
+		handle_response @media {
+			# The final response comes from Garage, so only these headers of the
+			# service are copied and the X-Iris-Media* ones stay behind. nosniff
+			# isn't in the list, the site block already adds it to every response.
+			copy_response_headers {
+				include Cache-Control Content-Disposition Content-Security-Policy Access-Control-Allow-Origin Access-Control-Allow-Credentials Vary X-Correlation-Id
+			}
+			rewrite * {rp.header.X-Iris-Media}
+			method * GET
+			reverse_proxy garage:3900 {
+				# The signature covers Host, and the user's session must not reach Garage.
+				header_up Host {upstream_hostport}
+				header_up Authorization {rp.header.X-Iris-Media-Authorization}
+				header_up X-Amz-Date {rp.header.X-Iris-Media-Date}
+				header_up X-Amz-Content-Sha256 {rp.header.X-Iris-Media-Sha256}
+				header_up -Cookie
+				header_down -X-Amz-*
+				# Garage's own errors say which bucket it is, the browser only gets a plain 404.
+				@failed status 4xx 5xx
+				handle_response @failed {
+					respond 404
+				}
+			}
+		}
+	}
+}

@@ -4,39 +4,21 @@
 # intermediates. When the certificate is renewed, replace those two files and
 # restart the reverse-proxy container.
 {$DOMAIN} {
-    tls /certs/fullchain.pem /certs/webssl.key
+	tls /certs/fullchain.pem /certs/webssl.key
 
-    encode gzip
+	encode gzip
 
-    # Same headers as apps/web/nginx.conf, repeated because this is the edge.
-    header {
-        X-Content-Type-Options nosniff
-        X-Frame-Options DENY
-        Referrer-Policy strict-origin-when-cross-origin
-    }
+	# Same headers as apps/web/nginx.conf, repeated because this is the edge.
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
 
-    # The BFF already expects the /api prefix itself (see api-gateway's
-    # routes_proxy.py), so this just forwards as-is, no path rewriting.
-    handle /api/* {
-        reverse_proxy api-gateway:8000
-    }
+	# API and private images, the same as in local dev.
+	import api.caddy
 
-    # Only the public bucket (avatars) is reachable here, and only to read a
-    # file. Logos and lesson images are private and go through /api.
-    # /public/x becomes /<public bucket>/x, MinIO has no other way in.
-    handle_path /public/* {
-        @read method GET HEAD
-        handle @read {
-            rewrite * /{$S3_PUBLIC_BUCKET}{uri}
-            header Cache-Control "public, max-age=86400"
-            reverse_proxy minio:9000
-        }
-        handle {
-            respond 405
-        }
-    }
-
-    handle {
-        reverse_proxy web:8080
-    }
+	handle {
+		reverse_proxy web:8080
+	}
 }

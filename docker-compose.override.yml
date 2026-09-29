@@ -1,6 +1,6 @@
 # Local dev convenience ports. Docker Compose merges this automatically with
 # docker-compose.yml, no extra flags needed. Publishes the services that
-# normally stay on the private network, plus Postgres/Redis/MinIO, so they can
+# normally stay on the private network, plus Postgres/Redis/Garage, so they can
 # be inspected directly without going through the gateway.
 #
 # Do not carry this file to a host outside localhost. docker-compose.yml alone
@@ -15,10 +15,10 @@ services:
     ports:
       - "6379:6379"
 
-  minio:
+  # S3 API, to look at the buckets with a key. The admin API stays private.
+  garage:
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "3900:3900"
 
   identity-service:
     ports:

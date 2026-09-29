@@ -70,6 +70,11 @@ class InvalidFile(DomainError):
     message = "El archivo enviado no es válido."
 
 
+class StorageFull(DomainError):
+    code = "almacenamiento_lleno"
+    message = "Se llenó el espacio para imágenes. Avísale al administrador de IRIS."
+
+
 class UnauthorizedInternalAccess(DomainError):
     code = "acceso_interno_no_autorizado"
     message = "Esta operación solo puede ser invocada por otros servicios de IRIS."

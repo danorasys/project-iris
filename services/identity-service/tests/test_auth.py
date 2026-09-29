@@ -441,15 +441,31 @@ async def test_health_live_y_ready(client: AsyncClient) -> None:
     assert ready.status_code == 200
 
 
-async def test_avatars_catalog_is_public_and_points_at_the_public_bucket(client: AsyncClient) -> None:
+async def test_avatars_catalog_is_public_and_has_no_storage_urls(client: AsyncClient) -> None:
     response = await client.get("/catalogs/avatars")
 
     assert response.status_code == 200
     avatars = response.json()
     assert [a["name"] for a in avatars] == ["Violeta", "Coral", "Bosque", "Cielo"]
-    assert avatars[0]["image_url"] == "http://localhost:9000/iris-public/avatars/avatar-1.png"
-    # Nothing of the private bucket shows up in a public response.
-    assert all("iris-media" not in a["image_url"] for a in avatars)
+    # Only id and name: where the image is stored never reaches the browser.
+    assert set(avatars[0]) == {"id", "name"}
+
+
+async def test_avatar_image_is_served_without_a_session(client: AsyncClient) -> None:
+    response = await client.get("/catalogs/avatars/1/image")
+
+    # No session needed, and Caddy is told where the file is in Garage.
+    assert response.status_code == 200
+    assert response.content == b""
+    assert response.headers["x-iris-media"] == "/test-bucket/avatars/avatar-1.png"
+    assert response.headers["cache-control"] == "public, max-age=86400"
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+async def test_unknown_avatar_is_404(client: AsyncClient) -> None:
+    # A missing file is Garage's 404 (turned into a plain 404 by Caddy).
+    assert (await client.get("/catalogs/avatars/999/image")).status_code == 404
+    assert (await client.get("/catalogs/avatars/0/image")).status_code == 422
 
 
 async def test_listar_tipos_de_documento(client: AsyncClient) -> None:

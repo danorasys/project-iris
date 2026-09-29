@@ -27,6 +27,7 @@ from app.infrastructure.redis_gateway import (
     RedisTokenBlacklist,
 )
 from app.infrastructure.security import BcryptPasswordHasher, FernetTotpEncryptor, JwtTokenIssuer, PyotpTotpProvider
+from app.infrastructure.storage import S3ObjectStorage
 from app.infrastructure.uow import SqlAlchemyUnitOfWork
 
 _bearer = HTTPBearer(auto_error=False)
@@ -184,8 +185,22 @@ def get_internal_query_service() -> InternalQueryService:
     return InternalQueryService(uow_factory=SqlAlchemyUnitOfWork)
 
 
-def get_catalog_query_service() -> CatalogQueryService:
-    return CatalogQueryService(uow_factory=SqlAlchemyUnitOfWork)
+@lru_cache
+def get_object_storage() -> S3ObjectStorage:
+    settings = get_settings()
+    return S3ObjectStorage(
+        endpoint_url=settings.s3_endpoint_url,
+        access_key=settings.s3_access_key,
+        secret_key=settings.s3_secret_key,
+        bucket=settings.s3_bucket,
+        region=settings.s3_region,
+    )
+
+
+def get_catalog_query_service(
+    storage: Annotated[S3ObjectStorage, Depends(get_object_storage)],
+) -> CatalogQueryService:
+    return CatalogQueryService(uow_factory=SqlAlchemyUnitOfWork, storage=storage)
 
 
 def get_student_service() -> StudentService:

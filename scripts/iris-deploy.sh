@@ -15,7 +15,7 @@ readonly IMAGE_PREFIX="ghcr.io/${REPO}"
 readonly SERVICES=(identity-service classroom-service content-service notification-service api-gateway web)
 # Services of docker-compose.prod.yml, split by who builds the image.
 readonly APP_SERVICES=("${SERVICES[@]}")
-readonly THIRD_PARTY_SERVICES=(postgres redis minio minio-init reverse-proxy)
+readonly THIRD_PARTY_SERVICES=(postgres redis garage garage-volume garage-init reverse-proxy)
 readonly TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+$'
 readonly OIDC_ISSUER="https://token.actions.githubusercontent.com"
 
@@ -93,6 +93,9 @@ apply_version() {
     compose pull --quiet --ignore-pull-failures "${THIRD_PARTY_SERVICES[@]}" \
         || log "could not refresh some third party images, using the local ones"
     compose up -d --wait --wait-timeout 180 || return 1
+    # The Caddy files are mounted, so "up" doesn't restart Caddy when only they
+    # changed. Reload them; a broken config fails here and Caddy keeps the old one.
+    compose exec -T reverse-proxy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile || return 1
     health_check
 }
 

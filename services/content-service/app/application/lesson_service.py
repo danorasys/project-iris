@@ -5,23 +5,20 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Callable
 from uuid import UUID
 
 from app.application.dtos import ContentBlockInput
-from app.domain.entities import ContentBlock, Lesson, StoredObject, ValidatedUser
+from app.application.image_rules import EXTENSION_BY_CONTENT_TYPE, matches_declared_type
+from app.domain.entities import ContentBlock, Lesson, SignedDownload, ValidatedUser
 from app.domain.exceptions import InvalidFile, PermissionDenied, ResourceNotFound
 from app.domain.ports import ClassroomClient, ObjectStorage, UnitOfWork
 
-UowFactory = Callable[[], "UnitOfWork"]
+logger = logging.getLogger(__name__)
 
-# SVG technically starts with "image/" but can carry a <script> tag, and it
-# gets served back with the same content type, so it's excluded on purpose.
-_ALLOWED_IMAGE_CONTENT_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
-# The extension comes from the already checked content type, never from the
-# name the user sent, so "foto.exe" can't end up stored as an .exe.
-_EXTENSION_BY_CONTENT_TYPE = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif"}
+UowFactory = Callable[[], "UnitOfWork"]
 
 
 def _image_key(lesson_id: UUID, file_name: str) -> str:
@@ -156,6 +153,7 @@ class LessonService:
                 lesson.title = title
             if status is not None:
                 lesson.status = status
+            images_before = {b.image_file for b in lesson.blocks if b.image_file}
             if blocks is not None:
                 lesson.blocks = [
                     ContentBlock(
@@ -171,6 +169,14 @@ class LessonService:
 
             await uow.lessons.update(lesson, replace_blocks=blocks is not None)
             await uow.commit()
+
+        # Images the lesson stopped showing are deleted, so the bucket doesn't
+        # keep files nobody points at. Only ones that were in a block before:
+        # a fresh upload the teacher hasn't saved yet is left alone.
+        if blocks is not None:
+            images_after = {b.image_file for b in lesson.blocks if b.image_file}
+            for file_name in images_before - images_after:
+                await self._delete_quietly(_image_key(lesson.id, file_name))
         return lesson
 
     async def upload_image(
@@ -184,8 +190,10 @@ class LessonService:
         # local check. Uploads to the private bucket and returns the file
         # name to insert as a block via PATCH.
         self._require_role(user, "teacher")
-        if content_type not in _ALLOWED_IMAGE_CONTENT_TYPES:
+        if content_type not in EXTENSION_BY_CONTENT_TYPE:
             raise InvalidFile("El archivo debe ser una imagen.")
+        if not matches_declared_type(content_type, content):
+            raise InvalidFile("El archivo no es una imagen válida.")
         if len(content) > self._max_image_bytes:
             raise InvalidFile("La imagen no puede superar 5 MB.")
 
@@ -196,13 +204,14 @@ class LessonService:
         if lesson.teacher_id != user.subject_id:
             raise PermissionDenied("No eres el autor de esta lección.")
 
-        file_name = f"{uuid.uuid4().hex}.{_EXTENSION_BY_CONTENT_TYPE[content_type]}"
+        # The extension comes from the checked type, never from the file name.
+        file_name = f"{uuid.uuid4().hex}.{EXTENSION_BY_CONTENT_TYPE[content_type]}"
         await self._storage.upload(_image_key(lesson_id, file_name), content, content_type)
         return file_name
 
     async def get_image(
         self, lesson_id: UUID, file_name: str, user: ValidatedUser, correlation_id: str | None
-    ) -> StoredObject:
+    ) -> SignedDownload:
         # Same rule as get_lesson, and a student only gets images the lesson
         # actually shows. Any "no" is the same 404, so it doesn't reveal what exists.
         try:
@@ -212,10 +221,14 @@ class LessonService:
         if user.role == "student" and not any(b.image_file == file_name for b in lesson.blocks):
             raise ResourceNotFound("La imagen solicitada no existe.")
 
-        stored = await self._storage.download(_image_key(lesson_id, file_name))
-        if stored is None:
-            raise ResourceNotFound("La imagen solicitada no existe.")
-        return stored
+        return self._storage.sign_download(_image_key(lesson_id, file_name))
+
+    async def _delete_quietly(self, key: str) -> None:
+        # If deleting fails it's only wasted space, the lesson is already saved.
+        try:
+            await self._storage.delete(key)
+        except Exception:  # noqa: BLE001, cleaning up storage is never worth failing the request
+            logger.warning("No fue posible borrar el archivo %s del almacenamiento.", key)
 
     @staticmethod
     def _require_role(user: ValidatedUser, *roles: str) -> None:

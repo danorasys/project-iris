@@ -21,6 +21,7 @@ from app.domain.exceptions import (
     AttemptLimitExceeded,
     PermissionDenied,
     ResourceNotFound,
+    StorageFull,
     RequestAlreadyResolved,
     InvalidToken,
     AlreadyEnrolledOrPending,
@@ -40,6 +41,7 @@ _STATUS_POR_ERROR: dict[type[DomainError], int] = {
     InvalidToken: status.HTTP_401_UNAUTHORIZED,
     IdentityServiceUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
     InvalidFile: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    StorageFull: status.HTTP_507_INSUFFICIENT_STORAGE,
     UnauthorizedInternalAccess: status.HTTP_401_UNAUTHORIZED,
 }
 

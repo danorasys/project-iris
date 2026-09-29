@@ -160,3 +160,37 @@ async def test_incoming_x_forwarded_for_is_ignored_not_trusted(client: AsyncClie
 
     sent = route.calls.last.request
     assert sent.headers["x-forwarded-for"] == "127.0.0.1"
+
+
+@respx.mock
+async def test_upstream_date_and_server_are_not_repeated(client: AsyncClient) -> None:
+    respx.get(f"{IDENTITY_SERVICE_URL}/catalogs/avatars").mock(
+        return_value=httpx.Response(200, json=[], headers={"date": "Tue, 29 Sep 2026 04:33:07 GMT", "server": "uvicorn"})
+    )
+
+    response = await client.get("/api/identity/catalogs/avatars")
+
+    assert "server" not in response.headers
+    assert "date" not in response.headers
+
+
+@respx.mock
+async def test_private_image_headers_reach_caddy_untouched(client: AsyncClient) -> None:
+    # Caddy needs these to fetch the image from Garage (infra/caddy/api.caddy).
+    media_headers = {
+        "x-iris-media": "/iris-identity/avatars/avatar-1.png",
+        "x-iris-media-authorization": "AWS4-HMAC-SHA256 Credential=test",
+        "x-iris-media-date": "20260101T000000Z",
+        "x-iris-media-sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cache-control": "public, max-age=86400",
+    }
+    respx.get(f"{IDENTITY_SERVICE_URL}/catalogs/avatars/1/image").mock(
+        return_value=httpx.Response(200, headers=media_headers)
+    )
+
+    response = await client.get("/api/identity/catalogs/avatars/1/image")
+
+    assert response.status_code == 200
+    assert response.content == b""
+    for name, value in media_headers.items():
+        assert response.headers[name] == value

@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Path, Response, UploadFile, status
 
 from app.api.deps import CurrentUser, get_classroom_service, require_role
+from app.api.media import media_response
 from app.api.schemas import (
     ClassroomResponse,
     ClassroomWithStudentsResponse,
@@ -34,13 +35,8 @@ ReaderDep = Annotated[CurrentUser, Depends(require_role("teacher", "student"))]
 # extension), anything else is rejected before touching the database.
 LogoFileName = Annotated[str, Path(pattern=r"^[0-9a-f]{32}\.[a-z0-9]{1,5}$")]
 
-# Only the user's browser may cache the image, never a shared cache.
-_IMAGE_HEADERS = {
-    "Cache-Control": "private, max-age=3600",
-    "X-Content-Type-Options": "nosniff",
-    "Content-Disposition": "inline",
-    "Content-Security-Policy": "default-src 'none'; sandbox",
-}
+# Only the user's browser may cache the logo, never a shared cache.
+_LOGO_CACHE = "private, max-age=3600"
 
 
 def _classroom_response(classroom: Classroom) -> ClassroomResponse:
@@ -129,8 +125,8 @@ async def upload_logo(
 async def get_logo(
     classroom_id: UUID, file_name: LogoFileName, user: ReaderDep, classrooms: ClassroomServiceDep
 ) -> Response:
-    stored = await classrooms.get_logo(classroom_id, file_name, user.subject_id, user.role)
-    return Response(content=stored.content, media_type=stored.content_type, headers=_IMAGE_HEADERS)
+    signed = await classrooms.get_logo(classroom_id, file_name, user.subject_id, user.role)
+    return media_response(signed, _LOGO_CACHE)
 
 
 @router.get("/{classroom_id}/requests", response_model=list[RequestResponse])

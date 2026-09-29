@@ -301,11 +301,9 @@ class SupportConditionResponse(BaseModel):
 
 
 class AvatarResponse(BaseModel):
+    # The image is at GET /catalogs/avatars/{id}/image.
     id: int
     name: str
-    # Public on purpose: the registration form shows the avatars before the
-    # family has an account, and they're IRIS artwork, not anyone's data.
-    image_url: str
 
 
 class GuardianProfileResponse(BaseModel):

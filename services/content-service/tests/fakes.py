@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from app.domain.entities import StoredObject, ValidatedUser
-from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken
+from app.domain.entities import SignedDownload, ValidatedUser
+from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken, StorageFull
 
 
 class FakeIdentityClient:
@@ -46,13 +46,22 @@ class FakeClassroomClient:
 
 
 class FakeObjectStorage:
-    # Implements the ObjectStorage port in memory. There's no MinIO in this setup.
+    # Implements the ObjectStorage port in memory. No real storage in tests.
 
     def __init__(self) -> None:
-        self.files: dict[str, StoredObject] = {}
+        self.files: dict[str, bytes] = {}
+        self.full = False
 
     async def upload(self, key: str, content: bytes, content_type: str) -> None:
-        self.files[key] = StoredObject(content=content, content_type=content_type)
+        if self.full:
+            raise StorageFull()
+        self.files[key] = content
 
-    async def download(self, key: str) -> StoredObject | None:
-        return self.files.get(key)
+    def sign_download(self, key: str) -> SignedDownload:
+        return SignedDownload(
+            path=f"/test-bucket/{key}", authorization="AWS4-HMAC-SHA256 test", amz_date="20260101T000000Z",
+            content_sha256="UNSIGNED-PAYLOAD",
+        )
+
+    async def delete(self, key: str) -> None:
+        self.files.pop(key, None)

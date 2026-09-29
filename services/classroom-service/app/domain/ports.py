@@ -8,7 +8,7 @@ from types import TracebackType
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.entities import Classroom, Enrollment, StoredObject, StudentInfo, UserClaims
+from app.domain.entities import Classroom, Enrollment, SignedDownload, StudentInfo, UserClaims
 
 
 class ClassroomRepository(Protocol):
@@ -50,8 +50,12 @@ class UnitOfWork(Protocol):
 class ObjectStorage(Protocol):
     async def upload(self, key: str, content: bytes, content_type: str) -> None: ...
 
-    # Returns None when the key doesn't exist.
-    async def download(self, key: str) -> StoredObject | None: ...
+    # Signs a GET of the key for Caddy (see app/api/media.py). No network
+    # call: if the file is missing, Garage answers 404 when Caddy asks.
+    def sign_download(self, key: str) -> SignedDownload: ...
+
+    # Does nothing if the key is already gone.
+    async def delete(self, key: str) -> None: ...
 
 
 class EventPublisher(Protocol):
