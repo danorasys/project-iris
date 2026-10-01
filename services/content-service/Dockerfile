@@ -9,6 +9,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip uninstall --yes pip
 
 FROM python:3.12-slim AS runtime
+# The base image can be days behind Debian's security fixes (OpenSSL, for
+# example), so they are applied here instead of waiting for it to be rebuilt.
+RUN apt-get update \
+    && apt-get upgrade --yes --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 # Same for the pip that comes with the base image.
 RUN python -m pip uninstall --yes pip \
     && useradd --create-home --uid 1000 appuser
