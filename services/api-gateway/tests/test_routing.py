@@ -194,3 +194,19 @@ async def test_private_image_headers_reach_caddy_untouched(client: AsyncClient) 
     assert response.content == b""
     for name, value in media_headers.items():
         assert response.headers[name] == value
+
+
+@respx.mock
+async def test_each_set_cookie_reaches_the_browser_on_its_own(client: AsyncClient) -> None:
+    # Joined in one line with a comma, the browser would read them wrong.
+    respx.post(f"{IDENTITY_SERVICE_URL}/auth/refresh").mock(
+        return_value=httpx.Response(
+            200,
+            json={"access_token": "a"},
+            headers=[("set-cookie", "uno=1; Path=/; HttpOnly"), ("set-cookie", "dos=2; Path=/; HttpOnly")],
+        )
+    )
+
+    response = await client.post("/api/identity/auth/refresh")
+
+    assert response.headers.get_list("set-cookie") == ["uno=1; Path=/; HttpOnly", "dos=2; Path=/; HttpOnly"]

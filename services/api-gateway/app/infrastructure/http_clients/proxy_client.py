@@ -44,6 +44,6 @@ class HttpxHttpForwarder:
 
         return UpstreamResponse(
             status_code=response.status_code,
-            headers=dict(response.headers),
+            headers=response.headers.multi_items(),
             content=response.content,
         )

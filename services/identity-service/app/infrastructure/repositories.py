@@ -12,6 +12,7 @@ from app.domain.entities import (
     DocumentType,
     Guardian,
     Person,
+    ProfileChange,
     RelationshipType,
     Student,
     SupportCondition,
@@ -23,6 +24,7 @@ from app.infrastructure.models import (
     DocumentTypeModel,
     GuardianModel,
     PersonModel,
+    ProfileChangeModel,
     RelationshipTypeModel,
     StudentModel,
     SupportConditionModel,
@@ -182,6 +184,9 @@ class SqlAlchemyGuardianRepository:
             return
         person_id = guardian.person_id
         await self._session.execute(delete(GuardianModel).where(GuardianModel.id == guardian_id))
+        # The database also deletes them on its own (ON DELETE CASCADE), but
+        # deleting them here doesn't depend on that being turned on.
+        await self._session.execute(delete(ProfileChangeModel).where(ProfileChangeModel.person_id == person_id))
         await self._session.execute(delete(PersonModel).where(PersonModel.id == person_id))
 
     async def update_totp(self, guardian_id: UUID, totp_secret: str | None, totp_enabled: bool) -> None:
@@ -245,6 +250,23 @@ class SqlAlchemyStudentRepository:
         m = await self._session.get(StudentModel, student_id)
         if m is not None:
             m.avatar_id = avatar_id
+
+
+class SqlAlchemyProfileChangeRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, change: ProfileChange) -> None:
+        self._session.add(
+            ProfileChangeModel(
+                id=change.id,
+                person_id=change.person_id,
+                session_id=change.session_id,
+                changed_fields=change.changed_fields,
+                declaration_version=change.declaration_version,
+                changed_at=change.changed_at,
+            )
+        )
 
 
 class SqlAlchemyConsentRepository:

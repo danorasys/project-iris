@@ -182,8 +182,8 @@ export function useActualizarMiPerfilTutor() {
   });
 }
 
-/** There's no current-password field here, see the backend's
- * GuardianService.change_password for why. */
+/** Asks for the current password and a fresh 2FA code together, see
+ * GuardianService.change_password in identity-service. */
 export function useCambiarMiPassword() {
   return useMutation({
     mutationFn: (body: ChangePasswordRequest) =>

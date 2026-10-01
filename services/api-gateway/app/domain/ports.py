@@ -12,7 +12,9 @@ from typing import Protocol
 @dataclass(frozen=True)
 class UpstreamResponse:
     status_code: int
-    headers: dict[str, str]
+    # A list and not a dict: a header can come more than once (Set-Cookie),
+    # and each one has to reach the browser on its own line.
+    headers: list[tuple[str, str]]
     content: bytes
 
 

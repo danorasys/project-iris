@@ -2,12 +2,24 @@ from __future__ import annotations
 
 import re
 from datetime import date
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+import phonenumbers
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    EmailStr,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 
 MINIMUM_ADULT_AGE = 18
+# Anything older is almost surely a typo in the year.
+MAXIMUM_AGE = 120
 PHONE_PATTERN = r"^\d{10}$"
 # The guardian form's country-flag picker (react-phone-number-input) always
 # hands back a calling code (no leading "+", e.g. "57") and a national
@@ -28,7 +40,40 @@ def _validar_mayor_de_edad(v: date) -> date:
     age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
     if age < MINIMUM_ADULT_AGE:
         raise ValueError(f"Debes ser mayor de edad ({MINIMUM_ADULT_AGE} años o más).")
+    if age > MAXIMUM_AGE:
+        raise ValueError("Revisa el año de la fecha de nacimiento.")
     return v
+
+
+# Names: letters from any language (accents and ñ included), spaces and the
+# few signs real names use, like in "María-José O'Neil". It needs at least
+# one letter, so "---" or "123" don't pass. Extra spaces inside are joined.
+_NAME_SIGNS = " '-."
+
+
+def _validar_nombre(v: str) -> str:
+    if not any(ch.isalpha() for ch in v) or not all(ch.isalpha() or ch in _NAME_SIGNS for ch in v):
+        raise ValueError("Usa solo letras, espacios, guion, apóstrofo o punto.")
+    return " ".join(v.split())
+
+
+PersonName = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=120),
+    AfterValidator(_validar_nombre),
+]
+
+
+# Checks that the number exists for that country (Colombian mobiles start
+# with 3, for example) with Google's libphonenumber, the same rules the web
+# form uses. It works offline, the number never leaves the server.
+def _validar_telefono(country_code: str, number: str) -> None:
+    try:
+        parsed = phonenumbers.parse(f"+{country_code}{number}")
+    except phonenumbers.NumberParseException:
+        parsed = None
+    if parsed is None or not phonenumbers.is_valid_number(parsed):
+        raise ValueError("El número de teléfono no es válido para el país elegido.")
 
 
 # Same 5 requirements the registration forms already show and check on the
@@ -48,8 +93,8 @@ def _validar_password(v: str) -> str:
 
 
 class GuardianDataRequest(BaseModel):
-    first_name: str = Field(min_length=1, max_length=120)
-    last_name: str = Field(min_length=1, max_length=120)
+    first_name: PersonName
+    last_name: PersonName
     document_type_id: int = Field(gt=0)
     document_number: str = Field(min_length=1, max_length=30)
     date_of_birth: date
@@ -98,17 +143,18 @@ class GuardianDataRequest(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_phone_total_length(self) -> "GuardianDataRequest":
+    def validate_phone(self) -> "GuardianDataRequest":
         if len(self.phone_country_code) + len(self.phone_number) > E164_MAX_DIGITS:
             raise ValueError(
                 f"El código de país y el número telefónico no pueden sumar más de {E164_MAX_DIGITS} dígitos."
             )
+        _validar_telefono(self.phone_country_code, self.phone_number)
         return self
 
 
 class FirstStudentDataRequest(BaseModel):
-    first_name: str = Field(min_length=1, max_length=120)
-    last_name: str = Field(min_length=1, max_length=120)
+    first_name: PersonName
+    last_name: PersonName
     date_of_birth: date
     avatar_id: int = Field(gt=0)
     pin: str = Field(min_length=4, max_length=4)
@@ -174,8 +220,8 @@ class GuardianRegistrationRequest(BaseModel):
 
 
 class TeacherRegistrationRequest(BaseModel):
-    first_name: str = Field(min_length=1, max_length=120)
-    last_name: str = Field(min_length=1, max_length=120)
+    first_name: PersonName
+    last_name: PersonName
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     institution: str = Field(min_length=1, max_length=200)
@@ -188,6 +234,13 @@ class TeacherRegistrationRequest(BaseModel):
     @classmethod
     def validate_date_of_birth(cls, v: date) -> date:
         return _validar_mayor_de_edad(v)
+
+    # The teacher form only asks for 10 digits, the number is Colombian.
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        _validar_telefono("57", v)
+        return v
 
     @field_validator("password")
     @classmethod
@@ -205,13 +258,9 @@ class StudentProfileLoginRequest(BaseModel):
     pin: str = Field(min_length=4, max_length=4)
 
 
-class RefreshRequest(BaseModel):
-    refresh_token: str
-
-
 class CreateAdditionalStudentRequest(BaseModel):
-    first_name: str = Field(min_length=1, max_length=120)
-    last_name: str = Field(min_length=1, max_length=120)
+    first_name: PersonName
+    last_name: PersonName
     date_of_birth: date
     avatar_id: int = Field(gt=0)
     pin: str = Field(min_length=4, max_length=4)
@@ -227,9 +276,10 @@ class CreateAdditionalStudentRequest(BaseModel):
         return v
 
 
-class TokensResponse(BaseModel):
+# The refresh token is not here on purpose, it goes in an HttpOnly cookie
+# (see app/api/session_cookie.py).
+class AccessTokenResponse(BaseModel):
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
 
 
@@ -323,28 +373,48 @@ class GuardianProfileResponse(BaseModel):
 
 
 class UpdateGuardianProfileRequest(BaseModel):
-    first_name: str = Field(min_length=1, max_length=120)
-    last_name: str = Field(min_length=1, max_length=120)
+    first_name: PersonName
+    last_name: PersonName
     date_of_birth: date
     phone_country_code: str = Field(pattern=PHONE_COUNTRY_CODE_PATTERN)
     phone_number: str = Field(pattern=PHONE_NUMBER_PATTERN)
     relationship_type_id: int = Field(gt=0)
+    # The checkbox "the information I changed is correct and true". The server
+    # asks for it too, and strict so only a real true counts (not "yes" or 1).
+    truthful_declaration: bool = Field(
+        strict=True,
+        description="Debe ser true: el tutor declara que la información que modificó es correcta y veraz.",
+    )
 
     @field_validator("date_of_birth")
     @classmethod
     def validate_date_of_birth(cls, v: date) -> date:
         return _validar_mayor_de_edad(v)
 
+    @field_validator("truthful_declaration")
+    @classmethod
+    def validate_truthful_declaration(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError("Debes declarar que la información que modificaste es correcta y veraz.")
+        return v
+
     @model_validator(mode="after")
-    def validate_phone_total_length(self) -> "UpdateGuardianProfileRequest":
+    def validate_phone(self) -> "UpdateGuardianProfileRequest":
         if len(self.phone_country_code) + len(self.phone_number) > E164_MAX_DIGITS:
             raise ValueError(
                 f"El código de país y el número telefónico no pueden sumar más de {E164_MAX_DIGITS} dígitos."
             )
+        _validar_telefono(self.phone_country_code, self.phone_number)
         return self
 
 
 class ChangePasswordRequest(BaseModel):
+    # Asked again so an open session alone (someone else at the computer, or a
+    # stolen session) isn't enough to take over the account.
+    current_password: str = Field(min_length=1, max_length=128)
+    # A fresh code from the authenticator app, so both factors are proven
+    # right when the password changes.
+    code: str = Field(pattern=r"^\d{6}$")
     password: str = Field(min_length=8, max_length=128)
     # Confirmation-only: checked against `password` below, never stored or
     # forwarded past this schema (same pattern as GuardianDataRequest's
@@ -360,6 +430,8 @@ class ChangePasswordRequest(BaseModel):
     def validate_passwords_match(self) -> "ChangePasswordRequest":
         if self.password != self.password_confirmation:
             raise ValueError("Las contraseñas no coinciden.")
+        if self.password == self.current_password:
+            raise ValueError("La nueva contraseña no puede ser igual a la que escribiste en \"Contraseña actual\".")
         return self
 
 

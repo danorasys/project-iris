@@ -1,4 +1,7 @@
-import logoIris from "@/assets/landing/logo-iris.png";
+// A small copy of the logo (10 KB) inside the code itself (?inline), so it
+// shows up together with the ring. The full logo is 228 KB and, with a hard
+// reload, arrived after this screen was already gone.
+import logoIris from "@/assets/landing/logo-iris-loading.webp?inline";
 import styles from "./LoadingScreen.module.css";
 
 interface LoadingScreenProps {

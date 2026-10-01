@@ -1,18 +1,281 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  max-width: 640px;
+  gap: var(--space-4);
+  width: 100%;
 }
 
+.status {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+/* --- Header: who the account belongs to --- */
+.hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-large);
+  /* The same radial light as the landing, instead of a flat diagonal. */
+  background: radial-gradient(130% 180% at 0% 0%, var(--color-iris-medium) 0%, var(--color-iris-deep) 62%);
+  color: var(--color-surface);
+  box-shadow:
+    var(--shadow-card),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  /* A soft ring, then a thin outer one, like the rings of an iris. */
+  box-shadow:
+    0 0 0 5px rgba(255, 255, 255, 0.14),
+    0 0 0 6px rgba(255, 255, 255, 0.35);
+}
+
+.heroText {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-iris-pale);
+}
+
+.name {
+  margin: var(--space-1) 0 var(--space-2) 0;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* A quiet see-through pill instead of a loud orange one. */
+.chip {
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  color: var(--color-surface);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.heroEmail {
+  color: var(--color-iris-pale);
+  overflow-wrap: anywhere;
+}
+
+/* --- Cards --- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.card {
+  padding: var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  border: 1px solid var(--color-iris-pale);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Read only data sits on the page color, so it looks different at a glance. */
+.cardMuted {
+  background: var(--color-canvas);
+  box-shadow: none;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-iris-pale);
+}
+
+.cardIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.cardTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--color-iris-deep);
+}
+
+.cardHint {
+  margin: var(--space-1) 0 0 0;
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+}
+
+/* --- Fields, two per row --- */
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+/* The editable value has a dashed underline as a hint that it can change,
+   and the pencil is the clear way in (double click also works). */
+.fieldValueRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 2px dashed var(--color-iris-pale);
+  transition: border-color 120ms ease;
+}
+
+.field:hover .fieldValueRow {
+  border-bottom-color: var(--color-iris-medium);
+}
+
+/* A value that breaks a rule: red underline and the message below. */
+.fieldInvalid .fieldValueRow,
+.fieldInvalid:hover .fieldValueRow {
+  border-bottom-color: var(--color-error);
+}
+
+.fieldError {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.fieldValue {
+  font-size: 1.05rem;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.fieldReadOnly .fieldValue {
+  padding: var(--space-2) 0;
+  border-bottom: 2px solid transparent;
+  color: var(--color-ink-soft);
+}
+
+.fieldEditing {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-canvas);
+}
+
+.fieldEditingInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.cancelEditingButton {
+  flex: none;
+  border: 2px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  /* Same height as the input next to it. */
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.cancelEditingButton:hover {
+  border-color: var(--color-iris-medium);
+  background: var(--color-iris-pale);
+}
+
+.cancelEditingButton:focus-visible {
+  outline: 3px solid var(--color-iris-medium);
+  outline-offset: 2px;
+}
+
+.editButton {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.editButton:hover,
+.editButton:focus-visible {
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+/* Info box with the "i", same as the 2FA screen and the profile picker. */
 .notice {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
+  margin-top: var(--space-4);
   padding: var(--space-3);
-  background: var(--color-canvas);
+  border: 1px solid var(--color-iris-pale);
   border-radius: var(--radius-medium);
-  font-size: 0.9rem;
+  background: color-mix(in srgb, var(--color-iris-pale) 45%, var(--color-surface));
+  font-size: 0.85rem;
   line-height: 1.5;
   color: var(--color-ink-soft);
 }
@@ -35,112 +298,157 @@
   margin: 0;
 }
 
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+.noticeLink {
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  overflow-wrap: anywhere;
 }
 
-.groupTitle {
-  margin: var(--space-2) 0 0 0;
-  font-size: 1rem;
+.noticeLink:hover {
   color: var(--color-iris-deep);
 }
 
-.field {
+/* --- Bar to save or discard changes --- */
+.saveBar {
+  position: sticky;
+  bottom: var(--space-3);
+  z-index: 1;
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  border: 2px solid var(--color-amber);
+  box-shadow: var(--shadow-card);
+  /* Comes up from below when the first change is made, with the same
+     smooth stop as the 2FA dialog. */
+  animation: save-bar-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.fieldLabel {
+@keyframes save-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* When the changes are discarded or saved, it goes back down the same way
+   it came, a little faster. Keeps the end state so it doesn't flash back
+   before it is removed. */
+.saveBarLeaving {
+  animation: save-bar-out 220ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes save-bar-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+}
+
+/* For people who asked their system for less motion, it just shows up and
+   goes away. */
+@media (prefers-reduced-motion: reduce) {
+  .saveBar {
+    animation: none;
+  }
+
+  .saveBarLeaving {
+    animation: none;
+    visibility: hidden;
+  }
+}
+
+.saveBarText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.saveBarTitle {
+  margin: 0;
   font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+/* Soft notice while some data is wrong. The tint comes from the theme's
+   error color, so there are no new colors outside theme.css. */
+.fixNotice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+  background: color-mix(in srgb, var(--color-error) 7%, var(--color-surface));
   font-size: 0.9rem;
   color: var(--color-ink);
 }
 
-.fieldEditing {
+.fixNotice strong {
+  color: var(--color-error);
+}
+
+.fixNoticeIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-error) 14%, var(--color-surface));
+  color: var(--color-error);
+}
+
+.saveBarButtons {
   display: flex;
-  align-items: flex-end;
+  flex: none;
   gap: var(--space-2);
 }
 
-.fieldEditing > :first-child {
-  flex: 1;
-}
-
-.doneEditingButton {
-  border: 2px solid var(--color-iris-medium);
-  border-radius: var(--radius-medium);
-  background: transparent;
-  color: var(--color-iris-deep);
-  padding: var(--space-2) var(--space-3);
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-/* Editable value: same field footprint as a real input, with a dashed
-   border as a hint that it's interactive without looking like a button.
-   The pencil button is the reliable, discoverable, touch-friendly way in;
-   double-clicking the row itself also works for anyone who reaches for it
-   first. */
-.editableValue {
+/* --- Security --- */
+.securityRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border-radius: var(--radius-medium);
-  border: 2px dashed var(--color-iris-pale);
-  background: var(--color-surface);
-  color: var(--color-ink);
+  gap: var(--space-4);
 }
 
-.editableValue:hover {
-  border-color: var(--color-iris-medium);
+.passwordDots {
+  letter-spacing: 0.2em;
 }
 
-.editButton {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: var(--radius-small);
-  background: var(--color-canvas);
-  color: var(--color-iris-medium);
-  cursor: pointer;
-  transition: background 120ms ease;
-}
-
-.editButton:hover {
-  background: var(--color-iris-pale);
-}
-
-/* Read-only value: solid border and a muted background, so it looks
-   visibly different from the editable fields around it and a guardian
-   doesn't try to click into something they can't change. */
-.readOnlyValue {
-  padding: var(--space-3);
-  border-radius: var(--radius-medium);
-  border: 2px solid var(--color-iris-pale);
-  background: var(--color-canvas);
-  color: var(--color-ink-soft);
-}
-
-.confirmBlock {
+.passwordForm {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--color-canvas);
-  border-radius: var(--radius-medium);
-  margin-top: var(--space-2);
 }
 
+.passwordGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+}
+
+.passwordButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* --- Buttons and messages --- */
 .error {
   margin: 0;
   font-weight: 700;
@@ -148,7 +456,6 @@
 }
 
 .primaryButton {
-  align-self: flex-start;
   border: none;
   border-radius: var(--radius-medium);
   background: var(--color-amber);
@@ -170,42 +477,57 @@
 }
 
 .secondaryButton {
+  flex: none;
   border: 2px solid var(--color-iris-pale);
   border-radius: var(--radius-medium);
-  background: transparent;
-  color: var(--color-ink);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
   padding: var(--space-3) var(--space-4);
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
 }
 
 .secondaryButton:hover {
   border-color: var(--color-iris-medium);
+  background: var(--color-iris-pale);
 }
 
-.textLink {
-  align-self: flex-start;
-  border: none;
-  background: none;
-  color: var(--color-iris-deep);
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: underline;
-  padding: 0;
-  font-size: 0.95rem;
+.secondaryButton:focus-visible {
+  outline: 3px solid var(--color-iris-medium);
+  outline-offset: 2px;
 }
 
-.passwordForm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--color-canvas);
-  border-radius: var(--radius-medium);
-}
+/* --- Small screens: one column --- */
+@media (max-width: 720px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--space-4);
+  }
 
-.passwordFormButtons {
-  display: flex;
-  gap: var(--space-3);
+  .fieldGrid,
+  .passwordGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldEditing {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cancelEditingButton {
+    align-self: flex-end;
+  }
+
+  .saveBar,
+  .securityRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .saveBarButtons {
+    justify-content: flex-end;
+  }
 }

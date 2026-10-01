@@ -15,6 +15,7 @@ from app.domain.entities import (
     DocumentType,
     Guardian,
     Person,
+    ProfileChange,
     RelationshipType,
     SignedDownload,
     Student,
@@ -72,6 +73,12 @@ class ConsentRepository(Protocol):
     async def add(self, consent: Consent) -> None: ...
 
 
+# Only adds. A saved change is a record of what happened, so there is no
+# way to edit or delete one from here (they go away only with the person).
+class ProfileChangeRepository(Protocol):
+    async def add(self, change: ProfileChange) -> None: ...
+
+
 class DocumentTypeRepository(Protocol):
     async def list_all(self) -> list[DocumentType]: ...
     async def get_by_id(self, document_type_id: int) -> DocumentType | None: ...
@@ -115,6 +122,9 @@ class UnitOfWork(Protocol):
 
     @property
     def consents(self) -> ConsentRepository: ...
+
+    @property
+    def profile_changes(self) -> ProfileChangeRepository: ...
 
     @property
     def document_types(self) -> DocumentTypeRepository: ...
@@ -167,12 +177,17 @@ class TokenIssuer(Protocol):
 
 class PortalAccessStore(Protocol):
     # Short lived proof that a guardian passed the 2FA check for the parents'
-    # portal. Kept per account, so a new login or a logout must revoke it.
-    async def conceder(self, person_id: UUID, ttl_seg: int) -> None: ...
+    # portal. It belongs to the session where the code was typed, so the code
+    # never opens the portal in another browser with the same account.
+    async def conceder(self, person_id: UUID, session_id: str, ttl_seg: int) -> None: ...
 
-    async def revocar(self, person_id: UUID) -> None: ...
+    # True while the access is still open, and in that case it starts the
+    # inactivity count again. Past max_age_seg since the code it is closed.
+    async def renovar(self, person_id: UUID, session_id: str, ttl_seg: int, max_age_seg: int) -> bool: ...
 
-    async def esta_concedido(self, person_id: UUID) -> bool: ...
+    async def revocar(self, person_id: UUID, session_id: str) -> None: ...
+
+    async def revocar_todas(self, person_id: UUID) -> None: ...
 
 
 class AttemptLockout(Protocol):

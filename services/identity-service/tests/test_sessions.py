@@ -11,7 +11,7 @@ from httpx import AsyncClient
 import jwt
 
 from app.config import get_settings
-from tests.conftest import payload_registro_tutor, registrar_tutor, registrar_tutor_con_2fa
+from tests.conftest import payload_registro_tutor, refrescar_con, refresh_cookie, registrar_tutor, registrar_tutor_con_2fa
 
 pytestmark = pytest.mark.asyncio
 
@@ -56,10 +56,11 @@ async def _fin_de_la_espera(redis: fakeredis.aioredis.FakeRedis, patron: str) ->
 
 
 async def test_los_tokens_llevan_un_sid_que_se_conserva_al_refrescar_y_cambia_en_cada_login(client: AsyncClient) -> None:
-    registro = (await client.post("/auth/guardians", json=payload_registro_tutor("sid@example.com", "7000000001"))).json()
-    assert _claims(registro["access_token"])["sid"] == _claims(registro["refresh_token"])["sid"]
+    respuesta = await client.post("/auth/guardians", json=payload_registro_tutor("sid@example.com", "7000000001"))
+    registro = respuesta.json()
+    assert _claims(registro["access_token"])["sid"] == _claims(refresh_cookie(respuesta))["sid"]
 
-    refrescado = (await client.post("/auth/refresh", json={"refresh_token": registro["refresh_token"]})).json()
+    refrescado = (await client.post("/auth/refresh")).json()
     login = await _login(client, "sid@example.com")
 
     assert _claims(refrescado["access_token"])["sid"] == _claims(registro["access_token"])["sid"]
@@ -73,7 +74,7 @@ async def test_cerrar_sesion_invalida_el_token_de_acceso_al_instante(client: Asy
     registro = (await client.post("/auth/guardians", json=payload_registro_tutor("logout-ya@example.com", "7000000002"))).json()
     assert (await client.get("/users/me", headers=_headers(registro["access_token"]))).status_code == 200
 
-    await client.post("/auth/logout", json={"refresh_token": registro["refresh_token"]}, headers=_headers(registro["access_token"]))
+    await client.post("/auth/logout", headers=_headers(registro["access_token"]))
 
     assert (await client.get("/users/me", headers=_headers(registro["access_token"]))).status_code == 401
 
@@ -81,13 +82,14 @@ async def test_cerrar_sesion_invalida_el_token_de_acceso_al_instante(client: Asy
 async def test_cerrar_todas_las_sesiones_invalida_los_tokens_anteriores_pero_no_los_nuevos(client: AsyncClient) -> None:
     primera = (await client.post("/auth/guardians", json=payload_registro_tutor("todas@example.com", "7000000003"))).json()
     segunda = await _login(client, "todas@example.com")
+    cookie_segunda = client.cookies["iris_refresh"]
 
     respuesta = await client.post("/auth/logout-all", headers=_headers(primera["access_token"]))
 
     assert respuesta.status_code == 204
     assert (await client.get("/users/me", headers=_headers(primera["access_token"]))).status_code == 401
     assert (await client.get("/users/me", headers=_headers(segunda["access_token"]))).status_code == 401
-    refrescar = await client.post("/auth/refresh", json={"refresh_token": segunda["refresh_token"]})
+    refrescar = await refrescar_con(client, cookie_segunda)
     assert refrescar.status_code == 401
     # Token dates have whole seconds, so a login has to wait for the next second.
     await asyncio.sleep(1.2)
@@ -102,12 +104,15 @@ async def test_cerrar_todas_las_sesiones_requiere_autenticacion(client: AsyncCli
 async def test_cambiar_la_contrasena_cierra_todas_las_sesiones(client: AsyncClient) -> None:
     token, secret = await registrar_tutor_con_2fa(client, "cambia-clave@example.com", "7000000004")
     otra = await _login(client, "cambia-clave@example.com")
-    # A new login closes the portal, so it is opened again for the first session.
-    await activar_2fa_y_abrir_portal_con_secreto(client, token, secret)
 
     cambio = await client.post(
         "/guardians/me/password",
-        json={"password": "Otra-Clave-456", "password_confirmation": "Otra-Clave-456"},
+        json={
+            "current_password": "Clave-Segura-123",
+            "code": pyotp.TOTP(secret).now(),
+            "password": "Otra-Clave-456",
+            "password_confirmation": "Otra-Clave-456",
+        },
         headers=_headers(token),
     )
 
@@ -122,28 +127,31 @@ async def test_cambiar_la_contrasena_cierra_todas_las_sesiones(client: AsyncClie
 async def test_reusar_un_refresh_token_mucho_despues_cierra_toda_la_sesion(
     client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
 ) -> None:
-    registro = (await client.post("/auth/guardians", json=payload_registro_tutor("robo@example.com", "7000000005"))).json()
-    usado = registro["refresh_token"]
-    nuevo = (await client.post("/auth/refresh", json={"refresh_token": usado})).json()
+    usado = refresh_cookie(await client.post("/auth/guardians", json=payload_registro_tutor("robo@example.com", "7000000005")))
+    refrescado = await client.post("/auth/refresh")
+    nuevo, cookie_nueva = refrescado.json(), refresh_cookie(refrescado)
     # Pretend the first token was used a minute ago, longer than the grace time.
     await redis_client.set(f"blacklist:{_claims(usado)['jti']}", str(time.time() - 60))
 
-    reuso = await client.post("/auth/refresh", json={"refresh_token": usado})
+    reuso = await refrescar_con(client, usado)
 
     assert reuso.status_code == 401
-    assert (await client.post("/auth/refresh", json={"refresh_token": nuevo["refresh_token"]})).status_code == 401
+    assert (await refrescar_con(client, cookie_nueva)).status_code == 401
     assert (await client.get("/users/me", headers=_headers(nuevo["access_token"]))).status_code == 401
 
 
 async def test_reusar_un_refresh_token_en_el_acto_no_cierra_la_sesion(client: AsyncClient) -> None:
-    registro = (await client.post("/auth/guardians", json=payload_registro_tutor("carrera@example.com", "7000000006"))).json()
-    usado = registro["refresh_token"]
-    nuevo = (await client.post("/auth/refresh", json={"refresh_token": usado})).json()
+    usado = refresh_cookie(await client.post("/auth/guardians", json=payload_registro_tutor("carrera@example.com", "7000000006")))
+    cookie_nueva = refresh_cookie(await client.post("/auth/refresh"))
 
-    reuso = await client.post("/auth/refresh", json={"refresh_token": usado})
+    reuso = await refrescar_con(client, usado)
 
     assert reuso.status_code == 401
-    assert (await client.post("/auth/refresh", json={"refresh_token": nuevo["refresh_token"]})).status_code == 200
+    assert reuso.json()["error"]["code"] == "token_recien_usado"
+    # The cookie is left alone: the browser already holds the new one, and
+    # deleting it would close the session of the tab that won.
+    assert "set-cookie" not in reuso.headers
+    assert (await refrescar_con(client, cookie_nueva)).status_code == 200
 
 
 # --- portal 2FA lock per session and per account ---

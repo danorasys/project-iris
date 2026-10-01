@@ -65,19 +65,39 @@ class RedisSessionRegistry:
         return mark is not None and emitido_en < int(mark)
 
 
-# Implements the PortalAccessStore port. One key per guardian, that expires on its own.
+# Implements the PortalAccessStore port. One key per guardian and session,
+# holding the time the code was typed. Its TTL is the inactivity limit, so it
+# expires on its own when nobody uses the portal.
 class RedisPortalAccessStore:
     def __init__(self, redis: Redis) -> None:
         self._redis = redis
 
-    async def conceder(self, person_id: UUID, ttl_seg: int) -> None:
-        await self._redis.setex(f"portal-access:{person_id}", ttl_seg, "1")
+    @staticmethod
+    def _key(person_id: UUID, session_id: str) -> str:
+        return f"portal-access:{person_id}:{session_id}"
 
-    async def revocar(self, person_id: UUID) -> None:
-        await self._redis.delete(f"portal-access:{person_id}")
+    async def conceder(self, person_id: UUID, session_id: str, ttl_seg: int) -> None:
+        await self._redis.setex(self._key(person_id, session_id), ttl_seg, str(int(time.time())))
 
-    async def esta_concedido(self, person_id: UUID) -> bool:
-        return bool(await self._redis.exists(f"portal-access:{person_id}"))
+    async def renovar(self, person_id: UUID, session_id: str, ttl_seg: int, max_age_seg: int) -> bool:
+        key = self._key(person_id, session_id)
+        granted_at = await self._redis.get(key)
+        if granted_at is None:
+            return False
+        if time.time() - int(granted_at) >= max_age_seg:
+            await self._redis.delete(key)
+            return False
+        # If it expired right between the two calls, expire answers False.
+        return bool(await self._redis.expire(key, ttl_seg))
+
+    async def revocar(self, person_id: UUID, session_id: str) -> None:
+        await self._redis.delete(self._key(person_id, session_id))
+
+    async def revocar_todas(self, person_id: UUID) -> None:
+        # A guardian has only a few sessions, so walking their keys is cheap.
+        keys = [key async for key in self._redis.scan_iter(match=f"portal-access:{person_id}:*")]
+        if keys:
+            await self._redis.delete(*keys)
 
 
 # Implements the AttemptLockout port. Three keys per attempt key:

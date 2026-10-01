@@ -19,6 +19,7 @@ from app.application.dtos import FirstStudentData, UpdateGuardianProfileData
 from app.application.guardian_service import GuardianService
 from app.application.totp_service import TotpService
 from app.domain.entities import Guardian, Person
+from app.domain.exceptions import DomainError
 
 router = APIRouter(prefix="/guardians", tags=["guardians"])
 
@@ -101,7 +102,9 @@ async def update_my_profile(
     """Only the fields on UpdateGuardianProfileRequest can change. Document
     type, document number, email and the document issue date are never
     accepted here, so a guardian has no way to change what identifies
-    their own account or document."""
+    their own account or document. truthful_declaration must be true, and
+    each save that changes something is recorded with the names of the
+    fields that changed (never their values)."""
     person, guardian = await guardians.update_profile(
         user.subject_id,
         UpdateGuardianProfileData(
@@ -112,17 +115,25 @@ async def update_my_profile(
             phone_number=payload.phone_number,
             relationship_type_id=payload.relationship_type_id,
         ),
+        session_id=user.session_id,
     )
     return _to_profile_response(person, guardian)
 
 
-@router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT, response_model=None, dependencies=[PortalAccessDep])
+@router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def change_my_password(
-    payload: ChangePasswordRequest, user: CurrentGuardianDep, guardians: GuardianServiceDep
+    payload: ChangePasswordRequest, user: CurrentGuardianDep, guardians: GuardianServiceDep, totp: TotpServiceDep
 ) -> None:
-    """There's no current-password field here on purpose — see the
-    docstring on GuardianService.change_password for why."""
-    await guardians.change_password(user.subject_id, payload.password)
+    """Asks for a fresh 2FA code and the current password, both factors at
+    the same moment, so it doesn't lean on the portal access from earlier.
+    Wrong codes lock like the portal's, wrong passwords lock like the login.
+    If the code was right but the rest failed, the code can be used again."""
+    await totp.confirm_sensitive_action(user.subject_id, user.session_id, payload.code)
+    try:
+        await guardians.change_password(user.subject_id, payload.current_password, payload.password)
+    except DomainError:
+        await totp.release_code(user.subject_id, payload.code)
+        raise
 
 
 @router.post("/me/2fa/setup", response_model=TotpSetupResponse)
@@ -137,7 +148,7 @@ async def setup_totp(user: CurrentGuardianDep, totp: TotpServiceDep) -> TotpSetu
 async def verify_totp(payload: TotpVerifyRequest, user: CurrentGuardianDep, totp: TotpServiceDep) -> None:
     """Confirms the guardian's authenticator app is actually producing valid
     codes for the secret from /me/2fa/setup, and only then turns 2FA on."""
-    await totp.verify(user.subject_id, payload.code)
+    await totp.verify(user.subject_id, user.session_id, payload.code)
 
 
 @router.post("/me/2fa/challenge", response_model=PortalChallengeResponse)
@@ -153,5 +164,5 @@ async def confirm_portal_access(
 
 @router.get("/me/portal-access", status_code=status.HTTP_204_NO_CONTENT, response_model=None, dependencies=[PortalAccessDep])
 async def check_portal_access() -> None:
-    """204 if the guardian passed the 2FA check recently, 403 if not. The
-    frontend asks this before showing the portal."""
+    """204 if this session passed the 2FA check and has been active lately,
+    403 if not. The frontend asks this before showing the portal."""

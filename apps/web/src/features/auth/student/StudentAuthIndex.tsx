@@ -6,7 +6,7 @@ import styles from "./StudentAuthIndex.module.css";
 
 /** Index of `/login/student`. "Soy nuevo" registers the tutor and
  * creates the first profile, "Ya soy Mirador" leads to the profile picker
- * plus PIN. */
+ * plus PIN (through the normal login if no tutor is signed in). */
 export default function StudentAuthIndex() {
   const navigate = useNavigate();
 

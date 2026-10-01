@@ -131,7 +131,11 @@ export function AppRouter() {
                     />
                     <Route
                         path="/login/guardian/portal"
-                        element={<ProfileSelectorAuth />}
+                        element={
+                            <RequireRol role="guardian">
+                                <ProfileSelectorAuth />
+                            </RequireRol>
+                        }
                     />
                     <Route
                         path="/login/teacher/new"

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/shared/auth/AuthContext"
 import { useLogin } from "@/shared/api/hooks/useAuthApi"
@@ -7,22 +7,40 @@ import { getAuthErrorMessage } from "./errors"
 import { TextField } from "./ui/TextField"
 import { IrisMark } from "@/shared/ui/IrisMark"
 import { IconArrowLeft, IconInfo } from "@/shared/ui/icons"
+import { SuccessNotice } from "@/shared/ui/SuccessNotice"
+import { clearLoginNotice, peekLoginNotice, type LoginNotice } from "@/shared/ui/loginNotice"
 import logoIris from "@/assets/landing/logo-iris.png"
 import iconGuardian from "@/assets/auth/avatar-guardian.png"
 import iconTeacher from "@/assets/auth/avatar-teacher.png"
 import styles from "./AdultAuthPage.module.css"
 
 type View = "login" | "elegirRegistro"
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function AdultAuthPage() {
     const location = useLocation()
+
+    // One time message left by another screen, e.g. after changing the
+    // password (see shared/ui/loginNotice.ts). It's deleted once shown, so
+    // reloading the page doesn't bring it back.
+    const [successNotice, setSuccessNotice] = useState<LoginNotice | null>(peekLoginNotice)
+    useEffect(() => {
+        clearLoginNotice()
+    }, [])
 
     const [view, setView] = useState<View>(
         (location.state as { vista?: View } | null)?.vista ?? "login",
     )
     return (
         <main className={styles.page}>
+            {successNotice && (
+                <SuccessNotice
+                    title={successNotice.title}
+                    message={successNotice.message}
+                    onClose={() => setSuccessNotice(null)}
+                />
+            )}
             <BrandPanel />
             <div className={styles.formColumn}>
                 {view === "elegirRegistro" ? (
@@ -132,12 +150,8 @@ function LoginForm({
                 password,
             })
             setSession(tokens)
-            navigate(
-                decodeJwtPayload(tokens.access_token)?.role === "guardian"
-                    ? "/login/guardian/portal"
-                    : "/teacher/home",
-                { replace: true },
-            )
+            const isGuardian = decodeJwtPayload(tokens.access_token)?.role === "guardian"
+            navigate(isGuardian ? "/login/guardian/portal" : "/teacher/home", { replace: true })
         } catch (reason) {
             setError(getAuthErrorMessage(reason))
         }

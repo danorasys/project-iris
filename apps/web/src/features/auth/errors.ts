@@ -51,13 +51,22 @@ export function getAuthErrorMessage(error: unknown): string {
       return "Cerramos tu sesión por seguridad, hubo demasiados intentos fallidos. Inicia sesión de nuevo.";
     case "totp_no_activado":
       return "Tu cuenta todavía no tiene la verificación en dos pasos activada.";
+    case "contrasena_actual_incorrecta":
+      return "La contraseña actual no es correcta.";
+    case "contrasena_igual_a_la_actual":
+      return "La nueva contraseña debe ser diferente a la actual.";
+    case "fecha_nacimiento_inconsistente":
+      return "La fecha de nacimiento no puede ser posterior a la fecha de expedición de tu documento.";
     case "tipo_relacion_invalido":
       return "Elige un tipo de relación válido.";
     case "datos_invalidos": {
       const errors = error.details?.errores;
       if (Array.isArray(errors) && errors.length > 0) {
         const first = errors[0] as PydanticError;
-        const detail = first.msg ?? first.mensaje;
+        // Pydantic starts the messages of our own rules with "Value error, ".
+        // The rest are Pydantic's own, in English, so those get the generic one.
+        const raw = first.msg ?? first.mensaje;
+        const detail = raw?.startsWith("Value error, ") ? raw.slice("Value error, ".length) : first.mensaje;
         if (detail) return `Revisa los datos del formulario: ${detail}`;
       }
       return "Revisa los datos del formulario, algo no es válido.";

@@ -5,6 +5,8 @@ from httpx import AsyncClient
 
 from app.config import get_settings
 from tests.conftest import (
+    refrescar_con,
+    refresh_cookie,
     activar_2fa_y_abrir_portal,
     AVATAR_ID_CORAL,
     AVATAR_ID_VIOLETA,
@@ -70,7 +72,9 @@ async def test_registro_tutor_con_consentimiento_crea_cuenta_y_devuelve_tokens(c
     assert response.status_code == 201
     body = response.json()
     assert "access_token" in body
-    assert "refresh_token" in body
+    # The refresh token only travels in the HttpOnly cookie, never in the JSON.
+    assert "refresh_token" not in body
+    assert refresh_cookie(response)
 
 
 async def test_registro_tutor_sin_aceptar_consentimiento_es_rechazado(client: AsyncClient) -> None:
@@ -143,6 +147,35 @@ async def test_registro_tutor_numero_telefono_con_letras_es_rechazado(client: As
     payload["guardian"]["phone_number"] = "300abc4567"
 
     response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+
+
+async def test_registro_tutor_telefono_que_no_existe_en_el_pais_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor()
+    # Right length, but no Colombian number starts with 000.
+    payload["guardian"]["phone_number"] = "0001234567"
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("nombre", ["Ana123", "@@", "---", "Ana_María"])
+async def test_registro_tutor_nombre_con_numeros_o_simbolos_es_rechazado(client: AsyncClient, nombre: str) -> None:
+    payload = _payload_registro_tutor()
+    payload["guardian"]["first_name"] = nombre
+
+    response = await client.post("/auth/guardians", json=payload)
+
+    assert response.status_code == 422
+
+
+async def test_registro_docente_telefono_que_no_existe_es_rechazado(client: AsyncClient) -> None:
+    payload = _payload_registro_docente()
+    payload["phone"] = "0001234567"
+
+    response = await client.post("/auth/teachers", json=payload)
 
     assert response.status_code == 422
 
@@ -680,36 +713,89 @@ async def test_registro_tutor_con_contrasena_completa_es_aceptado(client: AsyncC
 
 async def test_refresh_emite_tokens_nuevos_e_invalida_el_refresh_anterior(client: AsyncClient) -> None:
     registro = await client.post("/auth/guardians", json=_payload_registro_tutor("refresh@example.com"))
-    refresh_token = registro.json()["refresh_token"]
+    refresh_token = refresh_cookie(registro)
 
-    response = await client.post("/auth/refresh", json={"refresh_token": refresh_token})
+    # The client sends the cookie it got at registration on its own.
+    response = await client.post("/auth/refresh")
 
     assert response.status_code == 200
-    nuevos = response.json()
-    assert "access_token" in nuevos
-    # jti is random on every issue, so the new refresh token is always different
-    # even if it were requested in the same second as the original.
-    assert nuevos["refresh_token"] != refresh_token
+    assert "access_token" in response.json()
+    # jti is random on every issue, so the new refresh token is always different.
+    assert refresh_cookie(response) != refresh_token
 
     # The refresh token that was just used is now blacklisted, using it again fails.
-    reuso = await client.post("/auth/refresh", json={"refresh_token": refresh_token})
+    reuso = await refrescar_con(client, refresh_token)
     assert reuso.status_code == 401
 
 
-async def test_logout_invalida_el_refresh_token(client: AsyncClient) -> None:
+async def test_logout_invalida_el_refresh_token_y_borra_la_cookie(client: AsyncClient) -> None:
     registro = await client.post("/auth/guardians", json=_payload_registro_tutor("logout@example.com"))
     access_token = registro.json()["access_token"]
-    refresh_token = registro.json()["refresh_token"]
+    refresh_token = refresh_cookie(registro)
 
-    response = await client.post(
-        "/auth/logout",
-        json={"refresh_token": refresh_token},
-        headers={"Authorization": f"Bearer {access_token}"},
-    )
+    response = await client.post("/auth/logout", headers={"Authorization": f"Bearer {access_token}"})
+
     assert response.status_code == 204
-
-    reuso = await client.post("/auth/refresh", json={"refresh_token": refresh_token})
+    assert 'iris_refresh=""' in response.headers["set-cookie"]
+    reuso = await refrescar_con(client, refresh_token)
     assert reuso.status_code == 401
+
+
+async def test_logout_funciona_sin_access_token(client: AsyncClient) -> None:
+    # JavaScript can't delete the HttpOnly cookie, so closing the session can't
+    # depend on an access token that may have expired already.
+    registro = await client.post("/auth/guardians", json=_payload_registro_tutor("logout-sin-access@example.com"))
+    access_token = registro.json()["access_token"]
+    refresh_token = refresh_cookie(registro)
+
+    response = await client.post("/auth/logout")
+
+    assert response.status_code == 204
+    assert 'iris_refresh=""' in response.headers["set-cookie"]
+    assert (await refrescar_con(client, refresh_token)).status_code == 401
+    assert (await client.get("/users/me", headers={"Authorization": f"Bearer {access_token}"})).status_code == 401
+
+
+async def test_logout_sin_cookie_igual_responde_y_la_borra(client: AsyncClient) -> None:
+    response = await client.post("/auth/logout")
+
+    assert response.status_code == 204
+    assert 'iris_refresh=""' in response.headers["set-cookie"]
+
+
+async def test_la_cookie_de_sesion_es_httponly_secure_y_samesite_strict(client: AsyncClient) -> None:
+    registro = await client.post("/auth/guardians", json=_payload_registro_tutor("cookie@example.com"))
+
+    cookie = registro.headers["set-cookie"].lower()
+    assert "httponly" in cookie
+    assert "secure" in cookie
+    assert "samesite=strict" in cookie
+    assert "path=/auth" in cookie
+    assert f"max-age={7 * 24 * 3600}" in cookie
+
+
+async def test_refresh_sin_cookie_es_rechazado(client: AsyncClient) -> None:
+    response = await client.post("/auth/refresh")
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "token_invalido"
+
+
+async def test_refresh_con_una_cookie_invalida_la_borra(client: AsyncClient) -> None:
+    response = await refrescar_con(client, "no-es-un-token")
+
+    assert response.status_code == 401
+    assert 'iris_refresh=""' in response.headers["set-cookie"]
+
+
+async def test_las_rutas_de_sesion_exigen_la_cabecera_de_la_app(client: AsyncClient) -> None:
+    # Without the header a page on another site could try to use the cookie.
+    response = await client.post(
+        "/auth/login", json={"email": "x@example.com", "password": "Clave-Segura-123"}, headers={"X-Iris-Client": ""}
+    )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "solicitud_no_permitida"
 
 
 async def test_usuario_actual_tutor(client: AsyncClient) -> None:

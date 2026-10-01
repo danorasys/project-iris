@@ -41,7 +41,10 @@ async def _execute_forward(request: Request, rest: str, destination: str, proxy:
         content=body,
         client_ip=request.client.host if request.client else None,
     )
-    return Response(content=result.content, status_code=result.status_code, headers=result.headers)
+    response = Response(content=result.content, status_code=result.status_code)
+    for name, value in result.headers:
+        response.headers.append(name, value)
+    return response
 
 
 @router.api_route(PREFIX_IDENTITY + "/{rest:path}", methods=_METHODS)

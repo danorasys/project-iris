@@ -129,6 +129,25 @@ class Consent:
     authorizes_support_condition: bool = False
 
 
+# Version of the sentence accepted before saving profile changes:
+#   "Declaro que la información que modifiqué es correcta y veraz."
+# If the sentence changes, this changes too.
+PROFILE_DECLARATION_VERSION = "2026-10-01"
+
+
+# One saved change to a person's own profile: who, when, from which session,
+# which fields and which declaration. Only the names of the fields, never
+# their values, so it isn't one more copy of personal data.
+@dataclass
+class ProfileChange:
+    id: UUID
+    person_id: UUID
+    session_id: str | None
+    changed_fields: list[str]
+    declaration_version: str
+    changed_at: datetime
+
+
 # Bundles the three entities created together in one transaction.
 @dataclass
 class GuardianRegistrationPayload:

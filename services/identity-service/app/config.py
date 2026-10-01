@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_ttl_min: int = 15
     jwt_refresh_ttl_days: int = 7
+    # The refresh token goes in this cookie, never in the JSON. Path is the one
+    # the browser sees (through the gateway), so it only travels to /auth.
+    # Secure stays on everywhere, browsers accept it on http://localhost too.
+    refresh_cookie_name: str = "iris_refresh"
+    refresh_cookie_path: str = "/api/identity/auth"
+    refresh_cookie_secure: bool = True
 
     # Every other service needs this same key to call our internal routes.
     # No default for the same reason as jwt_secret above.
@@ -59,8 +65,11 @@ class Settings(BaseSettings):
     refresh_reuse_grace_sec: int = 10
     rate_limit_totp_max: int = 5
     rate_limit_totp_window_sec: int = 300
-    # How long a passed 2FA check keeps the parents' portal open.
+    # A passed 2FA check keeps the parents' portal open in that session while
+    # the guardian keeps using it: it closes after this long without activity,
+    # and after the max age no matter what.
     portal_access_ttl_sec: int = 900
+    portal_access_max_age_sec: int = 7200
 
     # Must be a valid Fernet key (32 url-safe base64-encoded bytes). You can
     # generate one with:

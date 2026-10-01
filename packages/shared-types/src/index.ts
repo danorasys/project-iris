@@ -30,9 +30,10 @@ export interface CurrentUser {
   role: Role;
 }
 
+/** The refresh token is not here: the server keeps it in an HttpOnly cookie
+ * that the page's JavaScript can't read. */
 export interface TokensAuth {
   access_token: string;
-  refresh_token: string;
   token_type: "bearer";
 }
 
@@ -160,9 +161,15 @@ export interface UpdateGuardianProfileRequest {
   phone_country_code: string;
   phone_number: string;
   relationship_type_id: number;
+  /** Always true: the guardian declares the information they changed is
+   * correct and true. The server rejects the request without it. */
+  truthful_declaration: true;
 }
 
 export interface ChangePasswordRequest {
+  current_password: string;
+  /** A fresh code from the authenticator app, checked at the same moment. */
+  code: string;
   password: string;
   password_confirmation: string;
 }

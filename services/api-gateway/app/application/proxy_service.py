@@ -99,7 +99,5 @@ class ProxyService:
             content=content,
             timeout_sec=self._timeout_sec,
         )
-        outgoing_headers = {
-            k: v for k, v in response.headers.items() if k.lower() not in _EXCLUDED_INCOMING_HEADERS
-        }
+        outgoing_headers = [(k, v) for k, v in response.headers if k.lower() not in _EXCLUDED_INCOMING_HEADERS]
         return UpstreamResponse(status_code=response.status_code, headers=outgoing_headers, content=response.content)

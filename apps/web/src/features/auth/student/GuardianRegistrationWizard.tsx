@@ -13,7 +13,6 @@ import {
 } from "react-phone-number-input"
 import type { GuardianRegistrationRequest } from "@iris/shared-types"
 import { useAuth } from "@/shared/auth/AuthContext"
-import { guardarCorreoTutorReciente } from "@/shared/auth/tokenStorage"
 import {
     useRegistrarTutor,
     useDocumentTypes,
@@ -47,6 +46,7 @@ import { TotpSuccessScreen } from "./TotpSuccessScreen"
 import logoIris from "@/assets/landing/logo-iris.png"
 import styles from "./GuardianRegistrationWizard.module.css"
 import { calculateAge } from "@/features/utils/calculateAge"
+import { MAX_AGE, nameError } from "@/features/utils/personValidation"
 import { formatDate } from "@/features/utils/formatDate"
 import { validateDocumentIssuedAt } from "@/features/utils/validateDocumentIssuedAt"
 
@@ -434,15 +434,17 @@ export default function GuardianRegistrationWizard() {
         e.preventDefault()
         if (!catalogsReady) return
 
-        if (!guardianFirstName.trim()) {
-            setGuardianFirstNameError("Ingresa tus nombres.")
+        const firstNameProblem = nameError(guardianFirstName, "Ingresa tus nombres.")
+        if (firstNameProblem) {
+            setGuardianFirstNameError(firstNameProblem)
             focusAndScrollToField("tutor-nombres")
             return
         }
         setGuardianFirstNameError(null)
 
-        if (!guardianLastName.trim()) {
-            setGuardianLastNameError("Ingresa tus apellidos.")
+        const lastNameProblem = nameError(guardianLastName, "Ingresa tus apellidos.")
+        if (lastNameProblem) {
+            setGuardianLastNameError(lastNameProblem)
             focusAndScrollToField("tutor-apellidos")
             return
         }
@@ -457,6 +459,11 @@ export default function GuardianRegistrationWizard() {
             setGuardianBirthDateError(
                 `Debes ser mayor de edad (${MIN_GUARDIAN_AGE} años o más) para registrarte como tutor.`,
             )
+            focusAndScrollToField("tutor-fecha-nacimiento")
+            return
+        }
+        if (calculateAge(guardianBirthDate) > MAX_AGE) {
+            setGuardianBirthDateError("Revisa el año de la fecha de nacimiento.")
             focusAndScrollToField("tutor-fecha-nacimiento")
             return
         }
@@ -590,15 +597,17 @@ export default function GuardianRegistrationWizard() {
     function handleSubmitStep2(e: FormEvent) {
         e.preventDefault()
 
-        if (!studentFirstName.trim()) {
-            setStudentFirstNameError("Ingresa los nombres de tu hijo o hija.")
+        const studentFirstNameProblem = nameError(studentFirstName, "Ingresa los nombres de tu hijo o hija.")
+        if (studentFirstNameProblem) {
+            setStudentFirstNameError(studentFirstNameProblem)
             focusAndScrollToField("estudiante-nombres")
             return
         }
         setStudentFirstNameError(null)
 
-        if (!studentLastName.trim()) {
-            setStudentLastNameError("Ingresa los apellidos de tu hijo o hija.")
+        const studentLastNameProblem = nameError(studentLastName, "Ingresa los apellidos de tu hijo o hija.")
+        if (studentLastNameProblem) {
+            setStudentLastNameError(studentLastNameProblem)
             focusAndScrollToField("estudiante-apellidos")
             return
         }
@@ -706,7 +715,6 @@ export default function GuardianRegistrationWizard() {
         try {
             const tokens = await register.mutateAsync(payload)
             setSession(tokens)
-            guardarCorreoTutorReciente(email.trim())
             // The account (person, guardian, student and consent) already exists
             // at this point — everything after this is a celebration + hand-off,
             // never something that can undo the registration that just succeeded.

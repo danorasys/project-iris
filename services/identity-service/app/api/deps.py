@@ -141,8 +141,16 @@ def get_auth_service(
 def get_guardian_service(
     hasher: Annotated[BcryptPasswordHasher, Depends(get_password_hasher)],
     sessions: Annotated[SessionService, Depends(get_session_service)],
+    password_lockout: Annotated[RedisAttemptLockout, Depends(get_attempt_lockout)],
+    account_lockout: Annotated[RedisAttemptLockout, Depends(get_account_lockout)],
 ) -> GuardianService:
-    return GuardianService(uow_factory=SqlAlchemyUnitOfWork, password_hasher=hasher, sessions=sessions)
+    return GuardianService(
+        uow_factory=SqlAlchemyUnitOfWork,
+        password_hasher=hasher,
+        sessions=sessions,
+        password_lockout=password_lockout,
+        account_lockout=account_lockout,
+    )
 
 
 @lru_cache
@@ -253,8 +261,13 @@ async def require_portal_access(
     portal_access: Annotated[RedisPortalAccessStore, Depends(get_portal_access_store)],
 ) -> None:
     """Guards the parents' portal. The 2FA screen alone can't do it, since
-    anyone with the open session could type the portal's URL."""
-    if not await portal_access.esta_concedido(user.subject_id):
+    anyone with the open session could type the portal's URL. Only the
+    session where the code was typed gets in, and each request made there
+    starts the inactivity count again."""
+    settings = get_settings()
+    if user.session_id is None or not await portal_access.renovar(
+        user.subject_id, user.session_id, settings.portal_access_ttl_sec, settings.portal_access_max_age_sec
+    ):
         raise PortalAccessRequired()
 
 

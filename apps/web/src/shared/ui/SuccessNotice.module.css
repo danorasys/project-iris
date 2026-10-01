@@ -1,0 +1,108 @@
+/* Top center, over everything, lightly tinted with the mint color IRIS uses
+   for things that went well. */
+.notice {
+  position: fixed;
+  top: var(--space-4);
+  left: 50%;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: min(480px, calc(100vw - 2 * var(--space-3)));
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  border: 1px solid color-mix(in srgb, var(--color-mint) 30%, transparent);
+  background: color-mix(in srgb, var(--color-mint) 7%, var(--color-surface));
+  box-shadow: var(--shadow-card);
+  transform: translateX(-50%);
+  animation: notice-in 260ms ease both;
+}
+
+.icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-mint) 20%, var(--color-surface));
+  color: var(--color-mint);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.message {
+  margin: var(--space-1) 0 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.close:hover {
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.close:focus-visible {
+  outline: 3px solid var(--color-iris-medium);
+  outline-offset: 2px;
+}
+
+/* When it's closed it goes up and fades out. */
+.leaving {
+  animation: notice-out 280ms ease-in forwards;
+}
+
+@keyframes notice-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -140%);
+  }
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice,
+  .leaving {
+    animation: none;
+  }
+}

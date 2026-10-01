@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db import Base
@@ -125,6 +125,24 @@ class StudentModel(Base):
     additional_support_need: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     guardian: Mapped[GuardianModel] = relationship(back_populates="students")
+
+
+# Record of the changes each person made to their own profile, see
+# ProfileChange. Rows are only added, and go away with the person.
+class ProfileChangeModel(Base):
+    __tablename__ = "profile_changes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=_uuid4)
+    person_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("people.id", ondelete="CASCADE"))
+    # Without a foreign key: sessions live in Redis, not in this database.
+    session_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Names of the fields, like ["phone_number", "last_name"]. Never values.
+    changed_fields: Mapped[list[str]] = mapped_column(JSON)
+    declaration_version: Mapped[str] = mapped_column(String(20))
+    changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    # A person's changes are looked up together and in order.
+    __table_args__ = (Index("ix_profile_changes_person_changed_at", "person_id", "changed_at"),)
 
 
 class ConsentModel(Base):

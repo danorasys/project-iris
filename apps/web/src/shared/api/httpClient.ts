@@ -2,6 +2,12 @@ import type { ErrorApi } from "@iris/shared-types";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
 
+// Sent on every request. The session routes ask for it, and a page on
+// another site can't add it without CORS checking first (see
+// identity-service app/api/session_cookie.py).
+const CLIENT_HEADER = "X-Iris-Client";
+const CLIENT_HEADER_VALUE = "web";
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -51,6 +57,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
   const finalHeaders = new Headers(headers);
   finalHeaders.set("Accept", "application/json");
+  finalHeaders.set(CLIENT_HEADER, CLIENT_HEADER_VALUE);
   if (body !== undefined) finalHeaders.set("Content-Type", "application/json");
 
   if (auth && authHandlers) {
@@ -58,8 +65,11 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     if (token) finalHeaders.set("Authorization", `Bearer ${token}`);
   }
 
+  // "include" so the session cookie is kept and sent also in local dev,
+  // where the API is on another port. Its path keeps it on /auth only.
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...rest,
+    credentials: "include",
     headers: finalHeaders,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });

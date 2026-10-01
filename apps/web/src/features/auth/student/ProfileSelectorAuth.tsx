@@ -1,13 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import type { StudentProfile } from "@iris/shared-types";
 import { useAuth } from "@/shared/auth/AuthContext";
-import { guardarCorreoTutorReciente, leerCorreoTutorReciente } from "@/shared/auth/tokenStorage";
-import { useEstudiantesDeTutor, useLogin, useLoginPerfilEstudiante } from "@/shared/api/hooks/useAuthApi";
+import { useEstudiantesDeTutor, useLoginPerfilEstudiante } from "@/shared/api/hooks/useAuthApi";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { isTourSeen } from "@/features/student/lib/dwellPreferences";
-import { TextField } from "@/features/auth/ui/TextField";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { NumericKeypad } from "@/shared/ui/NumericKeypad";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
@@ -16,16 +14,9 @@ import avatarGuardian from "@/assets/auth/avatar-guardian.png";
 import avatarPeques from "@/assets/auth/avatar-peques.png";
 import styles from "./ProfileSelectorAuth.module.css";
 
-/** `/login/guardian/portal`. Without a tutor session it asks for the tutor's
- * login first (same endpoint as teachers, different role), then shows the
- * portal choice. Picking a child validates their PIN and switches to the
- * student session. */
+/** `/login/guardian/portal`, behind RequireRol so it needs a tutor session.
+ * Picking a child checks their PIN and switches to the student session. */
 export default function ProfileSelectorAuth() {
-  const { session } = useAuth();
-
-  if (session?.role !== "guardian") {
-    return <GuardianLogin />;
-  }
   return <GuardianPortalChoice />;
 }
 
@@ -81,61 +72,6 @@ function GuardianPortalChoice() {
         <LogOut size={20} strokeWidth={2} aria-hidden="true" />
         Cerrar sesión
       </button>
-    </main>
-  );
-}
-
-function GuardianLogin() {
-  const { setSession } = useAuth();
-  const login = useLogin();
-  const [email, setEmail] = useState(() => leerCorreoTutorReciente() ?? "");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    try {
-      const tokens = await login.mutateAsync({ email: email.trim(), password });
-      setSession(tokens);
-      guardarCorreoTutorReciente(email.trim());
-    } catch (err) {
-      setError(getAuthErrorMessage(err));
-    }
-  }
-
-  return (
-    <main className={styles.page}>
-      <h1 className={styles.title}>Ya soy Mirador</h1>
-      <p className={styles.subtitle}>Un adulto entra primero, para elegir el perfil del estudiante.</p>
-      <form className={styles.form} onSubmit={handleSubmit} aria-label="Ingresar como tutor">
-        <TextField
-          id="perfil-tutor-correo"
-          label="Correo del tutor"
-          type="email"
-          value={email}
-          onChange={setEmail}
-          required
-          autoComplete="email"
-        />
-        <TextField
-          id="perfil-tutor-password"
-          label="Contraseña"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          required
-          autoComplete="current-password"
-        />
-        {error && (
-          <p role="alert" className={styles.error}>
-            {error}
-          </p>
-        )}
-        <button type="submit" className={styles.primaryButton} disabled={login.isPending}>
-          {login.isPending ? "Ingresando…" : "Continuar"}
-        </button>
-      </form>
     </main>
   );
 }

@@ -19,6 +19,8 @@ import type { GazeEngineState, GazeSource, GazePosition, GazeSubscriber } from "
 //   already requests them.
 const EYEGESTURES_CSS_PATH = "/eyegestures/eyegestures.css";
 const EYEGESTURES_JS_PATH = "/eyegestures/eyegestures.js";
+// Our own one-line script, see bridgeGlobalClass().
+const EYEGESTURES_BRIDGE_PATH = "/eyegestures/iris-bridge.js";
 
 // Literally "video". The library's own render loop, the one feeding
 // frames to MediaPipe, looks up the video with
@@ -48,9 +50,8 @@ declare global {
     /** `eyegestures.js` declares `class EyeGestures` as a plain classic
      * script. That declaration lives in the global script scope, not as a
      * property of `window`/`globalThis`, so Vite's bundle (an ES module
-     * with its own scope) can't see it directly. `__irisEyeGesturesClass`
-     * is the name `bridgeGlobalClass()` uses to re-expose it as a real
-     * `window` property this file can actually reach. */
+     * with its own scope) can't see it directly. `iris-bridge.js` copies
+     * it to this real `window` property. */
     __irisEyeGesturesClass?: EyeGesturesClass | null;
   }
 }
@@ -78,17 +79,13 @@ function waitForLoad(script: HTMLScriptElement): Promise<void> {
   });
 }
 
-/** Re-exposes `class EyeGestures` (global from the classic script
- * `eyegestures.js`) as `window.__irisEyeGesturesClass`, since an ES module
- * can't see a classic script's bare identifiers directly. Without this
- * bridge `window.EyeGestures` stays `undefined` even though the script
- * loaded fine, it's a scope issue, not a network failure. */
-function bridgeGlobalClass(): void {
-  const bridge = document.createElement("script");
-  bridge.textContent =
-    "window.__irisEyeGesturesClass = typeof EyeGestures !== 'undefined' ? EyeGestures : null;";
-  document.head.appendChild(bridge);
-  bridge.remove();
+/** Re-exposes `class EyeGestures` as `window.__irisEyeGesturesClass`, since
+ * an ES module can't see a classic script's bare identifiers. It's a small
+ * file of our own and not inline code, so the CSP doesn't need to allow
+ * inline scripts. Loaded fresh each time, after eyegestures.js. */
+function bridgeGlobalClass(): Promise<void> {
+  document.querySelector(`script[src="${EYEGESTURES_BRIDGE_PATH}"]`)?.remove();
+  return loadScript(EYEGESTURES_BRIDGE_PATH);
 }
 
 function insertStyle(href: string): void {
@@ -190,7 +187,7 @@ export class EyeGesturesGazeSource implements GazeSource {
   private loadDependencies(): Promise<void> {
     if (!this.dependenciesLoad) {
       insertStyle(EYEGESTURES_CSS_PATH);
-      this.dependenciesLoad = loadScript(EYEGESTURES_JS_PATH).then(() => bridgeGlobalClass());
+      this.dependenciesLoad = loadScript(EYEGESTURES_JS_PATH).then(bridgeGlobalClass);
     }
     return this.dependenciesLoad;
   }

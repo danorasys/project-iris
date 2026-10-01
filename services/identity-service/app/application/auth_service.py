@@ -32,6 +32,7 @@ from app.domain.exceptions import (
     InvalidRelationshipType,
     InvalidSupportCondition,
     InvalidToken,
+    RefreshTokenJustUsed,
     ResourceNotFound,
 )
 from app.application.session_service import SessionService
@@ -51,6 +52,12 @@ UowFactory = Callable[[], "UnitOfWork"]
 # Emails and IPs go into lock keys as a hash, so Redis never holds them as text.
 def _anon(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:32]
+
+
+# Key of the per account lock of the login. Changing the password uses it
+# too, so both forms share the same budget of wrong passwords.
+def login_account_key(email: str) -> str:
+    return f"login-account:{_anon(email.lower())}"
 
 
 class AuthService:
@@ -219,7 +226,7 @@ class AuthService:
         # out from another IP) and one per email alone, with a higher limit, so
         # trying from many IPs doesn't give unlimited guesses.
         ip_key = f"login:{_anon(client_ip)}:{_anon(email.lower())}"
-        account_key = f"login-account:{_anon(email.lower())}"
+        account_key = login_account_key(email)
         wait = max(
             await self._login_lockout.segundos_bloqueado(ip_key),
             await self._account_lockout.segundos_bloqueado(account_key),
@@ -256,8 +263,8 @@ class AuthService:
         # The per-email count is not reset here on purpose: it expires by itself,
         # otherwise a real login in between would give an attacker a fresh start.
         await self._login_lockout.registrar_exito(ip_key)
-        # A new login is a new session, so the portal asks for the 2FA code again.
-        await self._portal_access.revocar(person.id)
+        # A new login is a new session, and the portal access belongs to a
+        # session, so this one starts closed without touching the others.
         tokens = self._issue_token_pair(person.id, role)
         return person, role, tokens
 
@@ -303,7 +310,8 @@ class AuthService:
             # the late one is rejected.
             if used_ago > self._refresh_reuse_grace_sec:
                 await self._sessions.revoke_session(sid, "refresh_token_reuse")
-            raise InvalidToken()
+                raise InvalidToken()
+            raise RefreshTokenJustUsed()
         await self._sessions.ensure_active(claims)
 
         await self._blacklist.invalidar(jti, self._refresh_ttl_seconds)
@@ -312,22 +320,30 @@ class AuthService:
         extra = {"guardian_id": str(claims["guardian_id"])} if "guardian_id" in claims else {}
         return self._issue_token_pair(subject_id, role, extra=extra, sid=sid)
 
+    # Closes the session of the refresh token. It doesn't need the access
+    # token, so it also works when that one already expired. A token that
+    # isn't valid anymore has nothing left to close.
     async def logout(self, refresh_token: str) -> None:
-        claims = self._tokens.decodificar(refresh_token)
+        try:
+            claims = self._tokens.decodificar(refresh_token)
+        except InvalidToken:
+            return
+        if claims.get("type") != "refresh":
+            return
         jti = claims.get("jti")
         if isinstance(jti, str):
             await self._blacklist.invalidar(jti, self._refresh_ttl_seconds)
         sid = claims.get("sid")
         await self._sessions.revoke_session(sid if isinstance(sid, str) else None, "logout")
         subject = claims.get("sub")
-        if isinstance(subject, str):
-            await self._portal_access.revocar(UUID(subject))
+        if isinstance(subject, str) and isinstance(sid, str):
+            await self._portal_access.revocar(UUID(subject), sid)
 
     # "Close all my sessions": every token issued before now stops working,
     # the ones of the person asking included.
     async def logout_all(self, subject_id: UUID) -> None:
         await self._sessions.revoke_all(subject_id, "user_request")
-        await self._portal_access.revocar(subject_id)
+        await self._portal_access.revocar_todas(subject_id)
 
     async def validate_access_token(self, access_token: str) -> dict[str, object]:
         claims = self._tokens.decodificar(access_token)

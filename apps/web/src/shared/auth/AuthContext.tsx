@@ -1,9 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { TokensAuth } from "@iris/shared-types";
-import { apiFetch, configureAuthHandlers } from "@/shared/api/httpClient";
+import { ApiError, apiFetch, configureAuthHandlers } from "@/shared/api/httpClient";
 import { queryClient } from "@/shared/api/queryClient";
 import { decodeJwtPayload } from "./jwt";
-import { borrarRefreshToken, guardarRefreshToken, leerRefreshToken } from "./tokenStorage";
+import { removeLegacySessionData } from "./legacyStorage";
 
 type Role = "guardian" | "teacher" | "student";
 
@@ -15,7 +15,7 @@ interface CurrentSession {
 
 interface AuthContextValue {
   session: CurrentSession | null;
-  /** false while trying to restore a session from the stored refresh token */
+  /** true while trying to restore the session with the refresh cookie */
   loading: boolean;
   setSession: (tokens: TokensAuth) => void;
   closeSession: () => Promise<void>;
@@ -26,31 +26,28 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Enough for the browser to store the cookie the other tab just received.
+const REFRESH_RETRY_WAIT_MS = 300;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSessionState] = useState<CurrentSession | null>(null);
   const [loading, setLoading] = useState(true);
   const accessTokenRef = useRef<string | null>(null);
-  /** Refresh tokens can only be used once, they rotate every call (see
-   * identity-service's `refresh()`). If two calls try to restore the
-   * session at the same time, for example React's StrictMode running the
-   * effect twice, both would read the same stored token. The second one
-   * would fail with 401 since the first already rotated it, and that
-   * would wipe out the session the first call just set up correctly. So
-   * we share one in-flight promise, this way every call waiting at the
-   * same time gets the same result instead of fighting over the token. */
+  /** Refresh tokens are single use, they rotate on every call. Two calls at
+   * the same time (StrictMode runs the effect twice, for example) would send
+   * the same cookie and the second would wipe out the session of the first,
+   * so they all wait for one shared promise. */
   const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
 
   const setSession = useCallback((tokens: TokensAuth) => {
     const payload = decodeJwtPayload(tokens.access_token);
     if (!payload) return;
     accessTokenRef.current = tokens.access_token;
-    guardarRefreshToken(tokens.refresh_token);
     setSessionState({ accessToken: tokens.access_token, subjectId: payload.sub, role: payload.role });
   }, []);
 
   const clearSession = useCallback(() => {
     accessTokenRef.current = null;
-    borrarRefreshToken();
     setSessionState(null);
     // Nothing the previous user loaded (data, private images) should stay
     // around for whoever uses this browser next.
@@ -60,21 +57,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshSession = useCallback((): Promise<string | null> => {
     if (refreshInFlightRef.current) return refreshInFlightRef.current;
 
+    // The refresh token goes alone in its HttpOnly cookie, this code never
+    // sees it. If another tab used it a moment ago, the browser already holds
+    // the new cookie, so it's tried once more instead of closing the session.
     const attempt = (async () => {
-      const refreshToken = leerRefreshToken();
-      if (!refreshToken) return null;
-      try {
-        const tokens = await apiFetch<TokensAuth>("/identity/auth/refresh", {
-          method: "POST",
-          body: { refresh_token: refreshToken },
-          auth: false,
-        });
-        setSession(tokens);
-        return tokens.access_token;
-      } catch {
-        clearSession();
-        return null;
+      for (let tries = 1; tries <= 2; tries++) {
+        try {
+          const tokens = await apiFetch<TokensAuth>("/identity/auth/refresh", { method: "POST", auth: false });
+          setSession(tokens);
+          return tokens.access_token;
+        } catch (error) {
+          const usedByAnotherTab = error instanceof ApiError && error.code === "token_recien_usado";
+          if (!usedByAnotherTab || tries === 2) break;
+          await new Promise((resolve) => setTimeout(resolve, REFRESH_RETRY_WAIT_MS));
+        }
       }
+      clearSession();
+      return null;
     })();
 
     refreshInFlightRef.current = attempt;
@@ -84,14 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return attempt;
   }, [setSession, clearSession]);
 
+  // Always asks the server: only it can close the session and delete the
+  // HttpOnly cookie. Without this, a reload would bring the session back.
   const closeSession = useCallback(async () => {
-    const refreshToken = leerRefreshToken();
-    if (refreshToken && accessTokenRef.current) {
-      try {
-        await apiFetch("/identity/auth/logout", { method: "POST", body: { refresh_token: refreshToken } });
-      } catch {
-        /* if it fails, clear local state anyway */
-      }
+    try {
+      await apiFetch("/identity/auth/logout", { method: "POST", auth: false });
+    } catch {
+      /* if it fails, clear local state anyway */
     }
     clearSession();
   }, [clearSession]);
@@ -105,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshSession, clearSession]);
 
   useEffect(() => {
+    removeLegacySessionData();
     let active = true;
     void refreshSession().finally(() => {
       if (active) setLoading(false);

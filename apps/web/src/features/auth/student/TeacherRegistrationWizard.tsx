@@ -23,7 +23,9 @@ import { IconArrowLeft, IconInfo, IconLock } from "@/shared/ui/icons"
 import { LoadingScreen } from "@/shared/ui/LoadingScreen"
 import logoIris from "@/assets/landing/logo-iris.png"
 import styles from "./GuardianRegistrationWizard.module.css"
+import { isValidPhoneNumber } from "react-phone-number-input"
 import { calculateAge } from "@/features/utils/calculateAge"
+import { MAX_AGE, nameError } from "@/features/utils/personValidation"
 import { formatDate } from "@/features/utils/formatDate"
 //import { validateDocumentIssuedAt } from "@/features/utils/validateDocumentIssuedAt"
 
@@ -170,12 +172,12 @@ export default function TeacherRegistrationWizard() {
         const checks: Array<[string, string, string]> = [
             [
                 "docente-nombres",
-                firstName.trim() ? "" : "Ingresa tus nombres.",
+                nameError(firstName, "Ingresa tus nombres.") ?? "",
                 "firstName",
             ],
             [
                 "docente-apellidos",
-                lastName.trim() ? "" : "Ingresa tus apellidos.",
+                nameError(lastName, "Ingresa tus apellidos.") ?? "",
                 "lastName",
             ],
             [
@@ -184,7 +186,9 @@ export default function TeacherRegistrationWizard() {
                     ? "Ingresa tu fecha de nacimiento."
                     : calculateAge(dateOfBirth) < MINIMUM_TEACHER_AGE
                       ? `Debes ser mayor de edad (${MINIMUM_TEACHER_AGE} años o más) para registrarte como docente.`
-                      : "",
+                      : calculateAge(dateOfBirth) > MAX_AGE
+                        ? "Revisa el año de la fecha de nacimiento."
+                        : "",
                 "dateOfBirth",
             ],
             [
@@ -211,7 +215,8 @@ export default function TeacherRegistrationWizard() {
             ],
             [
                 "docente-telefono",
-                phone.length === 10
+                // 10 digits and a number that exists in Colombia, like the server checks.
+                phone.length === 10 && isValidPhoneNumber(`+57${phone}`)
                     ? ""
                     : "Ingresa un número telefónico válido de 10 dígitos.",
                 "phone",

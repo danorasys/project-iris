@@ -35,6 +35,21 @@ class InvalidDocumentNumberFormat(DomainError):
     message = "El número de documento no tiene un formato válido."
 
 
+class WrongCurrentPassword(DomainError):
+    code = "contrasena_actual_incorrecta"
+    message = "La contraseña actual no es correcta."
+
+
+class PasswordSameAsCurrent(DomainError):
+    code = "contrasena_igual_a_la_actual"
+    message = "La nueva contraseña debe ser diferente a la actual."
+
+
+class BirthDateAfterDocumentIssued(DomainError):
+    code = "fecha_nacimiento_inconsistente"
+    message = "La fecha de nacimiento no puede ser posterior a la fecha de expedición de tu documento."
+
+
 class InvalidRelationshipType(DomainError):
     code = "tipo_relacion_invalido"
     message = "El tipo de relación indicado no existe."
@@ -70,9 +85,21 @@ class InvalidToken(DomainError):
     message = "El token es inválido o expiró."
 
 
+# Two requests of the same browser used the refresh token almost at the same
+# time (two tabs opening at once). The other one already has the new token.
+class RefreshTokenJustUsed(DomainError):
+    code = "token_recien_usado"
+    message = "La sesión ya se renovó desde otra pestaña. Intenta de nuevo."
+
+
 class ResourceNotFound(DomainError):
     code = "recurso_no_encontrado"
     message = "El recurso solicitado no existe."
+
+
+class MissingClientHeader(DomainError):
+    code = "solicitud_no_permitida"
+    message = "La solicitud no viene de la aplicación de IRIS."
 
 
 class PermissionDenied(DomainError):

@@ -1,11 +1,12 @@
-export function calculateAge(birthDateISO: string): number {
-    const birthDate = new Date(birthDateISO)
-    const today = new Date()
-    let age = today.getFullYear() - birthDate.getFullYear()
+// Reads "YYYY-MM-DD" as a local date. new Date("1990-04-12") would read it
+// as UTC midnight, which in Colombia (UTC-5) is still the day before, so the
+// age came out one year short on the birthday itself.
+export function calculateAge(birthDateISO: string, today: Date = new Date()): number {
+    const [year, month, day] = birthDateISO.split("-").map(Number)
+    let age = today.getFullYear() - year
     const hasNotHadBirthdayYet =
-        today.getMonth() < birthDate.getMonth() ||
-        (today.getMonth() === birthDate.getMonth() &&
-            today.getDate() < birthDate.getDate())
+        today.getMonth() + 1 < month ||
+        (today.getMonth() + 1 === month && today.getDate() < day)
     if (hasNotHadBirthdayYet) age--
     return age
 }

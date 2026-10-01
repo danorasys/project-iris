@@ -10,6 +10,8 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
 os.environ.setdefault("JWT_SECRET", "test-secret")
 os.environ.setdefault("INTERNAL_SERVICE_KEY", "test-internal-key")
 os.environ.setdefault("WEB_ORIGIN", "http://localhost:5173")
+# The tests call this service directly, without the gateway's /api/identity.
+os.environ.setdefault("REFRESH_COOKIE_PATH", "/auth")
 os.environ.setdefault("S3_ACCESS_KEY", "GKtest")
 os.environ.setdefault("S3_SECRET_KEY", "test-s3-secret")
 # A real Fernet key is required here (unlike the plain strings above) because
@@ -21,13 +23,17 @@ import fakeredis.aioredis
 import pyotp
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, Response
 
 from app.api import deps
+from app.api.session_cookie import CLIENT_HEADER, CLIENT_HEADER_VALUE
 from app.infrastructure.db import Base, engine
 from app.infrastructure.models import AvatarModel, DocumentTypeModel, RelationshipTypeModel, SupportConditionModel
 from app.main import app
 from tests.fakes import FakeObjectStorage
+
+TEST_HOST = "iris.test"
+REFRESH_COOKIE = "iris_refresh"
 
 _TEST_DB_FILE = os.environ["DATABASE_URL"].removeprefix("sqlite+aiosqlite:///")
 
@@ -112,8 +118,24 @@ async def client(
     redis_client: fakeredis.aioredis.FakeRedis, object_storage: FakeObjectStorage
 ) -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    # HTTPS so the client keeps the Secure cookie, and the header the web app
+    # always sends (see app/api/session_cookie.py).
+    async with AsyncClient(
+        transport=transport, base_url=f"https://{TEST_HOST}", headers={CLIENT_HEADER: CLIENT_HEADER_VALUE}
+    ) as ac:
         yield ac
+
+
+def refresh_cookie(response: Response) -> str:
+    value: str = response.cookies[REFRESH_COOKIE]
+    return value
+
+
+async def refrescar_con(client: AsyncClient, refresh_token: str) -> Response:
+    # Sends exactly this refresh token, like a browser that kept that cookie.
+    client.cookies.clear()
+    client.cookies.set(REFRESH_COOKIE, refresh_token, domain=TEST_HOST, path="/auth")
+    return await client.post("/auth/refresh")
 
 
 @pytest.fixture(scope="session", autouse=True)

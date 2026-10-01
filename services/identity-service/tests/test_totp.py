@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import time
+
+import fakeredis.aioredis
 import pyotp
 import pytest
 from httpx import AsyncClient
@@ -137,6 +141,19 @@ async def test_challenge_no_acepta_el_mismo_codigo_dos_veces(client: AsyncClient
     assert segunda.json()["error"]["code"] == "codigo_totp_invalido"
 
 
+async def test_el_mismo_codigo_enviado_dos_veces_a_la_vez_solo_entra_una(client: AsyncClient) -> None:
+    token, secret = await _registrar_con_2fa_activo(client, "portal-a-la-vez@example.com", "5100000010")
+    headers = {"Authorization": f"Bearer {token}"}
+    cuerpo = {"code": pyotp.TOTP(secret).now()}
+
+    respuestas = await asyncio.gather(
+        client.post("/guardians/me/2fa/challenge", json=cuerpo, headers=headers),
+        client.post("/guardians/me/2fa/challenge", json=cuerpo, headers=headers),
+    )
+
+    assert sorted(r.status_code for r in respuestas) == [200, 401]
+
+
 async def test_challenge_con_codigo_incorrecto_es_rechazado(client: AsyncClient) -> None:
     token, secret = await _registrar_con_2fa_activo(client, "portal-malo@example.com", "5100000003")
     incorrecto = "000000" if pyotp.TOTP(secret).now() != "000000" else "111111"
@@ -272,14 +289,82 @@ async def test_reto_correcto_abre_el_portal_en_una_sesion_nueva(client: AsyncCli
     assert (await client.get("/guardians/me", headers=headers)).status_code == 200
 
 
-async def test_iniciar_sesion_de_nuevo_vuelve_a_cerrar_el_portal(client: AsyncClient) -> None:
+async def test_iniciar_sesion_en_otro_lado_no_abre_ni_cierra_el_portal(client: AsyncClient) -> None:
     token, _ = await _registrar_con_2fa_activo(client, "portal-relogin@example.com", "5200000004")
     assert (await client.get("/guardians/me", headers={"Authorization": f"Bearer {token}"})).status_code == 200
 
     login = await client.post("/auth/login", json={"email": "portal-relogin@example.com", "password": "Clave-Segura-123"})
     nuevo = login.json()["access_token"]
 
+    # The new session starts closed, and the first one stays open.
     assert (await client.get("/guardians/me", headers={"Authorization": f"Bearer {nuevo}"})).status_code == 403
+    assert (await client.get("/guardians/me", headers={"Authorization": f"Bearer {token}"})).status_code == 200
+
+
+async def test_el_codigo_solo_abre_el_portal_en_la_sesion_donde_se_escribio(client: AsyncClient) -> None:
+    _, secret = await _registrar_con_2fa_activo(client, "portal-por-sesion@example.com", "5200000010")
+    credenciales = {"email": "portal-por-sesion@example.com", "password": "Clave-Segura-123"}
+    celular = {"Authorization": f"Bearer {(await client.post('/auth/login', json=credenciales)).json()['access_token']}"}
+    computador = {"Authorization": f"Bearer {(await client.post('/auth/login', json=credenciales)).json()['access_token']}"}
+
+    reto = await client.post("/guardians/me/2fa/challenge", json={"code": pyotp.TOTP(secret).now()}, headers=celular)
+
+    assert reto.status_code == 200
+    assert (await client.get("/guardians/me", headers=celular)).status_code == 200
+    assert (await client.get("/guardians/me", headers=computador)).status_code == 403
+
+
+async def test_usar_el_portal_reinicia_el_tiempo_de_inactividad(
+    client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
+) -> None:
+    token, _ = await _registrar_con_2fa_activo(client, "portal-actividad@example.com", "5200000011")
+    headers = {"Authorization": f"Bearer {token}"}
+    [clave] = [k async for k in redis_client.scan_iter(match="portal-access:*")]
+    # As if the guardian had been idle almost the whole time.
+    await redis_client.expire(clave, 5)
+
+    assert (await client.get("/guardians/me", headers=headers)).status_code == 200
+    assert await redis_client.ttl(clave) > 5
+
+
+async def test_el_portal_se_cierra_tras_el_tiempo_de_inactividad(
+    client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
+) -> None:
+    token, _ = await _registrar_con_2fa_activo(client, "portal-inactivo@example.com", "5200000012")
+    [clave] = [k async for k in redis_client.scan_iter(match="portal-access:*")]
+    # The TTL is the inactivity limit, running out is the same as the key being gone.
+    await redis_client.delete(clave)
+
+    perfil = await client.get("/guardians/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert perfil.status_code == 403
+    assert perfil.json()["error"]["code"] == "acceso_portal_requerido"
+
+
+async def test_el_portal_se_cierra_tras_el_tope_aunque_haya_actividad(
+    client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
+) -> None:
+    token, _ = await _registrar_con_2fa_activo(client, "portal-tope@example.com", "5200000013")
+    [clave] = [k async for k in redis_client.scan_iter(match="portal-access:*")]
+    # The code was typed longer ago than the max age allows.
+    antes = int(time.time()) - get_settings().portal_access_max_age_sec - 1
+    await redis_client.set(clave, str(antes), keepttl=True)
+
+    perfil = await client.get("/guardians/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert perfil.status_code == 403
+    assert await redis_client.exists(clave) == 0
+
+
+async def test_cerrar_todas_las_sesiones_cierra_el_portal_en_todas(
+    client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
+) -> None:
+    token, _ = await _registrar_con_2fa_activo(client, "portal-todas@example.com", "5200000014")
+
+    salida = await client.post("/auth/logout-all", headers={"Authorization": f"Bearer {token}"})
+
+    assert salida.status_code == 204
+    assert [k async for k in redis_client.scan_iter(match="portal-access:*")] == []
 
 
 async def test_cerrar_sesion_cierra_el_portal(client: AsyncClient) -> None:
@@ -289,7 +374,7 @@ async def test_cerrar_sesion_cierra_el_portal(client: AsyncClient) -> None:
     await client.post("/guardians/me/2fa/challenge", json={"code": pyotp.TOTP(secret).now()}, headers=headers)
     assert (await client.get("/guardians/me", headers=headers)).status_code == 200
 
-    salida = await client.post("/auth/logout", json={"refresh_token": login.json()["refresh_token"]}, headers=headers)
+    salida = await client.post("/auth/logout", headers=headers)
 
     assert salida.status_code == 204
     # The whole session is dead, not only the portal.

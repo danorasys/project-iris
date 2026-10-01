@@ -33,3 +33,23 @@ describe("getAuthErrorMessage with the attempt limit", () => {
     expect(getAuthErrorMessage(limited())).toContain("unos minutos");
   });
 });
+
+describe("getAuthErrorMessage with invalid data", () => {
+  it("shows the rule of the server without the technical prefix", () => {
+    const error = new ApiError(422, "datos_invalidos", "x", {
+      errores: [{ msg: "Value error, Usa solo letras, espacios, guion, apóstrofo o punto." }],
+    });
+    expect(getAuthErrorMessage(error)).toBe(
+      "Revisa los datos del formulario: Usa solo letras, espacios, guion, apóstrofo o punto.",
+    );
+  });
+});
+
+describe("getAuthErrorMessage with a Pydantic message in English", () => {
+  it("falls back to the generic message in Spanish", () => {
+    const error = new ApiError(422, "datos_invalidos", "x", {
+      errores: [{ msg: "String should have at least 1 character" }],
+    });
+    expect(getAuthErrorMessage(error)).toBe("Revisa los datos del formulario, algo no es válido.");
+  });
+});
