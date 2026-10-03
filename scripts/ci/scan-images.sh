@@ -11,8 +11,10 @@ cd "$root"
 
 build() {
     case "$1" in
-        web) docker build --pull -q -f apps/web/Dockerfile --target runtime -t "iris-$1:local" . ;;
-        *) docker build --pull -q -t "iris-$1:local" "services/$1" ;;
+        # Same as the CI: the last stage is built again so it gets today's
+        # security fixes, not the ones saved in the local cache.
+        web) docker build --pull --no-cache-filter runtime -q -f apps/web/Dockerfile --target runtime -t "iris-$1:local" . ;;
+        *) docker build --pull --no-cache-filter runtime -q -t "iris-$1:local" "services/$1" ;;
     esac
 }
 

@@ -83,6 +83,13 @@ jobs:
           tags: ${{ inputs.push && env.CANDIDATE || env.LOCAL }}
           cache-from: type=gha,scope=${{ inputs.name }}
           cache-to: type=gha,mode=max,scope=${{ inputs.name }}
+          # The last stage is always built again, with the base image pulled
+          # fresh. Its first step installs the security fixes of the system
+          # packages, and from the cache it would reuse the ones of an older
+          # build (that is how pcre2 10.48 reached the web image when 10.49
+          # was already out). The heavy stages before it still use the cache.
+          pull: true
+          no-cache-filters: runtime
           # Vite bakes this public URL into the bundle, the other images ignore it.
           build-args: |
             VITE_API_BASE_URL=${{ vars.PROD_API_BASE_URL }}
