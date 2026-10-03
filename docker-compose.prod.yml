@@ -43,7 +43,7 @@ services:
             - "127.0.0.1:5432:5432"
 
     redis:
-        image: redis:7-alpine
+        image: redis:8-alpine
         <<: [*restart-policy, *log-limits]
         command: redis-server --appendonly yes
         volumes:
