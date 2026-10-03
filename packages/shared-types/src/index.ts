@@ -265,10 +265,25 @@ interface NotificationBase {
   id: string;
   classroom_id: string;
   enrollment_id: string;
+  /** The kid it's about, the name of the classroom and who it's from. They
+   * can be missing in old notifications or if a service didn't answer. */
+  student_id: string | null;
+  student_name: string | null;
+  classroom_name: string | null;
+  sender_name: string | null;
   read: boolean;
   created_at: string;
 }
 
 export type NotificationItem =
-  | (NotificationBase & { event: "request.created"; student_name: string })
+  | (NotificationBase & { event: "request.created" })
   | (NotificationBase & { event: "request.resolved"; decision: "aceptada" | "rechazada" });
+
+/** One page of the tray, newest first. */
+export interface NotificationPage {
+  items: NotificationItem[];
+  total: number;
+  unread_count: number;
+  page: number;
+  page_size: number;
+}

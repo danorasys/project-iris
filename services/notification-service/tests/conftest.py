@@ -17,7 +17,7 @@ import pytest_asyncio  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 
 from app.api import deps  # noqa: E402
-from app.domain.exceptions import InvalidToken  # noqa: E402
+from app.domain.exceptions import InvalidToken, PortalAccessRequired  # noqa: E402
 from app.infrastructure.db import Base, engine  # noqa: E402
 from app.infrastructure.http_clients.identity_client import TokenClaims  # noqa: E402
 from app.main import app  # noqa: E402
@@ -30,14 +30,25 @@ _TEST_DB_FILE = os.environ["DATABASE_URL"].removeprefix("sqlite+aiosqlite:///")
 class FakeIdentityClient:
     def __init__(self) -> None:
         self.tokens: dict[str, TokenClaims] = {}
+        # (person_id, session_id) of the guardians with the portal open.
+        self.open_portals: set[tuple[str, str]] = set()
+        self.portal_checks: list[bool] = []
 
-    def register(self, token: str, *, sub: str, role: str = "teacher") -> None:
-        self.tokens[token] = TokenClaims(sub=sub, role=role, extra={})
+    def register(self, token: str, *, sub: str, role: str = "teacher", session_id: str | None = None) -> None:
+        extra = {"sid": session_id} if session_id else {}
+        self.tokens[token] = TokenClaims(sub=sub, role=role, extra=extra)
 
     async def validate_token(self, token: str | None, correlation_id: str | None = None) -> TokenClaims:
         if token is None or token not in self.tokens:
             raise InvalidToken("Token de prueba desconocido.")
         return self.tokens[token]
+
+    async def check_portal_access(
+        self, person_id: str, session_id: str, renew: bool, correlation_id: str | None = None
+    ) -> None:
+        self.portal_checks.append(renew)
+        if (person_id, session_id) not in self.open_portals:
+            raise PortalAccessRequired()
 
 
 @pytest_asyncio.fixture(autouse=True)

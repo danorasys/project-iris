@@ -1,7 +1,7 @@
 # Queries used only by other services via /internal/*, never exposed to end
 # clients. classroom-service needs the student's name and avatar plus the
 # guardian's name and contact info, to give the teacher context when resolving an
-# enrollment request.
+# enrollment request, and the names it puts in the notifications it sends.
 
 from __future__ import annotations
 
@@ -24,6 +24,14 @@ class StudentWithGuardian:
     guardian_last_name: str
     guardian_email: str
     guardian_phone: str
+    # The id the guardian signs in with, so a notification can reach them.
+    guardian_person_id: UUID
+
+
+@dataclass
+class TeacherName:
+    first_name: str
+    last_name: str
 
 
 class InternalQueryService:
@@ -50,4 +58,14 @@ class InternalQueryService:
                 guardian_last_name=person.last_name,
                 guardian_email=person.email,
                 guardian_phone=person.phone_e164(),
+                guardian_person_id=person.id,
             )
+
+    # The name of a teacher, by the id they sign in with.
+    async def get_teacher_name(self, person_id: UUID) -> TeacherName:
+        async with self._uow_factory() as uow:
+            teacher = await uow.teachers.get_by_person_id(person_id)
+            person = await uow.people.get_by_id(person_id) if teacher is not None else None
+            if person is None:
+                raise ResourceNotFound("Docente no encontrado.")
+            return TeacherName(first_name=person.first_name, last_name=person.last_name)

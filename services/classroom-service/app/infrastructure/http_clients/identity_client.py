@@ -98,7 +98,23 @@ class IdentityHttpClient:
             guardian_last_name=str(body["guardian_last_name"]),
             guardian_email=str(body["guardian_email"]),
             guardian_phone=str(body["guardian_phone"]),
+            guardian_person_id=UUID(str(body["guardian_person_id"])),
         )
+
+    async def obtener_nombre_docente(self, teacher_id: UUID) -> str:
+        headers = self._headers()
+        try:
+            response = await self._breaker.llamar(lambda: self._get(f"/internal/teachers/{teacher_id}", headers))
+        except (httpx.HTTPError, CircuitAbiertoError) as exc:
+            raise IdentityServiceUnavailable() from exc
+
+        if response.status_code == 404:
+            raise ResourceNotFound("Docente no encontrado en identity-service.")
+        if response.status_code != 200:
+            raise IdentityServiceUnavailable()
+
+        body = response.json()
+        return f"{body['first_name']} {body['last_name']}"
 
     async def aclose(self) -> None:
         await self._client.aclose()

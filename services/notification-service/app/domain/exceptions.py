@@ -30,6 +30,13 @@ class NotificationNotFound(DomainError):
     message = "La notificación no existe."
 
 
+# Same code identity-service uses, so the web app asks for the 2FA code
+# in the same way, whichever service answered.
+class PortalAccessRequired(DomainError):
+    code = "acceso_portal_requerido"
+    message = "Confirma tu código de verificación para entrar al portal de padres."
+
+
 class PermissionDenied(DomainError):
     code = "acceso_denegado"
     message = "No tienes permiso para esta operación."

@@ -380,6 +380,22 @@ class StudentWithGuardianResponse(BaseModel):
     guardian_last_name: str
     guardian_email: EmailStr
     guardian_phone: str
+    guardian_person_id: UUID
+
+
+class TeacherNameResponse(BaseModel):
+    first_name: str
+    last_name: str
+
+
+# Asked by notification-service before showing a guardian their tray: the
+# notifications talk about their kids, so they need the portal's 2FA too.
+class PortalAccessCheckRequest(BaseModel):
+    person_id: UUID
+    session_id: str = Field(min_length=1, max_length=64)
+    # False only reads it. Loading the tray in the background must not keep
+    # the portal open forever, only the guardian doing something does.
+    renew: bool = False
 
 
 class DocumentTypeResponse(BaseModel):

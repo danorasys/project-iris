@@ -3,8 +3,8 @@
 # classroom-service publishes request.created and request.resolved events
 # there. This listener runs as a background task for the app's whole
 # lifespan (started in app/main.py) and persists each recognized event as a
-# notification for its teacher, who reads it back later over
-# GET /notifications/me.
+# notification for its teacher and for the kid's guardian, who read them
+# back later over GET /notifications/me.
 
 from __future__ import annotations
 

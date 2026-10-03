@@ -12,7 +12,7 @@ from redis.asyncio import Redis, from_url
 from app.application.notification_service import NotificationService
 from app.config import get_settings
 from app.correlation import get_correlation_id
-from app.domain.exceptions import InvalidToken, PermissionDenied
+from app.domain.exceptions import InvalidToken, PermissionDenied, PortalAccessRequired
 from app.infrastructure.http_clients.circuit_breaker import CircuitBreaker
 from app.infrastructure.http_clients.identity_client import IdentityClient
 from app.infrastructure.uow import SqlAlchemyUnitOfWork
@@ -57,9 +57,10 @@ def get_notification_service() -> NotificationService:
 
 
 class CurrentUser:
-    def __init__(self, subject_id: UUID, role: str) -> None:
+    def __init__(self, subject_id: UUID, role: str, session_id: str | None = None) -> None:
         self.subject_id = subject_id
         self.role = role
+        self.session_id = session_id
 
 
 async def get_current_user(
@@ -71,13 +72,31 @@ async def get_current_user(
     if credentials is None:
         raise InvalidToken("Falta el encabezado de autorización.")
     claims = await identity.validate_token(credentials.credentials, get_correlation_id())
-    return CurrentUser(subject_id=UUID(claims.sub), role=claims.role)
+    return CurrentUser(subject_id=UUID(claims.sub), role=claims.role, session_id=claims.extra.get("sid"))
 
 
 def require_role(*allowed_roles: str):
     async def _dep(user: Annotated[CurrentUser, Depends(get_current_user)]) -> CurrentUser:
         if user.role not in allowed_roles:
             raise PermissionDenied("Tu tipo de cuenta no tiene acceso a esta operación.")
+        return user
+
+    return _dep
+
+
+# A teacher or a guardian. A guardian's notifications talk about their kids,
+# so they need the portal's 2FA access, same as the rest of the parents'
+# portal. renew=False for reading the tray, so a tab left open doesn't keep
+# the portal open; reading or deleting one does count as using it.
+def require_tray_owner(renew: bool):
+    async def _dep(
+        user: Annotated[CurrentUser, Depends(require_role("teacher", "guardian"))],
+        identity: Annotated[IdentityClient, Depends(get_identity_client)],
+    ) -> CurrentUser:
+        if user.role == "guardian":
+            if user.session_id is None:
+                raise PortalAccessRequired()
+            await identity.check_portal_access(str(user.subject_id), user.session_id, renew, get_correlation_id())
         return user
 
     return _dep

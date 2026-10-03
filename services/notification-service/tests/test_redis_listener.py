@@ -1,5 +1,6 @@
 # Events published by classroom-service on the classroom.requests Redis
-# channel get persisted as notifications for the right teacher.
+# channel get persisted as notifications for the right teacher (and guardian,
+# see test_notifications.py).
 
 from __future__ import annotations
 
@@ -41,7 +42,7 @@ async def test_request_created_is_persisted_for_the_right_teacher() -> None:
         )
 
         service = NotificationService(uow_factory=SqlAlchemyUnitOfWork)
-        stored = await service.list_my_notifications(uuid.UUID(teacher_id))
+        stored = (await service.list_page(uuid.UUID(teacher_id), "teacher", 1, 10)).items
 
         assert len(stored) == 1
         assert stored[0].student_name == "Sofía"
@@ -65,7 +66,7 @@ async def test_event_without_teacher_id_is_ignored() -> None:
         # Nothing to assert against a specific teacher, this just confirms
         # the listener didn't crash and there's no orphaned notification.
         service = NotificationService(uow_factory=SqlAlchemyUnitOfWork)
-        stored = await service.list_my_notifications(uuid.uuid4())
-        assert stored == []
+        stored = await service.list_page(uuid.uuid4(), "teacher", 1, 10)
+        assert stored.items == []
     finally:
         await redis.aclose()

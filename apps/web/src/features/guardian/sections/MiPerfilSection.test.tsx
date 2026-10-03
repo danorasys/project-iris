@@ -8,6 +8,8 @@ import { MiPerfilSection } from "./MiPerfilSection";
 
 const updateProfile = vi.fn();
 const changePassword = vi.fn();
+const closeAllSessions = vi.fn();
+const discardSession = vi.fn();
 const onDirtyChange = vi.fn();
 
 const profile = {
@@ -24,7 +26,7 @@ const profile = {
 };
 
 vi.mock("@/shared/auth/AuthContext", () => ({
-  useAuth: () => ({ discardSession: vi.fn() }),
+  useAuth: () => ({ discardSession }),
 }));
 
 vi.mock("@/shared/api/hooks/useAuthApi", () => ({
@@ -38,6 +40,7 @@ vi.mock("@/shared/api/hooks/useAuthApi", () => ({
   }),
   useActualizarMiPerfilTutor: () => ({ mutateAsync: updateProfile, isPending: false }),
   useCambiarMiPassword: () => ({ mutateAsync: changePassword, isPending: false }),
+  useCerrarTodasMisSesiones: () => ({ mutateAsync: closeAllSessions, isPending: false }),
 }));
 
 function renderSection() {
@@ -52,6 +55,8 @@ afterEach(() => {
   cleanup();
   updateProfile.mockReset();
   changePassword.mockReset();
+  closeAllSessions.mockReset();
+  discardSession.mockReset();
   onDirtyChange.mockReset();
 });
 
@@ -439,6 +444,58 @@ describe("MiPerfilSection", () => {
 
       expect(screen.queryByRole("dialog")).toBeNull();
       expect(changePassword).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("closing every session", () => {
+    function renderWithLogin() {
+      return render(
+        <MemoryRouter initialEntries={["/guardian/portal"]}>
+          <Routes>
+            <Route path="/guardian/portal" element={<MiPerfilSection onDirtyChange={onDirtyChange} />} />
+            <Route path="/login/adult" element={<p>Login</p>} />
+          </Routes>
+        </MemoryRouter>,
+      );
+    }
+
+    it("is in Seguridad and asks before closing them", async () => {
+      closeAllSessions.mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderWithLogin();
+
+      const security = screen.getByRole("region", { name: "Seguridad" });
+      await user.click(within(security).getByRole("button", { name: "Cerrar todas las sesiones" }));
+      expect(closeAllSessions).not.toHaveBeenCalled();
+      await user.click(screen.getByRole("button", { name: "Sí, cerrar todas" }));
+
+      await waitFor(() => expect(closeAllSessions).toHaveBeenCalled());
+      expect(discardSession).toHaveBeenCalled();
+      expect(await screen.findByText("Login")).toBeTruthy();
+    });
+
+    it("does nothing when it's cancelled", async () => {
+      const user = userEvent.setup();
+      renderWithLogin();
+
+      await user.click(screen.getByRole("button", { name: "Cerrar todas las sesiones" }));
+      await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+      expect(closeAllSessions).not.toHaveBeenCalled();
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("stays here and says so when it fails", async () => {
+      closeAllSessions.mockRejectedValue(new Error("x"));
+      const user = userEvent.setup();
+      renderWithLogin();
+
+      await user.click(screen.getByRole("button", { name: "Cerrar todas las sesiones" }));
+      await user.click(screen.getByRole("button", { name: "Sí, cerrar todas" }));
+
+      expect(await screen.findByRole("alert")).toBeTruthy();
+      expect(discardSession).not.toHaveBeenCalled();
+      expect(screen.queryByText("Login")).toBeNull();
     });
   });
 });

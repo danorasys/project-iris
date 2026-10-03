@@ -14,12 +14,16 @@ class FakeIdentityGateway:
     def __init__(self) -> None:
         self._tokens: dict[str, UserClaims] = {}
         self._students: dict[UUID, StudentInfo] = {}
+        self._teacher_names: dict[UUID, str] = {}
         self.fallar_con_no_disponible = False
+        # The guardian of every student registered here.
+        self.guardian_person_id = uuid4()
 
-    def registrar_docente(self, teacher_id: UUID | None = None) -> tuple[str, UUID]:
+    def registrar_docente(self, teacher_id: UUID | None = None, nombre: str = "Carlos Ruiz") -> tuple[str, UUID]:
         teacher_id = teacher_id or uuid4()
         token = f"token-docente-{uuid4().hex}"
         self._tokens[token] = UserClaims(sub=teacher_id, role="teacher", extra={})
+        self._teacher_names[teacher_id] = nombre
         return token, teacher_id
 
     def registrar_estudiante_token(
@@ -36,6 +40,7 @@ class FakeIdentityGateway:
             guardian_last_name="Pérez",
             guardian_email="ana@example.com",
             guardian_phone="3001234567",
+            guardian_person_id=self.guardian_person_id,
         )
         return token, student_id
 
@@ -59,6 +64,14 @@ class FakeIdentityGateway:
         if info is None:
             raise ResourceNotFound("Estudiante no encontrado.")
         return info
+
+    async def obtener_nombre_docente(self, teacher_id: UUID) -> str:
+        if self.fallar_con_no_disponible:
+            raise IdentityServiceUnavailable()
+        name = self._teacher_names.get(teacher_id)
+        if name is None:
+            raise ResourceNotFound("Docente no encontrado.")
+        return name
 
 
 class FakeObjectStorage:

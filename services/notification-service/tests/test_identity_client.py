@@ -1,6 +1,7 @@
 # Unit tests for IdentityClient, the call to identity-service that validates
 # the access token on every REST request: 2s timeout plus circuit breaker, and
-# any failure maps to InvalidToken. See app/api/deps.py.
+# any failure maps to InvalidToken. See app/api/deps.py. Also the check of
+# a guardian's portal access, which never assumes it open.
 
 from __future__ import annotations
 
@@ -8,7 +9,7 @@ import httpx
 import pytest
 import respx
 
-from app.domain.exceptions import InvalidToken
+from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken, PortalAccessRequired
 from app.infrastructure.http_clients.circuit_breaker import CircuitBreaker
 from app.infrastructure.http_clients.identity_client import IdentityClient
 
@@ -104,3 +105,35 @@ async def test_a_valid_token_is_cached_and_not_revalidated_on_every_call() -> No
 
     assert first == second
     assert route.call_count == 1
+
+
+# --- portal access of a guardian ---
+
+_PORTAL_URL = f"{_BASE_URL}/internal/portal-access/check"
+
+
+@respx.mock
+async def test_portal_open_answers_without_error_and_sends_the_session() -> None:
+    route = respx.post(_PORTAL_URL).mock(return_value=httpx.Response(204))
+
+    await _client().check_portal_access("tutor-1", "sesion-1", renew=True)
+
+    assert route.called
+    assert route.calls.last.request.headers["X-Internal-Key"] == "test-internal-key"
+    assert b'"renew":true' in route.calls.last.request.content.replace(b" ", b"")
+
+
+@respx.mock
+async def test_portal_closed_asks_for_the_code() -> None:
+    respx.post(_PORTAL_URL).mock(return_value=httpx.Response(403, json={}))
+
+    with pytest.raises(PortalAccessRequired):
+        await _client().check_portal_access("tutor-1", "sesion-1", renew=False)
+
+
+@respx.mock
+async def test_without_identity_service_the_portal_is_not_assumed_open() -> None:
+    respx.post(_PORTAL_URL).mock(side_effect=httpx.ConnectError("connection refused"))
+
+    with pytest.raises(IdentityServiceUnavailable):
+        await _client().check_portal_access("tutor-1", "sesion-1", renew=False)

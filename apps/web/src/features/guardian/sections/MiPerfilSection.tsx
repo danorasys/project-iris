@@ -4,6 +4,7 @@ import { formatPhoneNumberIntl, parsePhoneNumber } from "react-phone-number-inpu
 import {
   useActualizarMiPerfilTutor,
   useCambiarMiPassword,
+  useCerrarTodasMisSesiones,
   useDocumentTypes,
   useMiPerfilTutor,
   useRelationshipTypes,
@@ -32,6 +33,7 @@ import { IconInfo, IconKey, IconLock, IconUserCircle } from "@/shared/ui/icons";
 import { Card, EDIT_HINT, EditableRow, ReadOnlyRow, SaveBar } from "../ui/ProfileForm";
 import { useProfileForm } from "../ui/useProfileForm";
 import form from "../ui/ProfileForm.module.css";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Toast } from "../ui/Toast";
 import { TwoFactorCodeDialog } from "../ui/TwoFactorCodeDialog";
 import { isPortalAccessRequired, useWithPortalAccess } from "../portalAccess";
@@ -475,6 +477,72 @@ function SecurityCard() {
           onOtherError={showFormError}
         />
       )}
+
+      <CloseAllSessions />
     </Card>
+  );
+}
+
+// Signs the account out of every device, this one too. Handy when the
+// guardian used IRIS on a computer that isn't theirs, or thinks someone
+// else got in.
+function CloseAllSessions() {
+  const navigate = useNavigate();
+  const { discardSession } = useAuth();
+  const closeAll = useCerrarTodasMisSesiones();
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function closeEverywhere() {
+    setConfirming(false);
+    setError(null);
+    try {
+      await closeAll.mutateAsync();
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+      return;
+    }
+    // The server already closed this session too, only the local copy is left.
+    discardSession();
+    navigate("/login/adult", {
+      replace: true,
+      state: { aviso: "Cerramos tus sesiones en todos los dispositivos. Inicia sesión de nuevo." },
+    });
+  }
+
+  return (
+    <div className={styles.sessionsRow}>
+      <div className={form.field}>
+        <span className={form.fieldLabel}>Sesiones abiertas</span>
+        <span className={styles.sessionsText}>
+          Si usaste IRIS en un equipo que no es tuyo o crees que alguien más entró a tu cuenta, cierra tu sesión en
+          todos los dispositivos, incluido este.
+        </span>
+        {error && (
+          <span role="alert" className={form.error}>
+            {error}
+          </span>
+        )}
+      </div>
+      <button
+        type="button"
+        className={styles.dangerButton}
+        onClick={() => setConfirming(true)}
+        disabled={closeAll.isPending}
+      >
+        {closeAll.isPending ? "Cerrando…" : "Cerrar todas las sesiones"}
+      </button>
+
+      {confirming && (
+        <ConfirmDialog
+          message="Vamos a cerrar tu sesión en todos los dispositivos, incluido este. Los cambios que no hayas guardado se perderán. ¿Continuar?"
+          acceptLabel="Sí, cerrar todas"
+          cancelLabel="Cancelar"
+          danger
+          onAccept={() => void closeEverywhere()}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
+    </div>
   );
 }

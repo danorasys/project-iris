@@ -2,19 +2,18 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.entities import Notification
+from app.domain.entities import Notification, NotificationPage
 from app.infrastructure.models import NotificationModel
-
-_LIST_LIMIT = 50
 
 
 def _to_entity(m: NotificationModel) -> Notification:
     return Notification(
         id=m.id,
-        teacher_id=m.teacher_id,
+        recipient_id=m.recipient_id,
+        recipient_role=m.recipient_role,
         event=m.event,
         classroom_id=m.classroom_id,
         enrollment_id=m.enrollment_id,
@@ -22,6 +21,9 @@ def _to_entity(m: NotificationModel) -> Notification:
         decision=m.decision,
         read=m.read,
         created_at=m.created_at,
+        student_id=m.student_id,
+        classroom_name=m.classroom_name,
+        sender_name=m.sender_name,
     )
 
 
@@ -33,24 +35,40 @@ class SqlAlchemyNotificationRepository:
         m = await self._session.get(NotificationModel, notification_id)
         return _to_entity(m) if m else None
 
-    async def list_by_teacher(self, teacher_id: UUID) -> list[Notification]:
-        result = await self._session.execute(
-            select(NotificationModel)
-            .where(NotificationModel.teacher_id == teacher_id)
-            .order_by(NotificationModel.created_at.desc())
-            .limit(_LIST_LIMIT)
+    async def list_page(self, recipient_id: UUID, recipient_role: str, offset: int, limit: int) -> NotificationPage:
+        mine = (NotificationModel.recipient_id == recipient_id) & (NotificationModel.recipient_role == recipient_role)
+        # Both counts in one query.
+        counts = await self._session.execute(
+            select(func.count(), func.coalesce(func.sum(case((NotificationModel.read.is_(False), 1), else_=0)), 0)).where(
+                mine
+            )
         )
-        return [_to_entity(m) for m in result.scalars().all()]
+        total, unread = counts.one()
+        rows = await self._session.execute(
+            select(NotificationModel)
+            .where(mine)
+            # The id breaks ties, so a page never repeats or skips one.
+            .order_by(NotificationModel.created_at.desc(), NotificationModel.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return NotificationPage(
+            items=[_to_entity(m) for m in rows.scalars().all()], total=int(total), unread=int(unread)
+        )
 
     async def add(self, notification: Notification) -> None:
         self._session.add(
             NotificationModel(
                 id=notification.id,
-                teacher_id=notification.teacher_id,
+                recipient_id=notification.recipient_id,
+                recipient_role=notification.recipient_role,
                 event=notification.event,
                 classroom_id=notification.classroom_id,
                 enrollment_id=notification.enrollment_id,
+                student_id=notification.student_id,
                 student_name=notification.student_name,
+                classroom_name=notification.classroom_name,
+                sender_name=notification.sender_name,
                 decision=notification.decision,
                 read=notification.read,
                 created_at=notification.created_at,
@@ -62,3 +80,6 @@ class SqlAlchemyNotificationRepository:
         if m is None:
             return
         m.read = True
+
+    async def delete(self, notification_id: UUID) -> None:
+        await self._session.execute(delete(NotificationModel).where(NotificationModel.id == notification_id))

@@ -1,6 +1,7 @@
 # Client for identity-service, validates the access token on every
-# request to this service's own REST routes. The role itself (must be
-# "teacher") is checked separately, in app/api/deps.py.
+# request to this service's own REST routes, and for a guardian checks that
+# their session has the parents' portal open. The role itself is checked
+# separately, in app/api/deps.py.
 #
 # Explicit 2s timeout plus a circuit breaker, and a short TTL cache so the
 # notification tray, polled every ~20s per teacher, doesn't revalidate the same
@@ -24,7 +25,7 @@ import httpx
 from cachetools import TTLCache
 
 from app.correlation import CORRELATION_HEADER
-from app.domain.exceptions import InvalidToken
+from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken, PortalAccessRequired
 from app.infrastructure.http_clients.circuit_breaker import CircuitBreaker, CircuitBreakerOpen
 
 logger = logging.getLogger(__name__)
@@ -96,3 +97,31 @@ class IdentityClient:
 
         self._cache[token] = result
         return result
+
+    # No cache here: the portal closes after a while without use, and a
+    # cached "open" would keep it open longer than identity-service says.
+    async def check_portal_access(
+        self, person_id: str, session_id: str, renew: bool, correlation_id: str | None = None
+    ) -> None:
+        async def _call() -> int:
+            headers = {"X-Internal-Key": self._internal_service_key}
+            if correlation_id:
+                headers[CORRELATION_HEADER] = correlation_id
+            response = await self._http.post(
+                f"{self._base_url}/internal/portal-access/check",
+                json={"person_id": person_id, "session_id": session_id, "renew": renew},
+                headers=headers,
+                timeout=httpx.Timeout(self._timeout_sec),
+            )
+            # A clean "closed" is an answer, not a failure of identity-service.
+            if response.status_code != 403:
+                response.raise_for_status()
+            return response.status_code
+
+        try:
+            status_code = await self._circuit_breaker.execute(_call)
+        except (CircuitBreakerOpen, httpx.HTTPError) as exc:
+            logger.warning("No fue posible confirmar el acceso al portal contra identity-service: %s", exc)
+            raise IdentityServiceUnavailable() from exc
+        if status_code == 403:
+            raise PortalAccessRequired()

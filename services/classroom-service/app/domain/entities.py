@@ -74,3 +74,6 @@ class StudentInfo:
     guardian_last_name: str
     guardian_email: str
     guardian_phone: str
+    # The id the guardian signs in with, so notification-service can tell
+    # them about their kid's requests.
+    guardian_person_id: UUID

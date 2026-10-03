@@ -8,14 +8,17 @@ from types import TracebackType
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.entities import Notification
+from app.domain.entities import Notification, NotificationPage
 
 
 class NotificationRepository(Protocol):
     async def get_by_id(self, notification_id: UUID) -> Notification | None: ...
-    async def list_by_teacher(self, teacher_id: UUID) -> list[Notification]: ...
+    # Newest first, a slice of the tray plus how many there are in total
+    # and how many are still unread.
+    async def list_page(self, recipient_id: UUID, recipient_role: str, offset: int, limit: int) -> NotificationPage: ...
     async def add(self, notification: Notification) -> None: ...
     async def mark_read(self, notification: Notification) -> None: ...
+    async def delete(self, notification_id: UUID) -> None: ...
 
 
 class UnitOfWork(Protocol):

@@ -16,6 +16,7 @@ from app.domain.exceptions import (
     InvalidToken,
     NotificationNotFound,
     PermissionDenied,
+    PortalAccessRequired,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ _STATUS_BY_ERROR: dict[type[DomainError], int] = {
     IdentityServiceUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
     NotificationNotFound: status.HTTP_404_NOT_FOUND,
     PermissionDenied: status.HTTP_403_FORBIDDEN,
+    PortalAccessRequired: status.HTTP_403_FORBIDDEN,
 }
 
 

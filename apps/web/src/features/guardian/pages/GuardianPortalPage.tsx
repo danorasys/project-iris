@@ -1,15 +1,16 @@
 import { useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/shared/auth/AuthContext";
-import { useCerrarTodasMisSesiones, useMiPerfilTutor } from "@/shared/api/hooks/useAuthApi";
-import { IconArrowLeft, IconBell, IconChild, IconInfo, IconLock, IconLogOut, IconUserCircle } from "@/shared/ui/icons";
+import { useMiPerfilTutor } from "@/shared/api/hooks/useAuthApi";
+import { useNotificacionesSinLeer } from "@/shared/api/hooks/useNotifications";
+import { IconArrowLeft, IconBell, IconChild, IconInfo, IconLogOut, IconUserCircle } from "@/shared/ui/icons";
 import logoIris from "@/assets/landing/logo-iris.png";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { initials } from "@/features/utils/initials";
 import { PortalAccessProvider } from "../PortalAccessProvider";
 import { MiPerfilSection } from "../sections/MiPerfilSection";
 import { MisPequesSection } from "../sections/MisPequesSection";
-import { ComingSoonSection } from "../sections/ComingSoonSection";
+import { NotificacionesSection } from "../sections/NotificacionesSection";
 import styles from "./GuardianPortalPage.module.css";
 
 type SectionId = "perfil" | "peques" | "notificaciones";
@@ -29,12 +30,13 @@ interface PendingConfirm {
 }
 
 /** `/guardian/portal`, the parents' panel. The sidebar on the left has the
- * sections (mi perfil, mis peques, notificaciones) and the account options
- * (regresar, cerrar sesión, cerrar todas las sesiones). The content on the
- * right changes with local state, not with a route change.
+ * menu (mi perfil, mis peques, notificaciones, regresar and cerrar sesión)
+ * and who is signed in at the bottom. Closing every session is in the
+ * security part of Mi perfil. The content on the right changes with
+ * local state, not with a route change.
  *
- * "Mi perfil" and "Mis peques" work with real data (see MiPerfilSection
- * and MisPequesSection). "Notificaciones" is only a placeholder for now.
+ * Each section works with real data, see MiPerfilSection, MisPequesSection
+ * and NotificacionesSection.
  *
  * A guardian reaches this page either right after finishing 2FA setup
  * during registration, or, later on, through the "Portal de padres" link
@@ -43,14 +45,16 @@ interface PendingConfirm {
  * used to skip that step. */
 export default function GuardianPortalPage() {
   const navigate = useNavigate();
-  const { closeSession, discardSession } = useAuth();
-  const closeAllSessions = useCerrarTodasMisSesiones();
+  const { closeSession } = useAuth();
   // Same query as Mi perfil, so it comes from the cache.
   const profile = useMiPerfilTutor().data;
   // Sent by the 2FA page: wrong codes typed since the last good one.
   const failedAttempts = (useLocation().state as { failedAttempts?: number } | null)?.failedAttempts ?? 0;
   const [noticeDismissed, setNoticeDismissed] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>("perfil");
+  // Where "Regresar" in Notificaciones goes back to.
+  const [previousSection, setPreviousSection] = useState<SectionId>("perfil");
+  const unreadCount = useNotificacionesSinLeer().data ?? 0;
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
 
@@ -81,6 +85,7 @@ export default function GuardianPortalPage() {
     if (section === activeSection) return;
     guardWithDirtyCheck(() => {
       setConfirm(null);
+      setPreviousSection(activeSection);
       setActiveSection(section);
     });
   }
@@ -113,30 +118,6 @@ export default function GuardianPortalPage() {
     });
   }
 
-  function requestCloseAllSessions() {
-    guardWithDirtyCheck(() => {
-      setConfirm({
-        message: "Vamos a cerrar tu sesión en todos los dispositivos, incluido este. ¿Continuar?",
-        acceptLabel: "Sí, cerrar todas",
-        cancelLabel: "Cancelar",
-        danger: true,
-        onAccept: () => {
-          setConfirm(null);
-          void closeAllSessions.mutateAsync().then(
-            () => {
-              discardSession();
-              navigate("/login/adult", {
-                replace: true,
-                state: { aviso: "Cerramos tus sesiones en todos los dispositivos. Inicia sesión de nuevo." },
-              });
-            },
-            () => setConfirm(null),
-          );
-        },
-      });
-    });
-  }
-
   return (
     <div className={styles.page}>
       <aside className={styles.sidebar}>
@@ -162,8 +143,26 @@ export default function GuardianPortalPage() {
                 <Icon width={18} height={18} />
               </span>
               <span className={styles.navLabel}>{label}</span>
+              {id === "notificaciones" && unreadCount > 0 && (
+                <span className={styles.navBadge}>
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                  <span className={styles.visuallyHidden}> sin leer</span>
+                </span>
+              )}
             </button>
           ))}
+          <button type="button" className={styles.navItem} onClick={requestBack}>
+            <span className={styles.navIcon}>
+              <IconArrowLeft width={18} height={18} />
+            </span>
+            <span className={styles.navLabel}>Regresar</span>
+          </button>
+          <button type="button" className={`${styles.navItem} ${styles.navItemDanger}`} onClick={requestLogout}>
+            <span className={styles.navIcon}>
+              <IconLogOut width={18} height={18} />
+            </span>
+            <span className={styles.navLabel}>Cerrar sesión</span>
+          </button>
         </nav>
 
         <div className={styles.account}>
@@ -178,32 +177,6 @@ export default function GuardianPortalPage() {
               </span>
             </div>
           )}
-
-          <nav className={styles.nav} aria-label="Cuenta">
-            <span className={styles.navGroupLabel}>Cuenta</span>
-            <button type="button" className={styles.navItem} onClick={requestBack}>
-              <span className={styles.navIcon}>
-                <IconArrowLeft width={18} height={18} />
-              </span>
-              <span className={styles.navLabel}>Regresar</span>
-            </button>
-            <button type="button" className={`${styles.navItem} ${styles.navItemDanger}`} onClick={requestLogout}>
-              <span className={styles.navIcon}>
-                <IconLogOut width={18} height={18} />
-              </span>
-              <span className={styles.navLabel}>Cerrar sesión</span>
-            </button>
-            <button
-              type="button"
-              className={`${styles.navItem} ${styles.navItemDanger}`}
-              onClick={requestCloseAllSessions}
-            >
-              <span className={styles.navIcon}>
-                <IconLock width={18} height={18} />
-              </span>
-              <span className={styles.navLabel}>Cerrar todas las sesiones</span>
-            </button>
-          </nav>
         </div>
       </aside>
 
@@ -229,11 +202,7 @@ export default function GuardianPortalPage() {
             {activeSection === "perfil" && <MiPerfilSection onDirtyChange={setHasUnsavedChanges} />}
             {activeSection === "peques" && <MisPequesSection onDirtyChange={setHasUnsavedChanges} />}
             {activeSection === "notificaciones" && (
-              <ComingSoonSection
-                icon={<IconBell width={32} height={32} />}
-                title="Notificaciones"
-                text="Estamos construyendo tu bandeja de notificaciones. Muy pronto vas a poder ver aquí los mensajes de los docentes de tus peques."
-              />
+              <NotificacionesSection onBack={() => selectSection(previousSection)} />
             )}
           </div>
         </main>

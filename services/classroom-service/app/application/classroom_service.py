@@ -236,16 +236,20 @@ class ClassroomService:
             await uow.enrollments.update(enrollment)
             await uow.commit()
 
-        await self._publish_event_safely(
-            REQUESTS_CHANNEL,
-            {
-                "event": "request.resolved",
-                "classroom_id": str(classroom_id),
-                "enrollment_id": str(enrollment_id),
-                "decision": new_status,
-                "teacher_id": str(classroom.teacher_id),
-            },
-        )
+        event: dict[str, object] = {
+            "event": "request.resolved",
+            "classroom_id": str(classroom_id),
+            "classroom_name": classroom.name,
+            "enrollment_id": str(enrollment_id),
+            "decision": new_status,
+            "teacher_id": str(classroom.teacher_id),
+        }
+        event |= await self._guardian_fields(enrollment.student_id)
+        try:
+            event["teacher_name"] = await self._identity.obtener_nombre_docente(classroom.teacher_id)
+        except (IdentityServiceUnavailable, ResourceNotFound):
+            logger.warning("No fue posible resolver el nombre del docente para el evento de solicitud.")
+        await self._publish_event_safely(REQUESTS_CHANNEL, event)
         return enrollment
 
     # ------------------------------------------------------------------
@@ -287,23 +291,16 @@ class ClassroomService:
                 await uow.enrollments.add(enrollment)
             await uow.commit()
 
-        student_name = "Un estudiante"
-        try:
-            info = await self._identity.obtener_estudiante(student_id)
-            student_name = info.first_name
-        except (IdentityServiceUnavailable, ResourceNotFound):
-            logger.warning("No fue posible resolver el nombre del estudiante para el evento de solicitud.")
-
-        await self._publish_event_safely(
-            REQUESTS_CHANNEL,
-            {
-                "event": "request.created",
-                "classroom_id": str(classroom.id),
-                "enrollment_id": str(enrollment.id),
-                "student_name": student_name,
-                "teacher_id": str(classroom.teacher_id),
-            },
-        )
+        event: dict[str, object] = {
+            "event": "request.created",
+            "classroom_id": str(classroom.id),
+            "classroom_name": classroom.name,
+            "enrollment_id": str(enrollment.id),
+            "student_name": "Un estudiante",
+            "teacher_id": str(classroom.teacher_id),
+        }
+        event |= await self._guardian_fields(student_id)
+        await self._publish_event_safely(REQUESTS_CHANNEL, event)
         return enrollment
 
     async def list_my_classrooms(self, student_id: UUID) -> list[Classroom]:
@@ -334,6 +331,21 @@ class ClassroomService:
             await self._storage.delete(key)
         except Exception:  # noqa: BLE001, cleaning up storage is never worth failing the request
             logger.warning("No fue posible borrar el archivo %s del almacenamiento.", key)
+
+    # The kid and their guardian, so notification-service can also tell the
+    # guardian. Without identity-service the event still goes out with what
+    # is known, the teacher gets theirs and only the guardian's is missing.
+    async def _guardian_fields(self, student_id: UUID) -> dict[str, object]:
+        try:
+            info = await self._identity.obtener_estudiante(student_id)
+        except (IdentityServiceUnavailable, ResourceNotFound):
+            logger.warning("No fue posible resolver el estudiante y su tutor para el evento de solicitud.")
+            return {}
+        return {
+            "student_id": str(student_id),
+            "student_name": info.first_name,
+            "guardian_id": str(info.guardian_person_id),
+        }
 
     # ------------------------------------------------------------------
     # Publishing to Redis is a non-critical side effect. If Redis doesn't

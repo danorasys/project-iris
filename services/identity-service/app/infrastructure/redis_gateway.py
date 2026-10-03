@@ -90,6 +90,10 @@ class RedisPortalAccessStore:
         # If it expired right between the two calls, expire answers False.
         return bool(await self._redis.expire(key, ttl_seg))
 
+    async def esta_abierto(self, person_id: UUID, session_id: str, max_age_seg: int) -> bool:
+        granted_at = await self._redis.get(self._key(person_id, session_id))
+        return granted_at is not None and time.time() - int(granted_at) < max_age_seg
+
     async def revocar(self, person_id: UUID, session_id: str) -> None:
         await self._redis.delete(self._key(person_id, session_id))
 
