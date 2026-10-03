@@ -47,6 +47,12 @@ import logoIris from "@/assets/landing/logo-iris.png"
 import styles from "./GuardianRegistrationWizard.module.css"
 import { calculateAge } from "@/features/utils/calculateAge"
 import { MAX_AGE, nameError } from "@/features/utils/personValidation"
+import {
+    SUPPORT_CONDITION_NAME_OTHER,
+    includesOtherCondition,
+    supportConditionNames,
+} from "@/features/utils/supportCondition"
+import { SupportConditionsField } from "@/features/auth/ui/SupportConditionsField"
 import { formatDate } from "@/features/utils/formatDate"
 import { validateDocumentIssuedAt } from "@/features/utils/validateDocumentIssuedAt"
 
@@ -54,10 +60,6 @@ const CONSENT_POLICY_VERSION = "1.0"
 const MIN_GUARDIAN_AGE = 18
 const TODAY_ISO = new Date().toISOString().slice(0, 10)
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-// Matched by name, not a hardcoded id: the catalog lives in identity-service's
-// database (see its migration 0004), so ids are only stable in practice, not
-// guaranteed. Mirrors app/domain/entities.py's SUPPORT_CONDITION_NAME_OTHER.
-const SUPPORT_CONDITION_NAME_OTHER = "Otra condición (especificar)"
 
 type PinSubstep = "ingresar" | "confirmar" | "listo"
 type Phase = "formulario" | "confirmacion"
@@ -320,7 +322,9 @@ export default function GuardianRegistrationWizard() {
     const [studentLastName, setStudentLastName] = useState("")
     const [birthDate, setBirthDate] = useState("")
     const [avatarId, setAvatarId] = useState<string>("")
-    const [supportConditionId, setSupportConditionId] = useState("")
+    const [supportConditionIds, setSupportConditionIds] = useState<number[]>(
+        [],
+    )
     const [supportConditionOther, setSupportConditionOther] = useState("")
     const [additionalSupportNeed, setAdditionalSupportNeed] = useState("")
     const [pinSubstep, setPinSubstep] = useState<PinSubstep>("ingresar")
@@ -356,17 +360,17 @@ export default function GuardianRegistrationWizard() {
         }
     }, [avatarId, avatarsQuery.data])
 
-    // Deliberately left unselected (see the placeholder option in the
-    // SelectField below): unlike document type/relationship above, silently
-    // defaulting this to any real entry — even "Prefiero no especificar" —
-    // would let a family move on without ever having actually looked at the
-    // list. It has to be a conscious choice, checked when moving forward
-    // (handleSubmitStep2) — going back never checks it, see handleGoBackToStep1.
-    const selectedSupportCondition = supportConditionsQuery.data?.find(
-        (condition) => String(condition.id) === supportConditionId,
+    // Deliberately left with nothing marked: unlike document type/relationship
+    // above, silently defaulting this to any real entry — even "Prefiero no
+    // especificar" — would let a family move on without ever having actually
+    // looked at the list. It has to be a conscious choice, checked when moving
+    // forward (handleSubmitStep2) — going back never checks it, see
+    // handleGoBackToStep1. A kid can have several conditions, so it's a list.
+    const supportConditions = supportConditionsQuery.data ?? []
+    const isOtherConditionSelected = includesOtherCondition(
+        supportConditionIds,
+        supportConditions,
     )
-    const isOtherConditionSelected =
-        selectedSupportCondition?.name === SUPPORT_CONDITION_NAME_OTHER
 
     const selectedDocumentType = documentTypesQuery.data?.find(
         (dt) => String(dt.id) === documentType,
@@ -378,14 +382,14 @@ export default function GuardianRegistrationWizard() {
     const supportConditionsFailed = supportConditionsQuery.isError
     const avatarsFailed = avatarsQuery.isError
 
-    /** Used by handleSubmitStep2, when moving forward: the support condition
-     * select can't be left on its placeholder, and "Otra condición" can't be
-     * left unspecified. Going backward (handleGoBackToStep1) never runs this —
+    /** Used by handleSubmitStep2, when moving forward: at least one support
+     * condition has to be marked, and "Otra condición" can't be left
+     * unspecified. Going backward (handleGoBackToStep1) never runs this —
      * "Atrás" always has to work, regardless of what's still missing here. */
     function validateSupportConditionBeforeLeaving(): boolean {
-        if (!selectedSupportCondition) {
+        if (supportConditionIds.length === 0) {
             setSupportConditionError(
-                "Selecciona la condición correspondiente a tu hijo o hija.",
+                "Marca al menos una condición correspondiente a tu hijo o hija.",
             )
             focusAndScrollToField("estudiante-condicion")
             return false
@@ -408,16 +412,12 @@ export default function GuardianRegistrationWizard() {
         setPhase("formulario")
     }
 
-    /** Switching away from "Otra condición (especificar)" clears whatever was
-     * typed into its text field, so it can never be submitted alongside a
-     * different, unrelated condition. */
-    function handleSupportConditionChange(nextId: string) {
-        setSupportConditionId(nextId)
+    /** Unmarking "Otra condición (especificar)" clears whatever was typed
+     * into its text field, so it can never be submitted without it. */
+    function handleSupportConditionsChange(nextIds: number[]) {
+        setSupportConditionIds(nextIds)
         setSupportConditionError(null)
-        const nextCondition = supportConditionsQuery.data?.find(
-            (condition) => String(condition.id) === nextId,
-        )
-        if (nextCondition?.name !== SUPPORT_CONDITION_NAME_OTHER) {
+        if (!includesOtherCondition(nextIds, supportConditions)) {
             setSupportConditionOther("")
             setSupportConditionOtherError(null)
         }
@@ -697,7 +697,7 @@ export default function GuardianRegistrationWizard() {
                 avatar_id: Number(avatarId),
                 pin,
                 pin_confirmation: pin,
-                support_condition_id: Number(supportConditionId),
+                support_condition_ids: supportConditionIds,
                 ...(isOtherConditionSelected
                     ? { support_condition_other: supportConditionOther.trim() }
                     : {}),
@@ -746,17 +746,27 @@ export default function GuardianRegistrationWizard() {
         },
     ]
 
-    const supportConditionSummaryValue =
-        selectedSupportCondition &&
-        (isOtherConditionSelected
-            ? `${selectedSupportCondition.name}: ${supportConditionOther.trim()}`
-            : selectedSupportCondition.name)
+    // One or several, with what was typed next to "Otra condición".
+    const supportConditionSummaryValue = supportConditionNames(
+        supportConditionIds,
+        supportConditions,
+    )
+        .map((name) =>
+            name === SUPPORT_CONDITION_NAME_OTHER
+                ? `${name}: ${supportConditionOther.trim()}`
+                : name,
+        )
+        .join(", ")
 
     const studentSummary: SummaryItem[] = [
         { label: "Nombres", value: studentFirstName },
         { label: "Apellidos", value: studentLastName },
         { label: "Fecha de nacimiento", value: formatDate(birthDate) },
-        { label: "Condición", value: supportConditionSummaryValue ?? "" },
+        {
+            label:
+                supportConditionIds.length > 1 ? "Condiciones" : "Condición",
+            value: supportConditionSummaryValue,
+        },
         {
             label: "Necesidad de apoyo adicional",
             value: additionalSupportNeed.trim() || "No indicada",
@@ -1181,9 +1191,9 @@ export default function GuardianRegistrationWizard() {
                                     Aquí vas a completar los datos de tu hijo o
                                     hija (o del menor a tu cargo): su nombre,
                                     apellidos y fecha de nacimiento. También vas
-                                    a seleccionar una condición de una lista
-                                    (puedes elegir "Prefiero no especificar" si
-                                    prefieres no indicarla) y, si quieres,
+                                    a marcar su condición en una lista (puede
+                                    ser más de una, o "Prefiero no especificar"
+                                    si prefieres no indicarla) y, si quieres,
                                     agregar alguna necesidad de apoyo adicional
                                     que sea importante que el docente conozca.
                                     Además, vas a elegir su avatar. Por último,
@@ -1278,23 +1288,12 @@ export default function GuardianRegistrationWizard() {
                                 </p>
                             )}
                         </div>
-                        <SelectField
+                        <SupportConditionsField
                             id="estudiante-condicion"
-                            label="Condición"
-                            value={supportConditionId}
-                            onChange={handleSupportConditionChange}
-                            options={[
-                                {
-                                    value: "",
-                                    label: "-- Selecciona una opción --",
-                                },
-                                ...(supportConditionsQuery.data ?? []).map(
-                                    (condition) => ({
-                                        value: String(condition.id),
-                                        label: condition.name,
-                                    }),
-                                ),
-                            ]}
+                            label="Condición o condiciones"
+                            options={supportConditions}
+                            value={supportConditionIds}
+                            onChange={handleSupportConditionsChange}
                             error={supportConditionError ?? undefined}
                             required
                             disabled={supportConditionsQuery.isLoading}
@@ -1331,9 +1330,9 @@ export default function GuardianRegistrationWizard() {
                             error={authorizesSupportConditionError ?? undefined}
                             required
                         >
-                            Autorizo compartir con el docente la condición y la
-                            necesidad de apoyo adicional de mi hijo o hija
-                            indicadas en este registro, conforme a nuestro{" "}
+                            Autorizo compartir con el docente la condición o
+                            condiciones y la necesidad de apoyo adicional de mi
+                            hijo o hija indicadas en este registro, conforme a nuestro{" "}
                             <a
                                 href="/legal-notice"
                                 target="_blank"

@@ -152,6 +152,23 @@ class GuardianDataRequest(BaseModel):
         return self
 
 
+def _sorted_without_repeats(ids: list[int]) -> list[int]:
+    if len(set(ids)) != len(ids):
+        raise ValueError("Hay una condición repetida.")
+    return sorted(ids)
+
+
+# The conditions of a kid, as ids of the catalog: at least one, none
+# repeated. They are kept sorted, so the same choice always looks the same.
+# Which ones can go together is checked in the services, that needs the
+# catalog from the database (see app/application/support_conditions.py).
+SupportConditionIds = Annotated[
+    list[Annotated[int, Field(gt=0)]],
+    Field(min_length=1, max_length=30),
+    AfterValidator(_sorted_without_repeats),
+]
+
+
 class FirstStudentDataRequest(BaseModel):
     first_name: PersonName
     last_name: PersonName
@@ -159,11 +176,11 @@ class FirstStudentDataRequest(BaseModel):
     avatar_id: int = Field(gt=0)
     pin: str = Field(min_length=4, max_length=4)
     pin_confirmation: str = Field(min_length=4, max_length=4)
-    support_condition_id: int = Field(gt=0)
+    support_condition_ids: SupportConditionIds
     # Whether this must be set (and whether it's even allowed) depends on
-    # *which* support_condition_id was chosen ("Otra condición (especificar)"
-    # vs. any other catalog entry) — that requires looking the id up in the
-    # database, so it's checked in AuthService/GuardianService, not here.
+    # *which* conditions were chosen ("Otra condición (especificar)" among
+    # them or not) — that requires looking the ids up in the database, so
+    # it's checked in the services, not here.
     support_condition_other: str | None = Field(default=None, max_length=200)
     additional_support_need: str | None = Field(default=None, max_length=500)
 
@@ -197,7 +214,7 @@ class ConsentDataRequest(BaseModel):
     @field_validator("authorizes_support_condition")
     @classmethod
     def must_authorize_support_condition(cls, v: bool) -> bool:
-        # Choosing a support_condition_id on FirstStudentDataRequest is
+        # Choosing support_condition_ids on FirstStudentDataRequest is
         # mandatory (it always includes a "prefiero no especificar" option
         # for families with nothing to disclose), but authorizing the school
         # to see whatever was chosen is a separate consent, asked here.
@@ -264,7 +281,7 @@ class CreateAdditionalStudentRequest(BaseModel):
     date_of_birth: date
     avatar_id: int = Field(gt=0)
     pin: str = Field(min_length=4, max_length=4)
-    support_condition_id: int = Field(gt=0)
+    support_condition_ids: SupportConditionIds
     support_condition_other: str | None = Field(default=None, max_length=200)
     additional_support_need: str | None = Field(default=None, max_length=500)
 
@@ -283,14 +300,62 @@ class AccessTokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+# What the profile picker and the list of kids need. The list is open
+# without the portal's 2FA code, so nothing sensitive (like the support
+# condition) goes here, that is only in StudentDetailResponse.
 class StudentProfileResponse(BaseModel):
     id: UUID
     first_name: str
     avatar_id: int
     date_of_birth: date
-    support_condition_id: int
+
+
+# Everything the guardian registered about a kid, only inside the portal.
+class StudentDetailResponse(BaseModel):
+    id: UUID
+    first_name: str
+    last_name: str
+    date_of_birth: date
+    avatar_id: int
+    support_condition_ids: list[int]
     support_condition_other: str | None = None
     additional_support_need: str | None = None
+
+
+class UpdateStudentRequest(BaseModel):
+    first_name: PersonName
+    last_name: PersonName
+    date_of_birth: date
+    avatar_id: int = Field(gt=0)
+    support_condition_ids: SupportConditionIds
+    # Whether this one is needed depends on the conditions chosen, which is
+    # checked in GuardianService (it has to look the ids up in the database).
+    support_condition_other: str | None = Field(default=None, max_length=200)
+    additional_support_need: str | None = Field(default=None, max_length=500)
+    # Same declaration as when the guardian edits their own profile.
+    truthful_declaration: bool = Field(
+        strict=True,
+        description="Debe ser true: el tutor declara que la información que modificó es correcta y veraz.",
+    )
+
+    @field_validator("date_of_birth")
+    @classmethod
+    def date_of_birth_not_future(cls, v: date) -> date:
+        if v > date.today():
+            raise ValueError("La fecha de nacimiento no puede ser una fecha futura.")
+        return v
+
+    @field_validator("support_condition_other", "additional_support_need")
+    @classmethod
+    def empty_text_is_no_text(cls, v: str | None) -> str | None:
+        return (v or "").strip() or None
+
+    @field_validator("truthful_declaration")
+    @classmethod
+    def validate_truthful_declaration(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError("Debes declarar que la información que modificaste es correcta y veraz.")
+        return v
 
 
 class CurrentUserResponse(BaseModel):
@@ -405,6 +470,28 @@ class UpdateGuardianProfileRequest(BaseModel):
                 f"El código de país y el número telefónico no pueden sumar más de {E164_MAX_DIGITS} dígitos."
             )
         _validar_telefono(self.phone_country_code, self.phone_number)
+        return self
+
+
+class CheckStudentPinRequest(BaseModel):
+    current_pin: str = Field(pattern=r"^\d{4}$")
+
+
+# A guardian sets a new PIN for one of their kids. Same idea as changing
+# their own password: the current PIN and a fresh code from the
+# authenticator app are both asked at that moment.
+class ChangeStudentPinRequest(BaseModel):
+    current_pin: str = Field(pattern=r"^\d{4}$")
+    code: str = Field(pattern=r"^\d{6}$")
+    pin: str = Field(pattern=r"^\d{4}$")
+    pin_confirmation: str = Field(pattern=r"^\d{4}$")
+
+    @model_validator(mode="after")
+    def validate_pins(self) -> "ChangeStudentPinRequest":
+        if self.pin != self.pin_confirmation:
+            raise ValueError("Los PIN no coinciden.")
+        if self.pin == self.current_pin:
+            raise ValueError("El nuevo PIN no puede ser igual al que escribiste en \"PIN actual\".")
         return self
 
 

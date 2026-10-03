@@ -1,92 +1,409 @@
-.error {
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.status {
   margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.error {
   font-weight: 700;
   color: var(--color-error);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+/* --- Header, the same blue band as Mi perfil --- */
+.hero {
+  display: flex;
+  align-items: center;
   gap: var(--space-4);
-  max-width: 640px;
+  padding: var(--space-5);
+  border-radius: var(--radius-large);
+  background: radial-gradient(130% 180% at 0% 0%, var(--color-iris-medium) 0%, var(--color-iris-deep) 62%);
+  color: var(--color-surface);
+  box-shadow:
+    var(--shadow-card),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.studentTile {
+/* White circle with two soft rings around it, like the rings of an iris.
+   It holds an icon in the list and the kid's avatar in their own space. */
+.heroBadge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  box-shadow:
+    0 0 0 5px rgba(255, 255, 255, 0.14),
+    0 0 0 6px rgba(255, 255, 255, 0.35);
+}
+
+.heroBadge img {
+  width: 100%;
+  height: 100%;
+}
+
+/* Around the kid's avatar the border is solid white. The see-through rings
+   looked grey next to the colors of the avatar. */
+.heroAvatar {
+  box-shadow: 0 0 0 4px var(--color-surface);
+}
+
+.heroText {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-iris-pale);
+}
+
+.heroTitle {
+  margin: var(--space-1) 0 var(--space-2) 0;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.chip {
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* --- One card per kid --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.studentCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.studentCard:hover {
+  border-color: var(--color-iris-medium);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-3px);
+}
+
+.studentCard:focus-visible,
+.optionCard:focus-visible,
+.backButton:focus-visible {
+  outline: 3px solid var(--color-iris-medium);
+  outline-offset: 3px;
+}
+
+/* Each card fills its cell, so they all end up the same height. */
+.grid li {
+  display: flex;
+}
+
+/* The card to add a kid: same size as the others, but dashed and without
+   a white fill, so it reads as an empty spot. */
+.addCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  border: 2px dashed var(--color-iris-medium);
+  border-radius: var(--radius-large);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+/* It lifts like the other cards, fills in white and the plus turns a bit. */
+.addCard:hover {
+  background: var(--color-surface);
+  border-color: var(--color-iris-deep);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-3px);
+}
+
+.addCard:hover .addIcon {
+  background: var(--color-iris-deep);
+  color: var(--color-surface);
+  transform: rotate(90deg) scale(1.06);
+}
+
+.addCard:focus-visible {
+  outline: 3px solid var(--color-iris-medium);
+  outline-offset: 3px;
+}
+
+/* Same size as an avatar with its rings. */
+.addIcon {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  margin-bottom: var(--space-3);
+  border-radius: 50%;
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.addTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+/* The same two rings as the header, in the pale blue of the cards. */
+.avatarRing {
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--space-3);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 5px var(--color-iris-pale),
+    0 0 0 6px var(--color-iris-medium);
+}
+
+.studentName {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.studentAge {
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+}
+
+.studentAction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: stretch;
+  justify-content: center;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-iris-pale);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+.studentCard:hover .studentAction {
+  color: var(--color-iris-deep);
+}
+
+/* --- No kids yet --- */
+.empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-4);
-  border: 2px solid var(--color-iris-pale);
-  border-radius: var(--radius-medium);
+  padding: var(--space-5);
+  border: 1px dashed var(--color-iris-medium);
+  border-radius: var(--radius-large);
   background: var(--color-surface);
-  cursor: pointer;
-  transition:
-    border-color 120ms ease,
-    transform 120ms ease;
+  text-align: center;
 }
 
-.studentTile:hover {
-  border-color: var(--color-iris-medium);
-  transform: translateY(-2px);
+.emptyIcon,
+.optionIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
 }
 
-.studentName {
+.emptyTitle,
+.comingSoonTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
   font-weight: 700;
-  color: var(--color-ink);
+  color: var(--color-iris-deep);
 }
 
-.studentSpace {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  max-width: 640px;
+.emptyText,
+.comingSoonText {
+  margin: 0;
+  color: var(--color-ink-soft);
+  line-height: 1.5;
 }
 
+/* --- One kid's space --- */
 .backButton {
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
   border: none;
+  border-radius: var(--radius-medium);
   background: none;
   color: var(--color-iris-deep);
+  font: inherit;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  padding: 0;
-  font-size: 0.9rem;
+  transition: background 120ms ease;
 }
 
-.studentSpaceTitle {
-  margin: 0;
+.backButton:hover {
+  background: var(--color-iris-pale);
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.optionCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.optionCard:hover {
+  border-color: var(--color-iris-medium);
+  box-shadow: var(--shadow-card);
+}
+
+.optionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.optionTitle {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
   color: var(--color-iris-deep);
 }
 
-.optionsRow {
-  display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
-.optionTile {
-  padding: var(--space-4) var(--space-5);
-  border: 2px solid var(--color-iris-pale);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
-  color: var(--color-ink);
-  font-weight: 700;
-  cursor: pointer;
-  transition: border-color 120ms ease;
-}
-
-.optionTile:hover {
-  border-color: var(--color-iris-medium);
-}
-
-.comingSoon {
-  padding: var(--space-4);
-  background: var(--color-canvas);
-  border-radius: var(--radius-medium);
+.optionHint {
+  font-size: 0.9rem;
   color: var(--color-ink-soft);
-  line-height: 1.5;
+}
+
+.optionArrow {
+  flex: none;
+  color: var(--color-iris-medium);
+  transition: transform 160ms ease;
+}
+
+.optionCard:hover .optionArrow {
+  transform: translateX(3px);
+}
+
+/* A section that isn't built yet, said plainly. */
+.comingSoon {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-canvas);
+}
+
+@media (max-width: 720px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studentCard,
+  .addCard,
+  .addIcon,
+  .optionCard,
+  .optionArrow {
+    transition: none;
+  }
+
+  .studentCard:hover,
+  .addCard:hover,
+  .addCard:hover .addIcon,
+  .optionCard:hover .optionArrow {
+    transform: none;
+  }
 }

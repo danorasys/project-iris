@@ -69,7 +69,7 @@ async def register_guardian(
             date_of_birth=payload.student.date_of_birth,
             avatar_id=payload.student.avatar_id,
             pin=payload.student.pin,
-            support_condition_id=payload.student.support_condition_id,
+            support_condition_ids=payload.student.support_condition_ids,
             support_condition_other=payload.student.support_condition_other,
             additional_support_need=payload.student.additional_support_need,
         ),

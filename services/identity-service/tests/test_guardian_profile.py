@@ -44,7 +44,7 @@ def _payload_registro_tutor(correo: str, document_number: str) -> dict:
             "avatar_id": AVATAR_ID_VIOLETA,
             "pin": "1234",
             "pin_confirmation": "1234",
-            "support_condition_id": SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR,
+            "support_condition_ids": [SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR],
         },
         "consent": {
             "policy_version": "v1",

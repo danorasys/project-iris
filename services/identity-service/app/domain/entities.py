@@ -91,6 +91,9 @@ class Avatar:
 # name rather than a hardcoded id: the catalog lives in the database (see
 # migration 0004), so its ids are only stable in practice, never guaranteed.
 SUPPORT_CONDITION_NAME_OTHER = "Otra condición (especificar)"
+# The entry for families that don't want to say. It can't go together with
+# any other condition, it would contradict itself.
+SUPPORT_CONDITION_NAME_PREFER_NOT_TO_SPECIFY = "Prefiero no especificar"
 
 
 @dataclass
@@ -109,11 +112,13 @@ class Student:
     date_of_birth: date
     hash_pin: str
     avatar_id: int
-    support_condition_id: int
-    # Only set when support_condition_id points to the "Otra condición
+    # A kid can have more than one condition, so this is a list of catalog
+    # ids, always with at least one and sorted from lowest to highest.
+    support_condition_ids: list[int]
+    # Only set when one of the conditions is the "Otra condición
     # (especificar)" catalog entry.
     support_condition_other: str | None = None
-    # Unlike support_condition_id, this one stays genuinely optional: a free
+    # Unlike the conditions, this one stays genuinely optional: a free
     # text note for anything else the family wants the teacher to know.
     additional_support_need: str | None = None
 
@@ -135,9 +140,10 @@ class Consent:
 PROFILE_DECLARATION_VERSION = "2026-10-01"
 
 
-# One saved change to a person's own profile: who, when, from which session,
+# One saved change to a profile: who made it, when, from which session,
 # which fields and which declaration. Only the names of the fields, never
-# their values, so it isn't one more copy of personal data.
+# their values, so it isn't one more copy of personal data. student_id is
+# set when a guardian changed a kid's profile, empty when it was their own.
 @dataclass
 class ProfileChange:
     id: UUID
@@ -146,6 +152,7 @@ class ProfileChange:
     changed_fields: list[str]
     declaration_version: str
     changed_at: datetime
+    student_id: UUID | None = None
 
 
 # Bundles the three entities created together in one transaction.

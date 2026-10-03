@@ -80,6 +80,90 @@ textarea.input {
   font-weight: 600;
 }
 
+/* --- A group of checkboxes (the conditions of a kid) --- */
+
+.checkGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  text-align: left;
+}
+
+.checkGroup:focus-visible {
+  outline: 3px solid var(--color-iris-medium);
+  outline-offset: 4px;
+  border-radius: var(--radius-medium);
+}
+
+.checkGroup legend {
+  padding: 0;
+}
+
+.checkGroupHint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}
+
+/* Two columns when there is room, one on a phone. */
+.checkGroupOptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-2);
+}
+
+.checkOption {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.checkOption:hover {
+  border-color: var(--color-iris-medium);
+}
+
+/* Same look as a chosen avatar. */
+.checkOption:has(input:checked) {
+  border-color: var(--color-amber);
+  background: #fdf1e9;
+}
+
+.checkOption:has(input:focus-visible) {
+  outline: 3px solid var(--color-iris-medium);
+  outline-offset: 2px;
+}
+
+.checkOption input {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--color-amber);
+}
+
+.checkGroup[aria-invalid="true"] .checkOption {
+  border-color: var(--color-error);
+}
+
+.checkGroup:disabled .checkOption {
+  cursor: default;
+  opacity: 0.6;
+}
+
 .checkboxWrapper {
   display: flex;
   flex-direction: column;

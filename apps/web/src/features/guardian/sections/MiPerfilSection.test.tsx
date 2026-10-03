@@ -93,6 +93,72 @@ describe("MiPerfilSection", () => {
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });
 
+  it("discarding puts back every unsaved change at once, even a field still open", async () => {
+    const user = userEvent.setup();
+    renderSection();
+
+    // Three changes in different fields, the last one left open.
+    await user.click(screen.getByRole("button", { name: "Editar nombres" }));
+    await user.clear(screen.getByLabelText(/Nombres/));
+    await user.type(screen.getByLabelText(/Nombres/), "Lucía");
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("button", { name: "Editar relación con el estudiante" }));
+    await user.selectOptions(screen.getByRole("combobox"), "2");
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByLabelText(/correcta y veraz/));
+    await user.click(screen.getByRole("button", { name: "Editar apellidos" }));
+    await user.clear(screen.getByLabelText(/Apellidos/));
+    await user.type(screen.getByLabelText(/Apellidos/), "Rojas");
+
+    await user.click(screen.getByRole("button", { name: "Descartar" }));
+
+    expect(screen.getByText("Ana María")).toBeTruthy();
+    expect(screen.getByText("Gómez")).toBeTruthy();
+    expect(screen.getAllByText("Mamá").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Papá")).toBeNull();
+    expect(screen.queryByText("Lucía")).toBeNull();
+    // The open field is closed, without what was being typed.
+    expect(screen.queryByLabelText(/Apellidos/)).toBeNull();
+    expect(screen.queryByRole("region", { name: "Cambios sin guardar" })).toBeNull();
+    expect(updateProfile).not.toHaveBeenCalled();
+
+    // A new change starts clean: the declaration has to be marked again.
+    await user.click(screen.getByRole("button", { name: "Editar nombres" }));
+    await user.type(screen.getByLabelText(/Nombres/), " Sofía");
+    await user.keyboard("{Enter}");
+    expect((screen.getByLabelText(/correcta y veraz/) as HTMLInputElement).checked).toBe(false);
+  });
+
+  it("one press on Descartar is enough with a field open, where the browser animates the fields", async () => {
+    // A browser with View Transitions runs the change a moment later, like
+    // the real ones do. Closing the field for a button can't wait for that.
+    const startViewTransition = vi.fn((update: () => void) => {
+      setTimeout(update, 0);
+      return {};
+    });
+    Object.defineProperty(document, "startViewTransition", { value: startViewTransition, configurable: true });
+    try {
+      const user = userEvent.setup();
+      renderSection();
+
+      await user.click(screen.getByRole("button", { name: "Editar nombres" }));
+      const input = await screen.findByLabelText(/Nombres/);
+      await user.clear(input);
+      await user.type(input, "Lucía");
+      const animationsBefore = startViewTransition.mock.calls.length;
+
+      await user.click(screen.getByRole("button", { name: "Descartar" }));
+
+      // The field closed at once, with no animation in the way of the click.
+      expect(startViewTransition.mock.calls.length).toBe(animationsBefore);
+      expect(screen.getByText("Ana María")).toBeTruthy();
+      expect(screen.queryByLabelText(/Nombres/)).toBeNull();
+      expect(screen.queryByRole("region", { name: "Cambios sin guardar" })).toBeNull();
+    } finally {
+      Reflect.deleteProperty(document, "startViewTransition");
+    }
+  });
+
   it("lets the save bar slide out before removing it", async () => {
     const user = userEvent.setup();
     renderSection();

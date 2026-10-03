@@ -1,24 +1,29 @@
 from __future__ import annotations
 
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 
 from app.api.deps import CurrentUser, get_guardian_service, get_totp_service, require_portal_access, require_role
 from app.api.schemas import (
     ChangePasswordRequest,
+    ChangeStudentPinRequest,
+    CheckStudentPinRequest,
     CreateAdditionalStudentRequest,
     GuardianProfileResponse,
-    StudentProfileResponse,
     PortalChallengeResponse,
+    StudentDetailResponse,
+    StudentProfileResponse,
     TotpSetupResponse,
     TotpVerifyRequest,
     UpdateGuardianProfileRequest,
+    UpdateStudentRequest,
 )
-from app.application.dtos import FirstStudentData, UpdateGuardianProfileData
+from app.application.dtos import FirstStudentData, UpdateGuardianProfileData, UpdateStudentData
 from app.application.guardian_service import GuardianService
 from app.application.totp_service import TotpService
-from app.domain.entities import Guardian, Person
+from app.domain.entities import Guardian, Person, Student
 from app.domain.exceptions import DomainError
 
 router = APIRouter(prefix="/guardians", tags=["guardians"])
@@ -29,6 +34,25 @@ CurrentGuardianDep = Annotated[CurrentUser, Depends(require_role("guardian"))]
 # For everything inside the parents' portal. Listing the children stays open, the
 # profile picker of the kids' portal needs it without the 2FA code.
 PortalAccessDep = Depends(require_portal_access)
+
+
+def _to_student_profile(student: Student) -> StudentProfileResponse:
+    return StudentProfileResponse(
+        id=student.id, first_name=student.first_name, avatar_id=student.avatar_id, date_of_birth=student.date_of_birth
+    )
+
+
+def _to_student_detail(student: Student) -> StudentDetailResponse:
+    return StudentDetailResponse(
+        id=student.id,
+        first_name=student.first_name,
+        last_name=student.last_name,
+        date_of_birth=student.date_of_birth,
+        avatar_id=student.avatar_id,
+        support_condition_ids=student.support_condition_ids,
+        support_condition_other=student.support_condition_other,
+        additional_support_need=student.additional_support_need,
+    )
 
 
 def _to_profile_response(person: Person, guardian: Guardian) -> GuardianProfileResponse:
@@ -53,7 +77,7 @@ def _to_profile_response(person: Person, guardian: Guardian) -> GuardianProfileR
 @router.get("/me/students", response_model=list[StudentProfileResponse])
 async def list_my_students(user: CurrentGuardianDep, guardians: GuardianServiceDep) -> list[StudentProfileResponse]:
     students = await guardians.list_students(user.subject_id)
-    return [StudentProfileResponse(**s.__dict__) for s in students]
+    return [_to_student_profile(s) for s in students]
 
 
 @router.post(
@@ -75,12 +99,84 @@ async def create_additional_student(
             date_of_birth=payload.date_of_birth,
             avatar_id=payload.avatar_id,
             pin=payload.pin,
-            support_condition_id=payload.support_condition_id,
+            support_condition_ids=payload.support_condition_ids,
             support_condition_other=payload.support_condition_other,
             additional_support_need=payload.additional_support_need,
         ),
     )
-    return StudentProfileResponse(**student.__dict__)
+    return _to_student_profile(student)
+
+
+@router.get("/me/students/{student_id}", response_model=StudentDetailResponse, dependencies=[PortalAccessDep])
+async def get_my_student(
+    student_id: UUID, user: CurrentGuardianDep, guardians: GuardianServiceDep
+) -> StudentDetailResponse:
+    """All the data of one of the guardian's kids. Unlike the list, this one
+    needs the portal's 2FA code, because it includes the support condition."""
+    return _to_student_detail(await guardians.get_student(user.subject_id, student_id))
+
+
+@router.patch("/me/students/{student_id}", response_model=StudentDetailResponse, dependencies=[PortalAccessDep])
+async def update_my_student(
+    student_id: UUID,
+    payload: UpdateStudentRequest,
+    user: CurrentGuardianDep,
+    guardians: GuardianServiceDep,
+) -> StudentDetailResponse:
+    """Changes the data of one of the guardian's kids, the avatar included.
+    The PIN has its own route. truthful_declaration must be true, and each
+    save that changes something is recorded with the names of the fields."""
+    student = await guardians.update_student(
+        user.subject_id,
+        student_id,
+        UpdateStudentData(
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+            date_of_birth=payload.date_of_birth,
+            avatar_id=payload.avatar_id,
+            support_condition_ids=payload.support_condition_ids,
+            support_condition_other=payload.support_condition_other,
+            additional_support_need=payload.additional_support_need,
+        ),
+        session_id=user.session_id,
+    )
+    return _to_student_detail(student)
+
+
+@router.post(
+    "/me/students/{student_id}/pin/check",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+    dependencies=[PortalAccessDep],
+)
+async def check_my_student_pin(
+    student_id: UUID, payload: CheckStudentPinRequest, user: CurrentGuardianDep, guardians: GuardianServiceDep
+) -> None:
+    """204 if that is the kid's current PIN, 422 if not. Changes nothing: it
+    lets the portal say a wrong PIN at once, before asking for the new one.
+    Wrong tries are counted and lock like in the change itself."""
+    await guardians.check_student_pin(user.subject_id, student_id, payload.current_pin)
+
+
+@router.put("/me/students/{student_id}/pin", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def change_my_student_pin(
+    student_id: UUID,
+    payload: ChangeStudentPinRequest,
+    user: CurrentGuardianDep,
+    guardians: GuardianServiceDep,
+    totp: TotpServiceDep,
+) -> None:
+    """Sets a new PIN for one of the guardian's kids. Like the password
+    change, it asks for a fresh 2FA code and the current PIN at the same
+    moment, so it doesn't lean on the portal access from earlier. If the
+    code was right but the rest failed, the code can be used again. The
+    kid's open sessions are closed."""
+    await totp.confirm_sensitive_action(user.subject_id, user.session_id, payload.code)
+    try:
+        await guardians.change_student_pin(user.subject_id, student_id, payload.current_pin, payload.pin)
+    except DomainError:
+        await totp.release_code(user.subject_id, payload.code)
+        raise
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, response_model=None, dependencies=[PortalAccessDep])

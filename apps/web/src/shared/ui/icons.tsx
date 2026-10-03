@@ -76,6 +76,17 @@ export function IconSchool(props: IconProps) {
   );
 }
 
+/** A graduation cap, for anything about classes and studying. */
+export function IconGraduationCap(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M2.5 9.5 12 5l9.5 4.5L12 14Z" />
+      <path d="M6.5 11.8v4.1c0 1.4 2.5 2.6 5.5 2.6s5.5-1.2 5.5-2.6v-4.1" />
+      <path d="M21.5 9.5v5" />
+    </svg>
+  );
+}
+
 export function IconSparkle(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -89,6 +100,14 @@ export function IconUndo(props: IconProps) {
     <svg {...base} {...props}>
       <path d="M4 12a8 8 0 1 0 3-6.2" />
       <path d="M4 4v4.5H8.5" />
+    </svg>
+  );
+}
+
+export function IconPlus(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 5v14M5 12h14" />
     </svg>
   );
 }

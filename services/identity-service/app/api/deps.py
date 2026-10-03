@@ -143,6 +143,7 @@ def get_guardian_service(
     sessions: Annotated[SessionService, Depends(get_session_service)],
     password_lockout: Annotated[RedisAttemptLockout, Depends(get_attempt_lockout)],
     account_lockout: Annotated[RedisAttemptLockout, Depends(get_account_lockout)],
+    pin_lockout: Annotated[RedisAttemptLockout, Depends(get_pin_lockout)],
 ) -> GuardianService:
     return GuardianService(
         uow_factory=SqlAlchemyUnitOfWork,
@@ -150,6 +151,7 @@ def get_guardian_service(
         sessions=sessions,
         password_lockout=password_lockout,
         account_lockout=account_lockout,
+        pin_lockout=pin_lockout,
     )
 
 

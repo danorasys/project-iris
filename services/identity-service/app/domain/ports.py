@@ -68,6 +68,23 @@ class StudentRepository(Protocol):
     async def add(self, student: Student) -> None: ...
     async def update_avatar(self, student_id: UUID, avatar_id: int) -> None: ...
 
+    # What a guardian can change about a kid from "sus datos". The PIN has
+    # its own method, so this one can't touch it.
+    async def update_details(
+        self,
+        student_id: UUID,
+        *,
+        first_name: str,
+        last_name: str,
+        date_of_birth: date,
+        avatar_id: int,
+        support_condition_ids: list[int],
+        support_condition_other: str | None,
+        additional_support_need: str | None,
+    ) -> None: ...
+
+    async def update_pin(self, student_id: UUID, hash_pin: str) -> None: ...
+
 
 class ConsentRepository(Protocol):
     async def add(self, consent: Consent) -> None: ...

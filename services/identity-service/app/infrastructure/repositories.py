@@ -27,6 +27,7 @@ from app.infrastructure.models import (
     ProfileChangeModel,
     RelationshipTypeModel,
     StudentModel,
+    StudentSupportConditionModel,
     SupportConditionModel,
     TeacherModel,
 )
@@ -88,7 +89,7 @@ def _student_to_entity(m: StudentModel) -> Student:
         date_of_birth=m.date_of_birth,
         hash_pin=m.hash_pin,
         avatar_id=m.avatar_id,
-        support_condition_id=m.support_condition_id,
+        support_condition_ids=sorted(link.support_condition_id for link in m.support_condition_links),
         support_condition_other=m.support_condition_other,
         additional_support_need=m.additional_support_need,
     )
@@ -240,7 +241,10 @@ class SqlAlchemyStudentRepository:
                 date_of_birth=student.date_of_birth,
                 hash_pin=student.hash_pin,
                 avatar_id=student.avatar_id,
-                support_condition_id=student.support_condition_id,
+                support_condition_links=[
+                    StudentSupportConditionModel(support_condition_id=condition_id)
+                    for condition_id in student.support_condition_ids
+                ],
                 support_condition_other=student.support_condition_other,
                 additional_support_need=student.additional_support_need,
             )
@@ -250,6 +254,42 @@ class SqlAlchemyStudentRepository:
         m = await self._session.get(StudentModel, student_id)
         if m is not None:
             m.avatar_id = avatar_id
+
+    async def update_details(
+        self,
+        student_id: UUID,
+        *,
+        first_name: str,
+        last_name: str,
+        date_of_birth: date,
+        avatar_id: int,
+        support_condition_ids: list[int],
+        support_condition_other: str | None,
+        additional_support_need: str | None,
+    ) -> None:
+        m = await self._session.get(StudentModel, student_id)
+        if m is not None:
+            m.first_name = first_name
+            m.last_name = last_name
+            m.date_of_birth = date_of_birth
+            m.avatar_id = avatar_id
+            # Only the rows that changed are touched: the ones no longer
+            # chosen are deleted and the new ones added.
+            wanted = set(support_condition_ids)
+            kept = [link for link in m.support_condition_links if link.support_condition_id in wanted]
+            already_there = {link.support_condition_id for link in kept}
+            added = [
+                StudentSupportConditionModel(support_condition_id=condition_id)
+                for condition_id in sorted(wanted - already_there)
+            ]
+            m.support_condition_links = kept + added
+            m.support_condition_other = support_condition_other
+            m.additional_support_need = additional_support_need
+
+    async def update_pin(self, student_id: UUID, hash_pin: str) -> None:
+        m = await self._session.get(StudentModel, student_id)
+        if m is not None:
+            m.hash_pin = hash_pin
 
 
 class SqlAlchemyProfileChangeRepository:
@@ -261,6 +301,7 @@ class SqlAlchemyProfileChangeRepository:
             ProfileChangeModel(
                 id=change.id,
                 person_id=change.person_id,
+                student_id=change.student_id,
                 session_id=change.session_id,
                 changed_fields=change.changed_fields,
                 declaration_version=change.declaration_version,

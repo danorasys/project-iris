@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent } from "react";
 import type { GuardianProfile } from "@iris/shared-types";
 import { formatPhoneNumberIntl, parsePhoneNumber } from "react-phone-number-input";
 import {
@@ -15,7 +15,6 @@ import { ApiError } from "@/shared/api/httpClient";
 import { TextField } from "@/features/auth/ui/TextField";
 import { PhoneField } from "@/features/auth/ui/PhoneField";
 import { SelectField } from "@/features/auth/ui/SelectField";
-import { CheckboxField } from "@/features/auth/ui/CheckboxField";
 import { PasswordRequirements, passwordMeetsRequirements } from "@/features/auth/ui/PasswordRequirements";
 import {
   adultBirthDateError,
@@ -25,22 +24,28 @@ import {
   phoneError,
   toIsoDate,
 } from "@/features/utils/personValidation";
+import { formatDate } from "@/features/utils/formatDate";
 import { initials } from "@/features/utils/initials";
 import { SUPPORT_EMAIL, supportMailto } from "@/shared/supportContact";
 import { leaveLoginNotice } from "@/shared/ui/loginNotice";
-import { IconInfo, IconKey, IconLock, IconPencil, IconUserCircle } from "@/shared/ui/icons";
+import { IconInfo, IconKey, IconLock, IconUserCircle } from "@/shared/ui/icons";
+import { Card, EDIT_HINT, EditableRow, ReadOnlyRow, SaveBar } from "../ui/ProfileForm";
+import { useProfileForm } from "../ui/useProfileForm";
+import form from "../ui/ProfileForm.module.css";
 import { Toast } from "../ui/Toast";
 import { TwoFactorCodeDialog } from "../ui/TwoFactorCodeDialog";
 import { isPortalAccessRequired, useWithPortalAccess } from "../portalAccess";
 import styles from "./MiPerfilSection.module.css";
 
-interface ProfileValues {
+// A type and not an interface: useProfileForm asks for a plain record of
+// texts, and an interface doesn't count as one for TypeScript.
+type ProfileValues = {
   firstName: string;
   lastName: string;
   dateOfBirth: string;
   phone: string;
   relationshipTypeId: string;
-}
+};
 
 interface MiPerfilSectionProps {
   /** Tells the shell (GuardianPortalPage) whether it's safe to switch away
@@ -60,7 +65,7 @@ export function MiPerfilSection({ onDirtyChange }: MiPerfilSectionProps) {
   if (isPortalAccessRequired(profileQuery.error)) return <Navigate to="/guardian/verify-2fa" replace />;
   if (profileQuery.isError || !profileQuery.data) {
     return (
-      <p role="alert" className={`${styles.status} ${styles.error}`}>
+      <p role="alert" className={`${styles.status} ${form.error}`}>
         No pudimos cargar tu perfil. Intenta recargar la página.
       </p>
     );
@@ -69,10 +74,6 @@ export function MiPerfilSection({ onDirtyChange }: MiPerfilSectionProps) {
   // the real data instead of filling itself in later.
   return <ProfileEditor profile={profileQuery.data} onDirtyChange={onDirtyChange} />;
 }
-
-// How long the save bar takes to slide out. Same as the save-bar-out
-// animation in MiPerfilSection.module.css.
-const SAVE_BAR_LEAVE_MS = 220;
 
 function toValues(profile: GuardianProfile): ProfileValues {
   return {
@@ -90,27 +91,10 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
   const updateProfile = useActualizarMiPerfilTutor();
   const withPortalAccess = useWithPortalAccess();
 
-  const [values, setValues] = useState<ProfileValues>(() => toValues(profile));
-  // The last saved values, to know if something changed and to undo it.
-  const [original, setOriginal] = useState<ProfileValues>(() => toValues(profile));
-  const [editing, setEditing] = useState<keyof ProfileValues | null>(null);
-  const [truthfulConfirmed, setTruthfulConfirmed] = useState(false);
+  const fields = useProfileForm<ProfileValues>(() => toValues(profile), onDirtyChange);
+  const { values, original } = fields;
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileToast, setProfileToast] = useState<string | null>(null);
-
-  const isDirty = (Object.keys(values) as (keyof ProfileValues)[]).some((key) => values[key] !== original[key]);
-
-  // When the changes go away (discarded or saved) the bar stays on screen a
-  // moment longer, so it can slide down instead of vanishing at once.
-  const [saveBarShown, setSaveBarShown] = useState(isDirty);
-  if (isDirty && !saveBarShown) setSaveBarShown(true);
-  const saveBarLeaving = saveBarShown && !isDirty;
-
-  useEffect(() => {
-    if (!saveBarLeaving) return;
-    const timer = window.setTimeout(() => setSaveBarShown(false), SAVE_BAR_LEAVE_MS);
-    return () => window.clearTimeout(timer);
-  }, [saveBarLeaving]);
 
   // Same rules the server applies. They show under each field once it's
   // closed, and while any is left "Guardar cambios" stays locked.
@@ -121,57 +105,16 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
     phone: phoneError(values.phone),
   };
   const hasErrors = Object.values(errors).some(Boolean);
-
-  useEffect(() => {
-    onDirtyChange(isDirty);
-  }, [isDirty, onDirtyChange]);
-
-  // Warns before leaving the app with unsaved changes (closing the tab or
-  // reloading). Moving between sections is handled by the portal itself.
-  useEffect(() => {
-    function handler(event: BeforeUnloadEvent) {
-      if (!isDirty) return;
-      event.preventDefault();
-      event.returnValue = "";
-    }
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [isDirty]);
-
-  function setField(key: keyof ProfileValues, value: string) {
-    setValues((current) => ({ ...current, [key]: value }));
-  }
-
-  function startEditing(field: keyof ProfileValues) {
-    setEditing(field);
-  }
-
-  // Keeps what was typed. Only the keyboard (Enter) moves the focus back to
-  // the pencil, a click outside leaves it wherever the guardian clicked.
-  function finishEditing(restoreFocus = false) {
-    if (editing && restoreFocus) focusEditButton(editing);
-    setEditing(null);
-  }
-
-  // Always goes back to the saved value, even if the field was already
-  // changed and closed before opening it again.
-  function cancelEditing() {
-    if (!editing) return;
-    setField(editing, original[editing]);
-    focusEditButton(editing);
-    setEditing(null);
-  }
+  const rowProps = (field: keyof ProfileValues) => fields.rowProps(field, errors[field] ?? null);
 
   function discardChanges() {
-    setValues(original);
-    setEditing(null);
-    setTruthfulConfirmed(false);
+    fields.discardChanges();
     setProfileError(null);
   }
 
   async function handleConfirmProfile(event: FormEvent) {
     event.preventDefault();
-    if (hasErrors || !truthfulConfirmed) return;
+    if (hasErrors || !fields.confirmed) return;
     setProfileError(null);
     const parsedPhone = parsePhoneNumber(values.phone);
     try {
@@ -187,11 +130,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
         }),
       );
       // What the server saved, which can differ a bit (it joins extra spaces).
-      const saved = toValues(updated);
-      setValues(saved);
-      setOriginal(saved);
-      setEditing(null);
-      setTruthfulConfirmed(false);
+      fields.markSaved(toValues(updated));
       setProfileToast("Tus datos se guardaron correctamente.");
     } catch (error) {
       setProfileError(getAuthErrorMessage(error));
@@ -205,16 +144,6 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
   const documentTypeName =
     documentTypesQuery.data?.find((d) => d.id === profile.document_type_id)?.name ??
     (documentTypesQuery.isLoading ? "Cargando…" : "—");
-
-  // Same props for every editable row, only the field changes.
-  const rowProps = (field: keyof ProfileValues) => ({
-    field,
-    editing: editing === field,
-    onStartEdit: () => startEditing(field),
-    onDone: finishEditing,
-    onCancel: cancelEditing,
-    error: errors[field] ?? null,
-  });
 
   // The calendar only offers birth dates of adults, and not after the
   // document was issued.
@@ -241,40 +170,32 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
         </div>
       </header>
 
-      <form className={styles.form} onSubmit={handleConfirmProfile}>
+      <form className={form.form} onSubmit={handleConfirmProfile}>
         <Card
           id="perfil-datos-personales"
           icon={<IconUserCircle width={22} height={22} />}
           title="Datos personales"
-          hint="Toca el lápiz o haz doble clic sobre un dato para cambiarlo. Al terminar, haz clic fuera de la casilla o pulsa Cancelar si cambias de decisión. Para que tus cambios queden guardados, pulsa Guardar cambios en la barra que aparecerá en la parte inferior."
+          hint={`Estos son tus datos personales, los que nos diste al crear tu cuenta. ${EDIT_HINT}`}
         >
-          <div className={styles.fieldGrid}>
-            <EditableRow
-              label="Nombres"
-              displayValue={values.firstName}
-              {...rowProps("firstName")}
-            >
+          <div className={form.fieldGrid}>
+            <EditableRow label="Nombres" displayValue={values.firstName} {...rowProps("firstName")}>
               <TextField
                 id="perfil-first-name"
                 label="Nombres"
                 value={values.firstName}
-                onChange={(v) => setField("firstName", v)}
+                onChange={(v) => fields.setField("firstName", v)}
                 maxLength={120}
                 autoFocus
                 required
               />
             </EditableRow>
 
-            <EditableRow
-              label="Apellidos"
-              displayValue={values.lastName}
-              {...rowProps("lastName")}
-            >
+            <EditableRow label="Apellidos" displayValue={values.lastName} {...rowProps("lastName")}>
               <TextField
                 id="perfil-last-name"
                 label="Apellidos"
                 value={values.lastName}
-                onChange={(v) => setField("lastName", v)}
+                onChange={(v) => fields.setField("lastName", v)}
                 maxLength={120}
                 autoFocus
                 required
@@ -283,7 +204,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
 
             <EditableRow
               label="Fecha de nacimiento"
-              displayValue={formatDateEs(values.dateOfBirth)}
+              displayValue={formatDate(values.dateOfBirth) || "—"}
               {...rowProps("dateOfBirth")}
             >
               <TextField
@@ -293,7 +214,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
                 min={earliestBirthDate}
                 max={latestBirthDate}
                 value={values.dateOfBirth}
-                onChange={(v) => setField("dateOfBirth", v)}
+                onChange={(v) => fields.setField("dateOfBirth", v)}
                 autoFocus
                 required
               />
@@ -308,7 +229,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
                 id="perfil-phone"
                 label="Teléfono"
                 value={values.phone}
-                onChange={(v) => setField("phone", v)}
+                onChange={(v) => fields.setField("phone", v)}
                 required
               />
             </EditableRow>
@@ -322,7 +243,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
                 id="perfil-relationship"
                 label="Relación con el estudiante"
                 value={values.relationshipTypeId}
-                onChange={(v) => setField("relationshipTypeId", v)}
+                onChange={(v) => fields.setField("relationshipTypeId", v)}
                 options={(relationshipTypesQuery.data ?? []).map((r) => ({ value: String(r.id), label: r.name }))}
               />
             </EditableRow>
@@ -333,13 +254,13 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
           id="perfil-identificacion"
           icon={<IconLock width={20} height={20} />}
           title="Identificación de la cuenta"
-          hint="Estos datos identifican tu cuenta, por eso no se pueden cambiar aquí."
+          hint="Tu documento de identidad y tu correo electrónico son los datos con los que IRIS te reconoce como titular de esta cuenta y con los que inicias sesión. Para proteger tu cuenta y la información de tus peques, no se pueden cambiar directamente desde aquí."
           muted
         >
-          <div className={styles.fieldGrid}>
+          <div className={form.fieldGrid}>
             <ReadOnlyRow label="Tipo de documento" value={documentTypeName} />
             <ReadOnlyRow label="Número de documento" value={profile.document_number} />
-            <ReadOnlyRow label="Fecha de expedición" value={formatDateEs(profile.document_issued_at)} />
+            <ReadOnlyRow label="Fecha de expedición" value={formatDate(profile.document_issued_at)} />
             <ReadOnlyRow label="Correo electrónico" value={profile.email} />
           </div>
 
@@ -360,205 +281,21 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
           </div>
         </Card>
 
-        {/* Only shows up when something changed, and stays at the bottom of
-            the screen so the save button is always at hand. While it slides
-            out it can't be used, and screen readers already skip it. */}
-        {saveBarShown && (
-          <div
-            className={saveBarLeaving ? `${styles.saveBar} ${styles.saveBarLeaving}` : styles.saveBar}
-            role={saveBarLeaving ? undefined : "region"}
-            aria-label={saveBarLeaving ? undefined : "Cambios sin guardar"}
-            aria-hidden={saveBarLeaving || undefined}
-            inert={saveBarLeaving}
-          >
-            <div className={styles.saveBarText}>
-              <p className={styles.saveBarTitle}>Tienes cambios sin guardar</p>
-              {/* If this sentence changes, also change PROFILE_DECLARATION_VERSION
-                  in identity-service, so each saved change keeps which one was accepted. */}
-              <CheckboxField id="perfil-declaro-veraz" checked={truthfulConfirmed} onChange={setTruthfulConfirmed}>
-                Declaro que la información que modifiqué es correcta y veraz.
-              </CheckboxField>
-              {hasErrors && (
-                <p className={styles.fixNotice}>
-                  <span className={styles.fixNoticeIcon} aria-hidden="true">
-                    <IconInfo width={16} height={16} />
-                  </span>
-                  <span>
-                    Corrige los datos <strong>marcados en rojo</strong> para poder guardar.
-                  </span>
-                </p>
-              )}
-              {profileError && (
-                <p role="alert" className={styles.error}>
-                  {profileError}
-                </p>
-              )}
-            </div>
-            <div className={styles.saveBarButtons}>
-              <button type="button" className={styles.secondaryButton} onClick={discardChanges}>
-                Descartar
-              </button>
-              <button
-                type="submit"
-                className={styles.primaryButton}
-                disabled={!truthfulConfirmed || hasErrors || updateProfile.isPending}
-              >
-                {updateProfile.isPending ? "Guardando…" : "Guardar cambios"}
-              </button>
-            </div>
-          </div>
-        )}
+        <SaveBar
+          shown={fields.saveBarShown}
+          leaving={fields.saveBarLeaving}
+          confirmed={fields.confirmed}
+          onConfirmedChange={fields.setConfirmed}
+          hasErrors={hasErrors}
+          error={profileError}
+          saving={updateProfile.isPending}
+          onDiscard={discardChanges}
+        />
       </form>
 
       <SecurityCard />
 
       {profileToast && <Toast message={profileToast} onDismiss={() => setProfileToast(null)} />}
-    </div>
-  );
-}
-
-function Card({
-  id,
-  icon,
-  title,
-  hint,
-  muted = false,
-  children,
-}: {
-  id: string;
-  icon: ReactNode;
-  title: string;
-  hint?: string;
-  muted?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <section className={muted ? `${styles.card} ${styles.cardMuted}` : styles.card} aria-labelledby={id}>
-      <header className={styles.cardHeader}>
-        <span className={styles.cardIcon} aria-hidden="true">
-          {icon}
-        </span>
-        <div>
-          <h2 id={id} className={styles.cardTitle}>
-            {title}
-          </h2>
-          {hint && <p className={styles.cardHint}>{hint}</p>}
-        </div>
-      </header>
-      {children}
-    </section>
-  );
-}
-
-function EditableRow({
-  field,
-  label,
-  displayValue,
-  editing,
-  onStartEdit,
-  onDone,
-  onCancel,
-  error,
-  children,
-}: {
-  field: string;
-  label: string;
-  displayValue: string;
-  editing: boolean;
-  onStartEdit: () => void;
-  onDone: (restoreFocus?: boolean) => void;
-  onCancel: () => void;
-  error: string | null;
-  children: ReactNode;
-}) {
-  if (editing) {
-    return (
-      <EditingPanel onDone={onDone} onCancel={onCancel}>
-        {children}
-      </EditingPanel>
-    );
-  }
-  return (
-    <div className={error ? `${styles.field} ${styles.fieldInvalid}` : styles.field} onDoubleClick={onStartEdit}>
-      <span className={styles.fieldLabel}>{label}</span>
-      <div className={styles.fieldValueRow}>
-        <span className={styles.fieldValue}>{displayValue}</span>
-        <button
-          type="button"
-          id={editButtonId(field)}
-          className={styles.editButton}
-          onClick={onStartEdit}
-          aria-label={`Editar ${label.toLowerCase()}`}
-          aria-describedby={error ? `${editButtonId(field)}-error` : undefined}
-        >
-          <IconPencil width={16} height={16} />
-        </button>
-      </div>
-      {error && (
-        <span id={`${editButtonId(field)}-error`} role="alert" className={styles.fieldError}>
-          {error}
-        </span>
-      )}
-    </div>
-  );
-}
-
-// The field while it's being edited. Clicking outside, Tab or Enter keep the
-// change; Cancelar or Esc put back the saved value.
-function EditingPanel({
-  onDone,
-  onCancel,
-  children,
-}: {
-  onDone: (restoreFocus?: boolean) => void;
-  onCancel: () => void;
-  children: ReactNode;
-}) {
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // pointerdown and not blur: in some browsers clicking a button doesn't
-    // focus it, so a blur would close the panel before Cancelar is clicked.
-    function onPointerDown(event: PointerEvent) {
-      if (!panelRef.current?.contains(event.target as Node)) onDone(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [onDone]);
-
-  return (
-    <div
-      ref={panelRef}
-      className={styles.fieldEditing}
-      onBlur={(event) => {
-        // Only when the focus goes somewhere else on the page (Tab).
-        const next = event.relatedTarget;
-        if (next && !panelRef.current?.contains(next)) onDone(false);
-      }}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          onCancel();
-        } else if (event.key === "Enter" && !(event.target instanceof HTMLButtonElement)) {
-          // Without this, Enter would try to submit the whole form.
-          event.preventDefault();
-          onDone(true);
-        }
-      }}
-    >
-      <div className={styles.fieldEditingInput}>{children}</div>
-      <button type="button" className={styles.cancelEditingButton} onClick={onCancel}>
-        Cancelar
-      </button>
-    </div>
-  );
-}
-
-function ReadOnlyRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={`${styles.field} ${styles.fieldReadOnly}`}>
-      <span className={styles.fieldLabel}>{label}</span>
-      <span className={styles.fieldValue}>{value}</span>
     </div>
   );
 }
@@ -651,17 +388,17 @@ function SecurityCard() {
       id="perfil-seguridad"
       icon={<IconKey width={20} height={20} />}
       title="Seguridad"
-      hint="Al cambiar tu contraseña cerramos todas tus sesiones abiertas."
+      hint="Aquí puedes cambiar la contraseña con la que inicias sesión en IRIS. Para confirmar que eres tú, te pediremos tu contraseña actual y un código de tu aplicación autenticadora. Al cambiarla cerraremos tus sesiones abiertas en todos los dispositivos y tendrás que iniciar sesión de nuevo con la nueva contraseña."
     >
       {!expanded ? (
         <div className={styles.securityRow}>
-          <div className={styles.field}>
-            <span className={styles.fieldLabel}>Contraseña</span>
-            <span className={`${styles.fieldValue} ${styles.passwordDots}`} aria-label="Contraseña oculta">
+          <div className={form.field}>
+            <span className={form.fieldLabel}>Contraseña</span>
+            <span className={`${form.fieldValue} ${styles.passwordDots}`} aria-label="Contraseña oculta">
               ••••••••••
             </span>
           </div>
-          <button type="button" className={styles.secondaryButton} onClick={() => setExpanded(true)}>
+          <button type="button" className={form.secondaryButton} onClick={() => setExpanded(true)}>
             Cambiar contraseña
           </button>
         </div>
@@ -715,15 +452,15 @@ function SecurityCard() {
           </div>
           <PasswordRequirements password={password} />
           {error && (
-            <p role="alert" className={styles.error}>
+            <p role="alert" className={form.error}>
               {error}
             </p>
           )}
           <div className={styles.passwordButtons}>
-            <button type="button" className={styles.secondaryButton} onClick={cancel}>
+            <button type="button" className={form.secondaryButton} onClick={cancel}>
               Cancelar
             </button>
-            <button type="submit" className={styles.primaryButton} disabled={!canSubmit || changePassword.isPending}>
+            <button type="submit" className={form.primaryButton} disabled={!canSubmit || changePassword.isPending}>
               {changePassword.isPending ? "Actualizando…" : "Actualizar contraseña"}
             </button>
           </div>
@@ -740,25 +477,4 @@ function SecurityCard() {
       )}
     </Card>
   );
-}
-
-function editButtonId(field: string): string {
-  return `perfil-editar-${field}`;
-}
-
-// After closing a field, the focus goes back to its pencil so keyboard
-// users don't end up at the top of the page. It waits one frame because
-// the pencil only exists again after the next render.
-function focusEditButton(field: string) {
-  requestAnimationFrame(() => document.getElementById(editButtonId(field))?.focus());
-}
-
-function formatDateEs(isoDate: string): string {
-  if (!isoDate) return "—";
-  const [year, month, day] = isoDate.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("es-CO", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 }

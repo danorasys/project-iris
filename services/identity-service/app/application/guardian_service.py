@@ -6,11 +6,10 @@ from datetime import datetime, timezone
 from typing import Callable
 from uuid import UUID
 
-from app.application.auth_service import login_account_key
-from app.application.dtos import FirstStudentData, UpdateGuardianProfileData
+from app.application.auth_service import login_account_key, student_pin_key
+from app.application.dtos import FirstStudentData, UpdateGuardianProfileData, UpdateStudentData
 from app.domain.entities import (
     PROFILE_DECLARATION_VERSION,
-    SUPPORT_CONDITION_NAME_OTHER,
     Guardian,
     Person,
     ProfileChange,
@@ -21,12 +20,14 @@ from app.domain.exceptions import (
     BirthDateAfterDocumentIssued,
     InvalidAvatar,
     InvalidRelationshipType,
-    InvalidSupportCondition,
     PasswordSameAsCurrent,
+    PinSameAsCurrent,
     ResourceNotFound,
     WrongCurrentPassword,
+    WrongCurrentPin,
 )
 from app.application.session_service import SessionService
+from app.application.support_conditions import check_support_conditions
 from app.domain.ports import AttemptLockout, PasswordHasher, UnitOfWork
 from app.security_log import log_security_event
 
@@ -41,12 +42,14 @@ class GuardianService:
         sessions: SessionService,
         password_lockout: AttemptLockout,
         account_lockout: AttemptLockout,
+        pin_lockout: AttemptLockout,
     ) -> None:
         self._uow_factory = uow_factory
         self._hasher = password_hasher
         self._sessions = sessions
         self._password_lockout = password_lockout
         self._account_lockout = account_lockout
+        self._pin_lockout = pin_lockout
 
     async def list_students(self, person_id: UUID) -> list[Student]:
         async with self._uow_factory() as uow:
@@ -65,16 +68,7 @@ class GuardianService:
             if await uow.avatars.get_by_id(data.avatar_id) is None:
                 raise InvalidAvatar()
 
-            support_condition = await uow.support_conditions.get_by_id(data.support_condition_id)
-            if support_condition is None:
-                raise InvalidSupportCondition()
-            is_other_condition = support_condition.name == SUPPORT_CONDITION_NAME_OTHER
-            if is_other_condition and not (data.support_condition_other or "").strip():
-                raise InvalidSupportCondition("Debes especificar la condición.")
-            if not is_other_condition and data.support_condition_other:
-                raise InvalidSupportCondition(
-                    "Solo puedes especificar una condición cuando eliges 'Otra condición (especificar)'."
-                )
+            await check_support_conditions(uow, data.support_condition_ids, data.support_condition_other)
 
             student = Student(
                 id=uuid.uuid4(),
@@ -84,13 +78,99 @@ class GuardianService:
                 date_of_birth=data.date_of_birth,
                 hash_pin=self._hasher.hash(data.pin),
                 avatar_id=data.avatar_id,
-                support_condition_id=data.support_condition_id,
+                support_condition_ids=data.support_condition_ids,
                 support_condition_other=data.support_condition_other,
                 additional_support_need=data.additional_support_need,
             )
             await uow.students.add(student)
             await uow.commit()
             return student
+
+    # One kid with all their data. A kid of another guardian answers the same
+    # as one that doesn't exist, so ids can't be probed from outside.
+    async def get_student(self, person_id: UUID, student_id: UUID) -> Student:
+        async with self._uow_factory() as uow:
+            return await _own_student(uow, person_id, student_id)
+
+    # Changes the data of one of the guardian's kids. Like with their own
+    # profile, the declaration was already checked by the API, and the
+    # change is recorded with the names of the fields, never their values.
+    async def update_student(
+        self, person_id: UUID, student_id: UUID, data: UpdateStudentData, session_id: str | None
+    ) -> Student:
+        async with self._uow_factory() as uow:
+            student = await _own_student(uow, person_id, student_id)
+            if await uow.avatars.get_by_id(data.avatar_id) is None:
+                raise InvalidAvatar()
+            await check_support_conditions(uow, data.support_condition_ids, data.support_condition_other)
+
+            new_values = asdict(data)
+            changed_fields = [name for name, value in new_values.items() if getattr(student, name) != value]
+
+            await uow.students.update_details(student_id, **new_values)
+            if changed_fields:
+                await uow.profile_changes.add(
+                    ProfileChange(
+                        id=uuid.uuid4(),
+                        person_id=person_id,
+                        student_id=student_id,
+                        session_id=session_id,
+                        changed_fields=changed_fields,
+                        declaration_version=PROFILE_DECLARATION_VERSION,
+                        changed_at=datetime.now(timezone.utc),
+                    )
+                )
+            await uow.commit()
+            if changed_fields:
+                log_security_event(
+                    "student_profile_updated",
+                    person=person_id,
+                    student=student_id,
+                    session=session_id,
+                    fields=",".join(changed_fields),
+                )
+
+            for name, value in new_values.items():
+                setattr(student, name, value)
+            return student
+
+    # Sets a new PIN for one of the guardian's kids, only with the current
+    # one. Wrong current PINs are counted apart from the kid's own wrong
+    # tries at the login, so a guardian's mistakes here don't lock the kid
+    # out. The kid's open sessions are closed, so the old PIN stops being
+    # useful right away.
+    async def change_student_pin(self, person_id: UUID, student_id: UUID, current_pin: str, new_pin: str) -> None:
+        await self.check_student_pin(person_id, student_id, current_pin)
+        if current_pin == new_pin:
+            raise PinSameAsCurrent()
+        async with self._uow_factory() as uow:
+            await uow.students.update_pin(student_id, self._hasher.hash(new_pin))
+            await uow.commit()
+        # The kid can get in with the new PIN at once, without waiting.
+        await self._pin_lockout.registrar_exito(student_pin_key(student_id))
+        await self._sessions.revoke_all(student_id, "pin_changed")
+        log_security_event("student_pin_changed", person=person_id, student=student_id)
+
+    # Says if that is the kid's current PIN, without changing anything. The
+    # portal asks it right after the guardian types it, to tell them at
+    # once. It counts wrong tries the same way the change does.
+    async def check_student_pin(self, person_id: UUID, student_id: UUID, current_pin: str) -> None:
+        async with self._uow_factory() as uow:
+            student = await _own_student(uow, person_id, student_id)
+
+        form_key = f"pin-change:{student_id}"
+        wait = await self._pin_lockout.segundos_bloqueado(form_key)
+        if wait:
+            raise AttemptLimitExceeded(retry_after_seconds=wait)
+
+        if not self._hasher.verificar(current_pin, student.hash_pin):
+            wait = await self._pin_lockout.registrar_fallo(form_key)
+            if wait:
+                log_security_event("pin_change_locked", person=person_id, student=student_id, wait=wait)
+                raise AttemptLimitExceeded(retry_after_seconds=wait)
+            raise WrongCurrentPin()
+
+        await self._pin_lockout.registrar_exito(form_key)
 
     async def get_profile(self, person_id: UUID) -> tuple[Person, Guardian]:
         async with self._uow_factory() as uow:
@@ -220,3 +300,14 @@ class GuardianService:
                 raise ResourceNotFound("No existe un tutor asociado a esta cuenta.")
             await uow.guardians.delete(guardian.id)
             await uow.commit()
+
+
+# The kid, only if they belong to this guardian.
+async def _own_student(uow: UnitOfWork, person_id: UUID, student_id: UUID) -> Student:
+    guardian = await uow.guardians.get_by_person_id(person_id)
+    if guardian is None:
+        raise ResourceNotFound("No existe un tutor asociado a esta cuenta.")
+    student = await uow.students.get_by_id(student_id)
+    if student is None or student.guardian_id != guardian.id:
+        raise ResourceNotFound("No existe ese estudiante en tu cuenta.")
+    return student

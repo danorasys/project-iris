@@ -42,7 +42,7 @@ def _payload_registro_tutor(correo: str = "ana.tutor@example.com") -> dict:
             "avatar_id": AVATAR_ID_VIOLETA,
             "pin": "1234",
             "pin_confirmation": "1234",
-            "support_condition_id": SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR,
+            "support_condition_ids": [SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR],
         },
         "consent": {
             "policy_version": "v1",
@@ -192,7 +192,7 @@ async def test_registro_tutor_telefono_supera_quince_digitos_es_rechazado(client
 
 async def test_registro_tutor_condicion_inexistente_es_rechazada(client: AsyncClient) -> None:
     payload = _payload_registro_tutor()
-    payload["student"]["support_condition_id"] = 9999
+    payload["student"]["support_condition_ids"] = [9999]
 
     response = await client.post("/auth/guardians", json=payload)
 
@@ -202,7 +202,7 @@ async def test_registro_tutor_condicion_inexistente_es_rechazada(client: AsyncCl
 
 async def test_registro_tutor_otra_condicion_sin_especificar_es_rechazada(client: AsyncClient) -> None:
     payload = _payload_registro_tutor()
-    payload["student"]["support_condition_id"] = SUPPORT_CONDITION_ID_OTRA
+    payload["student"]["support_condition_ids"] = [SUPPORT_CONDITION_ID_OTRA]
 
     response = await client.post("/auth/guardians", json=payload)
 
@@ -212,7 +212,7 @@ async def test_registro_tutor_otra_condicion_sin_especificar_es_rechazada(client
 
 async def test_registro_tutor_otra_condicion_especificada_es_aceptada(client: AsyncClient) -> None:
     payload = _payload_registro_tutor("otra.condicion@example.com")
-    payload["student"]["support_condition_id"] = SUPPORT_CONDITION_ID_OTRA
+    payload["student"]["support_condition_ids"] = [SUPPORT_CONDITION_ID_OTRA]
     payload["student"]["support_condition_other"] = "Migraña crónica"
 
     response = await client.post("/auth/guardians", json=payload)

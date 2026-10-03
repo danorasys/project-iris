@@ -104,6 +104,17 @@ class AvatarModel(Base):
     image_key: Mapped[str] = mapped_column(Text)
 
 
+# Which conditions each kid has: one row per kid and condition. The pair is
+# the primary key, so the same condition can't be twice on the same kid.
+class StudentSupportConditionModel(Base):
+    __tablename__ = "student_support_conditions"
+
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), primary_key=True
+    )
+    support_condition_id: Mapped[int] = mapped_column(Integer, ForeignKey("support_conditions.id"), primary_key=True)
+
+
 class StudentModel(Base):
     __tablename__ = "students"
 
@@ -117,23 +128,33 @@ class StudentModel(Base):
     date_of_birth: Mapped[date] = mapped_column(Date)
     hash_pin: Mapped[str] = mapped_column(String(255))
     avatar_id: Mapped[int] = mapped_column(Integer, ForeignKey("avatars.id"))
-    support_condition_id: Mapped[int] = mapped_column(Integer, ForeignKey("support_conditions.id"))
-    # Only set when support_condition_id points to "Otra condición (especificar)".
+    # The conditions are in support_condition_links (a kid can have several).
+    # Only set when one of them is "Otra condición (especificar)".
     support_condition_other: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    # Independent of support_condition_id: a free-text note for anything else
+    # Independent of the conditions: a free-text note for anything else
     # the family wants the teacher to know, always optional.
     additional_support_need: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     guardian: Mapped[GuardianModel] = relationship(back_populates="students")
+    # Loaded together with the kid in one extra query for all the kids asked
+    # (selectin), not one query per kid.
+    support_condition_links: Mapped[list[StudentSupportConditionModel]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin", passive_deletes=True
+    )
 
 
-# Record of the changes each person made to their own profile, see
-# ProfileChange. Rows are only added, and go away with the person.
+# Record of the changes each person made to their own profile or to the
+# profile of one of their kids, see ProfileChange. Rows are only added, and
+# go away with the person.
 class ProfileChangeModel(Base):
     __tablename__ = "profile_changes"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=_uuid4)
     person_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("people.id", ondelete="CASCADE"))
+    # The kid whose profile changed, empty when the person changed their own.
+    student_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     # Without a foreign key: sessions live in Redis, not in this database.
     session_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # Names of the fields, like ["phone_number", "last_name"]. Never values.

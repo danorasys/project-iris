@@ -19,7 +19,7 @@ from app.application.dtos import (
     TeacherData,
 )
 from app.domain.document_number import document_number_format_error
-from app.domain.entities import SUPPORT_CONDITION_NAME_OTHER, Consent, Guardian, Person, Student, Teacher
+from app.domain.entities import Consent, Guardian, Person, Student, Teacher
 from app.domain.exceptions import (
     AttemptLimitExceeded,
     DocumentNumberAlreadyRegistered,
@@ -30,12 +30,12 @@ from app.domain.exceptions import (
     InvalidDocumentType,
     InvalidPin,
     InvalidRelationshipType,
-    InvalidSupportCondition,
     InvalidToken,
     RefreshTokenJustUsed,
     ResourceNotFound,
 )
 from app.application.session_service import SessionService
+from app.application.support_conditions import check_support_conditions
 from app.domain.ports import (
     AttemptLockout,
     PasswordHasher,
@@ -58,6 +58,11 @@ def _anon(value: str) -> str:
 # too, so both forms share the same budget of wrong passwords.
 def login_account_key(email: str) -> str:
     return f"login-account:{_anon(email.lower())}"
+
+
+# Key of the lock for wrong PINs of a kid. Changing the PIN clears it.
+def student_pin_key(student_id: UUID) -> str:
+    return f"pin:{student_id}"
 
 
 class AuthService:
@@ -110,16 +115,9 @@ class AuthService:
                 raise InvalidRelationshipType()
             if await uow.avatars.get_by_id(student_data.avatar_id) is None:
                 raise InvalidAvatar()
-            support_condition = await uow.support_conditions.get_by_id(student_data.support_condition_id)
-            if support_condition is None:
-                raise InvalidSupportCondition()
-            is_other_condition = support_condition.name == SUPPORT_CONDITION_NAME_OTHER
-            if is_other_condition and not (student_data.support_condition_other or "").strip():
-                raise InvalidSupportCondition("Debes especificar la condición.")
-            if not is_other_condition and student_data.support_condition_other:
-                raise InvalidSupportCondition(
-                    "Solo puedes especificar una condición cuando eliges 'Otra condición (especificar)'."
-                )
+            await check_support_conditions(
+                uow, student_data.support_condition_ids, student_data.support_condition_other
+            )
 
             now = datetime.now(timezone.utc)
             person = Person(
@@ -149,7 +147,7 @@ class AuthService:
                 date_of_birth=student_data.date_of_birth,
                 hash_pin=self._hasher.hash(student_data.pin),
                 avatar_id=student_data.avatar_id,
-                support_condition_id=student_data.support_condition_id,
+                support_condition_ids=student_data.support_condition_ids,
                 support_condition_other=student_data.support_condition_other,
                 additional_support_need=student_data.additional_support_need,
             )
@@ -269,7 +267,7 @@ class AuthService:
         return person, role, tokens
 
     async def login_student_profile(self, student_id: UUID, pin: str) -> tuple[Student, IssuedTokens]:
-        limit_key = f"pin:{student_id}"
+        limit_key = student_pin_key(student_id)
         wait = await self._pin_lockout.segundos_bloqueado(limit_key)
         if wait:
             raise AttemptLimitExceeded(retry_after_seconds=wait)

@@ -241,6 +241,30 @@
   overflow-y: auto;
 }
 
+/* The section that was just picked comes up a little while it fades in, the
+   same move as the save bar and the 2FA dialog. It ends with no transform
+   left, so the dialogs and the toast inside keep their place on screen. */
+.sectionEnter {
+  animation: section-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes section-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sectionEnter {
+    animation: none;
+  }
+}
+
 /* Shown when someone typed wrong 2FA codes since the last entry. */
 .securityNotice {
   display: flex;

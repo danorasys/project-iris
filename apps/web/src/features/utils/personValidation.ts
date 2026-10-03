@@ -41,6 +41,13 @@ export function adultBirthDateError(
     return null
 }
 
+/** Birth date of a kid: it only has to exist and not be in the future. */
+export function studentBirthDateError(birthDate: string, today: Date = new Date()): string | null {
+    if (!birthDate) return "Ingresa la fecha de nacimiento."
+    if (birthDate > toIsoDate(today)) return "La fecha de nacimiento no puede ser una fecha futura."
+    return null
+}
+
 /** The number has to exist for the chosen country (same Google rules the
  * server uses), not only have the right amount of digits. */
 export function phoneError(e164: string): string | null {

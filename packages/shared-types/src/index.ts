@@ -80,8 +80,9 @@ export interface GuardianRegistrationRequest {
     avatar_id: number;
     pin: string;
     pin_confirmation: string;
-    support_condition_id: number;
-    support_condition_other?: string; // Required only when support_condition_id is "Otra condición (especificar)"
+    /** A kid can have several conditions: at least one id, none repeated. */
+    support_condition_ids: number[];
+    support_condition_other?: string; // Required only when "Otra condición (especificar)" is one of them
     additional_support_need?: string; // Always optional
   };
   consent: {
@@ -113,14 +114,46 @@ export interface StudentProfileLoginRequest {
   pin: string;
 }
 
+/** What the profile picker and the list of kids get. That list works
+ * without the portal's 2FA code, so nothing sensitive comes in it. */
 export interface StudentProfile {
   id: string;
   first_name: string;
   avatar_id: number;
   date_of_birth: string;
-  support_condition_id: number;
-  support_condition_other?: string | null;
-  additional_support_need?: string | null;
+}
+
+/** Everything the guardian registered about a kid, only inside the portal. */
+export interface StudentDetail extends StudentProfile {
+  last_name: string;
+  support_condition_ids: number[];
+  support_condition_other: string | null;
+  additional_support_need: string | null;
+}
+
+export interface UpdateStudentRequest {
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  avatar_id: number;
+  support_condition_ids: number[];
+  support_condition_other: string | null;
+  additional_support_need: string | null;
+  /** Always true, same declaration as in the guardian's own profile. */
+  truthful_declaration: true;
+}
+
+export interface CheckStudentPinRequest {
+  current_pin: string;
+}
+
+/** A guardian sets a new PIN for one of their kids, with the current PIN
+ * and a fresh code from the authenticator app. */
+export interface ChangeStudentPinRequest {
+  current_pin: string;
+  code: string;
+  pin: string;
+  pin_confirmation: string;
 }
 
 export interface UpdateStudentAvatarRequest {

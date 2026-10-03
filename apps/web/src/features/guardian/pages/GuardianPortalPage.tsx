@@ -33,9 +33,8 @@ interface PendingConfirm {
  * (regresar, cerrar sesión, cerrar todas las sesiones). The content on the
  * right changes with local state, not with a route change.
  *
- * "Mi perfil" is fully working, see MiPerfilSection. "Mis peques" shows the
- * guardian's real children, but the deeper screens for each one are still
- * pending. "Notificaciones" is only a placeholder for now.
+ * "Mi perfil" and "Mis peques" work with real data (see MiPerfilSection
+ * and MisPequesSection). "Notificaciones" is only a placeholder for now.
  *
  * A guardian reaches this page either right after finishing 2FA setup
  * during registration, or, later on, through the "Portal de padres" link
@@ -52,30 +51,30 @@ export default function GuardianPortalPage() {
   const failedAttempts = (useLocation().state as { failedAttempts?: number } | null)?.failedAttempts ?? 0;
   const [noticeDismissed, setNoticeDismissed] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>("perfil");
-  const [isProfileDirty, setIsProfileDirty] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
 
-  // Any way of leaving "mi perfil" — another sidebar tab, regresar, cerrar
-  // sesión — goes through this check first, so an unsaved edit gets a
-  // warning no matter which button the guardian clicks.
+  // Any way of leaving a form with unsaved changes (Mi perfil or the data of
+  // a kid) — another sidebar tab, regresar, cerrar sesión — goes through this
+  // check first, so the guardian gets a warning whichever button they click.
   const guardWithDirtyCheck = useCallback(
     (action: () => void) => {
-      if (!isProfileDirty) {
+      if (!hasUnsavedChanges) {
         action();
         return;
       }
       setConfirm({
-        message: "Tienes cambios sin guardar en tu perfil. Se perderán si continúas.",
+        message: "Tienes cambios sin guardar. Se perderán si continúas.",
         acceptLabel: "Continuar sin guardar",
         cancelLabel: "Cancelar",
         danger: true,
         onAccept: () => {
-          setIsProfileDirty(false);
+          setHasUnsavedChanges(false);
           action();
         },
       });
     },
-    [isProfileDirty],
+    [hasUnsavedChanges],
   );
 
   function selectSection(section: SectionId) {
@@ -224,15 +223,19 @@ export default function GuardianPortalPage() {
               </button>
             </div>
           )}
-          {activeSection === "perfil" && <MiPerfilSection onDirtyChange={setIsProfileDirty} />}
-          {activeSection === "peques" && <MisPequesSection />}
-          {activeSection === "notificaciones" && (
-            <ComingSoonSection
-              icon={<IconBell width={32} height={32} />}
-              title="Notificaciones"
-              text="Estamos construyendo tu bandeja de notificaciones. Muy pronto vas a poder ver aquí los mensajes de los docentes de tus hijos e hijas."
-            />
-          )}
+          {/* The key makes this box new on every change of section, so its
+              entrance animation plays again. */}
+          <div key={activeSection} className={styles.sectionEnter}>
+            {activeSection === "perfil" && <MiPerfilSection onDirtyChange={setHasUnsavedChanges} />}
+            {activeSection === "peques" && <MisPequesSection onDirtyChange={setHasUnsavedChanges} />}
+            {activeSection === "notificaciones" && (
+              <ComingSoonSection
+                icon={<IconBell width={32} height={32} />}
+                title="Notificaciones"
+                text="Estamos construyendo tu bandeja de notificaciones. Muy pronto vas a poder ver aquí los mensajes de los docentes de tus peques."
+              />
+            )}
+          </div>
         </main>
       </PortalAccessProvider>
 

@@ -6,6 +6,7 @@ import type {
   GuardianProfile,
   GuardianRegistrationRequest,
   RelationshipType,
+  StudentDetail,
   StudentProfile,
   StudentProfileLoginRequest,
   LoginRequest,
@@ -16,6 +17,9 @@ import type {
   TotpSetupResponse,
   TotpVerifyRequest,
   UpdateGuardianProfileRequest,
+  UpdateStudentRequest,
+  ChangeStudentPinRequest,
+  CheckStudentPinRequest,
   UpdateStudentAvatarRequest,
 } from "@iris/shared-types";
 import { apiFetch } from "@/shared/api/httpClient";
@@ -62,6 +66,56 @@ export function useEstudiantesDeTutor(habilitado: boolean) {
     queryKey: ["guardian", "students"],
     queryFn: () => apiFetch<StudentProfile[]>("/identity/guardians/me/students"),
     enabled: habilitado,
+  });
+}
+
+/** All the data of one kid. Unlike the list, the server only answers this
+ * one with the portal's 2FA access open. */
+export function useEstudianteDeTutor(studentId: string) {
+  return useQuery({
+    queryKey: ["guardian", "students", studentId],
+    queryFn: () => apiFetch<StudentDetail>(`/identity/guardians/me/students/${encodeURIComponent(studentId)}`),
+  });
+}
+
+export function useActualizarEstudianteDeTutor(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateStudentRequest) =>
+      apiFetch<StudentDetail>(`/identity/guardians/me/students/${encodeURIComponent(studentId)}`, {
+        method: "PATCH",
+        body,
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["guardian", "students", studentId], updated);
+      // The list shows the name and the age, so it's asked again.
+      void queryClient.invalidateQueries({ queryKey: ["guardian", "students"], exact: true });
+    },
+  });
+}
+
+/** Asks if that is the kid's current PIN. It resolves if it is, and fails
+ * with `pin_actual_incorrecto` if not. */
+export function useComprobarPinDeEstudiante(studentId: string) {
+  return useMutation({
+    // The PIN is not kept in memory once the request is done.
+    gcTime: 0,
+    mutationFn: (body: CheckStudentPinRequest) =>
+      apiFetch<void>(`/identity/guardians/me/students/${encodeURIComponent(studentId)}/pin/check`, {
+        method: "POST",
+        body,
+      }),
+  });
+}
+
+export function useCambiarPinDeEstudiante(studentId: string) {
+  return useMutation({
+    gcTime: 0,
+    mutationFn: (body: ChangeStudentPinRequest) =>
+      apiFetch<void>(`/identity/guardians/me/students/${encodeURIComponent(studentId)}/pin`, {
+        method: "PUT",
+        body,
+      }),
   });
 }
 

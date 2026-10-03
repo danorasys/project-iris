@@ -1,0 +1,85 @@
+/* What only "Sus datos" has: the avatar picker and the PIN row. The rest
+   comes from ProfileForm.module.css. */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* --- Avatar --- */
+
+.avatarLabel {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.avatarGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+.avatarOption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border: 2px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.avatarOption:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-iris-medium);
+}
+
+.avatarOption:focus-visible {
+  outline: 3px solid var(--color-iris-medium);
+  outline-offset: 2px;
+}
+
+/* Same look as the chosen avatar in the registration wizard. */
+.avatarOptionSelected,
+.avatarOptionSelected:hover {
+  border-color: var(--color-amber);
+  background: #fdf1e9;
+}
+
+/* --- PIN --- */
+
+.pinRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.pinDots {
+  letter-spacing: 0.2em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatarOption {
+    transition: none;
+  }
+
+  .avatarOption:hover {
+    transform: none;
+  }
+}
+
+/* --- Small screens: one column --- */
+@media (max-width: 720px) {
+  .pinRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

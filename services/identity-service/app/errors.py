@@ -23,6 +23,8 @@ from app.domain.exceptions import (
     BirthDateAfterDocumentIssued,
     WrongCurrentPassword,
     PasswordSameAsCurrent,
+    WrongCurrentPin,
+    PinSameAsCurrent,
     InvalidRelationshipType,
     InvalidSupportCondition,
     InvalidTotpCode,
@@ -59,6 +61,8 @@ _STATUS_POR_ERROR: dict[type[DomainError], int] = {
     # Not 401: that one means "your session ended" and the web app would sign out.
     WrongCurrentPassword: status.HTTP_422_UNPROCESSABLE_CONTENT,
     PasswordSameAsCurrent: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    WrongCurrentPin: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    PinSameAsCurrent: status.HTTP_422_UNPROCESSABLE_CONTENT,
     InvalidSupportCondition: status.HTTP_422_UNPROCESSABLE_CONTENT,
     InvalidAvatar: status.HTTP_422_UNPROCESSABLE_CONTENT,
     UnauthorizedInternalAccess: status.HTTP_401_UNAUTHORIZED,

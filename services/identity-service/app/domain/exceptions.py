@@ -45,6 +45,16 @@ class PasswordSameAsCurrent(DomainError):
     message = "La nueva contraseña debe ser diferente a la actual."
 
 
+class WrongCurrentPin(DomainError):
+    code = "pin_actual_incorrecto"
+    message = "El PIN actual no es correcto."
+
+
+class PinSameAsCurrent(DomainError):
+    code = "pin_igual_al_actual"
+    message = "El nuevo PIN debe ser diferente al actual."
+
+
 class BirthDateAfterDocumentIssued(DomainError):
     code = "fecha_nacimiento_inconsistente"
     message = "La fecha de nacimiento no puede ser posterior a la fecha de expedición de tu documento."

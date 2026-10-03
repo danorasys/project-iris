@@ -55,6 +55,10 @@ export function getAuthErrorMessage(error: unknown): string {
       return "La contraseña actual no es correcta.";
     case "contrasena_igual_a_la_actual":
       return "La nueva contraseña debe ser diferente a la actual.";
+    case "pin_actual_incorrecto":
+      return "El PIN actual no es correcto.";
+    case "pin_igual_al_actual":
+      return "El nuevo PIN debe ser diferente al actual.";
     case "fecha_nacimiento_inconsistente":
       return "La fecha de nacimiento no puede ser posterior a la fecha de expedición de tu documento.";
     case "tipo_relacion_invalido":
