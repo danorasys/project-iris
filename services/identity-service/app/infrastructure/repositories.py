@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities import (
@@ -14,9 +14,14 @@ from app.domain.entities import (
     Person,
     ProfileChange,
     RelationshipType,
+    SessionRecord,
     Student,
     SupportCondition,
     Teacher,
+    TeacherConsent,
+    TeacherExperience,
+    TeacherProfile,
+    TeacherStudy,
 )
 from app.infrastructure.models import (
     AvatarModel,
@@ -26,10 +31,14 @@ from app.infrastructure.models import (
     PersonModel,
     ProfileChangeModel,
     RelationshipTypeModel,
+    SessionHistoryModel,
     StudentModel,
     StudentSupportConditionModel,
     SupportConditionModel,
+    TeacherConsentModel,
+    TeacherExperienceModel,
     TeacherModel,
+    TeacherStudyModel,
 )
 
 
@@ -47,17 +56,13 @@ def _person_to_entity(m: PersonModel) -> Person:
         phone_country_code=m.phone_country_code,
         phone_number=m.phone_number,
         date_of_birth=m.date_of_birth,
+        totp_secret=m.totp_secret,
+        totp_enabled=m.totp_enabled,
     )
 
 
 def _guardian_to_entity(m: GuardianModel) -> Guardian:
-    return Guardian(
-        id=m.id,
-        person_id=m.person_id,
-        relationship_type_id=m.relationship_type_id,
-        totp_secret=m.totp_secret,
-        totp_enabled=m.totp_enabled,
-    )
+    return Guardian(id=m.id, person_id=m.person_id, relationship_type_id=m.relationship_type_id)
 
 
 def _document_type_to_entity(m: DocumentTypeModel) -> DocumentType:
@@ -156,6 +161,12 @@ class SqlAlchemyPersonRepository:
         if m is not None:
             m.hash_password = hash_password
 
+    async def update_totp(self, person_id: UUID, totp_secret: str | None, totp_enabled: bool) -> None:
+        m = await self._session.get(PersonModel, person_id)
+        if m is not None:
+            m.totp_secret = totp_secret
+            m.totp_enabled = totp_enabled
+
 
 class SqlAlchemyGuardianRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -188,13 +199,8 @@ class SqlAlchemyGuardianRepository:
         # The database also deletes them on its own (ON DELETE CASCADE), but
         # deleting them here doesn't depend on that being turned on.
         await self._session.execute(delete(ProfileChangeModel).where(ProfileChangeModel.person_id == person_id))
+        await self._session.execute(delete(SessionHistoryModel).where(SessionHistoryModel.person_id == person_id))
         await self._session.execute(delete(PersonModel).where(PersonModel.id == person_id))
-
-    async def update_totp(self, guardian_id: UUID, totp_secret: str | None, totp_enabled: bool) -> None:
-        m = await self._session.get(GuardianModel, guardian_id)
-        if m is not None:
-            m.totp_secret = totp_secret
-            m.totp_enabled = totp_enabled
 
     async def update_relationship_type(self, guardian_id: UUID, relationship_type_id: int) -> None:
         m = await self._session.get(GuardianModel, guardian_id)
@@ -217,6 +223,83 @@ class SqlAlchemyTeacherRepository:
 
     async def add(self, teacher: Teacher) -> None:
         self._session.add(TeacherModel(id=teacher.id, person_id=teacher.person_id, institution=teacher.institution))
+
+    async def update_institution(self, teacher_id: UUID, institution: str | None) -> None:
+        m = await self._session.get(TeacherModel, teacher_id)
+        if m is not None:
+            m.institution = institution
+
+
+class SqlAlchemyTeacherProfileRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    # Three small reads by teacher_id, each one served by its own index.
+    async def get(self, teacher_id: UUID) -> TeacherProfile:
+        teacher = await self._session.get(TeacherModel, teacher_id)
+        if teacher is None:
+            return TeacherProfile()
+        studies = await self._session.execute(
+            select(TeacherStudyModel).where(TeacherStudyModel.teacher_id == teacher_id).order_by(TeacherStudyModel.position)
+        )
+        experiences = await self._session.execute(
+            select(TeacherExperienceModel)
+            .where(TeacherExperienceModel.teacher_id == teacher_id)
+            .order_by(TeacherExperienceModel.position)
+        )
+        return TeacherProfile(
+            about=teacher.about,
+            studies=[
+                TeacherStudy(
+                    level=m.level, title=m.title, institution=m.institution, ended_on=m.ended_on, in_progress=m.in_progress
+                )
+                for m in studies.scalars().all()
+            ],
+            experiences=[
+                TeacherExperience(
+                    role=m.role, place=m.place, started_on=m.started_on, ended_on=m.ended_on, description=m.description
+                )
+                for m in experiences.scalars().all()
+            ],
+        )
+
+    # The old rows are deleted first and right away, so the new ones never
+    # bump into them on the (teacher_id, position) unique pair.
+    async def replace(self, teacher_id: UUID, profile: TeacherProfile) -> None:
+        teacher = await self._session.get(TeacherModel, teacher_id)
+        if teacher is None:
+            return
+        teacher.about = profile.about
+        for model in (TeacherStudyModel, TeacherExperienceModel):
+            await self._session.execute(delete(model).where(model.teacher_id == teacher_id))
+        self._session.add_all(
+            [
+                TeacherStudyModel(
+                    teacher_id=teacher_id,
+                    position=position,
+                    level=study.level,
+                    title=study.title,
+                    institution=study.institution,
+                    ended_on=study.ended_on,
+                    in_progress=study.in_progress,
+                )
+                for position, study in enumerate(profile.studies)
+            ]
+        )
+        self._session.add_all(
+            [
+                TeacherExperienceModel(
+                    teacher_id=teacher_id,
+                    position=position,
+                    role=job.role,
+                    place=job.place,
+                    started_on=job.started_on,
+                    ended_on=job.ended_on,
+                    description=job.description,
+                )
+                for position, job in enumerate(profile.experiences)
+            ]
+        )
 
 
 class SqlAlchemyStudentRepository:
@@ -310,6 +393,48 @@ class SqlAlchemyProfileChangeRepository:
         )
 
 
+class SqlAlchemySessionHistoryRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, record: SessionRecord) -> None:
+        self._session.add(
+            SessionHistoryModel(
+                session_id=record.session_id,
+                person_id=record.person_id,
+                role=record.role,
+                browser=record.browser,
+                operating_system=record.operating_system,
+                started_at=record.started_at,
+                last_active_at=record.last_active_at,
+                ended_at=record.ended_at,
+                end_reason=record.end_reason,
+            )
+        )
+
+    async def touch(self, session_id: str, at: datetime) -> None:
+        await self._session.execute(
+            update(SessionHistoryModel)
+            .where(SessionHistoryModel.session_id == session_id, SessionHistoryModel.ended_at.is_(None))
+            .values(last_active_at=at)
+        )
+
+    # Only open sessions: an ended one keeps how and when it ended first.
+    async def end(self, session_id: str, at: datetime, reason: str) -> None:
+        await self._session.execute(
+            update(SessionHistoryModel)
+            .where(SessionHistoryModel.session_id == session_id, SessionHistoryModel.ended_at.is_(None))
+            .values(ended_at=at, end_reason=reason)
+        )
+
+    async def end_all(self, person_id: UUID, at: datetime, reason: str) -> None:
+        await self._session.execute(
+            update(SessionHistoryModel)
+            .where(SessionHistoryModel.person_id == person_id, SessionHistoryModel.ended_at.is_(None))
+            .values(ended_at=at, end_reason=reason)
+        )
+
+
 class SqlAlchemyConsentRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -324,6 +449,22 @@ class SqlAlchemyConsentRepository:
                 granted_at=consent.granted_at,
                 accepts_data_processing=consent.accepts_data_processing,
                 authorizes_support_condition=consent.authorizes_support_condition,
+            )
+        )
+
+
+class SqlAlchemyTeacherConsentRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, consent: TeacherConsent) -> None:
+        self._session.add(
+            TeacherConsentModel(
+                id=consent.id,
+                teacher_id=consent.teacher_id,
+                policy_version=consent.policy_version,
+                accepts_data_processing=consent.accepts_data_processing,
+                granted_at=consent.granted_at,
             )
         )
 

@@ -1,0 +1,86 @@
+.toast {
+  /* Dark blue behind: the focus ring is white here. */
+  --color-focus: var(--color-surface);
+  position: fixed;
+  bottom: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-iris-deep);
+  color: var(--color-surface);
+  padding: var(--space-3) var(--space-5) var(--space-3) var(--space-3);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-card);
+  font-weight: 600;
+  z-index: 40;
+  /* Comes up from below and settles, with the same smooth stop as the
+     dialogs. */
+  animation: toast-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Going away: back down and fading, a little faster than it came. */
+.leaving {
+  animation: toast-out 240ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* The check in a white circle: white on the dark blue and green on white
+   are both easy to see. */
+.badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  /* Pops in a moment after the message, with a small bounce. */
+  animation: badge-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms both;
+}
+
+.icon {
+  color: var(--color-mint);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, 16px) scale(0.96);
+  }
+}
+
+@keyframes badge-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Less motion asked for: it just shows up and goes away. */
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .leaving,
+  .badge {
+    animation: none;
+  }
+}

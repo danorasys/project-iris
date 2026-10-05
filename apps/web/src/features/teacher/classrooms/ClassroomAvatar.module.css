@@ -1,0 +1,50 @@
+/* A rounded square, not a circle like the people's avatars, so a classroom
+   never looks like a person. */
+.avatar,
+.image {
+  flex: none;
+  border-radius: 24%;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  user-select: none;
+}
+
+.image {
+  display: block;
+  object-fit: cover;
+  background: var(--color-surface);
+}
+
+/* The five colors. The letters keep enough contrast on each one: white on
+   the four dark ones, ink on the yellow. */
+.blue {
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+}
+
+.navy {
+  background: var(--color-iris-deep);
+  color: var(--color-surface);
+}
+
+.orange {
+  background: var(--color-amber-dark);
+  color: var(--color-surface);
+}
+
+.green {
+  background: var(--color-mint);
+  color: var(--color-surface);
+}
+
+.gold {
+  background: var(--color-gold);
+  color: var(--color-ink);
+}

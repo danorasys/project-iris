@@ -9,6 +9,7 @@ import {
 } from "react-router-dom"
 import { RequireRol } from "./RequireRol"
 import { RequirePortalAccess } from "@/features/guardian/RequirePortalAccess"
+import { RequireTeacherVerified } from "@/features/teacher/twoFactor/RequireTeacherVerified"
 import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext"
 import { GazeCursor } from "@/shared/ui/GazeCursor"
 import { LoadingScreen } from "@/shared/ui/LoadingScreen"
@@ -66,28 +67,20 @@ const LessonViewerPage = lazy(
     () => import("@/features/student/pages/LessonViewerPage"),
 )
 
-// Dev-only preview routes, never mounted in a production build (see the
-// import.meta.env.DEV check around their <Route>s below).
-const TotpSetupPreviewPage = lazy(
-    () => import("@/features/auth/student/TotpSetupPreviewPage"),
+const TeacherPortalPage = lazy(
+    () => import("@/features/teacher/portal/TeacherPortalPage"),
 )
-// Purely presentational (no API calls), so unlike TotpSetupPreviewPage this
-// one needs no guardian session — it just replays the animation.
-const TotpSuccessPreviewPage = lazy(
-    () => import("@/features/auth/student/TotpSuccessPreviewPage"),
-)
-
-const TeacherDashboardPage = lazy(
-    () => import("@/features/teacher/pages/DashboardPage"),
-)
-const CreateClassroomPage = lazy(
-    () => import("@/features/teacher/pages/CreateClassroomPage"),
-)
-const ClassroomDetailPage = lazy(
-    () => import("@/features/teacher/pages/ClassroomDetailPage"),
+const LegacyClassroomRedirect = lazy(
+    () => import("@/features/teacher/portal/LegacyClassroomRedirect"),
 )
 const LessonEditorPage = lazy(
     () => import("@/features/teacher/pages/LessonEditorPage"),
+)
+const TeacherVerify2faPage = lazy(
+    () => import("@/features/teacher/twoFactor/TeacherVerify2faPage"),
+)
+const TeacherSetup2faPage = lazy(
+    () => import("@/features/teacher/twoFactor/TeacherSetup2faPage"),
 )
 
 /** React Router doesn't reset scroll position on navigation the way a full
@@ -252,52 +245,79 @@ export function AppRouter() {
                         }
                     >
                         <Route
-                            index
+                            path="verify-2fa"
+                            element={<TeacherVerify2faPage />}
+                        />
+                        <Route
+                            path="setup-2fa"
+                            element={<TeacherSetup2faPage />}
+                        />
+                        {/* The rest of the panel needs a session that passed the 2FA code. */}
+                        <Route
                             element={
-                                <Navigate
-                                    to="home"
-                                    replace
-                                />
+                                <RequireTeacherVerified>
+                                    <Outlet />
+                                </RequireTeacherVerified>
                             }
-                        />
-                        <Route
-                            path="home"
-                            element={<TeacherDashboardPage />}
-                        />
-                        <Route
-                            path="classrooms/create"
-                            element={<CreateClassroomPage />}
-                        />
-                        <Route
-                            path="classrooms/:classroomId"
-                            element={<ClassroomDetailPage />}
-                        />
-                        <Route
-                            path="classrooms/:classroomId/lessons/create"
-                            element={<LessonEditorPage />}
-                        />
-                        <Route
-                            path="classrooms/:classroomId/lessons/:lessonId/edit"
-                            element={<LessonEditorPage />}
-                        />
+                        >
+                            <Route
+                                index
+                                element={
+                                    <Navigate
+                                        to="portal"
+                                        replace
+                                    />
+                                }
+                            />
+                            <Route
+                                path="portal"
+                                element={<TeacherPortalPage />}
+                            />
+                            {/* Old pages, now sections of the portal: a saved
+                                link still lands in the right place. */}
+                            <Route
+                                path="home"
+                                element={
+                                    <Navigate
+                                        to="/teacher/portal"
+                                        replace
+                                    />
+                                }
+                            />
+                            <Route
+                                path="profile"
+                                element={
+                                    <Navigate
+                                        to="/teacher/portal"
+                                        replace
+                                        state={{ section: "perfil" }}
+                                    />
+                                }
+                            />
+                            <Route
+                                path="classrooms/create"
+                                element={
+                                    <Navigate
+                                        to="/teacher/portal"
+                                        replace
+                                        state={{ section: "clases" }}
+                                    />
+                                }
+                            />
+                            <Route
+                                path="classrooms/:classroomId"
+                                element={<LegacyClassroomRedirect />}
+                            />
+                            <Route
+                                path="classrooms/:classroomId/lessons/create"
+                                element={<LessonEditorPage />}
+                            />
+                            <Route
+                                path="classrooms/:classroomId/lessons/:lessonId/edit"
+                                element={<LessonEditorPage />}
+                            />
+                        </Route>
                     </Route>
-
-                    {import.meta.env.DEV && (
-                        <Route
-                            path="/dev/totp-setup"
-                            element={
-                                <RequireRol role="guardian">
-                                    <TotpSetupPreviewPage />
-                                </RequireRol>
-                            }
-                        />
-                    )}
-                    {import.meta.env.DEV && (
-                        <Route
-                            path="/dev/totp-success"
-                            element={<TotpSuccessPreviewPage />}
-                        />
-                    )}
 
                     <Route
                         path="*"

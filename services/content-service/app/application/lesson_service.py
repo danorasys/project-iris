@@ -223,6 +223,23 @@ class LessonService:
 
         return self._storage.sign_download(_image_key(lesson_id, file_name))
 
+    # Called by classroom-service before deleting a classroom (HU-85): every
+    # lesson of it, with its blocks and the images of each lesson's folder,
+    # also the ones uploaded but never used in a block.
+    async def delete_classroom_lessons(self, classroom_id: UUID) -> None:
+        async with self._uow_factory() as uow:
+            lesson_ids = await uow.lessons.list_ids_by_classroom(classroom_id)
+            await uow.lessons.delete_by_classroom(classroom_id)
+            await uow.commit()
+        # The rows are gone, so the files can't be reached anymore. A file
+        # that fails to go is only wasted space in a private bucket.
+        for lesson_id in lesson_ids:
+            try:
+                await self._storage.delete_prefix(f"lessons/{lesson_id}/")
+            except Exception:  # noqa: BLE001, cleaning up storage is never worth failing the request
+                logger.warning("No fue posible borrar las imágenes de la lección %s.", lesson_id)
+        logger.info("Se borraron %d lecciones del aula %s.", len(lesson_ids), classroom_id)
+
     async def _delete_quietly(self, key: str) -> None:
         # If deleting fails it's only wasted space, the lesson is already saved.
         try:

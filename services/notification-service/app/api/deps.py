@@ -12,7 +12,7 @@ from redis.asyncio import Redis, from_url
 from app.application.notification_service import NotificationService
 from app.config import get_settings
 from app.correlation import get_correlation_id
-from app.domain.exceptions import InvalidToken, PermissionDenied, PortalAccessRequired
+from app.domain.exceptions import InvalidToken, PermissionDenied, PortalAccessRequired, TwoFactorRequired
 from app.infrastructure.http_clients.circuit_breaker import CircuitBreaker
 from app.infrastructure.http_clients.identity_client import IdentityClient
 from app.infrastructure.uow import SqlAlchemyUnitOfWork
@@ -57,10 +57,14 @@ def get_notification_service() -> NotificationService:
 
 
 class CurrentUser:
-    def __init__(self, subject_id: UUID, role: str, session_id: str | None = None) -> None:
+    def __init__(
+        self, subject_id: UUID, role: str, session_id: str | None = None, mfa_verified: bool = False
+    ) -> None:
         self.subject_id = subject_id
         self.role = role
         self.session_id = session_id
+        # The session already passed the 2FA code (only teachers use it here).
+        self.mfa_verified = mfa_verified
 
 
 async def get_current_user(
@@ -72,13 +76,21 @@ async def get_current_user(
     if credentials is None:
         raise InvalidToken("Falta el encabezado de autorización.")
     claims = await identity.validate_token(credentials.credentials, get_correlation_id())
-    return CurrentUser(subject_id=UUID(claims.sub), role=claims.role, session_id=claims.extra.get("sid"))
+    return CurrentUser(
+        subject_id=UUID(claims.sub),
+        role=claims.role,
+        session_id=claims.extra.get("sid"),
+        mfa_verified=claims.extra.get("mfa") == "1",
+    )
 
 
 def require_role(*allowed_roles: str):
     async def _dep(user: Annotated[CurrentUser, Depends(get_current_user)]) -> CurrentUser:
         if user.role not in allowed_roles:
             raise PermissionDenied("Tu tipo de cuenta no tiene acceso a esta operación.")
+        # A teacher only gets in from a session that passed the 2FA code.
+        if user.role == "teacher" and not user.mfa_verified:
+            raise TwoFactorRequired()
         return user
 
     return _dep

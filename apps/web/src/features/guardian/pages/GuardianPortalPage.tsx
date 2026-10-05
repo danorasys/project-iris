@@ -4,8 +4,8 @@ import { useAuth } from "@/shared/auth/AuthContext";
 import { useMiPerfilTutor } from "@/shared/api/hooks/useAuthApi";
 import { useNotificacionesSinLeer } from "@/shared/api/hooks/useNotifications";
 import { IconArrowLeft, IconBell, IconChild, IconInfo, IconLogOut, IconUserCircle } from "@/shared/ui/icons";
-import logoIris from "@/assets/landing/logo-iris.png";
-import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { PortalSection, PortalShell, type PortalNavItem } from "@/shared/ui/portal/PortalShell";
 import { initials } from "@/features/utils/initials";
 import { PortalAccessProvider } from "../PortalAccessProvider";
 import { MiPerfilSection } from "../sections/MiPerfilSection";
@@ -22,6 +22,7 @@ const SECTIONS: { id: SectionId; label: string; Icon: typeof IconUserCircle }[] 
 ];
 
 interface PendingConfirm {
+  title: string;
   message: string;
   acceptLabel: string;
   cancelLabel: string;
@@ -29,20 +30,11 @@ interface PendingConfirm {
   onAccept: () => void;
 }
 
-/** `/guardian/portal`, the parents' panel. The sidebar on the left has the
- * menu (mi perfil, mis peques, notificaciones, regresar and cerrar sesión)
- * and who is signed in at the bottom. Closing every session is in the
- * security part of Mi perfil. The content on the right changes with
- * local state, not with a route change.
- *
- * Each section works with real data, see MiPerfilSection, MisPequesSection
- * and NotificacionesSection.
- *
- * A guardian reaches this page either right after finishing 2FA setup
- * during registration, or, later on, through the "Portal de padres" link
- * on the student profile screen, which first asks for a 2FA code at
- * `/guardian/verify-2fa`. `RequirePortalAccess` keeps the URL from being
- * used to skip that step. */
+/** `/guardian/portal`, the parents' portal: the menu on the left and the
+ * section on the right, which changes with local state, not with the URL.
+ * It's reached after the 2FA setup or, later, from the profile screen
+ * after typing a 2FA code. `RequirePortalAccess` stops the URL from
+ * skipping that code. */
 export default function GuardianPortalPage() {
   const navigate = useNavigate();
   const { closeSession } = useAuth();
@@ -68,6 +60,7 @@ export default function GuardianPortalPage() {
         return;
       }
       setConfirm({
+        title: "Cambios sin guardar",
         message: "Tienes cambios sin guardar. Se perderán si continúas.",
         acceptLabel: "Continuar sin guardar",
         cancelLabel: "Cancelar",
@@ -93,6 +86,7 @@ export default function GuardianPortalPage() {
   function requestBack() {
     guardWithDirtyCheck(() => {
       setConfirm({
+        title: "Regresar al selector de perfil",
         message: "¿Estás seguro de regresar al selector de perfil?",
         acceptLabel: "Sí, regresar",
         cancelLabel: "Cancelar",
@@ -104,6 +98,7 @@ export default function GuardianPortalPage() {
   function requestLogout() {
     guardWithDirtyCheck(() => {
       setConfirm({
+        title: "Cerrar sesión",
         message: "¿Estás seguro de cerrar sesión?",
         acceptLabel: "Sí, cerrar sesión",
         cancelLabel: "Cancelar",
@@ -118,106 +113,69 @@ export default function GuardianPortalPage() {
     });
   }
 
+  const items: PortalNavItem[] = [
+    ...SECTIONS.map(({ id, label, Icon }) => ({
+      key: id,
+      label,
+      Icon,
+      onSelect: () => selectSection(id),
+      active: activeSection === id,
+      badgeCount: id === "notificaciones" ? unreadCount : undefined,
+      badgeLabel: "sin leer",
+    })),
+    { key: "regresar", label: "Regresar", Icon: IconArrowLeft, onSelect: requestBack },
+    { key: "salir", label: "Cerrar sesión", Icon: IconLogOut, onSelect: requestLogout, danger: true },
+  ];
+
   return (
-    <div className={styles.page}>
-      <aside className={styles.sidebar}>
-        <div className={styles.brand}>
-          <img src={logoIris} alt="" className={styles.brandLogo} />
-          <div className={styles.brandText}>
-            <span className={styles.brandName}>IRIS</span>
-            <span className={styles.brandLabel}>Portal de Padres</span>
-          </div>
-        </div>
-
-        <nav className={styles.nav} aria-label="Opciones del portal de padres">
-          <span className={styles.navGroupLabel}>Menú</span>
-          {SECTIONS.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              type="button"
-              className={activeSection === id ? `${styles.navItem} ${styles.navItemActive}` : styles.navItem}
-              aria-current={activeSection === id ? "page" : undefined}
-              onClick={() => selectSection(id)}
-            >
-              <span className={styles.navIcon}>
-                <Icon width={18} height={18} />
-              </span>
-              <span className={styles.navLabel}>{label}</span>
-              {id === "notificaciones" && unreadCount > 0 && (
-                <span className={styles.navBadge}>
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                  <span className={styles.visuallyHidden}> sin leer</span>
-                </span>
-              )}
-            </button>
-          ))}
-          <button type="button" className={styles.navItem} onClick={requestBack}>
-            <span className={styles.navIcon}>
-              <IconArrowLeft width={18} height={18} />
-            </span>
-            <span className={styles.navLabel}>Regresar</span>
-          </button>
-          <button type="button" className={`${styles.navItem} ${styles.navItemDanger}`} onClick={requestLogout}>
-            <span className={styles.navIcon}>
-              <IconLogOut width={18} height={18} />
-            </span>
-            <span className={styles.navLabel}>Cerrar sesión</span>
-          </button>
-        </nav>
-
-        <div className={styles.account}>
-          {profile && (
-            <div className={styles.accountCard}>
-              <span className={styles.accountInitials} aria-hidden="true">
-                {initials(profile.first_name, profile.last_name)}
-              </span>
-              <span className={styles.accountText}>
-                <span className={styles.accountName}>{profile.first_name}</span>
-                <span className={styles.accountEmail}>{profile.email}</span>
-              </span>
-            </div>
-          )}
-        </div>
-      </aside>
-
+    <PortalShell
+      portalLabel="Portal de Padres"
+      navLabel="Opciones del portal de padres"
+      items={items}
+      account={
+        profile && {
+          initials: initials(profile.first_name, profile.last_name),
+          name: profile.first_name,
+          email: profile.email,
+        }
+      }
+      overlay={
+        confirm && (
+          <ConfirmDialog
+            title={confirm.title}
+            message={confirm.message}
+            acceptLabel={confirm.acceptLabel}
+            cancelLabel={confirm.cancelLabel}
+            danger={confirm.danger}
+            onAccept={confirm.onAccept}
+            onCancel={() => setConfirm(null)}
+          />
+        )
+      }
+    >
       <PortalAccessProvider>
-        <main className={styles.content}>
-          {failedAttempts > 0 && !noticeDismissed && (
-            <div className={styles.securityNotice} role="alert">
-              <IconInfo width={20} height={20} className={styles.securityNoticeIcon} />
-              <p className={styles.securityNoticeText}>
-                {failedAttempts === 1
-                  ? "Desde tu última entrada alguien escribió 1 código incorrecto en tu cuenta."
-                  : `Desde tu última entrada alguien escribió ${failedAttempts} códigos incorrectos en tu cuenta.`}{" "}
-                Si no fuiste tú, cierra todas tus sesiones y cambia tu contraseña.
-              </p>
-              <button type="button" className={styles.securityNoticeClose} onClick={() => setNoticeDismissed(true)}>
-                Entendido
-              </button>
-            </div>
-          )}
-          {/* The key makes this box new on every change of section, so its
-              entrance animation plays again. */}
-          <div key={activeSection} className={styles.sectionEnter}>
-            {activeSection === "perfil" && <MiPerfilSection onDirtyChange={setHasUnsavedChanges} />}
-            {activeSection === "peques" && <MisPequesSection onDirtyChange={setHasUnsavedChanges} />}
-            {activeSection === "notificaciones" && (
-              <NotificacionesSection onBack={() => selectSection(previousSection)} />
-            )}
+        {failedAttempts > 0 && !noticeDismissed && (
+          <div className={styles.securityNotice} role="alert">
+            <IconInfo width={20} height={20} className={styles.securityNoticeIcon} />
+            <p className={styles.securityNoticeText}>
+              {failedAttempts === 1
+                ? "Desde tu última entrada alguien escribió 1 código incorrecto en tu cuenta."
+                : `Desde tu última entrada alguien escribió ${failedAttempts} códigos incorrectos en tu cuenta.`}{" "}
+              Si no fuiste tú, cierra todas tus sesiones y cambia tu contraseña.
+            </p>
+            <button type="button" className={styles.securityNoticeClose} onClick={() => setNoticeDismissed(true)}>
+              Entendido
+            </button>
           </div>
-        </main>
+        )}
+        {/* The key makes this box new on every change of section, so its
+            entrance animation plays again. */}
+        <PortalSection key={activeSection}>
+          {activeSection === "perfil" && <MiPerfilSection onDirtyChange={setHasUnsavedChanges} />}
+          {activeSection === "peques" && <MisPequesSection onDirtyChange={setHasUnsavedChanges} />}
+          {activeSection === "notificaciones" && <NotificacionesSection onBack={() => selectSection(previousSection)} />}
+        </PortalSection>
       </PortalAccessProvider>
-
-      {confirm && (
-        <ConfirmDialog
-          message={confirm.message}
-          acceptLabel={confirm.acceptLabel}
-          cancelLabel={confirm.cancelLabel}
-          danger={confirm.danger}
-          onAccept={confirm.onAccept}
-          onCancel={() => setConfirm(null)}
-        />
-      )}
-    </div>
+    </PortalShell>
   );
 }

@@ -75,6 +75,19 @@ class StorageFull(DomainError):
     message = "Se llenó el espacio para imágenes. Avísale al administrador de IRIS."
 
 
+class ContentServiceUnavailable(DomainError):
+    code = "contenido_no_disponible"
+    message = "No fue posible borrar las lecciones de la clase en este momento. Intenta de nuevo."
+
+
 class UnauthorizedInternalAccess(DomainError):
     code = "acceso_interno_no_autorizado"
     message = "Esta operación solo puede ser invocada por otros servicios de IRIS."
+
+
+# A teacher whose session hasn't passed the 2FA code yet (identity-service
+# marks the access token with mfa once it has). Same code in every service,
+# so the web app knows to ask for it.
+class TwoFactorRequired(DomainError):
+    code = "verificacion_2fa_requerida"
+    message = "Confirma tu identidad con el código de verificación para entrar a tu panel docente."

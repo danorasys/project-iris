@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from types import TracebackType
 from typing import Protocol
 from uuid import UUID
@@ -17,10 +17,13 @@ from app.domain.entities import (
     Person,
     ProfileChange,
     RelationshipType,
+    SessionRecord,
     SignedDownload,
     Student,
     SupportCondition,
     Teacher,
+    TeacherConsent,
+    TeacherProfile,
 )
 
 
@@ -45,6 +48,7 @@ class PersonRepository(Protocol):
         # document itself, so this method has no way to change them.
         ...
     async def update_password(self, person_id: UUID, hash_password: str) -> None: ...
+    async def update_totp(self, person_id: UUID, totp_secret: str | None, totp_enabled: bool) -> None: ...
 
 
 class GuardianRepository(Protocol):
@@ -52,7 +56,6 @@ class GuardianRepository(Protocol):
     async def get_by_id(self, guardian_id: UUID) -> Guardian | None: ...
     async def add(self, guardian: Guardian) -> None: ...
     async def delete(self, guardian_id: UUID) -> None: ...
-    async def update_totp(self, guardian_id: UUID, totp_secret: str | None, totp_enabled: bool) -> None: ...
     async def update_relationship_type(self, guardian_id: UUID, relationship_type_id: int) -> None: ...
 
 
@@ -60,6 +63,14 @@ class TeacherRepository(Protocol):
     async def get_by_person_id(self, person_id: UUID) -> Teacher | None: ...
     async def get_by_id(self, teacher_id: UUID) -> Teacher | None: ...
     async def add(self, teacher: Teacher) -> None: ...
+    async def update_institution(self, teacher_id: UUID, institution: str | None) -> None: ...
+
+
+# A teacher's profile is saved as a whole: the form always sends all of it,
+# so replacing it is simpler and safer than patching each list.
+class TeacherProfileRepository(Protocol):
+    async def get(self, teacher_id: UUID) -> TeacherProfile: ...
+    async def replace(self, teacher_id: UUID, profile: TeacherProfile) -> None: ...
 
 
 class StudentRepository(Protocol):
@@ -90,10 +101,24 @@ class ConsentRepository(Protocol):
     async def add(self, consent: Consent) -> None: ...
 
 
+class TeacherConsentRepository(Protocol):
+    async def add(self, consent: TeacherConsent) -> None: ...
+
+
 # Only adds. A saved change is a record of what happened, so there is no
 # way to edit or delete one from here (they go away only with the person).
 class ProfileChangeRepository(Protocol):
     async def add(self, change: ProfileChange) -> None: ...
+
+
+class SessionHistoryRepository(Protocol):
+    async def add(self, record: SessionRecord) -> None: ...
+    # Marks the session as still in use (each time its token is renewed).
+    async def touch(self, session_id: str, at: datetime) -> None: ...
+    # Closes one session, if it's still open.
+    async def end(self, session_id: str, at: datetime, reason: str) -> None: ...
+    # Closes every open session of a person.
+    async def end_all(self, person_id: UUID, at: datetime, reason: str) -> None: ...
 
 
 class DocumentTypeRepository(Protocol):
@@ -135,13 +160,22 @@ class UnitOfWork(Protocol):
     def teachers(self) -> TeacherRepository: ...
 
     @property
+    def teacher_profiles(self) -> TeacherProfileRepository: ...
+
+    @property
     def students(self) -> StudentRepository: ...
 
     @property
     def consents(self) -> ConsentRepository: ...
 
     @property
+    def teacher_consents(self) -> TeacherConsentRepository: ...
+
+    @property
     def profile_changes(self) -> ProfileChangeRepository: ...
+
+    @property
+    def session_history(self) -> SessionHistoryRepository: ...
 
     @property
     def document_types(self) -> DocumentTypeRepository: ...
@@ -208,6 +242,15 @@ class PortalAccessStore(Protocol):
     async def revocar(self, person_id: UUID, session_id: str) -> None: ...
 
     async def revocar_todas(self, person_id: UUID) -> None: ...
+
+
+# Proof that a teacher typed their 2FA code in a session. It lasts as long as
+# the session itself (a teacher works for hours editing lessons), and only
+# that session gets it, the code never opens another browser.
+class SessionMfaStore(Protocol):
+    async def mark_verified(self, person_id: UUID, session_id: str, ttl_sec: int) -> None: ...
+    async def is_verified(self, person_id: UUID, session_id: str) -> bool: ...
+    async def forget(self, session_id: str) -> None: ...
 
 
 class AttemptLockout(Protocol):

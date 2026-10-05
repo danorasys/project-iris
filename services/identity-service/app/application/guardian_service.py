@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Callable
 from uuid import UUID
 
-from app.application.auth_service import login_account_key, student_pin_key
+from app.application.auth_service import student_pin_key
 from app.application.dtos import FirstStudentData, UpdateGuardianProfileData, UpdateStudentData
 from app.domain.entities import (
     PROFILE_DECLARATION_VERSION,
@@ -20,12 +20,11 @@ from app.domain.exceptions import (
     BirthDateAfterDocumentIssued,
     InvalidAvatar,
     InvalidRelationshipType,
-    PasswordSameAsCurrent,
     PinSameAsCurrent,
     ResourceNotFound,
-    WrongCurrentPassword,
     WrongCurrentPin,
 )
+from app.application.password_change import PasswordChangeService
 from app.application.session_service import SessionService
 from app.application.support_conditions import check_support_conditions
 from app.domain.ports import AttemptLockout, PasswordHasher, UnitOfWork
@@ -50,6 +49,9 @@ class GuardianService:
         self._password_lockout = password_lockout
         self._account_lockout = account_lockout
         self._pin_lockout = pin_lockout
+        self._password_change = PasswordChangeService(
+            uow_factory, password_hasher, sessions, password_lockout, account_lockout
+        )
 
     async def list_students(self, person_id: UUID) -> list[Student]:
         async with self._uow_factory() as uow:
@@ -180,12 +182,9 @@ class GuardianService:
                 raise ResourceNotFound("No existe un tutor asociado a esta cuenta.")
             return person, guardian
 
-    # Updates only the fields a guardian is allowed to change about
-    # themselves. Document type, document number, email and the document
-    # issue date never pass through here — see the comment on
-    # PersonRepository.update_profile for why those stay untouched.
-    # The API only gets here once the guardian declared the changes are
-    # true, and that declaration is saved together with the change.
+    # Only what a guardian may change about themselves: document, email and
+    # issue date never pass through here. It's only called after the truthful
+    # declaration, which is saved together with the change.
     async def update_profile(
         self, person_id: UUID, data: UpdateGuardianProfileData, session_id: str | None
     ) -> tuple[Person, Guardian]:
@@ -254,40 +253,9 @@ class GuardianService:
     # Changes the password after checking the current one (the strength rules
     # are in the API schema). Wrong tries count here and in the login's lock
     # per account, so switching forms gives no extra tries. All sessions close.
+    # Same rules for guardians and teachers, see PasswordChangeService.
     async def change_password(self, person_id: UUID, current_password: str, new_password: str) -> None:
-        async with self._uow_factory() as uow:
-            person = await uow.people.get_by_id(person_id)
-            if person is None:
-                raise ResourceNotFound("No existe una cuenta asociada a este tutor.")
-
-        form_key = f"password-change:{person_id}"
-        account_key = login_account_key(person.email)
-        wait = max(
-            await self._password_lockout.segundos_bloqueado(form_key),
-            await self._account_lockout.segundos_bloqueado(account_key),
-        )
-        if wait:
-            raise AttemptLimitExceeded(retry_after_seconds=wait)
-
-        if not self._hasher.verificar(current_password, person.hash_password):
-            wait = max(
-                await self._password_lockout.registrar_fallo(form_key),
-                await self._account_lockout.registrar_fallo(account_key),
-            )
-            if wait:
-                log_security_event("password_change_locked", person=person_id, wait=wait)
-                raise AttemptLimitExceeded(retry_after_seconds=wait)
-            raise WrongCurrentPassword()
-
-        await self._password_lockout.registrar_exito(form_key)
-        # The schema already refuses the same text, but bcrypt only reads 72
-        # bytes, so a long one changed after that would still match the hash.
-        if self._hasher.verificar(new_password, person.hash_password):
-            raise PasswordSameAsCurrent()
-        async with self._uow_factory() as uow:
-            await uow.people.update_password(person_id, self._hasher.hash(new_password))
-            await uow.commit()
-        await self._sessions.revoke_all(person_id, "password_changed")
+        await self._password_change.change_password(person_id, current_password, new_password)
 
     # Right to erasure. Deletes the guardian and cascades to their students and
     # consents in this service's own database. It doesn't reach into

@@ -1,0 +1,236 @@
+/* The page behind goes dark blue and a little blurred, so the dialog is the
+   only thing to look at. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: rgba(22, 36, 46, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: backdrop-in 200ms ease both;
+}
+
+/* A white card with round corners, a soft blue light on top like the
+   portal headers, and a shadow tinted blue instead of black. */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 520px;
+  padding: var(--space-5);
+  border-radius: 24px;
+  background:
+    radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--color-iris-pale) 70%, transparent) 0%, transparent 60%),
+    var(--color-surface);
+  box-shadow:
+    0 24px 60px rgba(30, 58, 82, 0.28),
+    0 2px 6px rgba(30, 58, 82, 0.12);
+  text-align: center;
+  animation: dialog-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* The icon in a circle with two rings, like the rings of an iris. */
+.badge {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background: var(--color-iris-pale);
+  color: var(--color-iris-medium);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--color-iris-pale) 55%, transparent),
+    0 0 0 7px color-mix(in srgb, var(--color-iris-medium) 25%, transparent);
+  animation: badge-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 100ms both;
+}
+
+.badgeDanger {
+  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface));
+  color: var(--color-error);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--color-error) 7%, transparent),
+    0 0 0 7px color-mix(in srgb, var(--color-error) 22%, transparent);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-iris-deep);
+}
+
+.message {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+/* Two buttons of the same size, the safe one first, each text on one line. */
+.buttons {
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+  margin-top: var(--space-3);
+}
+
+.buttons > button {
+  flex: 1 1 0;
+  white-space: nowrap;
+}
+
+.cancelButton,
+.acceptButton,
+.dangerButton {
+  min-height: 48px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-medium);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.cancelButton:active,
+.acceptButton:active,
+.dangerButton:active {
+  transform: scale(0.98);
+}
+
+.cancelButton {
+  border: 2px solid var(--color-iris-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+}
+
+.cancelButton:hover {
+  border-color: var(--color-iris-deep);
+  background: var(--color-iris-pale);
+}
+
+.acceptButton {
+  border: 2px solid var(--color-action);
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
+.acceptButton:hover {
+  border-color: var(--color-action-hover);
+  background: var(--color-action-hover);
+}
+
+/* A light red, like the circle of the warning sign: soft background, dark
+   red letters (about 6:1) and a light red border. On hover it fills with
+   the full red and white letters, so it's clear what is about to happen. */
+.dangerButton {
+  border: 2px solid color-mix(in srgb, var(--color-error) 40%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-error) 82%, black);
+}
+
+.dangerButton:hover {
+  border-color: var(--color-error);
+  background: var(--color-error);
+  color: var(--color-surface);
+}
+
+/* Can't be used yet: a quiet blue-gray instead of a faded button. */
+.acceptButton:disabled {
+  border-color: var(--color-action-disabled);
+  background: var(--color-action-disabled);
+  color: var(--color-action-disabled-text);
+}
+
+/* Closing: the card sinks a little and everything fades. */
+.leaving {
+  animation: backdrop-out 180ms ease forwards;
+}
+
+.leaving .card {
+  animation: dialog-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dialog-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@keyframes badge-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Small screens: the buttons one under the other, the safe one on top. */
+@media (max-width: 480px) {
+  .buttons {
+    flex-direction: column;
+  }
+}
+
+/* Less motion asked for: it just shows up and goes away. */
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .card,
+  .badge,
+  .leaving,
+  .leaving .card {
+    animation: none;
+  }
+}

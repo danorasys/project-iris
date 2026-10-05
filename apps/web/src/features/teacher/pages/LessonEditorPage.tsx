@@ -12,6 +12,7 @@ import { lessonImagePath } from "@/shared/api/mediaPaths";
 import { AuthImage } from "@/shared/ui/AuthImage";
 import { IconImage, IconUndo, IconText } from "@/shared/ui/icons";
 import styles from "./LessonEditorPage.module.css";
+import type { TeacherPortalState } from "../portal/TeacherPortalPage";
 
 interface EditorBlock extends ContentBlockInput {
   /** Local id, only for React's `key` and moving blocks around. Never
@@ -140,6 +141,14 @@ export default function LessonEditorPage() {
     });
   };
 
+  // Back to the lessons of the classroom, inside the Portal Docente.
+  const backToClassroom = () => {
+    const state: TeacherPortalState = classroomId
+      ? { section: "clases", classroomId, view: "lecciones" }
+      : { section: "clases" };
+    navigate("/teacher/portal", { state });
+  };
+
   const save = (status?: "publicada") => {
     if (!lessonId) return;
     setSaveError(null);
@@ -149,7 +158,7 @@ export default function LessonEditorPage() {
       {
         onSuccess: () => {
           if (status === "publicada") {
-            navigate(`/teacher/classrooms/${classroomId}`);
+            backToClassroom();
           } else {
             setSaveMessage("Cambios guardados.");
           }
@@ -170,7 +179,7 @@ export default function LessonEditorPage() {
       <button
         type="button"
         className={styles.back}
-        onClick={() => navigate(classroomId ? `/teacher/classrooms/${classroomId}` : "/teacher/home")}
+        onClick={backToClassroom}
       >
         <IconUndo width={18} height={18} />
         Volver al aula

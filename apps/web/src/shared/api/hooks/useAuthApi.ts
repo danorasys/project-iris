@@ -24,12 +24,8 @@ import type {
 } from "@iris/shared-types";
 import { apiFetch } from "@/shared/api/httpClient";
 
-/**
- * TanStack Query hooks for the registration/login flows of the auth screens
- * (`/login/*`). Every registration/login mutation uses `auth: false`.
- * They're public endpoints with no session to attach yet, and `apiFetch`
- * already knows not to send `Authorization` in that case.
- */
+/** Hooks for registering and signing in (`/login/*`). Those mutations use
+ * `auth: false`: there's no session yet to send. */
 
 export function useRegistrarTutor() {
   return useMutation({
@@ -165,19 +161,30 @@ export function useActualizarMiAvatar() {
   });
 }
 
-/** Generates a fresh TOTP secret + QR code for the authenticated guardian.
+/** Whose 2FA it is: the guardian's opens the parents' portal, the teacher's
+ * opens their panel. Same screens, different routes. */
+export type TwoFactorAccount = "guardian" | "teacher";
+
+const TWO_FACTOR_BASE: Record<TwoFactorAccount, string> = {
+  guardian: "/identity/guardians/me/2fa",
+  teacher: "/identity/teachers/me/2fa",
+};
+
+/** Generates a fresh TOTP secret + QR code for the signed-in account.
  * Doesn't enable 2FA by itself — see useVerificarTotp, which is what
  * actually turns it on once the app proves it can produce a valid code. */
-export function useConfigurarTotp() {
+export function useConfigurarTotp(account: TwoFactorAccount = "guardian") {
   return useMutation({
-    mutationFn: () => apiFetch<TotpSetupResponse>("/identity/guardians/me/2fa/setup", { method: "POST" }),
+    mutationFn: () => apiFetch<TotpSetupResponse>(`${TWO_FACTOR_BASE[account]}/setup`, { method: "POST" }),
   });
 }
 
-export function useVerificarTotp() {
+/** For a teacher the answer is a new access token, the one of a session
+ * that already passed the code. A guardian gets nothing back. */
+export function useVerificarTotp(account: TwoFactorAccount = "guardian") {
   return useMutation({
     mutationFn: (body: TotpVerifyRequest) =>
-      apiFetch<void>("/identity/guardians/me/2fa/verify", { method: "POST", body }),
+      apiFetch<TokensAuth | undefined>(`${TWO_FACTOR_BASE[account]}/verify`, { method: "POST", body }),
   });
 }
 

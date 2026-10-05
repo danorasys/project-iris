@@ -12,6 +12,8 @@
 /* Brand panel */
 
 .brandPanel {
+  /* Dark blue behind: the focus ring is white here. */
+  --color-focus: var(--color-surface);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -271,7 +273,7 @@
 .primaryButton {
   border: none;
   border-radius: var(--radius-medium);
-  background: var(--color-amber);
+  background: var(--color-action);
   color: var(--color-surface);
   padding: var(--space-3) var(--space-4);
   font-size: 1.05rem;
@@ -281,11 +283,14 @@
 }
 
 .primaryButton:hover:not(:disabled) {
-  background: var(--color-amber-dark);
+  background: var(--color-action-hover);
 }
 
+/* Before the fields are filled: a quiet blue-gray, so it clearly can't be
+   pressed yet, instead of a washed-out orange. */
 .primaryButton:disabled {
-  opacity: 0.6;
+  background: var(--color-action-disabled);
+  color: var(--color-action-disabled-text);
   cursor: not-allowed;
 }
 

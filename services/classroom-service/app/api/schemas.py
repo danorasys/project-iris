@@ -4,17 +4,38 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+# Same list as CLASSROOM_COLORS in the domain and the CHECK in the database.
+ClassroomColor = Literal["blue", "navy", "orange", "green", "gold"]
+
+
+def _no_control_chars(v: str | None) -> str | None:
+    # Line breaks are fine in a description, other control characters never.
+    if v is not None and any(ord(c) < 32 and c not in "\n\t" for c in v):
+        raise ValueError("El texto tiene caracteres no permitidos.")
+    return v
 
 
 class CreateClassroomRequest(BaseModel):
+    # Spaces around are dropped before checking the length, so "   " is empty.
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     name: str = Field(min_length=1, max_length=120)
     description: str = Field(min_length=1, max_length=1000)
+    color: ClassroomColor = "blue"
+
+    _clean = field_validator("name", "description")(_no_control_chars)
 
 
 class UpdateClassroomRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     name: str | None = Field(default=None, min_length=1, max_length=120)
     description: str | None = Field(default=None, min_length=1, max_length=1000)
+    color: ClassroomColor | None = None
+
+    _clean = field_validator("name", "description")(_no_control_chars)
 
 
 class EnrollRequest(BaseModel):
@@ -40,8 +61,15 @@ class ClassroomResponse(BaseModel):
     # File name of the logo, to build GET /classrooms/{id}/logo/{logo_file}.
     # Not a URL: the logo is private and needs the user's session.
     logo_file: str | None = None
+    # The avatar's color, used when there's no logo (initials on this color).
+    color: ClassroomColor
     enrollment_code: str
     created_at: datetime
+
+
+# A classroom in the teacher's own list, with its waiting requests (HU-69).
+class TeacherClassroomResponse(ClassroomResponse):
+    pending_requests: int
 
 
 class EnrolledStudentResponse(BaseModel):
@@ -50,6 +78,10 @@ class EnrolledStudentResponse(BaseModel):
     first_name: str
     avatar_id: int
     status: str
+    # Their guardian (HU-75). Only the teacher of the classroom sees it.
+    guardian_name: str | None
+    guardian_email: str | None
+    guardian_phone: str | None
 
 
 class ClassroomWithStudentsResponse(ClassroomResponse):

@@ -97,11 +97,67 @@ export interface TeacherRegistrationRequest {
   last_name: string;
   email: string;
   password: string;
-  institution: string;
+  /** Optional, not every teacher works for a school. */
+  institution: string | null;
   document_type_id: number;
   document_number: string;
   date_of_birth: string; // ISO date
-  phone: string;
+  /** Calling code without "+", e.g. "57". */
+  phone_country_code: string;
+  /** National number, digits only. */
+  phone_number: string;
+  document_issued_at: string; // ISO date
+  consent: TeacherConsentRequest;
+  /** Optional step of the registration, it can be filled in later. */
+  profile?: TeacherProfile | null;
+}
+
+/** The teacher's acceptance of the treatment of their own data. */
+export interface TeacherConsentRequest {
+  policy_version: string;
+  accepts_data_processing: boolean;
+}
+
+export type StudyLevel = "technical" | "technologist" | "professional" | "specialization" | "masters" | "doctorate";
+
+/** Finished in `end_month` ("YYYY-MM"), or still in progress (then there's no end). */
+export interface TeacherStudy {
+  level: StudyLevel;
+  title: string;
+  institution: string;
+  end_month: string | null;
+  in_progress: boolean;
+}
+
+/** Months as "YYYY-MM". No `end_month` means they still work there. */
+export interface TeacherExperience {
+  role: string;
+  place: string;
+  start_month: string;
+  end_month: string | null;
+  description: string | null;
+}
+
+/** What a teacher tells the families about themselves. Everything is
+ * optional, and it never has contact or ID data. */
+/** The teacher's own account (`GET /teachers/me`). Document and email are read-only. */
+export interface TeacherAccount {
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  document_type_id: number;
+  document_number: string;
+  document_issued_at: string | null;
+  email: string;
+  phone_country_code: string;
+  phone_number: string;
+  institution: string | null;
+}
+
+export interface TeacherProfile {
+  about: string | null;
+  studies: TeacherStudy[];
+  experiences: TeacherExperience[];
 }
 
 export interface LoginRequest {
@@ -169,6 +225,11 @@ export interface TotpVerifyRequest {
   code: string;
 }
 
+/** Whether the account already turned its 2FA on. */
+export interface TotpStatus {
+  enabled: boolean;
+}
+
 /** Answer of the portal 2FA check: wrong codes typed since the last good one. */
 export interface PortalChallengeResponse {
   failed_attempts_before: number;
@@ -199,6 +260,20 @@ export interface UpdateGuardianProfileRequest {
   truthful_declaration: true;
 }
 
+/** What a teacher can change about themselves from Mi perfil (HU-71).
+ * Document, email and issue date never change here. */
+export interface UpdateTeacherAccountRequest {
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  phone_country_code: string;
+  phone_number: string;
+  /** Empty or null: no institution. */
+  institution: string | null;
+  /** Always true, like the guardian's. */
+  truthful_declaration: true;
+}
+
 export interface ChangePasswordRequest {
   current_password: string;
   /** A fresh code from the authenticator app, checked at the same moment. */
@@ -207,25 +282,42 @@ export interface ChangePasswordRequest {
   password_confirmation: string;
 }
 
+/** The colors of a classroom's avatar: the initials of its name on one of them. */
+export type ClassroomColor = "blue" | "navy" | "orange" | "green" | "gold";
+
 export interface Classroom {
   id: string;
   teacher_id: string;
   name: string;
   description: string;
-  /** File name of the private logo. Show it with `classroomLogoPath` + `AuthImage`. */
+  /** File name of the private logo. Show it with `classroomLogoPath` + `AuthImage`.
+   * Without it, the avatar is the initials of the name on `color`. */
   logo_file?: string | null;
+  color: ClassroomColor;
   enrollment_code: string;
   created_at: string;
 }
 
+/** A classroom in the teacher's own list (`GET /classrooms`). */
+export interface TeacherClassroom extends Classroom {
+  /** Join requests waiting for the teacher's answer. */
+  pending_requests: number;
+}
+
+export interface ClassroomMember {
+  enrollment_id: string;
+  student_id: string;
+  first_name: string;
+  avatar_id: number;
+  status: EnrollmentStatus;
+  /** Their guardian. null when identity-service doesn't have the kid anymore. */
+  guardian_name: string | null;
+  guardian_email: string | null;
+  guardian_phone: string | null;
+}
+
 export interface ClassroomWithStudents extends Classroom {
-  students: Array<{
-    enrollment_id: string;
-    student_id: string;
-    first_name: string;
-    avatar_id: number;
-    status: EnrollmentStatus;
-  }>;
+  students: ClassroomMember[];
 }
 
 export interface EnrollmentRequest {
@@ -277,7 +369,9 @@ interface NotificationBase {
 
 export type NotificationItem =
   | (NotificationBase & { event: "request.created" })
-  | (NotificationBase & { event: "request.resolved"; decision: "aceptada" | "rechazada" });
+  | (NotificationBase & { event: "request.resolved"; decision: "aceptada" | "rechazada" })
+  /** The teacher took the kid out of the classroom. Only the guardian gets it. */
+  | (NotificationBase & { event: "enrollment.removed" });
 
 /** One page of the tray, newest first. */
 export interface NotificationPage {

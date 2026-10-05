@@ -11,7 +11,8 @@ import { IrisMark } from "@/shared/ui/IrisMark";
 import { IconArrowLeft, IconArrowRight, IconLock, IconBook } from "@/shared/ui/icons";
 import { LoadingScreen } from "@/shared/ui/LoadingScreen";
 import { OtpCodeInput } from "@/features/auth/ui/OtpCodeInput";
-import { useConfigurarTotp, useVerificarTotp } from "@/shared/api/hooks/useAuthApi";
+import type { TokensAuth } from "@iris/shared-types";
+import { useConfigurarTotp, useVerificarTotp, type TwoFactorAccount } from "@/shared/api/hooks/useAuthApi";
 import { IconAuthyLogo } from "@/shared/ui/authAppLogos";
 import styles from "./GuardianRegistrationWizard.module.css";
 
@@ -29,8 +30,17 @@ function StepNotice({ children }: { children: ReactNode }) {
 }
 
 interface TotpSetupScreenProps {
-  onVerified: () => void;
+  /** Whose 2FA: it changes the routes and the place the texts talk about. */
+  account?: TwoFactorAccount;
+  /** For a teacher it gets the new access token of the verified session. */
+  onVerified: (tokens?: TokensAuth) => void;
 }
+
+// Where the code will be asked, to name it in the texts.
+const PROTECTED_PLACE: Record<TwoFactorAccount, string> = {
+  guardian: "al Portal de Padres",
+  teacher: "a tu panel docente",
+};
 
 interface InstructionStep {
   text: string;
@@ -44,27 +54,27 @@ interface InstructionStep {
 // array.
 const INSTRUCTION_STEPS: InstructionStep[] = [
   {
-    text: "Abre la tienda de aplicaciones de tu celular (Play Store en Android, App Store en iPhone) y busca «Google Authenticator». Tócala e instálala.",
+    text: "Abre la tienda de aplicaciones de tu celular (Play Store en Android, App Store en iPhone) y busca \"Google Authenticator\". Tócala e instálala.",
     image: stepInstall,
     imageAlt: "Pantalla de la Play Store lista para instalar Google Authenticator",
   },
   {
-    text: "Abre la aplicación ya instalada. Puedes leer la breve introducción y, cuando estés listo, tocar «Comenzar».",
+    text: "Abre la aplicación ya instalada. Puedes leer la breve introducción y, cuando estés listo, tocar \"Comenzar\".",
     image: stepWelcome,
     imageAlt: "Pantalla de bienvenida de Google Authenticator con el botón Comenzar",
   },
   {
-    text: "A continuación te preguntará cómo quieres continuar: iniciar sesión con tu cuenta de Google, o tocar «Usar sin una cuenta» si prefieres no vincularla. Cualquiera de las dos opciones funciona igual de bien con IRIS.",
+    text: "A continuación te preguntará cómo quieres continuar: iniciar sesión con tu cuenta de Google, o tocar \"Usar sin una cuenta\" si prefieres no vincularla. Cualquiera de las dos opciones funciona igual de bien con IRIS.",
     image: stepWelcomeChoice,
     imageAlt: "Pantalla de bienvenida de Google Authenticator con las opciones para continuar con una cuenta de Google o sin ella",
   },
   {
-    text: "Toca el botón «Agregar un código» (o el ícono «+» si ya tienes otras cuentas registradas). Si usas el ícono «+», puedes elegir «Escanear un código QR» de una vez y saltar directo al paso 7.",
+    text: "Toca el botón \"Agregar un código\" (o el ícono \"+\" si ya tienes otras cuentas registradas). Si usas el ícono \"+\", puedes elegir \"Escanear un código QR\" de una vez y saltar directo al paso 7.",
     image: stepAddCode,
     imageAlt: "Pantalla de Google Authenticator con el botón Agregar un código",
   },
   {
-    text: "Elige la opción «Escanear un código QR».",
+    text: "Elige la opción \"Escanear un código QR\".",
     image: stepScanQr,
     imageAlt: "Pantalla de Google Authenticator con la opción Escanear un código QR",
   },
@@ -78,31 +88,18 @@ const QR_STEP_INDEX = FIRST_INSTRUCTION_STEP_INDEX + INSTRUCTION_STEPS.length;
 const VERIFY_STEP_INDEX = QR_STEP_INDEX + 1;
 const TOTAL_STEPS = VERIFY_STEP_INDEX + 1;
 
-/** Shown right after RegistrationSuccessScreen, before handing off to the
- * student's own session: the tutor sets up 2FA for the parents' portal.
- * Generates a fresh QR on mount, then requires one real code from the
- * tutor's own authenticator app before 2FA actually turns on — see
- * identity-service's TotpService.setup vs .verify for why enabling it isn't
- * automatic just because a QR was shown.
+/** The 2FA setup right after creating the account: for the guardian's
+ * portal or, with `account="teacher"`, for the teacher's panel. It shows a
+ * fresh QR and only turns 2FA on after one real code from the app (see
+ * TotpService.setup and .verify in identity-service).
  *
- * Laid out as a deck of cards (one step per screen, with a progress bar and
- * prev/next arrows) instead of one long page, since the old version made a
- * guardian scroll past five screenshots before ever seeing the QR code —
- * easy to lose track of which step you were on. Moving between cards only
- * changes local `stepIndex`; the actual setup/verify requests below don't
- * depend on it at all. The very first card explains what 2FA is for and
- * shows what the two nav arrows look like before asking the guardian to use
- * them, since nothing else on screen hints that the setup is spread across
- * several cards.
- *
- * The walkthrough uses Google Authenticator on Android as a concrete
- * example (screenshots included), since "install an authenticator app" is
- * abstract for a guardian who has never used one — the app, IRIS's QR and
- * the 6-digit code itself work the same with Microsoft Authenticator, Authy
- * or any other TOTP app. */
-export function TotpSetupScreen({ onVerified }: TotpSetupScreenProps) {
-  const setup = useConfigurarTotp();
-  const verify = useVerificarTotp();
+ * It's a deck of cards, one step per screen, because the old long page made
+ * people scroll past every screenshot before seeing the QR. The example uses
+ * Google Authenticator, but any TOTP app works the same. */
+export function TotpSetupScreen({ account = "guardian", onVerified }: TotpSetupScreenProps) {
+  const setup = useConfigurarTotp(account);
+  const verify = useVerificarTotp(account);
+  const place = PROTECTED_PLACE[account];
   const [stepIndex, setStepIndex] = useState(0);
   const [code, setCode] = useState("");
   const [verifyError, setVerifyError] = useState<string | null>(null);
@@ -123,8 +120,8 @@ export function TotpSetupScreen({ onVerified }: TotpSetupScreenProps) {
   async function submitCode(candidate: string) {
     setVerifyError(null);
     try {
-      await verify.mutateAsync({ code: candidate });
-      onVerified();
+      const tokens = await verify.mutateAsync({ code: candidate });
+      onVerified(tokens ?? undefined);
     } catch (error) {
       setVerifyError(getAuthErrorMessage(error));
       setCode("");
@@ -216,12 +213,11 @@ export function TotpSetupScreen({ onVerified }: TotpSetupScreenProps) {
                   <p className={styles.noticeHeading}>Verificación en dos pasos (2FA)</p>
                   <p className={styles.noticeText}>
                     Refuerza la seguridad de tu cuenta: además de tu contraseña, vas a confirmar que eres tú
-                    con un código de 6 dígitos que genera tu propio celular cada vez que entres al Portal de
-                    Padres.
+                    con un código de 6 dígitos que genera tu propio celular cada vez que entres {place}.
                   </p>
                   <p className={styles.noticeText}>
                     A continuación vas a seguir un paso a paso para activarla. El propósito de esto es dejar
-                    tu cuenta protegida antes de entrar por primera vez al Portal de Padres.
+                    tu cuenta protegida antes de entrar por primera vez {place}.
                   </p>
                   <p className={styles.noticeText}>
                     Te mostramos el ejemplo con Google Authenticator en un celular Android, pero puedes usar

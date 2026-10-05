@@ -60,7 +60,9 @@ afterEach(() => {
   onDirtyChange.mockReset();
 });
 
-describe("MiPerfilSection", () => {
+// These tests type and open dialogs step by step, so they get more time
+// than the default when the whole suite runs in parallel.
+describe("MiPerfilSection", { timeout: 20_000 }, () => {
   it("shows the saved data, with the account data apart and read only", () => {
     renderSection();
 

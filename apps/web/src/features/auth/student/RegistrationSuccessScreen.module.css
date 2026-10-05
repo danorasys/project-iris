@@ -6,7 +6,14 @@
   justify-content: center;
   gap: var(--space-5);
   padding: var(--space-5);
-  background: var(--color-canvas);
+  /* The pastel blobs of "¿Cómo quieres continuar?" (ProfileSelectorAuth),
+     one per corner, behind the content. */
+  background:
+    url("../../../assets/auth/blob-blue.svg") left -120px top -110px / 440px no-repeat,
+    url("../../../assets/auth/blob-gold.svg") right -70px top 70px / 290px no-repeat,
+    url("../../../assets/auth/blob-mint.svg") left -90px bottom -90px / 340px no-repeat,
+    url("../../../assets/auth/blob-peach.svg") right -130px bottom -150px / 470px no-repeat,
+    var(--color-canvas);
   text-align: center;
 }
 
@@ -75,7 +82,8 @@
   color: var(--color-ink);
 }
 
-.bubble p.headline {
+/* The first paragraph is the headline. */
+.bubble p:first-child {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.2rem;
@@ -89,7 +97,7 @@
 .continueButton {
   border: none;
   border-radius: var(--radius-medium);
-  background: var(--color-amber);
+  background: var(--color-action);
   color: var(--color-surface);
   padding: var(--space-3) var(--space-4);
   font-size: 1.05rem;
@@ -101,7 +109,7 @@
 }
 
 .continueButton:hover {
-  background: var(--color-amber-dark);
+  background: var(--color-action-hover);
 }
 
 @keyframes mascot-jump-in {
@@ -168,4 +176,11 @@
     animation: none;
     stroke-dashoffset: 0;
   }
+}
+
+/* Can't be used yet: a quiet blue-gray instead of a faded button. */
+.continueButton:disabled {
+  background: var(--color-action-disabled);
+  color: var(--color-action-disabled-text);
+  opacity: 1;
 }

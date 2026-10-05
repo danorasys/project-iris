@@ -142,9 +142,24 @@ class PortalAccessRequired(DomainError):
     message = "Confirma tu identidad con el código de verificación para entrar al Portal Padres."
 
 
+# A teacher's session without the 2FA code yet. Every service that serves
+# teachers answers this same code, so the web app knows to ask for it.
+class TwoFactorRequired(DomainError):
+    code = "verificacion_2fa_requerida"
+    message = "Confirma tu identidad con el código de verificación para entrar a tu panel docente."
+
+
 class TotpNotEnabled(DomainError):
     code = "totp_no_activado"
     message = "Tu cuenta todavía no tiene la verificación en dos pasos activada."
+
+
+# Setting up the 2FA again would turn it off and take a new phone, so with it
+# already on, only that is refused: a stolen password alone can't swap the
+# phone that gets the codes.
+class TotpAlreadyEnabled(DomainError):
+    code = "totp_ya_activado"
+    message = "Tu cuenta ya tiene la verificación en dos pasos activada."
 
 
 class TotpSetupNotStarted(DomainError):

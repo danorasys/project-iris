@@ -3,7 +3,6 @@ import {
     useRef,
     useState,
     type FormEvent,
-    type ReactNode,
 } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import {
@@ -43,7 +42,8 @@ import { LoadingScreen } from "@/shared/ui/LoadingScreen"
 import { RegistrationSuccessScreen } from "./RegistrationSuccessScreen"
 import { TotpSetupScreen } from "./TotpSetupScreen"
 import { TotpSuccessScreen } from "./TotpSuccessScreen"
-import logoIris from "@/assets/landing/logo-iris.png"
+import { RegistrationConfirmation, type SummaryItem } from "./RegistrationConfirmation"
+import { PRIVACY_POLICY_VERSION } from "@/features/legal/policyVersion"
 import styles from "./GuardianRegistrationWizard.module.css"
 import { calculateAge } from "@/features/utils/calculateAge"
 import { MAX_AGE, nameError } from "@/features/utils/personValidation"
@@ -56,7 +56,6 @@ import { SupportConditionsField } from "@/features/auth/ui/SupportConditionsFiel
 import { formatDate } from "@/features/utils/formatDate"
 import { validateDocumentIssuedAt } from "@/features/utils/validateDocumentIssuedAt"
 
-const CONSENT_POLICY_VERSION = "1.0"
 const MIN_GUARDIAN_AGE = 18
 const TODAY_ISO = new Date().toISOString().slice(0, 10)
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -76,24 +75,11 @@ type PostSubmitPhase =
     | "totp-setup"
     | "totp-exito"
 
-/** Brings a field into view and focuses it, so a validation error is never
- * just an easy-to-miss inline message below the fold, on submit or when
- * jumping here from the step indicator above.
- *
- * This scrolls the window itself instead of calling the more obvious
- * `field.scrollIntoView()`, on purpose: this page's own root (`.page`) is
- * `overflow: hidden`, needed to clip the decorative background rings, but
- * that also makes it a valid scroll container from the browser's point of
- * view. `scrollIntoView()` walks up the ancestor chain and can decide to
- * scroll that invisible, scrollbar-less container instead of the actual
- * window, which shifts the page's content inside its own clipped box (the
- * back link and rings scroll out the top, blank background grows at the
- * bottom) instead of scrolling the document like a user would expect.
- * Computing the target position ourselves and calling `window.scrollTo`
- * always scrolls the real document, `.page`'s overflow never enters into
- * it. `focus({ preventScroll: true })` avoids the same trap: a plain
- * `.focus()` triggers the browser's own implicit scroll-into-view, which
- * has the identical ancestor-walking behavior. */
+/** Scrolls to a field and focuses it, so an error is never hidden below.
+ * It uses `window.scrollTo` instead of `scrollIntoView()`: the page root
+ * has `overflow: hidden` (for the background rings) and `scrollIntoView()`
+ * would scroll that box instead of the page. `preventScroll` avoids the
+ * same problem when focusing. */
 function focusAndScrollToField(fieldId: string): void {
     const field = document.getElementById(fieldId)
     if (!field) return
@@ -104,11 +90,6 @@ function focusAndScrollToField(fieldId: string): void {
     window.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" })
 }
 
-interface SummaryItem {
-    label: string
-    value: string
-}
-
 function catalogLabel(
     items: { id: number; name: string }[] | undefined,
     id: string,
@@ -116,109 +97,10 @@ function catalogLabel(
     return items?.find((item) => String(item.id) === id)?.name ?? id
 }
 
-/** Confirmation screen between each form and the next. The IRIS mascot
- * thanks the user for their time and shows a summary of what was just
- * entered, never the password or the PIN, those never get echoed back,
- * before letting them move on or asking them to fix something. */
-function ConfirmationScreen({
-    stepLabel,
-    greeting,
-    avatarPreview,
-    items,
-    onEdit,
-    onConfirm,
-    loading = false,
-    confirmLabel = "Confirmar",
-    error,
-}: {
-    stepLabel: string
-    greeting: ReactNode
-    /** Shown as a picture, not a summary row: a text label like "Violeta"
-     * means nothing to the family compared to just seeing the avatar itself. */
-    avatarPreview?: ReactNode
-    items: SummaryItem[]
-    onEdit: () => void
-    onConfirm: () => void
-    loading?: boolean
-    confirmLabel?: string
-    error?: string | null
-}) {
-    return (
-        <div className={styles.confirmation}>
-            <p className={styles.subtitle}>{stepLabel}</p>
-            <div className={styles.mascotRow}>
-                <img
-                    src={logoIris}
-                    alt=""
-                    className={styles.mascotLogo}
-                />
-                <div className={styles.bubble}>
-                    <p>{greeting}</p>
-                </div>
-            </div>
-
-            {avatarPreview && (
-                <div className={styles.avatarPreviewRow}>{avatarPreview}</div>
-            )}
-
-            <dl className={styles.summaryList}>
-                {items.map((item) => (
-                    <div
-                        key={item.label}
-                        className={styles.summaryRow}
-                    >
-                        <dt className={styles.summaryLabel}>{item.label}</dt>
-                        <dd className={styles.summaryValue}>{item.value}</dd>
-                    </div>
-                ))}
-            </dl>
-
-            <p className={styles.question}>
-                ¿Confirmas que estos datos son correctos?
-            </p>
-
-            {error && (
-                <p
-                    role="alert"
-                    className={styles.error}
-                >
-                    {error}
-                </p>
-            )}
-
-            <div className={styles.buttonRow}>
-                <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={onEdit}
-                    disabled={loading}
-                >
-                    Corregir
-                </button>
-                <button
-                    type="button"
-                    className={styles.primaryButton}
-                    onClick={onConfirm}
-                    disabled={loading}
-                >
-                    {loading ? "Creando cuenta…" : confirmLabel}
-                </button>
-            </div>
-        </div>
-    )
-}
-
-/** This is `/login/guardian/new`, a 2-step wizard. First the guardian's
- * data and consent, then the first student profile with the PIN typed
- * twice. Each step shows a confirmation screen with the IRIS mascot
- * before moving on. Confirming step 2 makes `identity-service` create the
- * person, guardian, student and consent all together, and logs the
- * guardian into their own session. From there the wizard walks them
- * through setting up 2FA (TotpSetupScreen) before handing off to
- * `/guardian/portal` — reaching the student's own session from there
- * always goes through `/login/guardian/portal`, which asks for the PIN
- * again rather than reusing the one just typed in this form, the same
- * check any other guardian login has to pass. */
+/** `/login/guardian/new`: the guardian's data and consent, then the first
+ * kid with the PIN typed twice. Confirming creates everything together and
+ * signs the guardian in, then comes the 2FA setup and the parents' portal.
+ * The kid's own session always asks for the PIN again later. */
 export default function GuardianRegistrationWizard() {
     const navigate = useNavigate()
     const { setSession } = useAuth()
@@ -235,13 +117,8 @@ export default function GuardianRegistrationWizard() {
         useState<PostSubmitPhase>("idle")
     const step1FormRef = useRef<HTMLFormElement>(null)
 
-    // This wizard moves between its 4 screens (both forms, both confirmations)
-    // through step/phase state on one single route, never a real navigation,
-    // so AppRouter's own ScrollToTop (which only resets on pathname change)
-    // never fires here. Without this, clicking "Siguiente" from the bottom of
-    // a long form — e.g. after scrolling all the way down to confirm the PIN —
-    // leaves the next screen scrolled to that same position instead of
-    // starting at its own top.
+    // The wizard changes screens without changing the URL, so the app's own
+    // scroll reset never runs. This takes each new screen back to its top.
     useEffect(() => {
         window.scrollTo(0, 0)
     }, [step, phase, postSubmitPhase])
@@ -360,12 +237,10 @@ export default function GuardianRegistrationWizard() {
         }
     }, [avatarId, avatarsQuery.data])
 
-    // Deliberately left with nothing marked: unlike document type/relationship
-    // above, silently defaulting this to any real entry — even "Prefiero no
-    // especificar" — would let a family move on without ever having actually
-    // looked at the list. It has to be a conscious choice, checked when moving
-    // forward (handleSubmitStep2) — going back never checks it, see
-    // handleGoBackToStep1. A kid can have several conditions, so it's a list.
+    // Nothing marked on purpose: the family has to pick at least one option
+    // (even "Prefiero no especificar") instead of moving on without looking.
+    // It's checked when going forward, not when going back. A kid can have
+    // several conditions, so it's a list.
     const supportConditions = supportConditionsQuery.data ?? []
     const isOtherConditionSelected = includesOtherCondition(
         supportConditionIds,
@@ -423,13 +298,9 @@ export default function GuardianRegistrationWizard() {
         }
     }
 
-    /** Validates every field top to bottom and stops at the first one that
-     * fails: its error message is set and the field is scrolled into view and
-     * focused, so the user always lands exactly where something needs
-     * fixing instead of hunting for it. Runs on the step 1 form's own submit,
-     * which the step indicator above also triggers via `requestSubmit()`
-     * (see `handleStepIndicatorClick`), so both entry points get the same
-     * behavior for free instead of duplicating it. */
+    /** Checks the fields top to bottom and stops at the first error, showing
+     * it and moving to that field. The step circles use it too, through
+     * `requestSubmit()`. */
     function handleSubmitStep1(e: FormEvent) {
         e.preventDefault()
         if (!catalogsReady) return
@@ -667,12 +538,8 @@ export default function GuardianRegistrationWizard() {
         setSubmitError(null)
         setPostSubmitPhase("cargando")
 
-        // The backend stores the calling code and the national number in two
-        // separate columns (see identity-service's people.phone_country_code /
-        // phone_number), rather than one combined E.164 string, so the country
-        // never has to be re-derived by parsing a formatted string later. `phone`
-        // was already confirmed valid by isValidPhoneNumber in handleSubmitStep1,
-        // so parsing it back apart here is safe.
+        // The server keeps the country code and the number apart. The phone was
+        // already checked in handleSubmitStep1, so splitting it here is safe.
         const parsedPhone = parsePhoneNumber(phone)
 
         const payload: GuardianRegistrationRequest = {
@@ -706,7 +573,7 @@ export default function GuardianRegistrationWizard() {
                     : {}),
             },
             consent: {
-                policy_version: CONSENT_POLICY_VERSION,
+                policy_version: PRIVACY_POLICY_VERSION,
                 accepts_data_processing: acceptsDataProcessing,
                 authorizes_support_condition: authorizesSupportCondition,
             },
@@ -783,10 +650,23 @@ export default function GuardianRegistrationWizard() {
     if (postSubmitPhase === "exito") {
         return (
             <RegistrationSuccessScreen
-                guardianFirstName={guardianFirstName.trim()}
-                studentFirstName={studentFirstName.trim()}
                 onContinue={() => setPostSubmitPhase("totp-setup")}
-            />
+            >
+                <p>
+                    ¡Felicidades, <strong>{guardianFirstName.trim()}</strong> y{" "}
+                    <strong>{studentFirstName.trim()}</strong>! Sus perfiles ya
+                    quedaron creados dentro de IRIS.
+                </p>
+                <p>
+                    Cada mirada es un paso hacia nuevas formas de aprender.
+                    ¡Vamos a comenzar esta aventura juntos!
+                </p>
+                <p>
+                    Ahora, <strong>{guardianFirstName.trim()}</strong>, vamos a
+                    configurar la autenticación de dos factores (2FA) para
+                    proteger tu cuenta.
+                </p>
+            </RegistrationSuccessScreen>
         )
     }
     if (postSubmitPhase === "totp-setup") {
@@ -799,7 +679,7 @@ export default function GuardianRegistrationWizard() {
     if (postSubmitPhase === "totp-exito") {
         return (
             <TotpSuccessScreen
-                guardianFirstName={guardianFirstName.trim()}
+                firstName={guardianFirstName.trim()}
                 onContinue={() =>
                     navigate("/guardian/portal", { replace: true })
                 }
@@ -1153,7 +1033,7 @@ export default function GuardianRegistrationWizard() {
                 )}
 
                 {step === 1 && phase === "confirmacion" && (
-                    <ConfirmationScreen
+                    <RegistrationConfirmation
                         stepLabel="Paso 3 de 4 — Confirmación: Tutor, papá o mamá."
                         greeting={
                             <>
@@ -1462,7 +1342,7 @@ export default function GuardianRegistrationWizard() {
                 )}
 
                 {step === 2 && phase === "confirmacion" && (
-                    <ConfirmationScreen
+                    <RegistrationConfirmation
                         stepLabel="Paso 4 de 4 — Confirmación: Tu niño o niña."
                         greeting={
                             <>
@@ -1486,7 +1366,7 @@ export default function GuardianRegistrationWizard() {
                         onEdit={() => setPhase("formulario")}
                         onConfirm={confirmAndCreateAccount}
                         loading={register.isPending}
-                        confirmLabel="Crear cuenta"
+                        confirmLabel="Confirmar y crear cuenta"
                         error={submitError}
                     />
                 )}

@@ -7,6 +7,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+from app.domain.entities import TeacherProfile
+
 
 @dataclass
 class GuardianData:
@@ -65,17 +67,35 @@ class UpdateGuardianProfileData:
     relationship_type_id: int
 
 
+# What a teacher can change about themselves (HU-71). Like the guardian's,
+# but with the institution instead of the relationship with a kid.
+@dataclass
+class UpdateTeacherAccountData:
+    first_name: str
+    last_name: str
+    date_of_birth: date
+    phone_country_code: str
+    phone_number: str
+    institution: str | None
+
+
 @dataclass
 class TeacherData:
     first_name: str
     last_name: str
     email: str
     password: str
-    institution: str
+    institution: str | None
     document_type_id: int
     document_number: str
     date_of_birth: date
-    phone: str
+    phone_country_code: str
+    phone_number: str
+    document_issued_at: date
+    # Version of the privacy policy the teacher accepted.
+    consent_policy_version: str
+    # The teacher can leave it for later, from their panel.
+    profile: TeacherProfile | None = None
 
 
 @dataclass
@@ -83,6 +103,8 @@ class IssuedTokens:
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    # The session both tokens belong to (their "sid").
+    session_id: str = ""
 
 
 @dataclass

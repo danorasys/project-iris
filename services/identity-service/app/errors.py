@@ -37,7 +37,9 @@ from app.domain.exceptions import (
     RefreshTokenJustUsed,
     PortalAccessRequired,
     SessionClosedForSecurity,
+    TotpAlreadyEnabled,
     TotpNotEnabled,
+    TwoFactorRequired,
     TotpSetupNotStarted,
 )
 
@@ -70,7 +72,9 @@ _STATUS_POR_ERROR: dict[type[DomainError], int] = {
     PortalAccessRequired: status.HTTP_403_FORBIDDEN,
     MissingClientHeader: status.HTTP_403_FORBIDDEN,
     SessionClosedForSecurity: status.HTTP_401_UNAUTHORIZED,
+    TotpAlreadyEnabled: status.HTTP_409_CONFLICT,
     TotpNotEnabled: status.HTTP_409_CONFLICT,
+    TwoFactorRequired: status.HTTP_403_FORBIDDEN,
     TotpSetupNotStarted: status.HTTP_422_UNPROCESSABLE_CONTENT,
 }
 
@@ -100,14 +104,9 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
-        # jsonable_encoder can't serialize the exceptions Pydantic v2 leaves in "ctx"
-        # for debugging. We stringify them instead of dropping them, so we don't lose
-        # which validation rule actually failed.
-        #
-        # "input" is dropped on purpose: Pydantic fills it with the exact value that
-        # was submitted, and this service validates fields like password and pin.
-        # Echoing that value back in the response would leak it into browser devtools,
-        # proxies or logs that capture response bodies.
+        # Pydantic leaves exceptions in "ctx" that JSON can't hold, so they become
+        # text (we still want to know which rule failed). "input" is dropped on
+        # purpose: it's the exact value sent, and that can be a password or a PIN.
         errores_serializables = []
         for e in exc.errors():
             error = {k: v for k, v in e.items() if k != "input"}

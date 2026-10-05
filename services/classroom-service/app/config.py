@@ -13,18 +13,17 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://localhost:6379/0"
 
-    # classroom-service never decodes JWT locally. Only identity-service knows
-    # JWT_SECRET, and docker-compose only passes it there.
-    #
-    # No default: a working value checked into source is a real, usable
-    # secret sitting in git history forever. Startup must fail loudly if this
-    # isn't set, instead of anyone with repo access being able to call this
-    # service's internal-only routes.
+    # This service never decodes JWTs, only identity-service has JWT_SECRET.
+    # No default on purpose: a value in the code would be a real secret in the
+    # git history, so it has to fail at startup when it's missing.
     internal_service_key: str
 
     web_origin: str = "http://localhost:5173"
 
     identity_service_url: str = "http://localhost:8001"
+
+    # Only for its internal route that deletes a classroom's lessons.
+    content_service_url: str = "http://localhost:8003"
 
     # Garage, where the logos live. The key only works on this bucket. No
     # default for the key pair, same reasoning as internal_service_key above.

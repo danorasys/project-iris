@@ -74,7 +74,7 @@ class Settings(BaseSettings):
     # Must be a valid Fernet key (32 url-safe base64-encoded bytes). You can
     # generate one with:
     # python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-    # Used only to encrypt guardians.totp_secret, never for anything else,
+    # Used only to encrypt people.totp_secret, never for anything else,
     # and never the same key as jwt_secret. No default, same reason as above.
     totp_encryption_key: str
     totp_issuer_name: str = "IRIS"

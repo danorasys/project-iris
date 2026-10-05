@@ -633,3 +633,12 @@ async def test_health_live_y_ready(client: AsyncClient) -> None:
 
     ready = await client.get("/health/ready")
     assert ready.status_code == 200
+
+
+async def test_un_docente_sin_el_codigo_2fa_no_entra(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
+    token, _teacher_id = identity_gateway.registrar_docente(verificado=False)
+
+    response = await client.get("/classrooms", headers=_auth(token))
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "verificacion_2fa_requerida"

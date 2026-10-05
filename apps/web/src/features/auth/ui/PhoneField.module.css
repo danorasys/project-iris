@@ -8,8 +8,13 @@
   border: 2px solid var(--color-iris-pale);
   background: var(--color-surface);
 }
+.wrapper {
+  transition: var(--focus-halo-transition);
+}
+/* Selected: a blue border and a sky-blue halo, like the other fields. */
 .wrapper:focus-within {
   border-color: var(--color-iris-medium);
+  box-shadow: var(--focus-halo);
 }
 .wrapperError {
   border-color: var(--color-error);
@@ -44,4 +49,10 @@
 .wrapper :global(.PhoneInputCountrySelectArrow) {
   color: var(--color-ink-soft);
   opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrapper {
+    transition: none;
+  }
 }

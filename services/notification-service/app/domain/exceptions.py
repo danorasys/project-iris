@@ -40,3 +40,11 @@ class PortalAccessRequired(DomainError):
 class PermissionDenied(DomainError):
     code = "acceso_denegado"
     message = "No tienes permiso para esta operación."
+
+
+# A teacher whose session hasn't passed the 2FA code yet (identity-service
+# marks the access token with mfa once it has). Same code in every service,
+# so the web app knows to ask for it.
+class TwoFactorRequired(DomainError):
+    code = "verificacion_2fa_requerida"
+    message = "Confirma tu identidad con el código de verificación para entrar a tu panel docente."

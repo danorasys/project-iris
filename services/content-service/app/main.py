@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes_health import router as health_router
+from app.api.routes_internal import router as internal_router
 from app.api.routes_lessons import router as lessons_router
 from app.config import get_settings
 from app.correlation import CorrelationIdMiddleware
@@ -40,3 +41,4 @@ register_exception_handlers(app)
 
 app.include_router(health_router)
 app.include_router(lessons_router)
+app.include_router(internal_router)

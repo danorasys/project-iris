@@ -1,9 +1,6 @@
-# Domain entities. classroom-service owns Classroom and Enrollment.
-#
-# Plain dataclasses, no FastAPI or SQLAlchemy dependency.
-#
-# teacher_id and student_id are reference UUIDs pointing at identity-service,
-# with no real foreign key across databases.
+# Domain entities: classroom-service owns Classroom and Enrollment. Plain
+# dataclasses. teacher_id and student_id point to identity-service, with no
+# foreign key across databases.
 
 from __future__ import annotations
 
@@ -14,6 +11,12 @@ from uuid import UUID
 STATUS_PENDING = "pendiente"
 STATUS_ACCEPTED = "aceptada"
 STATUS_REJECTED = "rechazada"
+
+# The colors a teacher can pick for the classroom's avatar, the initials of
+# its name on that color (the web app draws it). Same list as the CHECK in
+# the database.
+CLASSROOM_COLORS = ("blue", "navy", "orange", "green", "gold")
+DEFAULT_CLASSROOM_COLOR = "blue"
 
 
 @dataclass
@@ -26,6 +29,7 @@ class Classroom:
     created_at: datetime
     # Where the logo lives inside the private bucket, never a public URL.
     logo_key: str | None = None
+    color: str = DEFAULT_CLASSROOM_COLOR
 
     @property
     def logo_file(self) -> str | None:
@@ -77,3 +81,7 @@ class StudentInfo:
     # The id the guardian signs in with, so notification-service can tell
     # them about their kid's requests.
     guardian_person_id: UUID
+
+    @property
+    def guardian_name(self) -> str:
+        return f"{self.guardian_first_name} {self.guardian_last_name}"

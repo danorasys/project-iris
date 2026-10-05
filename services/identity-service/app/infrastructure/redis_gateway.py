@@ -65,6 +65,26 @@ class RedisSessionRegistry:
         return mark is not None and emitido_en < int(mark)
 
 
+# Implements the SessionMfaStore port. One key per session, holding whose it
+# is, so a session id can never be marked for somebody else.
+class RedisSessionMfaStore:
+    def __init__(self, redis: Redis) -> None:
+        self._redis = redis
+
+    @staticmethod
+    def _key(session_id: str) -> str:
+        return f"session-mfa:{session_id}"
+
+    async def mark_verified(self, person_id: UUID, session_id: str, ttl_sec: int) -> None:
+        await self._redis.setex(self._key(session_id), ttl_sec, str(person_id))
+
+    async def is_verified(self, person_id: UUID, session_id: str) -> bool:
+        return await self._redis.get(self._key(session_id)) == str(person_id)
+
+    async def forget(self, session_id: str) -> None:
+        await self._redis.delete(self._key(session_id))
+
+
 # Implements the PortalAccessStore port. One key per guardian and session,
 # holding the time the code was typed. Its TTL is the inactivity limit, so it
 # expires on its own when nobody uses the portal.

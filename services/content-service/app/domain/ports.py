@@ -22,6 +22,11 @@ class LessonRepository(Protocol):
 
     async def count_by_classroom(self, classroom_id: UUID) -> int: ...
 
+    async def list_ids_by_classroom(self, classroom_id: UUID) -> list[UUID]: ...
+
+    # Their blocks go with them (cascade).
+    async def delete_by_classroom(self, classroom_id: UUID) -> None: ...
+
     async def add(self, lesson: Lesson) -> None: ...
 
     # If replace_blocks is True, replaces the lesson's full set of blocks
@@ -52,6 +57,9 @@ class ObjectStorage(Protocol):
 
     # Does nothing if the key is already gone.
     async def delete(self, key: str) -> None: ...
+
+    # Every file whose key starts with prefix, like a lesson's folder.
+    async def delete_prefix(self, prefix: str) -> None: ...
 
 
 class IdentityClient(Protocol):

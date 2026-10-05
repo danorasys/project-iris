@@ -1,0 +1,243 @@
+/* Same backdrop as ConfirmDialog, a wider card that can scroll on small screens. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(30, 58, 82, 0.55);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
+  padding: var(--space-5);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--color-iris-deep);
+}
+
+.avatarField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* Same look as the labels of the fields above. */
+.legend {
+  padding: 0;
+  margin-bottom: var(--space-1);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.mode:hover {
+  border-color: var(--color-iris-medium);
+}
+
+.modeActive,
+.modeActive:hover {
+  border-color: var(--color-iris-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.initials,
+.image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-canvas);
+}
+
+.colors {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--color-surface);
+  transition: transform 120ms ease;
+}
+
+.swatch:hover {
+  transform: scale(1.08);
+}
+
+/* The picked one gets a ring, so it isn't only told by color. */
+.swatchActive {
+  box-shadow:
+    0 0 0 3px var(--color-surface),
+    0 0 0 5px var(--color-iris-deep);
+}
+
+.blue {
+  background: var(--color-iris-medium);
+}
+
+.navy {
+  background: var(--color-iris-deep);
+}
+
+.orange {
+  background: var(--color-amber-dark);
+}
+
+.green {
+  background: var(--color-mint);
+}
+
+.gold {
+  background: var(--color-gold);
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}
+
+.pickButton {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  border: 2px dashed var(--color-iris-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pickButton:hover {
+  border-style: solid;
+}
+
+.pickButton:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The real file input stays for keyboards and screen readers, unseen. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.error {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.cancelButton,
+.saveButton {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-medium);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cancelButton {
+  border: 2px solid var(--color-iris-medium);
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.cancelButton:hover {
+  border-color: var(--color-iris-deep);
+}
+
+.saveButton {
+  border: none;
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
+.saveButton:hover {
+  background: var(--color-action-hover);
+}
+
+.saveButton:disabled,
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode,
+  .swatch {
+    transition: none;
+  }
+
+  .swatch:hover {
+    transform: none;
+  }
+}
+
+/* Can't be used yet: a quiet blue-gray instead of a faded button. */
+.saveButton:disabled {
+  background: var(--color-action-disabled);
+  color: var(--color-action-disabled-text);
+  opacity: 1;
+}

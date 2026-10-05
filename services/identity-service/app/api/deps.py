@@ -13,15 +13,25 @@ from app.application.auth_service import AuthService
 from app.application.catalog_service import CatalogQueryService
 from app.application.guardian_service import GuardianService
 from app.application.internal_service import InternalQueryService
+from app.application.password_change import PasswordChangeService
 from app.application.session_service import SessionService
 from app.application.student_service import StudentService
 from app.application.totp_service import TotpService
+from app.application.teacher_profile import TeacherProfileService
 from app.application.user_service import UserQueryService
 from app.config import Settings, get_settings
-from app.domain.exceptions import InvalidToken, PermissionDenied, PortalAccessRequired, UnauthorizedInternalAccess
+from app.application.auth_service import MFA_CLAIM, MFA_VERIFIED
+from app.domain.exceptions import (
+    InvalidToken,
+    PermissionDenied,
+    PortalAccessRequired,
+    TwoFactorRequired,
+    UnauthorizedInternalAccess,
+)
 from app.infrastructure.redis_gateway import (
     RedisAttemptLockout,
     RedisPortalAccessStore,
+    RedisSessionMfaStore,
     RedisRateLimiter,
     RedisSessionRegistry,
     RedisTokenBlacklist,
@@ -105,11 +115,19 @@ def get_session_service(
     settings: Annotated[Settings, Depends(get_settings)],
     redis: Annotated[Redis, Depends(get_redis)],
 ) -> SessionService:
-    return SessionService(RedisSessionRegistry(redis), ttl_seconds=settings.jwt_refresh_ttl_days * 24 * 3600)
+    return SessionService(
+        RedisSessionRegistry(redis),
+        ttl_seconds=settings.jwt_refresh_ttl_days * 24 * 3600,
+        uow_factory=SqlAlchemyUnitOfWork,
+    )
 
 
 def get_portal_access_store(redis: Annotated[Redis, Depends(get_redis)]) -> RedisPortalAccessStore:
     return RedisPortalAccessStore(redis)
+
+
+def get_session_mfa_store(redis: Annotated[Redis, Depends(get_redis)]) -> RedisSessionMfaStore:
+    return RedisSessionMfaStore(redis)
 
 
 def get_auth_service(
@@ -118,6 +136,7 @@ def get_auth_service(
     tokens: Annotated[JwtTokenIssuer, Depends(get_token_issuer)],
     blacklist: Annotated[RedisTokenBlacklist, Depends(get_blacklist)],
     portal_access: Annotated[RedisPortalAccessStore, Depends(get_portal_access_store)],
+    session_mfa: Annotated[RedisSessionMfaStore, Depends(get_session_mfa_store)],
     sessions: Annotated[SessionService, Depends(get_session_service)],
     login_lockout: Annotated[RedisAttemptLockout, Depends(get_attempt_lockout)],
     account_lockout: Annotated[RedisAttemptLockout, Depends(get_account_lockout)],
@@ -129,6 +148,7 @@ def get_auth_service(
         token_issuer=tokens,
         blacklist=blacklist,
         portal_access=portal_access,
+        session_mfa=session_mfa,
         sessions=sessions,
         login_lockout=login_lockout,
         account_lockout=account_lockout,
@@ -174,6 +194,7 @@ def get_totp_service(
     lockout: Annotated[RedisAttemptLockout, Depends(get_attempt_lockout)],
     account_lockout: Annotated[RedisAttemptLockout, Depends(get_account_lockout)],
     sessions: Annotated[SessionService, Depends(get_session_service)],
+    session_mfa: Annotated[RedisSessionMfaStore, Depends(get_session_mfa_store)],
 ) -> TotpService:
     return TotpService(
         uow_factory=SqlAlchemyUnitOfWork,
@@ -188,6 +209,8 @@ def get_totp_service(
         lockout=lockout,
         account_lockout=account_lockout,
         sessions=sessions,
+        session_mfa=session_mfa,
+        session_mfa_ttl_sec=settings.jwt_refresh_ttl_days * 24 * 3600,
     )
 
 
@@ -219,6 +242,25 @@ def get_student_service() -> StudentService:
 
 def get_user_query_service() -> UserQueryService:
     return UserQueryService(uow_factory=SqlAlchemyUnitOfWork)
+
+
+def get_password_change_service(
+    hasher: Annotated[BcryptPasswordHasher, Depends(get_password_hasher)],
+    sessions: Annotated[SessionService, Depends(get_session_service)],
+    password_lockout: Annotated[RedisAttemptLockout, Depends(get_attempt_lockout)],
+    account_lockout: Annotated[RedisAttemptLockout, Depends(get_account_lockout)],
+) -> PasswordChangeService:
+    return PasswordChangeService(
+        uow_factory=SqlAlchemyUnitOfWork,
+        password_hasher=hasher,
+        sessions=sessions,
+        password_lockout=password_lockout,
+        account_lockout=account_lockout,
+    )
+
+
+def get_teacher_profile_service() -> TeacherProfileService:
+    return TeacherProfileService(uow_factory=SqlAlchemyUnitOfWork)
 
 
 class CurrentUser:
@@ -256,6 +298,16 @@ def require_role(*allowed_roles: str):
         return user
 
     return _dep
+
+
+# A teacher whose session already passed the 2FA code. Guards everything of
+# the teacher except setting up and typing that code.
+async def require_verified_teacher(
+    user: Annotated[CurrentUser, Depends(require_role("teacher"))],
+) -> CurrentUser:
+    if user.extra.get(MFA_CLAIM) != MFA_VERIFIED:
+        raise TwoFactorRequired()
+    return user
 
 
 async def require_portal_access(

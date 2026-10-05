@@ -19,7 +19,7 @@ from app.application.dtos import (
     TeacherData,
 )
 from app.domain.document_number import document_number_format_error
-from app.domain.entities import Consent, Guardian, Person, Student, Teacher
+from app.domain.entities import Consent, Guardian, Person, Student, Teacher, TeacherConsent
 from app.domain.exceptions import (
     AttemptLimitExceeded,
     DocumentNumberAlreadyRegistered,
@@ -40,6 +40,7 @@ from app.domain.ports import (
     AttemptLockout,
     PasswordHasher,
     PortalAccessStore,
+    SessionMfaStore,
     TokenBlacklist,
     TokenIssuer,
     UnitOfWork,
@@ -47,6 +48,11 @@ from app.domain.ports import (
 from app.security_log import log_security_event
 
 UowFactory = Callable[[], "UnitOfWork"]
+
+# Claim of a teacher's access token once that session passed the 2FA code.
+# Every service checks it before letting a teacher do anything.
+MFA_CLAIM = "mfa"
+MFA_VERIFIED = "1"
 
 
 # Emails and IPs go into lock keys as a hash, so Redis never holds them as text.
@@ -73,6 +79,7 @@ class AuthService:
         token_issuer: TokenIssuer,
         blacklist: TokenBlacklist,
         portal_access: PortalAccessStore,
+        session_mfa: SessionMfaStore,
         sessions: SessionService,
         login_lockout: AttemptLockout,
         account_lockout: AttemptLockout,
@@ -85,6 +92,7 @@ class AuthService:
         self._tokens = token_issuer
         self._blacklist = blacklist
         self._portal_access = portal_access
+        self._session_mfa = session_mfa
         self._sessions = sessions
         self._login_lockout = login_lockout
         self._account_lockout = account_lockout
@@ -97,6 +105,7 @@ class AuthService:
         guardian_data: GuardianData,
         student_data: FirstStudentData,
         consent_data: ConsentData,
+        user_agent: str | None = None,
     ) -> tuple[Person, Guardian, Student, IssuedTokens]:
         # Creates person, guardian, student and consent in a single
         # transaction. A student never registers itself, a guardian always does it.
@@ -176,9 +185,13 @@ class AuthService:
             await uow.commit()
 
         tokens = self._issue_token_pair(person.id, "guardian")
+        # Registering also signs in, so it starts the first session.
+        await self._sessions.record_start(person.id, "guardian", tokens.session_id, user_agent)
         return person, guardian, student, tokens
 
-    async def register_teacher(self, data: TeacherData) -> tuple[Person, Teacher, IssuedTokens]:
+    async def register_teacher(
+        self, data: TeacherData, user_agent: str | None = None
+    ) -> tuple[Person, Teacher, IssuedTokens]:
         async with self._uow_factory() as uow:
             if await uow.people.get_by_email(data.email) is not None:
                 raise EmailAlreadyRegistered()
@@ -200,26 +213,38 @@ class AuthService:
                 created_at=datetime.now(timezone.utc),
                 document_type_id=data.document_type_id,
                 document_number=data.document_number,
-                # Teacher registration doesn't have the country-flag selector
-                # guardians do (see TeacherRegistrationRequest.phone): it only
-                # ever collected a 10-digit local number, which was always
-                # implicitly Colombian. Splitting the column doesn't change
-                # that behavior, it just makes the assumption explicit here
-                # instead of leaving it undocumented in a bare digit string.
-                phone_country_code="57",
-                phone_number=data.phone,
+                phone_country_code=data.phone_country_code,
+                phone_number=data.phone_number,
                 date_of_birth=data.date_of_birth,
+                document_issued_at=data.document_issued_at,
             )
             teacher = Teacher(id=uuid.uuid4(), person_id=person.id, institution=data.institution)
-
             await uow.people.add(person)
             await uow.teachers.add(teacher)
+            await uow.flush()
+            # Accepting the data treatment is part of creating the account, so
+            # there's never a teacher without it.
+            await uow.teacher_consents.add(
+                TeacherConsent(
+                    id=uuid.uuid4(),
+                    teacher_id=teacher.id,
+                    policy_version=data.consent_policy_version,
+                    granted_at=person.created_at,
+                    accepts_data_processing=True,
+                )
+            )
+            # The profile is optional here, and goes in the same transaction.
+            if data.profile is not None:
+                await uow.teacher_profiles.replace(teacher.id, data.profile)
             await uow.commit()
 
         tokens = self._issue_token_pair(person.id, "teacher")
+        await self._sessions.record_start(person.id, "teacher", tokens.session_id, user_agent)
         return person, teacher, tokens
 
-    async def login(self, email: str, password: str, client_ip: str) -> tuple[Person, str, IssuedTokens]:
+    async def login(
+        self, email: str, password: str, client_ip: str, user_agent: str | None = None
+    ) -> tuple[Person, str, IssuedTokens]:
         # Two locks: one per IP and email (so a stranger can't lock a victim
         # out from another IP) and one per email alone, with a higher limit, so
         # trying from many IPs doesn't give unlimited guesses.
@@ -264,6 +289,7 @@ class AuthService:
         # A new login is a new session, and the portal access belongs to a
         # session, so this one starts closed without touching the others.
         tokens = self._issue_token_pair(person.id, role)
+        await self._sessions.record_start(person.id, role, tokens.session_id, user_agent)
         return person, role, tokens
 
     async def login_student_profile(self, student_id: UUID, pin: str) -> tuple[Student, IssuedTokens]:
@@ -316,6 +342,11 @@ class AuthService:
         subject_id = UUID(str(claims["sub"]))
         role = str(claims["role"])
         extra = {"guardian_id": str(claims["guardian_id"])} if "guardian_id" in claims else {}
+        # A teacher whose session already passed the 2FA code keeps it.
+        if role == "teacher" and sid is not None and await self._session_mfa.is_verified(subject_id, sid):
+            extra[MFA_CLAIM] = MFA_VERIFIED
+        if sid is not None:
+            await self._sessions.record_activity(sid)
         return self._issue_token_pair(subject_id, role, extra=extra, sid=sid)
 
     # Closes the session of the refresh token. It doesn't need the access
@@ -336,12 +367,20 @@ class AuthService:
         subject = claims.get("sub")
         if isinstance(subject, str) and isinstance(sid, str):
             await self._portal_access.revocar(UUID(subject), sid)
+        if isinstance(sid, str):
+            await self._session_mfa.forget(sid)
 
     # "Close all my sessions": every token issued before now stops working,
     # the ones of the person asking included.
     async def logout_all(self, subject_id: UUID) -> None:
         await self._sessions.revoke_all(subject_id, "user_request")
         await self._portal_access.revocar_todas(subject_id)
+
+    # Right after a teacher types a good 2FA code: a new access token for the
+    # same session, now with the mfa claim. The refresh token doesn't change,
+    # refresh() adds the claim again while the session stays verified.
+    def issue_verified_access_token(self, subject_id: UUID, session_id: str) -> str:
+        return self._tokens.emitir_access_token(subject_id, "teacher", {MFA_CLAIM: MFA_VERIFIED}, session_id)
 
     async def validate_access_token(self, access_token: str) -> dict[str, object]:
         claims = self._tokens.decodificar(access_token)
@@ -357,4 +396,4 @@ class AuthService:
         session_id = sid or str(uuid.uuid4())
         access = self._tokens.emitir_access_token(subject_id, role, extra or {}, session_id)
         refresh, _jti = self._tokens.emitir_refresh_token(subject_id, role, session_id)
-        return IssuedTokens(access_token=access, refresh_token=refresh)
+        return IssuedTokens(access_token=access, refresh_token=refresh, session_id=session_id)

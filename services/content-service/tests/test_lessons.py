@@ -523,3 +523,14 @@ async def test_full_storage_answers_507(
 
     assert response.status_code == 507
     assert response.json()["error"]["code"] == "almacenamiento_lleno"
+
+
+async def test_a_teacher_without_the_2fa_code_is_turned_away(
+    client: AsyncClient, identity_client: FakeIdentityClient
+) -> None:
+    identity_client.register("token-docente", uuid4(), "teacher", mfa_verified=False)
+
+    response = await client.get(f"/classrooms/{uuid4()}/lessons", headers=_auth("token-docente"))
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "verificacion_2fa_requerida"

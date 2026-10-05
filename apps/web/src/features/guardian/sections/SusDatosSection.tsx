@@ -17,13 +17,13 @@ import { nameError, studentBirthDateError, toIsoDate } from "@/features/utils/pe
 import { includesOtherCondition, supportConditionNames } from "@/features/utils/supportCondition";
 import { IconImage, IconKey, IconSparkle, IconUserCircle } from "@/shared/ui/icons";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
-import { Card, EDIT_HINT, EditableRow, SaveBar } from "../ui/ProfileForm";
-import { useProfileForm } from "../ui/useProfileForm";
-import form from "../ui/ProfileForm.module.css";
+import { Card, EDIT_HINT, EditableRow, SaveBar } from "@/shared/ui/profile/ProfileForm";
+import { useProfileForm } from "@/shared/ui/profile/useProfileForm";
+import form from "@/shared/ui/profile/ProfileForm.module.css";
 import styles from "./SusDatosSection.module.css";
 import { ChangePinDialog } from "../ui/ChangePinDialog";
-import { Toast } from "../ui/Toast";
-import { TwoFactorCodeDialog } from "../ui/TwoFactorCodeDialog";
+import { Toast } from "@/shared/ui/Toast";
+import { TwoFactorCodeDialog } from "@/shared/ui/profile/TwoFactorCodeDialog";
 import { isPortalAccessRequired, useWithPortalAccess } from "../portalAccess";
 
 type StudentValues = {
@@ -150,7 +150,7 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
 
   return (
     <div className={styles.stack}>
-      <form className={form.form} onSubmit={handleSubmit}>
+      <form id="sus-datos-form" className={form.form} onSubmit={handleSubmit}>
         <Card
           id="peque-datos-personales"
           icon={<IconUserCircle width={22} height={22} />}
@@ -299,20 +299,23 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
             </EditableRow>
           </div>
         </Card>
-
-        <SaveBar
-          shown={fields.saveBarShown}
-          leaving={fields.saveBarLeaving}
-          confirmed={fields.confirmed}
-          onConfirmedChange={fields.setConfirmed}
-          hasErrors={hasErrors}
-          error={saveError}
-          saving={updateStudent.isPending}
-          onDiscard={discardChanges}
-        />
       </form>
 
       <PinCard studentId={student.id} firstName={student.first_name} onChanged={setToast} />
+
+      {/* Out of the form and last, so it floats over every card while
+          scrolling. It saves the form above through formId. */}
+      <SaveBar
+        formId="sus-datos-form"
+        shown={fields.saveBarShown}
+        leaving={fields.saveBarLeaving}
+        confirmed={fields.confirmed}
+        onConfirmedChange={fields.setConfirmed}
+        hasErrors={hasErrors}
+        error={saveError}
+        saving={updateStudent.isPending}
+        onDiscard={discardChanges}
+      />
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </div>

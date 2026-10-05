@@ -3,6 +3,8 @@
    It's stable chrome, not a decoration that blends into the content. */
 
 .header {
+  /* Dark blue behind: the focus ring is white here. */
+  --color-focus: var(--color-surface);
   position: fixed;
   top: 0;
   left: 0;

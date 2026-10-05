@@ -16,8 +16,20 @@ class FakeIdentityClient:
         self._users: dict[str, ValidatedUser] = {}
         self.available = True
 
-    def register(self, token: str, subject_id: UUID, role: str, extra: dict[str, object] | None = None) -> None:
-        self._users[token] = ValidatedUser(subject_id=subject_id, role=role, extra=extra or {})
+    # A teacher comes from a session that already passed the 2FA code,
+    # unless mfa_verified=False.
+    def register(
+        self,
+        token: str,
+        subject_id: UUID,
+        role: str,
+        extra: dict[str, object] | None = None,
+        mfa_verified: bool = True,
+    ) -> None:
+        claims = dict(extra or {})
+        if role == "teacher" and mfa_verified:
+            claims["mfa"] = "1"
+        self._users[token] = ValidatedUser(subject_id=subject_id, role=role, extra=claims)
 
     async def validate_token(self, access_token: str, correlation_id: str | None) -> ValidatedUser:
         if not self.available:
@@ -65,3 +77,7 @@ class FakeObjectStorage:
 
     async def delete(self, key: str) -> None:
         self.files.pop(key, None)
+
+    async def delete_prefix(self, prefix: str) -> None:
+        for key in [k for k in self.files if k.startswith(prefix)]:
+            del self.files[key]

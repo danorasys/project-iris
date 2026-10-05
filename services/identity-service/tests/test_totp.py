@@ -388,3 +388,12 @@ async def test_listar_los_peques_sigue_abierto_sin_el_reto(client: AsyncClient) 
 
     assert listado.status_code == 200
 
+
+
+async def test_con_el_2fa_activo_el_tutor_no_puede_volver_a_configurarlo(client: AsyncClient) -> None:
+    token, _secret = await _registrar_con_2fa_activo(client, "tutor-reconfigura@example.com", "83000001")
+
+    setup = await client.post("/guardians/me/2fa/setup", headers={"Authorization": f"Bearer {token}"})
+
+    assert setup.status_code == 409
+    assert setup.json()["error"]["code"] == "totp_ya_activado"

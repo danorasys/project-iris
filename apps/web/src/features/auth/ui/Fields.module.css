@@ -1,4 +1,8 @@
 .field {
+  /* Keeps a hidden label (labelHidden) inside its field. Without it, the
+     label is placed against the whole page and, deep in a scrolling pane,
+     makes the page itself taller: a second scrollbar shows up. */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
@@ -11,6 +15,20 @@
   color: var(--color-ink);
 }
 
+/* Hidden on screen but still read by screen readers, for fields whose
+   title is already shown above them. */
+.labelHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .input {
   width: 100%;
   padding: var(--space-3);
@@ -20,10 +38,14 @@
   font-family: var(--font-body);
   font-size: 1rem;
   color: var(--color-ink);
+  transition: var(--focus-halo-transition);
 }
 
+/* Selected: a blue border and a sky-blue halo that opens around it. */
 .input:focus-visible {
   border-color: var(--color-iris-medium);
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
 }
 
 .input[aria-invalid="true"] {
@@ -94,7 +116,7 @@ textarea.input {
 }
 
 .checkGroup:focus-visible {
-  outline: 3px solid var(--color-iris-medium);
+  outline: 3px solid var(--color-focus);
   outline-offset: 4px;
   border-radius: var(--radius-medium);
 }
@@ -143,7 +165,7 @@ textarea.input {
 }
 
 .checkOption:has(input:focus-visible) {
-  outline: 3px solid var(--color-iris-medium);
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -261,4 +283,10 @@ textarea.input {
   border-radius: 50%;
   background: currentColor;
   opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .input {
+    transition: none;
+  }
 }

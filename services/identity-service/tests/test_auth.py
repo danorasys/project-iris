@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from app.config import get_settings
+from app.infrastructure.db import SessionLocal
+from app.infrastructure.models import PersonModel, TeacherConsentModel, TeacherModel
 from tests.conftest import (
     refrescar_con,
     refresh_cookie,
@@ -62,7 +65,10 @@ def _payload_registro_docente(correo: str = "docente@example.com", document_numb
         "document_type_id": 1,
         "document_number": document_number,
         "date_of_birth": "1988-06-20",
-        "phone": "3009876543",
+        "phone_country_code": "57",
+        "phone_number": "3009876543",
+        "document_issued_at": "2006-07-01",
+        "consent": {"policy_version": "1.1", "accepts_data_processing": True},
     }
 
 
@@ -171,9 +177,19 @@ async def test_registro_tutor_nombre_con_numeros_o_simbolos_es_rechazado(client:
     assert response.status_code == 422
 
 
+async def test_registro_docente_con_telefono_de_otro_pais(client: AsyncClient) -> None:
+    payload = _payload_registro_docente("docente-mexico@example.com")
+    payload["phone_country_code"] = "52"
+    payload["phone_number"] = "5512345678"
+
+    response = await client.post("/auth/teachers", json=payload)
+
+    assert response.status_code == 201
+
+
 async def test_registro_docente_telefono_que_no_existe_es_rechazado(client: AsyncClient) -> None:
     payload = _payload_registro_docente()
-    payload["phone"] = "0001234567"
+    payload["phone_number"] = "0001234567"
 
     response = await client.post("/auth/teachers", json=payload)
 
@@ -840,3 +856,63 @@ async def test_tutor_puede_eliminar_su_cuenta_y_pierde_acceso(client: AsyncClien
         "/auth/login", json={"email": "borrar-cuenta@example.com", "password": "Clave-Segura-123"}
     )
     assert login_tras_borrado.status_code == 401
+
+
+async def test_registro_docente_guarda_su_aceptacion_y_la_fecha_de_expedicion(client: AsyncClient) -> None:
+    response = await client.post("/auth/teachers", json=_payload_registro_docente("acepta-datos@example.com"))
+
+    assert response.status_code == 201
+    async with SessionLocal() as session:
+        person = (await session.execute(select(PersonModel).where(PersonModel.email == "acepta-datos@example.com"))).scalar_one()
+        teacher = (await session.execute(select(TeacherModel).where(TeacherModel.person_id == person.id))).scalar_one()
+        consent = (
+            await session.execute(select(TeacherConsentModel).where(TeacherConsentModel.teacher_id == teacher.id))
+        ).scalar_one()
+    assert str(person.document_issued_at) == "2006-07-01"
+    assert consent.accepts_data_processing is True
+    assert consent.policy_version == "1.1"
+
+
+@pytest.mark.parametrize(
+    "cambio",
+    [
+        {"consent": {"policy_version": "1.1", "accepts_data_processing": False}},
+        {"consent": None},
+        {"document_issued_at": "1980-01-01"},
+        {"document_issued_at": "2999-01-01"},
+        {"document_issued_at": None},
+    ],
+)
+async def test_registro_docente_sin_aceptacion_o_con_fecha_de_expedicion_mala(client: AsyncClient, cambio: dict) -> None:
+    payload = {**_payload_registro_docente("rechazo-datos@example.com"), **cambio}
+
+    response = await client.post("/auth/teachers", json=payload)
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("institucion", [None, "   ", ""])
+async def test_registro_docente_sin_institucion(client: AsyncClient, institucion: str | None) -> None:
+    payload = _payload_registro_docente("sin-institucion@example.com")
+    if institucion is None:
+        del payload["institution"]
+    else:
+        payload["institution"] = institucion
+
+    response = await client.post("/auth/teachers", json=payload)
+
+    assert response.status_code == 201
+    async with SessionLocal() as session:
+        person = (
+            await session.execute(select(PersonModel).where(PersonModel.email == "sin-institucion@example.com"))
+        ).scalar_one()
+        teacher = (await session.execute(select(TeacherModel).where(TeacherModel.person_id == person.id))).scalar_one()
+    assert teacher.institution is None
+
+
+async def test_registro_docente_institucion_demasiado_larga(client: AsyncClient) -> None:
+    payload = {**_payload_registro_docente("institucion-larga@example.com"), "institution": "x" * 201}
+
+    response = await client.post("/auth/teachers", json=payload)
+
+    assert response.status_code == 422

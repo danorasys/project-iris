@@ -54,7 +54,10 @@ async def test_el_nombre_de_un_docente(client: AsyncClient) -> None:
             "document_type_id": 1,
             "document_number": "80099001",
             "date_of_birth": "1988-06-20",
-            "phone": "3009876543",
+            "phone_country_code": "57",
+            "phone_number": "3009876543",
+            "document_issued_at": "2006-07-01",
+            "consent": {"policy_version": "1.1", "accepts_data_processing": True},
         },
     )
     teacher_id = (await _claims(client, registro.json()["access_token"]))["sub"]

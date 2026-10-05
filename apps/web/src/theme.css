@@ -8,7 +8,7 @@
   --color-iris-deep: #1e3a52; /* brand, headings, dark surfaces */
   --color-iris-medium: #3e6e8e; /* secondary action, links, focus */
   --color-iris-pale: #dce8ef; /* borders, subtle surfaces */
-  --color-amber: #d97d45; /* the one warm color, used for primary action */
+  --color-amber: #d97d45; /* the one warm color, for what needs attention */
   --color-amber-dark: #b8632f;
   --color-gold: #e3a93f; /* extra color ("sun" variant) */
   --color-mint: #4f8f7b; /* success/celebration ("leaf" variant) */
@@ -20,6 +20,22 @@
   --color-ink-soft-v: #4c5c68; /* secondary text */
   --color-error-v: #c24444; /* form errors, destructive actions */
   --color-slate: #7b8ca8; /* rules and separators, more discreet than amber */
+
+  /* --- Main buttons (Ingresar, Siguiente, Guardar cambios...) ---
+     Medium blue (5.5:1 with white letters), darker on hover, blue-gray when
+     they can't be used yet. Amber is only for what needs attention. */
+  --color-action: var(--color-iris-medium);
+  --color-action-hover: #325a75;
+  --color-action-disabled: var(--color-iris-pale);
+  --color-action-disabled-text: var(--color-ink-soft);
+
+  /* The keyboard focus ring: blue on light backgrounds, and white where the
+     background is dark blue (those areas change it). */
+  --color-focus: var(--color-iris-medium);
+  /* Text fields get a blue border and a sky-blue halo instead. */
+  --color-focus-halo: #bfe2f5;
+  --focus-halo: 0 0 0 4px var(--color-focus-halo);
+  --focus-halo-transition: border-color 160ms ease, box-shadow 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* --- Old names. Most components already use these, so instead of
      rewriting every CSS module we just point them to the colors above --- */
@@ -36,7 +52,7 @@
 
   --color-bg: var(--color-canvas);
   --color-text: var(--color-ink);
-  --color-primary-action: var(--color-amber);
+  --color-primary-action: var(--color-action);
   --color-secondary-action: var(--color-iris-medium);
 
   /* Font idea copied from trii.co: headings and body text use the SAME
@@ -130,7 +146,7 @@ img {
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-amber);
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 

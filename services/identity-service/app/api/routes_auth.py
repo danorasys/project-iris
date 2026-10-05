@@ -43,11 +43,17 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _user_agent(request: Request) -> str | None:
+    """What the browser says it is. Only its browser and system families end
+    up in the session history (see app/domain/user_agent.py)."""
+    return request.headers.get("User-Agent")
+
+
 @router.post(
     "/guardians", response_model=AccessTokenResponse, status_code=status.HTTP_201_CREATED, dependencies=[ClientHeaderDep]
 )
 async def register_guardian(
-    payload: GuardianRegistrationRequest, response: Response, auth: AuthServiceDep
+    payload: GuardianRegistrationRequest, request: Request, response: Response, auth: AuthServiceDep
 ) -> AccessTokenResponse:
     _person, _guardian, _student, tokens = await auth.register_guardian(
         GuardianData(
@@ -78,6 +84,7 @@ async def register_guardian(
             accepts_data_processing=payload.consent.accepts_data_processing,
             authorizes_support_condition=payload.consent.authorizes_support_condition,
         ),
+        user_agent=_user_agent(request),
     )
     return _start_session(response, tokens)
 
@@ -86,7 +93,7 @@ async def register_guardian(
     "/teachers", response_model=AccessTokenResponse, status_code=status.HTTP_201_CREATED, dependencies=[ClientHeaderDep]
 )
 async def register_teacher(
-    payload: TeacherRegistrationRequest, response: Response, auth: AuthServiceDep
+    payload: TeacherRegistrationRequest, request: Request, response: Response, auth: AuthServiceDep
 ) -> AccessTokenResponse:
     _person, _teacher, tokens = await auth.register_teacher(
         TeacherData(
@@ -98,15 +105,22 @@ async def register_teacher(
             document_type_id=payload.document_type_id,
             document_number=payload.document_number,
             date_of_birth=payload.date_of_birth,
-            phone=payload.phone,
-        )
+            phone_country_code=payload.phone_country_code,
+            phone_number=payload.phone_number,
+            document_issued_at=payload.document_issued_at,
+            consent_policy_version=payload.consent.policy_version,
+            profile=payload.profile.to_entity() if payload.profile else None,
+        ),
+        user_agent=_user_agent(request),
     )
     return _start_session(response, tokens)
 
 
 @router.post("/login", response_model=AccessTokenResponse, dependencies=[ClientHeaderDep])
 async def login(payload: LoginRequest, request: Request, response: Response, auth: AuthServiceDep) -> AccessTokenResponse:
-    _person, _role, tokens = await auth.login(payload.email, payload.password, _client_ip(request))
+    _person, _role, tokens = await auth.login(
+        payload.email, payload.password, _client_ip(request), user_agent=_user_agent(request)
+    )
     return _start_session(response, tokens)
 
 

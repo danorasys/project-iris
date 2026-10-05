@@ -4,19 +4,15 @@ import { formatPhoneNumberIntl, parsePhoneNumber } from "react-phone-number-inpu
 import {
   useActualizarMiPerfilTutor,
   useCambiarMiPassword,
-  useCerrarTodasMisSesiones,
   useDocumentTypes,
   useMiPerfilTutor,
   useRelationshipTypes,
 } from "@/shared/api/hooks/useAuthApi";
-import { Navigate, useNavigate } from "react-router-dom";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { Navigate } from "react-router-dom";
 import { getAuthErrorMessage } from "@/features/auth/errors";
-import { ApiError } from "@/shared/api/httpClient";
 import { TextField } from "@/features/auth/ui/TextField";
 import { PhoneField } from "@/features/auth/ui/PhoneField";
 import { SelectField } from "@/features/auth/ui/SelectField";
-import { PasswordRequirements, passwordMeetsRequirements } from "@/features/auth/ui/PasswordRequirements";
 import {
   adultBirthDateError,
   latestAdultBirthDate,
@@ -26,18 +22,15 @@ import {
   toIsoDate,
 } from "@/features/utils/personValidation";
 import { formatDate } from "@/features/utils/formatDate";
-import { initials } from "@/features/utils/initials";
-import { SUPPORT_EMAIL, supportMailto } from "@/shared/supportContact";
-import { leaveLoginNotice } from "@/shared/ui/loginNotice";
-import { IconInfo, IconKey, IconLock, IconUserCircle } from "@/shared/ui/icons";
-import { Card, EDIT_HINT, EditableRow, ReadOnlyRow, SaveBar } from "../ui/ProfileForm";
-import { useProfileForm } from "../ui/useProfileForm";
-import form from "../ui/ProfileForm.module.css";
-import { ConfirmDialog } from "../ui/ConfirmDialog";
-import { Toast } from "../ui/Toast";
-import { TwoFactorCodeDialog } from "../ui/TwoFactorCodeDialog";
+import { IconLock, IconUserCircle } from "@/shared/ui/icons";
+import { Card, EDIT_HINT, EditableRow, ReadOnlyRow, SaveBar } from "@/shared/ui/profile/ProfileForm";
+import { useProfileForm } from "@/shared/ui/profile/useProfileForm";
+import form from "@/shared/ui/profile/ProfileForm.module.css";
+import { Toast } from "@/shared/ui/Toast";
+import { IdentityChangeNotice, SecurityCard } from "@/shared/ui/profile/AccountSections";
+import { ProfileHero } from "@/shared/ui/profile/ProfileHero";
 import { isPortalAccessRequired, useWithPortalAccess } from "../portalAccess";
-import styles from "./MiPerfilSection.module.css";
+import styles from "@/shared/ui/profile/ProfileSection.module.css";
 
 // A type and not an interface: useProfileForm asks for a plain record of
 // texts, and an interface doesn't count as one for TypeScript.
@@ -91,6 +84,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
   const documentTypesQuery = useDocumentTypes();
   const relationshipTypesQuery = useRelationshipTypes();
   const updateProfile = useActualizarMiPerfilTutor();
+  const changePassword = useCambiarMiPassword();
   const withPortalAccess = useWithPortalAccess();
 
   const fields = useProfileForm<ProfileValues>(() => toValues(profile), onDirtyChange);
@@ -156,23 +150,14 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
   return (
     <div className={styles.section}>
       {/* The header shows the saved data, not what is being typed. */}
-      <header className={styles.hero}>
-        <span className={styles.avatar} aria-hidden="true">
-          {initials(original.firstName, original.lastName)}
-        </span>
-        <div className={styles.heroText}>
-          <p className={styles.eyebrow}>Mi perfil</p>
-          <h1 className={styles.name}>
-            {original.firstName} {original.lastName}
-          </h1>
-          <p className={styles.heroMeta}>
-            <span className={styles.chip}>{relationshipName(original.relationshipTypeId)}</span>
-            <span className={styles.heroEmail}>{profile.email}</span>
-          </p>
-        </div>
-      </header>
+      <ProfileHero
+        firstName={original.firstName}
+        lastName={original.lastName}
+        role={relationshipName(original.relationshipTypeId)}
+        email={profile.email}
+      />
 
-      <form className={form.form} onSubmit={handleConfirmProfile}>
+      <form id="perfil-datos-form" className={form.form} onSubmit={handleConfirmProfile}>
         <Card
           id="perfil-datos-personales"
           icon={<IconUserCircle width={22} height={22} />}
@@ -266,283 +251,27 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
             <ReadOnlyRow label="Correo electrónico" value={profile.email} />
           </div>
 
-          <div className={styles.notice}>
-            <IconInfo className={styles.noticeIcon} />
-            <div>
-              <p className={styles.noticeHeading}>¿Necesitas corregir alguno de estos datos?</p>
-              <p className={styles.noticeText}>
-                Escríbenos a{" "}
-                <a className={styles.noticeLink} href={supportMailto("Solicitud de cambio de datos de mi cuenta")}>
-                  {SUPPORT_EMAIL}
-                </a>{" "}
-                contándonos qué dato quieres cambiar y por qué. Para confirmar que eres tú, incluye tu nombre completo,
-                tu correo electrónico y tu tipo y número de documento. Revisaremos tu solicitud y te responderemos en un
-                plazo máximo de 10 días hábiles.
-              </p>
-            </div>
-          </div>
+          <IdentityChangeNotice />
         </Card>
-
-        <SaveBar
-          shown={fields.saveBarShown}
-          leaving={fields.saveBarLeaving}
-          confirmed={fields.confirmed}
-          onConfirmedChange={fields.setConfirmed}
-          hasErrors={hasErrors}
-          error={profileError}
-          saving={updateProfile.isPending}
-          onDiscard={discardChanges}
-        />
       </form>
 
-      <SecurityCard />
+      <SecurityCard changePassword={changePassword} />
+
+      {/* Out of the form and last, so it floats over every card while
+          scrolling. It saves the form above through formId. */}
+      <SaveBar
+        formId="perfil-datos-form"
+        shown={fields.saveBarShown}
+        leaving={fields.saveBarLeaving}
+        confirmed={fields.confirmed}
+        onConfirmedChange={fields.setConfirmed}
+        hasErrors={hasErrors}
+        error={profileError}
+        saving={updateProfile.isPending}
+        onDiscard={discardChanges}
+      />
 
       {profileToast && <Toast message={profileToast} onDismiss={() => setProfileToast(null)} />}
-    </div>
-  );
-}
-
-function SecurityCard() {
-  const navigate = useNavigate();
-  const { discardSession } = useAuth();
-  const changePassword = useCambiarMiPassword();
-  const [expanded, setExpanded] = useState(false);
-  // The 2FA code is asked in a floating dialog after pressing the button.
-  const [askingCode, setAskingCode] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  // A wrong current password goes under its own field, a new one equal to
-  // the current under the new password field, anything else below the form.
-  const [currentPasswordError, setCurrentPasswordError] = useState<string | null>(null);
-  const [newPasswordError, setNewPasswordError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const passwordsMatch = password.length > 0 && password === passwordConfirmation;
-  const sameAsCurrent = password.length > 0 && password === currentPassword;
-  const canSubmit =
-    currentPassword.length > 0 && passwordMeetsRequirements(password) && passwordsMatch && !sameAsCurrent;
-
-  function clearForm() {
-    setCurrentPassword("");
-    setPassword("");
-    setPasswordConfirmation("");
-    setCurrentPasswordError(null);
-    setNewPasswordError(null);
-    setError(null);
-  }
-
-  function cancel() {
-    setExpanded(false);
-    clearForm();
-  }
-
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!canSubmit) return;
-    setCurrentPasswordError(null);
-    setNewPasswordError(null);
-    setError(null);
-    setAskingCode(true);
-  }
-
-  // Wrong codes and waits stay inside the dialog. Anything else closes it
-  // and shows up in the form, where the guardian can fix it.
-  async function changeWithCode(code: string) {
-    await changePassword.mutateAsync({
-      current_password: currentPassword,
-      code,
-      password,
-      password_confirmation: passwordConfirmation,
-    });
-    setAskingCode(false);
-    clearForm();
-    setExpanded(false);
-    // The server already closed every session, this one too, so the guardian
-    // signs in again. The message waits in sessionStorage for the login page.
-    leaveLoginNotice({
-      title: "Contraseña actualizada",
-      message:
-        "Tu contraseña se cambió correctamente. Usa la nueva para ingresar a tu cuenta. Por seguridad, cerramos todas tus sesiones abiertas.",
-    });
-    navigate("/login/adult", { replace: true });
-    discardSession();
-  }
-
-  function showFormError(err: unknown) {
-    setAskingCode(false);
-    if (err instanceof ApiError && err.code === "contrasena_actual_incorrecta") {
-      setCurrentPasswordError(getAuthErrorMessage(err));
-      setCurrentPassword("");
-    } else if (err instanceof ApiError && err.code === "contrasena_igual_a_la_actual") {
-      // The current password was right, so it stays. Only the new one is
-      // cleared, to pick a different one.
-      setNewPasswordError(getAuthErrorMessage(err));
-      setPassword("");
-      setPasswordConfirmation("");
-    } else {
-      setError(getAuthErrorMessage(err));
-    }
-  }
-
-  return (
-    <Card
-      id="perfil-seguridad"
-      icon={<IconKey width={20} height={20} />}
-      title="Seguridad"
-      hint="Aquí puedes cambiar la contraseña con la que inicias sesión en IRIS. Para confirmar que eres tú, te pediremos tu contraseña actual y un código de tu aplicación autenticadora. Al cambiarla cerraremos tus sesiones abiertas en todos los dispositivos y tendrás que iniciar sesión de nuevo con la nueva contraseña."
-    >
-      {!expanded ? (
-        <div className={styles.securityRow}>
-          <div className={form.field}>
-            <span className={form.fieldLabel}>Contraseña</span>
-            <span className={`${form.fieldValue} ${styles.passwordDots}`} aria-label="Contraseña oculta">
-              ••••••••••
-            </span>
-          </div>
-          <button type="button" className={form.secondaryButton} onClick={() => setExpanded(true)}>
-            Cambiar contraseña
-          </button>
-        </div>
-      ) : (
-        <form className={styles.passwordForm} onSubmit={handleSubmit}>
-          {/* The current one first, so an open session alone can't change it. */}
-          <div className={styles.passwordGrid}>
-            <TextField
-              id="perfil-password-actual"
-              label="Contraseña actual"
-              type="password"
-              value={currentPassword}
-              onChange={(value) => {
-                setCurrentPassword(value);
-                setCurrentPasswordError(null);
-              }}
-              autoComplete="current-password"
-              autoFocus
-              required
-              error={currentPasswordError ?? undefined}
-            />
-          </div>
-          <div className={styles.passwordGrid}>
-            <TextField
-              id="perfil-nueva-password"
-              label="Nueva contraseña"
-              type="password"
-              value={password}
-              onChange={(value) => {
-                setPassword(value);
-                setNewPasswordError(null);
-              }}
-              autoComplete="new-password"
-              required
-              error={
-                sameAsCurrent
-                  ? "La nueva contraseña no puede ser igual a la que escribiste en \"Contraseña actual\"."
-                  : (newPasswordError ?? undefined)
-              }
-            />
-            <TextField
-              id="perfil-confirmar-password"
-              label="Confirmar nueva contraseña"
-              type="password"
-              value={passwordConfirmation}
-              onChange={setPasswordConfirmation}
-              autoComplete="new-password"
-              required
-              error={passwordConfirmation.length > 0 && !passwordsMatch ? "Las contraseñas no coinciden." : undefined}
-            />
-          </div>
-          <PasswordRequirements password={password} />
-          {error && (
-            <p role="alert" className={form.error}>
-              {error}
-            </p>
-          )}
-          <div className={styles.passwordButtons}>
-            <button type="button" className={form.secondaryButton} onClick={cancel}>
-              Cancelar
-            </button>
-            <button type="submit" className={form.primaryButton} disabled={!canSubmit || changePassword.isPending}>
-              {changePassword.isPending ? "Actualizando…" : "Actualizar contraseña"}
-            </button>
-          </div>
-        </form>
-      )}
-      {askingCode && (
-        <TwoFactorCodeDialog
-          title="Confirma el cambio de contraseña"
-          text="Para cambiar tu contraseña, escribe el código de 6 dígitos que muestra tu aplicación autenticadora."
-          onSubmit={changeWithCode}
-          onCancel={() => setAskingCode(false)}
-          onOtherError={showFormError}
-        />
-      )}
-
-      <CloseAllSessions />
-    </Card>
-  );
-}
-
-// Signs the account out of every device, this one too. Handy when the
-// guardian used IRIS on a computer that isn't theirs, or thinks someone
-// else got in.
-function CloseAllSessions() {
-  const navigate = useNavigate();
-  const { discardSession } = useAuth();
-  const closeAll = useCerrarTodasMisSesiones();
-  const [confirming, setConfirming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function closeEverywhere() {
-    setConfirming(false);
-    setError(null);
-    try {
-      await closeAll.mutateAsync();
-    } catch (err) {
-      setError(getAuthErrorMessage(err));
-      return;
-    }
-    // The server already closed this session too, only the local copy is left.
-    discardSession();
-    navigate("/login/adult", {
-      replace: true,
-      state: { aviso: "Cerramos tus sesiones en todos los dispositivos. Inicia sesión de nuevo." },
-    });
-  }
-
-  return (
-    <div className={styles.sessionsRow}>
-      <div className={form.field}>
-        <span className={form.fieldLabel}>Sesiones abiertas</span>
-        <span className={styles.sessionsText}>
-          Si usaste IRIS en un equipo que no es tuyo o crees que alguien más entró a tu cuenta, cierra tu sesión en
-          todos los dispositivos, incluido este.
-        </span>
-        {error && (
-          <span role="alert" className={form.error}>
-            {error}
-          </span>
-        )}
-      </div>
-      <button
-        type="button"
-        className={styles.dangerButton}
-        onClick={() => setConfirming(true)}
-        disabled={closeAll.isPending}
-      >
-        {closeAll.isPending ? "Cerrando…" : "Cerrar todas las sesiones"}
-      </button>
-
-      {confirming && (
-        <ConfirmDialog
-          message="Vamos a cerrar tu sesión en todos los dispositivos, incluido este. Los cambios que no hayas guardado se perderán. ¿Continuar?"
-          acceptLabel="Sí, cerrar todas"
-          cancelLabel="Cancelar"
-          danger
-          onAccept={() => void closeEverywhere()}
-          onCancel={() => setConfirming(false)}
-        />
-      )}
     </div>
   );
 }

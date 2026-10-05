@@ -15,6 +15,14 @@ from app.domain.entities import Classroom, Enrollment
 class UpdateClassroomData:
     name: str | None = None
     description: str | None = None
+    color: str | None = None
+
+
+# A classroom in the teacher's list, with how many requests wait for them.
+@dataclass
+class TeacherClassroom:
+    classroom: Classroom
+    pending_requests: int
 
 
 @dataclass
@@ -24,6 +32,11 @@ class EnrolledStudent:
     first_name: str
     avatar_id: int
     status: str
+    # Their guardian, so the teacher knows who to talk to (HU-75). None when
+    # identity-service doesn't have the kid anymore.
+    guardian_name: str | None = None
+    guardian_email: str | None = None
+    guardian_phone: str | None = None
 
 
 @dataclass

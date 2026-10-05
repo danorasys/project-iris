@@ -1,0 +1,135 @@
+/* --- How to ask for a change of the document or the email --- */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-iris-pale) 45%, var(--color-surface));
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.noticeIcon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--color-iris-medium);
+}
+
+.noticeHeading {
+  margin: 0 0 var(--space-1) 0;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.noticeText {
+  margin: 0;
+}
+
+.noticeLink {
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  overflow-wrap: anywhere;
+}
+
+.noticeLink:hover {
+  color: var(--color-iris-deep);
+}
+
+/* --- Security --- */
+.securityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+/* Below the password, a thin line apart. */
+.sessionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.sessionsText {
+  max-width: 62ch;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+/* Same size as "Cambiar contraseña", in red: it signs out everywhere. */
+.dangerButton {
+  flex: none;
+  /* A red border strong enough to see on white (about 3.6:1). */
+  border: 2px solid color-mix(in srgb, var(--color-error) 80%, var(--color-surface));
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-error);
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.dangerButton:hover:not(:disabled) {
+  border-color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));
+}
+
+.dangerButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.passwordDots {
+  letter-spacing: 0.2em;
+}
+
+.passwordForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.passwordGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+}
+
+.passwordButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* --- Small screens: one column --- */
+@media (max-width: 720px) {
+  .passwordGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .securityRow,
+  .sessionsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

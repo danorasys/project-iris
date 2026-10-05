@@ -12,7 +12,7 @@ import {
   IconGraduationCap,
   IconUserCircle,
 } from "@/shared/ui/icons";
-import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { SusDatosSection } from "./SusDatosSection";
 import styles from "./MisPequesSection.module.css";
 
@@ -224,6 +224,7 @@ function StudentSpace({ student, onBack, onDirtyChange }: StudentSpaceProps) {
 
       {confirmingBack && (
         <ConfirmDialog
+          title="Cambios sin guardar"
           message="Tienes cambios sin guardar. Se perderán si continúas."
           acceptLabel="Continuar sin guardar"
           cancelLabel="Cancelar"

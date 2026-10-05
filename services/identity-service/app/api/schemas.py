@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 import phonenumbers
@@ -16,12 +17,13 @@ from pydantic import (
     model_validator,
 )
 
+from app.domain.entities import TeacherExperience, TeacherProfile, TeacherStudy
+
 
 MINIMUM_ADULT_AGE = 18
 # Anything older is almost surely a typo in the year.
 MAXIMUM_AGE = 120
-PHONE_PATTERN = r"^\d{10}$"
-# The guardian form's country-flag picker (react-phone-number-input) always
+# The registration forms' country-flag picker (react-phone-number-input) always
 # hands back a calling code (no leading "+", e.g. "57") and a national
 # significant number (digits only, e.g. "3001234567") as two separate
 # values — stored as two columns instead of one combined E.164 string, see
@@ -236,28 +238,275 @@ class GuardianRegistrationRequest(BaseModel):
         return v
 
 
+# ---------------------------------------------------------------------------
+# Teacher profile (HU-96)
+# ---------------------------------------------------------------------------
+
+# Nothing in IRIS is older than this, a year before it is surely a typo.
+EARLIEST_PROFILE_YEAR = 1950
+MAX_STUDIES = 10
+MAX_EXPERIENCES = 10
+MONTH_PATTERN = r"^\d{4}-(0[1-9]|1[0-2])$"
+
+StudyLevel = Literal["technical", "technologist", "professional", "specialization", "masters", "doctorate"]
+
+
+# Free text typed by the teacher, already trimmed: no invisible control
+# characters, only line breaks and tabs (the "about me" can have several
+# lines). React shows it as plain text, never as HTML.
+_ALLOWED_CONTROL_CHARS = ("\n", "\t")
+
+
+def _no_control_chars(v: str) -> str:
+    if any(unicodedata.category(ch) == "Cc" and ch not in _ALLOWED_CONTROL_CHARS for ch in v):
+        raise ValueError("El texto tiene caracteres no permitidos.")
+    return v
+
+
+def _text(max_length: int, min_length: int = 0) -> StringConstraints:
+    return StringConstraints(strip_whitespace=True, min_length=min_length, max_length=max_length)
+
+
+EntryText = Annotated[str, _text(150, min_length=1), AfterValidator(_no_control_chars)]
+AboutText = Annotated[str, _text(2000), AfterValidator(_no_control_chars)]
+DescriptionText = Annotated[str, _text(2000), AfterValidator(_no_control_chars)]
+InstitutionText = Annotated[str, _text(200), AfterValidator(_no_control_chars)]
+
+
+def _month_to_date(v: str) -> date:
+    year, month = v.split("-")
+    return date(int(year), int(month), 1)
+
+
+def _date_to_month(v: date) -> str:
+    return f"{v.year:04d}-{v.month:02d}"
+
+
+class TeacherStudyRequest(BaseModel):
+    level: StudyLevel
+    title: EntryText
+    institution: EntryText
+    # "YYYY-MM", the month and year it ended. None while it's in progress.
+    end_month: str | None = Field(default=None, pattern=MONTH_PATTERN)
+    in_progress: bool = False
+
+    @model_validator(mode="after")
+    def end_or_in_progress(self) -> "TeacherStudyRequest":
+        if self.in_progress and self.end_month is not None:
+            raise ValueError("Un estudio en curso no tiene fecha de finalización.")
+        if not self.in_progress and self.end_month is None:
+            raise ValueError("Indica el mes y el año en que terminaste o marca que está en curso.")
+        if self.end_month is not None:
+            ended = _month_to_date(self.end_month)
+            if ended.year < EARLIEST_PROFILE_YEAR:
+                raise ValueError("Revisa el año en que terminaste.")
+            if ended > date.today().replace(day=1):
+                raise ValueError("La fecha de finalización no puede ser futura, si aún no terminas márcalo en curso.")
+        return self
+
+    def to_entity(self) -> TeacherStudy:
+        return TeacherStudy(
+            level=self.level,
+            title=self.title,
+            institution=self.institution,
+            ended_on=_month_to_date(self.end_month) if self.end_month else None,
+            in_progress=self.in_progress,
+        )
+
+
+class TeacherExperienceRequest(BaseModel):
+    role: EntryText
+    place: EntryText
+    # "YYYY-MM", what a month picker gives. No end_month means they still work there.
+    start_month: str = Field(pattern=MONTH_PATTERN)
+    end_month: str | None = Field(default=None, pattern=MONTH_PATTERN)
+    description: DescriptionText | None = None
+
+    @field_validator("description")
+    @classmethod
+    def empty_description_is_none(cls, v: str | None) -> str | None:
+        return v or None
+
+    @model_validator(mode="after")
+    def months_in_order(self) -> "TeacherExperienceRequest":
+        this_month = date.today().replace(day=1)
+        started = _month_to_date(self.start_month)
+        if started.year < EARLIEST_PROFILE_YEAR:
+            raise ValueError("Revisa el año en que empezaste.")
+        if started > this_month:
+            raise ValueError("La fecha de inicio no puede ser futura.")
+        if self.end_month is not None:
+            ended = _month_to_date(self.end_month)
+            if ended > this_month:
+                raise ValueError("La fecha de fin no puede ser futura.")
+            if ended < started:
+                raise ValueError("La fecha de fin no puede ser anterior a la de inicio.")
+        return self
+
+    def to_entity(self) -> TeacherExperience:
+        return TeacherExperience(
+            role=self.role,
+            place=self.place,
+            started_on=_month_to_date(self.start_month),
+            ended_on=_month_to_date(self.end_month) if self.end_month else None,
+            description=self.description,
+        )
+
+
+# Everything optional: an empty profile is valid, the teacher can fill it in
+# little by little.
+class TeacherProfileRequest(BaseModel):
+    about: AboutText | None = None
+    studies: list[TeacherStudyRequest] = Field(default_factory=list, max_length=MAX_STUDIES)
+    experiences: list[TeacherExperienceRequest] = Field(default_factory=list, max_length=MAX_EXPERIENCES)
+
+    @field_validator("about")
+    @classmethod
+    def empty_text_is_none(cls, v: str | None) -> str | None:
+        return v or None
+
+    def to_entity(self) -> TeacherProfile:
+        return TeacherProfile(
+            about=self.about,
+            studies=[study.to_entity() for study in self.studies],
+            experiences=[job.to_entity() for job in self.experiences],
+        )
+
+
+# Editing the profile from Mi perfil (HU-96). Same body as at registration,
+# plus the truthful declaration, like the personal data. At registration it
+# isn't asked: creating the account already confirms everything typed.
+class UpdateTeacherProfileRequest(TeacherProfileRequest):
+    truthful_declaration: bool = Field(
+        strict=True,
+        description="Debe ser true: el docente declara que la información que modificó es correcta y veraz.",
+    )
+
+    @field_validator("truthful_declaration")
+    @classmethod
+    def validate_truthful_declaration(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError("Debes declarar que la información que modificaste es correcta y veraz.")
+        return v
+
+
+class TeacherStudyResponse(BaseModel):
+    level: StudyLevel
+    title: str
+    institution: str
+    end_month: str | None
+    in_progress: bool
+
+
+class TeacherExperienceResponse(BaseModel):
+    role: str
+    place: str
+    start_month: str
+    end_month: str | None
+    description: str | None
+
+
+class TeacherProfileResponse(BaseModel):
+    about: str | None
+    studies: list[TeacherStudyResponse]
+    experiences: list[TeacherExperienceResponse]
+
+    @classmethod
+    def from_entity(cls, profile: TeacherProfile) -> "TeacherProfileResponse":
+        return cls(
+            about=profile.about,
+            studies=[
+                TeacherStudyResponse(
+                    level=s.level,  # type: ignore[arg-type]
+                    title=s.title,
+                    institution=s.institution,
+                    end_month=_date_to_month(s.ended_on) if s.ended_on else None,
+                    in_progress=s.in_progress,
+                )
+                for s in profile.studies
+            ],
+            experiences=[
+                TeacherExperienceResponse(
+                    role=e.role,
+                    place=e.place,
+                    start_month=_date_to_month(e.started_on),
+                    end_month=_date_to_month(e.ended_on) if e.ended_on else None,
+                    description=e.description,
+                )
+                for e in profile.experiences
+            ],
+        )
+
+
+
+# The teacher's own acceptance of the data treatment. Unlike the guardian's,
+# there's no kid's condition to authorize, only their own data.
+class TeacherConsentRequest(BaseModel):
+    policy_version: str = Field(min_length=1, max_length=20)
+    accepts_data_processing: bool
+
+    @field_validator("accepts_data_processing")
+    @classmethod
+    def must_accept(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError("El consentimiento de tratamiento de datos es obligatorio.")
+        return v
+
+
 class TeacherRegistrationRequest(BaseModel):
     first_name: PersonName
     last_name: PersonName
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    institution: str = Field(min_length=1, max_length=200)
+    # Optional (HU-65): not every teacher works for a school.
+    institution: InstitutionText | None = None
     document_type_id: int = Field(gt=0)
     document_number: str = Field(min_length=1, max_length=30)
     date_of_birth: date
-    phone: str = Field(pattern=PHONE_PATTERN, description="Exactly 10 numeric digits.")
+    # Same country-flag picker as the guardian's form, so the two parts apart.
+    phone_country_code: str = Field(
+        pattern=PHONE_COUNTRY_CODE_PATTERN, description="Country calling code without '+', e.g. '57'."
+    )
+    phone_number: str = Field(
+        pattern=PHONE_NUMBER_PATTERN, description="National significant number, digits only, e.g. '3001234567'."
+    )
+    # Same rules as the guardian's: not in the future, not before birth.
+    document_issued_at: date
+    consent: TeacherConsentRequest
+    # Optional step of the registration, it can be filled in later.
+    profile: TeacherProfileRequest | None = None
 
     @field_validator("date_of_birth")
     @classmethod
     def validate_date_of_birth(cls, v: date) -> date:
         return _validar_mayor_de_edad(v)
 
-    # The teacher form only asks for 10 digits, the number is Colombian.
-    @field_validator("phone")
+    @field_validator("document_issued_at")
     @classmethod
-    def validate_phone(cls, v: str) -> str:
-        _validar_telefono("57", v)
+    def validate_document_issued_at_not_future(cls, v: date) -> date:
+        if v > date.today():
+            raise ValueError("La fecha de expedición del documento no puede ser una fecha futura.")
         return v
+
+    @field_validator("institution")
+    @classmethod
+    def empty_institution_is_none(cls, v: str | None) -> str | None:
+        return v or None
+
+    @model_validator(mode="after")
+    def validate_document_issued_after_birth(self) -> "TeacherRegistrationRequest":
+        if self.document_issued_at < self.date_of_birth:
+            raise ValueError("La fecha de expedición del documento no puede ser anterior a la fecha de nacimiento.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_phone(self) -> "TeacherRegistrationRequest":
+        if len(self.phone_country_code) + len(self.phone_number) > E164_MAX_DIGITS:
+            raise ValueError(
+                f"El código de país y el número telefónico no pueden sumar más de {E164_MAX_DIGITS} dígitos."
+            )
+        _validar_telefono(self.phone_country_code, self.phone_number)
+        return self
 
     @field_validator("password")
     @classmethod
@@ -416,6 +665,10 @@ class TotpVerifyRequest(BaseModel):
     code: str = Field(pattern=r"^\d{6}$")
 
 
+class TotpStatusResponse(BaseModel):
+    enabled: bool
+
+
 class PortalChallengeResponse(BaseModel):
     # Wrong attempts since the last time the guardian got into the portal.
     failed_attempts_before: int
@@ -453,6 +706,21 @@ class GuardianProfileResponse(BaseModel):
     relationship_type_id: int
 
 
+# The teacher's own account, for their portal. Document type and number,
+# email and issue date identify the account and are read-only there.
+class TeacherAccountResponse(BaseModel):
+    first_name: str
+    last_name: str
+    date_of_birth: date
+    document_type_id: int
+    document_number: str
+    document_issued_at: date | None
+    email: EmailStr
+    phone_country_code: str
+    phone_number: str
+    institution: str | None
+
+
 class UpdateGuardianProfileRequest(BaseModel):
     first_name: PersonName
     last_name: PersonName
@@ -481,6 +749,47 @@ class UpdateGuardianProfileRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_phone(self) -> "UpdateGuardianProfileRequest":
+        if len(self.phone_country_code) + len(self.phone_number) > E164_MAX_DIGITS:
+            raise ValueError(
+                f"El código de país y el número telefónico no pueden sumar más de {E164_MAX_DIGITS} dígitos."
+            )
+        _validar_telefono(self.phone_country_code, self.phone_number)
+        return self
+
+
+class UpdateTeacherAccountRequest(BaseModel):
+    first_name: PersonName
+    last_name: PersonName
+    date_of_birth: date
+    phone_country_code: str = Field(pattern=PHONE_COUNTRY_CODE_PATTERN)
+    phone_number: str = Field(pattern=PHONE_NUMBER_PATTERN)
+    # Optional, like at registration: empty means none.
+    institution: InstitutionText | None = None
+    # Same checkbox as the guardian's, strict so only a real true counts.
+    truthful_declaration: bool = Field(
+        strict=True,
+        description="Debe ser true: el docente declara que la información que modificó es correcta y veraz.",
+    )
+
+    @field_validator("date_of_birth")
+    @classmethod
+    def validate_date_of_birth(cls, v: date) -> date:
+        return _validar_mayor_de_edad(v)
+
+    @field_validator("institution")
+    @classmethod
+    def empty_institution_is_none(cls, v: str | None) -> str | None:
+        return v or None
+
+    @field_validator("truthful_declaration")
+    @classmethod
+    def validate_truthful_declaration(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError("Debes declarar que la información que modificaste es correcta y veraz.")
+        return v
+
+    @model_validator(mode="after")
+    def validate_phone(self) -> "UpdateTeacherAccountRequest":
         if len(self.phone_country_code) + len(self.phone_number) > E164_MAX_DIGITS:
             raise ValueError(
                 f"El código de país y el número telefónico no pueden sumar más de {E164_MAX_DIGITS} dígitos."

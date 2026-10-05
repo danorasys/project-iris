@@ -15,10 +15,10 @@ import {
   senderOf,
   studentOf,
 } from "../notifications/notificationText";
-import { ConfirmDialog } from "../ui/ConfirmDialog";
-import { Toast } from "../ui/Toast";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { Toast } from "@/shared/ui/Toast";
 import { isPortalAccessRequired, useWithPortalAccess } from "../portalAccess";
-import styles from "./NotificacionesSection.module.css";
+import styles from "@/shared/ui/portal/NotificationTray.module.css";
 
 const PAGE_SIZE = 8;
 
@@ -167,6 +167,7 @@ export function NotificacionesSection({ onBack }: NotificacionesSectionProps) {
 
       {toDelete && (
         <ConfirmDialog
+          title="Eliminar notificación"
           message={`¿Quieres eliminar la notificación "${notificationSubject(toDelete)}"? No se puede deshacer.`}
           acceptLabel="Sí, eliminar"
           cancelLabel="Cancelar"

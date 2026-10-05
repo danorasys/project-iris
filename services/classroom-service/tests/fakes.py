@@ -7,7 +7,13 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 from app.domain.entities import SignedDownload, StudentInfo, UserClaims
-from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken, ResourceNotFound, StorageFull
+from app.domain.exceptions import (
+    ContentServiceUnavailable,
+    IdentityServiceUnavailable,
+    InvalidToken,
+    ResourceNotFound,
+    StorageFull,
+)
 
 
 class FakeIdentityGateway:
@@ -19,10 +25,14 @@ class FakeIdentityGateway:
         # The guardian of every student registered here.
         self.guardian_person_id = uuid4()
 
-    def registrar_docente(self, teacher_id: UUID | None = None, nombre: str = "Carlos Ruiz") -> tuple[str, UUID]:
+    # The teacher comes from a session that already passed the 2FA code,
+    # unless verificado=False.
+    def registrar_docente(
+        self, teacher_id: UUID | None = None, nombre: str = "Carlos Ruiz", verificado: bool = True
+    ) -> tuple[str, UUID]:
         teacher_id = teacher_id or uuid4()
         token = f"token-docente-{uuid4().hex}"
-        self._tokens[token] = UserClaims(sub=teacher_id, role="teacher", extra={})
+        self._tokens[token] = UserClaims(sub=teacher_id, role="teacher", extra={"mfa": "1"} if verificado else {})
         self._teacher_names[teacher_id] = nombre
         return token, teacher_id
 
@@ -92,3 +102,15 @@ class FakeObjectStorage:
 
     async def delete(self, key: str) -> None:
         self.archivos.pop(key, None)
+
+
+class FakeContentGateway:
+    def __init__(self) -> None:
+        # Classrooms whose lessons were deleted, in order.
+        self.deleted: list[UUID] = []
+        self.unavailable = False
+
+    async def delete_classroom_lessons(self, classroom_id: UUID) -> None:
+        if self.unavailable:
+            raise ContentServiceUnavailable()
+        self.deleted.append(classroom_id)

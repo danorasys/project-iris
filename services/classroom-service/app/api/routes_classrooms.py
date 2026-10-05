@@ -17,6 +17,7 @@ from app.api.schemas import (
     RequestResponse,
     ResolveRequestBody,
     ResolveResponse,
+    TeacherClassroomResponse,
     UpdateClassroomRequest,
 )
 from app.application.classroom_service import ClassroomService
@@ -46,6 +47,7 @@ def _classroom_response(classroom: Classroom) -> ClassroomResponse:
         name=classroom.name,
         description=classroom.description,
         logo_file=classroom.logo_file,
+        color=classroom.color,  # type: ignore[arg-type]  # the CHECK in the database keeps it in the list
         enrollment_code=classroom.enrollment_code,
         created_at=classroom.created_at,
     )
@@ -53,14 +55,19 @@ def _classroom_response(classroom: Classroom) -> ClassroomResponse:
 
 @router.post("", response_model=ClassroomResponse, status_code=status.HTTP_201_CREATED)
 async def create_classroom(payload: CreateClassroomRequest, user: TeacherDep, classrooms: ClassroomServiceDep) -> ClassroomResponse:
-    classroom = await classrooms.create_classroom(user.subject_id, payload.name, payload.description)
+    classroom = await classrooms.create_classroom(user.subject_id, payload.name, payload.description, payload.color)
     return _classroom_response(classroom)
 
 
-@router.get("", response_model=list[ClassroomResponse])
-async def list_classrooms(user: TeacherDep, classrooms: ClassroomServiceDep) -> list[ClassroomResponse]:
+@router.get("", response_model=list[TeacherClassroomResponse])
+async def list_classrooms(user: TeacherDep, classrooms: ClassroomServiceDep) -> list[TeacherClassroomResponse]:
+    """The teacher's classrooms, newest first, each with how many join
+    requests are waiting."""
     result = await classrooms.list_teacher_classrooms(user.subject_id)
-    return [_classroom_response(c) for c in result]
+    return [
+        TeacherClassroomResponse(**_classroom_response(item.classroom).model_dump(), pending_requests=item.pending_requests)
+        for item in result
+    ]
 
 
 @router.get("/mine", response_model=list[ClassroomResponse])
@@ -87,6 +94,9 @@ async def get_classroom(classroom_id: UUID, user: TeacherDep, classrooms: Classr
                 first_name=s.first_name,
                 avatar_id=s.avatar_id,
                 status=s.status,
+                guardian_name=s.guardian_name,
+                guardian_email=s.guardian_email,
+                guardian_phone=s.guardian_phone,
             )
             for s in detail.students
         ],
@@ -98,9 +108,26 @@ async def update_classroom(
     classroom_id: UUID, payload: UpdateClassroomRequest, user: TeacherDep, classrooms: ClassroomServiceDep
 ) -> ClassroomResponse:
     classroom = await classrooms.update_classroom(
-        classroom_id, user.subject_id, UpdateClassroomData(name=payload.name, description=payload.description)
+        classroom_id,
+        user.subject_id,
+        UpdateClassroomData(name=payload.name, description=payload.description, color=payload.color),
     )
     return _classroom_response(classroom)
+
+
+@router.delete("/{classroom_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_classroom(classroom_id: UUID, user: TeacherDep, classrooms: ClassroomServiceDep) -> None:
+    """Deletes the classroom with its lessons, enrollments and logo. 503 if
+    the lessons couldn't be deleted, then nothing is deleted."""
+    await classrooms.delete_classroom(classroom_id, user.subject_id)
+
+
+@router.delete("/{classroom_id}/students/{enrollment_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def remove_student(
+    classroom_id: UUID, enrollment_id: UUID, user: TeacherDep, classrooms: ClassroomServiceDep
+) -> None:
+    """Takes a student out of the classroom. Their guardian gets a notification."""
+    await classrooms.remove_student(classroom_id, enrollment_id, user.subject_id)
 
 
 @router.post("/{classroom_id}/logo", response_model=ClassroomResponse)
@@ -114,6 +141,13 @@ async def upload_logo(
         raise InvalidFile("El archivo debe ser una imagen.")
     contenido = await file.read()
     classroom = await classrooms.upload_logo(classroom_id, user.subject_id, contenido, file.content_type)
+    return _classroom_response(classroom)
+
+
+@router.delete("/{classroom_id}/logo", response_model=ClassroomResponse)
+async def remove_logo(classroom_id: UUID, user: TeacherDep, classrooms: ClassroomServiceDep) -> ClassroomResponse:
+    """Takes the uploaded image out, the avatar goes back to the initials."""
+    classroom = await classrooms.remove_logo(classroom_id, user.subject_id)
     return _classroom_response(classroom)
 
 

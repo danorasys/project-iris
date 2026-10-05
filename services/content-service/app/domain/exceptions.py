@@ -1,10 +1,6 @@
-# Domain errors. Translated to HTTP in app/errors.py. The domain layer
-# doesn't know about HTTP status codes, only business semantics.
-#
-# `code`, `message` and `details` are the keys/attributes of the shared HTTP
-# error envelope, {"error": {"code", "message", "details"}}, the same contract
-# used across all 5 services. The `code` and `message` VALUES are kept in
-# Spanish since they're user-facing content, not Python identifiers.
+# Domain errors, turned into HTTP in app/errors.py. `code`, `message` and
+# `details` follow the error format of every service; the code and the
+# message are in Spanish because people read them.
 
 from __future__ import annotations
 
@@ -52,3 +48,16 @@ class InvalidFile(DomainError):
 class StorageFull(DomainError):
     code = "almacenamiento_lleno"
     message = "Se llenó el espacio para imágenes. Avísale al administrador de IRIS."
+
+
+# A teacher whose session hasn't passed the 2FA code yet (identity-service
+# marks the access token with mfa once it has). Same code in every service,
+# so the web app knows to ask for it.
+class UnauthorizedInternalAccess(DomainError):
+    code = "acceso_interno_no_autorizado"
+    message = "Esta operación solo puede ser invocada por otros servicios de IRIS."
+
+
+class TwoFactorRequired(DomainError):
+    code = "verificacion_2fa_requerida"
+    message = "Confirma tu identidad con el código de verificación para entrar a tu panel docente."

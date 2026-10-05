@@ -8,6 +8,8 @@ from uuid import UUID
 
 REQUEST_CREATED = "request.created"
 REQUEST_RESOLVED = "request.resolved"
+# The teacher took a kid out of the classroom (HU-76). Only for the guardian.
+ENROLLMENT_REMOVED = "enrollment.removed"
 
 # Who a notification is for. The same event can make one for the teacher
 # of the classroom and another one for the guardian of the kid.

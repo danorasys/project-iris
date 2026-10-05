@@ -125,7 +125,7 @@
 }
 
 .cancelButton {
-  border: 2px solid var(--color-iris-pale);
+  border: 2px solid var(--color-iris-medium);
   border-radius: var(--radius-medium);
   background: transparent;
   color: var(--color-ink);
@@ -139,11 +139,11 @@
 }
 
 .cancelButton:hover {
-  border-color: var(--color-iris-medium);
+  border-color: var(--color-iris-deep);
   background: var(--color-iris-pale);
 }
 
 .cancelButton:focus-visible {
-  outline: 3px solid var(--color-iris-medium);
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }

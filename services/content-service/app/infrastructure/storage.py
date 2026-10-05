@@ -1,11 +1,7 @@
-# Object storage on Garage (S3 compatible).
-#
-# boto3 is synchronous, so it runs in a separate thread via asyncio.to_thread
-# to avoid blocking the event loop. Tests use tests.fakes.FakeObjectStorage via
-# dependency_overrides, so they never need a real Garage.
-#
-# The bucket is private. Downloads are only signed here: Caddy fetches the
-# file with that signature and streams it, after the service checked access.
+# Files on Garage (S3 compatible). boto3 is synchronous, so it runs in a
+# thread to not block the event loop. The bucket is private: downloads are
+# only signed here and Caddy serves them, after the service checked access.
+# The tests use FakeObjectStorage instead.
 
 from __future__ import annotations
 
@@ -66,6 +62,16 @@ class S3ObjectStorage:
 
     async def delete(self, key: str) -> None:
         await asyncio.to_thread(self._client.delete_object, Bucket=self._bucket, Key=key)
+
+    async def delete_prefix(self, prefix: str) -> None:
+        await asyncio.to_thread(self._delete_prefix_sync, prefix)
+
+    # One by one: a lesson has few images, and it works the same on every S3.
+    def _delete_prefix_sync(self, prefix: str) -> None:
+        paginator = self._client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self._bucket, Prefix=prefix):
+            for item in page.get("Contents", []):
+                self._client.delete_object(Bucket=self._bucket, Key=item["Key"])
 
     def sign_download(self, key: str) -> SignedDownload:
         path = f"/{self._bucket}/{quote(key)}"

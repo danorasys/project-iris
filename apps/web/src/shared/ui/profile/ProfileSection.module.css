@@ -1,0 +1,105 @@
+/* The layout of Mi perfil, the same for the guardian and the teacher: the
+   header with who the account belongs to, and the cards below it. */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.status {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+/* --- Header: who the account belongs to --- */
+.hero {
+  /* Dark blue behind: the focus ring is white here. */
+  --color-focus: var(--color-surface);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-large);
+  /* The same radial light as the landing, instead of a flat diagonal. */
+  background: radial-gradient(130% 180% at 0% 0%, var(--color-iris-medium) 0%, var(--color-iris-deep) 62%);
+  color: var(--color-surface);
+  box-shadow:
+    var(--shadow-card),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  /* A soft ring, then a thin outer one, like the rings of an iris. */
+  box-shadow:
+    0 0 0 5px rgba(255, 255, 255, 0.14),
+    0 0 0 6px rgba(255, 255, 255, 0.35);
+}
+
+.heroText {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-iris-pale);
+}
+
+.name {
+  margin: var(--space-1) 0 var(--space-2) 0;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* A quiet see-through pill instead of a loud orange one. */
+.chip {
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  color: var(--color-surface);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.heroEmail {
+  color: var(--color-iris-pale);
+  overflow-wrap: anywhere;
+}
+
+/* --- Small screens: one column --- */
+@media (max-width: 720px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--space-4);
+  }
+}

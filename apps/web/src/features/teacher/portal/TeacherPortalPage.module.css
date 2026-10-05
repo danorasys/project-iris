@@ -1,0 +1,54 @@
+/* The total of join requests waiting, above every section (HU-69). */
+.pendingNotice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-amber) 45%, var(--color-surface));
+  border-radius: var(--radius-large);
+  background: color-mix(in srgb, var(--color-amber) 12%, var(--color-surface));
+}
+
+.pendingCount {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  background: var(--color-amber);
+  color: var(--color-iris-deep);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.pendingText {
+  flex: 1;
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.pendingButton {
+  flex: none;
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-action);
+  color: var(--color-surface);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pendingButton:hover {
+  background: var(--color-action-hover);
+}
+
+.pendingButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}

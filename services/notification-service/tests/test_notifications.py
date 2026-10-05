@@ -134,6 +134,57 @@ async def test_the_guardian_gets_their_own_with_the_kid_the_classroom_and_the_se
     assert fake_identity_client.portal_checks == [False]
 
 
+async def test_a_new_request_reaches_the_teacher_from_the_guardian(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    teacher_id = str(uuid.uuid4())
+    fake_identity_client.register("token-docente", sub=teacher_id, role="teacher")
+    await _record("request.created", teacher_id=teacher_id, guardian_id=str(uuid.uuid4()), guardian_name="Ana Pérez")
+
+    [item] = (await client.get("/notifications/me", headers=_auth("token-docente"))).json()["items"]
+
+    assert item["sender_name"] == "Ana Pérez"
+    assert item["student_name"] == "Sofía"
+
+
+async def test_the_teacher_copy_of_an_answer_arrives_already_read(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    teacher_id = str(uuid.uuid4())
+    fake_identity_client.register("token-docente", sub=teacher_id, role="teacher")
+    await _record("request.resolved", teacher_id=teacher_id)
+
+    tray = (await client.get("/notifications/me", headers=_auth("token-docente"))).json()
+
+    assert tray["total"] == 1
+    assert tray["items"][0]["read"] is True
+    assert tray["unread_count"] == 0
+
+
+async def test_taking_a_kid_out_only_reaches_their_guardian(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    teacher_id = str(uuid.uuid4())
+    fake_identity_client.register("token-docente", sub=teacher_id, role="teacher")
+    guardian_id, token = _guardian(fake_identity_client)
+    await _record(
+        "enrollment.removed",
+        teacher_id=teacher_id,
+        guardian_id=guardian_id,
+        teacher_name="Carlos Ruiz",
+        classroom_name="Matemáticas 3A",
+    )
+
+    guardian_tray = (await client.get("/notifications/me", headers=_auth(token))).json()
+    teacher_tray = (await client.get("/notifications/me", headers=_auth("token-docente"))).json()
+
+    [item] = guardian_tray["items"]
+    assert item["event"] == "enrollment.removed"
+    assert item["sender_name"] == "Carlos Ruiz"
+    assert item["classroom_name"] == "Matemáticas 3A"
+    assert teacher_tray["total"] == 0
+
+
 async def test_an_event_without_a_guardian_only_reaches_the_teacher(
     client: AsyncClient, fake_identity_client: FakeIdentityClient
 ) -> None:
@@ -205,3 +256,14 @@ async def test_the_tray_comes_in_pages_newest_first(
     assert len(last["items"]) == 1
     assert (last["page"], last["page_size"]) == (3, 2)
     assert too_big.status_code == 422
+
+
+async def test_a_teacher_without_the_2fa_code_has_no_tray(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    fake_identity_client.register("token-docente", sub=str(uuid.uuid4()), mfa_verified=False)
+
+    response = await client.get("/notifications/me", headers=_auth("token-docente"))
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "verificacion_2fa_requerida"

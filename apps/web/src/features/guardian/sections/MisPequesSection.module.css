@@ -17,6 +17,8 @@
 
 /* --- Header, the same blue band as Mi perfil --- */
 .hero {
+  /* Dark blue behind: the focus ring is white here. */
+  --color-focus: var(--color-surface);
   display: flex;
   align-items: center;
   gap: var(--space-4);
@@ -132,7 +134,7 @@
 .studentCard:focus-visible,
 .optionCard:focus-visible,
 .backButton:focus-visible {
-  outline: 3px solid var(--color-iris-medium);
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 
@@ -178,7 +180,7 @@
 }
 
 .addCard:focus-visible {
-  outline: 3px solid var(--color-iris-medium);
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 

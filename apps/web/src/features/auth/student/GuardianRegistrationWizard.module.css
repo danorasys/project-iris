@@ -1,4 +1,6 @@
 .page {
+  /* Dark blue behind: the focus ring is white here. */
+  --color-focus: var(--color-surface);
   position: relative;
   overflow: hidden;
   min-height: 100vh;
@@ -102,6 +104,8 @@
 }
 
 .card {
+  /* A white card on the dark page: the focus ring is blue again. */
+  --color-focus: var(--color-iris-medium);
   position: relative;
   width: 100%;
   max-width: 760px;
@@ -299,7 +303,7 @@
 .primaryButton {
   border: none;
   border-radius: var(--radius-medium);
-  background: var(--color-amber);
+  background: var(--color-action);
   color: var(--color-surface);
   padding: var(--space-3) var(--space-4);
   font-size: 1.05rem;
@@ -309,7 +313,7 @@
 }
 
 .primaryButton:hover:not(:disabled) {
-  background: var(--color-amber-dark);
+  background: var(--color-action-hover);
 }
 
 .primaryButton:disabled {
@@ -733,4 +737,11 @@
 .avatarOptionSelected {
   border-color: var(--color-amber);
   background: #fdf1e9;
+}
+
+/* Can't be used yet: a quiet blue-gray instead of a faded button. */
+.primaryButton:disabled {
+  background: var(--color-action-disabled);
+  color: var(--color-action-disabled-text);
+  opacity: 1;
 }

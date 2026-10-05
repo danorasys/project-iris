@@ -25,6 +25,7 @@ export function senderOf(n: NotificationItem): string {
 
 export function notificationSubject(n: NotificationItem): string {
   if (n.event === "request.created") return "Solicitud de ingreso enviada";
+  if (n.event === "enrollment.removed") return "Retiro de una clase";
   return n.decision === "aceptada" ? "Solicitud de ingreso aceptada" : "Solicitud de ingreso no aceptada";
 }
 
@@ -35,6 +36,9 @@ export function notificationMessage(n: NotificationItem): string {
     return `${capitalized(student)} pidió unirse a ${quoted(classroom)} con el código de la clase. Te avisaremos aquí cuando el docente responda la solicitud.`;
   }
   const teacher = n.sender_name ?? "El docente";
+  if (n.event === "enrollment.removed") {
+    return `${teacher} retiró a ${student} de ${quoted(classroom)}. Si quieres que vuelva, puedes enviar de nuevo la solicitud de ingreso con el código de la clase.`;
+  }
   if (n.decision === "aceptada") {
     return `${teacher} aceptó la solicitud de ${student} para unirse a ${quoted(classroom)}. Desde ahora ${student} ya puede entrar a la clase y ver sus lecciones.`;
   }
@@ -50,9 +54,5 @@ function quoted(classroom: string): string {
   return classroom === FALLBACK.classroom ? classroom : `la clase "${classroom}"`;
 }
 
-const dateTime = new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short" });
-
-/** "3 oct 2026, 10:42 a. m.", the date and time it arrived. */
-export function formatArrival(isoDate: string): string {
-  return dateTime.format(new Date(isoDate));
-}
+// Shared with the teacher's tray.
+export { formatArrival } from "@/features/utils/formatArrival";

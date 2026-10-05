@@ -21,7 +21,7 @@ from httpx import ASGITransport, AsyncClient
 from app.api import deps
 from app.infrastructure.db import Base, engine
 from app.main import app
-from tests.fakes import FakeIdentityGateway, FakeObjectStorage
+from tests.fakes import FakeContentGateway, FakeIdentityGateway, FakeObjectStorage
 
 _TEST_DB_FILE = os.environ["DATABASE_URL"].removeprefix("sqlite+aiosqlite:///")
 
@@ -60,11 +60,20 @@ def object_storage() -> Iterator[FakeObjectStorage]:
     app.dependency_overrides.pop(deps.get_object_storage, None)
 
 
+@pytest.fixture
+def content_gateway() -> Iterator[FakeContentGateway]:
+    fake = FakeContentGateway()
+    app.dependency_overrides[deps.get_content_gateway] = lambda: fake
+    yield fake
+    app.dependency_overrides.pop(deps.get_content_gateway, None)
+
+
 @pytest_asyncio.fixture
 async def client(
     redis_client: fakeredis.aioredis.FakeRedis,
     identity_gateway: FakeIdentityGateway,
     object_storage: FakeObjectStorage,
+    content_gateway: FakeContentGateway,
 ) -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

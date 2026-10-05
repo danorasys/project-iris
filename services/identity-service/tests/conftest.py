@@ -28,7 +28,12 @@ from httpx import ASGITransport, AsyncClient, Response
 from app.api import deps
 from app.api.session_cookie import CLIENT_HEADER, CLIENT_HEADER_VALUE
 from app.infrastructure.db import Base, engine
-from app.infrastructure.models import AvatarModel, DocumentTypeModel, RelationshipTypeModel, SupportConditionModel
+from app.infrastructure.models import (
+    AvatarModel,
+    DocumentTypeModel,
+    RelationshipTypeModel,
+    SupportConditionModel,
+)
 from app.main import app
 from tests.fakes import FakeObjectStorage
 
@@ -202,3 +207,15 @@ async def registrar_tutor_con_2fa(client: AsyncClient, correo: str, document_num
     secret = await activar_2fa_y_abrir_portal(client, token)
     return token, secret
 
+
+
+async def activar_2fa_docente(client: AsyncClient, token: str) -> tuple[str, str]:
+    """Turns on 2FA for the teacher behind token. Returns the secret and the
+    new access token, the one of a session that already passed the code."""
+    headers = {"Authorization": f"Bearer {token}"}
+    setup = await client.post("/teachers/me/2fa/setup", headers=headers)
+    secret: str = setup.json()["manual_entry_key"]
+    verificado = await client.post("/teachers/me/2fa/verify", json={"code": pyotp.TOTP(secret).now()}, headers=headers)
+    assert verificado.status_code == 200, verificado.text
+    verified_token: str = verificado.json()["access_token"]
+    return secret, verified_token

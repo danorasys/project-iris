@@ -1,0 +1,461 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.status {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.error {
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+/* Read by screen readers, not shown. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.backButton {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
+  border: none;
+  border-radius: var(--radius-medium);
+  background: none;
+  color: var(--color-iris-deep);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.backButton:hover {
+  background: var(--color-iris-pale);
+}
+
+.backButton:focus-visible,
+.rowMain:focus-visible,
+.trashButton:focus-visible,
+.pagerButton:focus-visible,
+.deleteButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* --- Header, the same blue band as Mi perfil and Mis peques --- */
+.hero {
+  /* Dark blue behind: the focus ring is white here. */
+  --color-focus: var(--color-surface);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-large);
+  background: radial-gradient(130% 180% at 0% 0%, var(--color-iris-medium) 0%, var(--color-iris-deep) 62%);
+  color: var(--color-surface);
+  box-shadow:
+    var(--shadow-card),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.heroBadge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  box-shadow:
+    0 0 0 5px rgba(255, 255, 255, 0.14),
+    0 0 0 6px rgba(255, 255, 255, 0.35);
+}
+
+.heroText {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-iris-pale);
+}
+
+.heroTitle {
+  margin: var(--space-1) 0 var(--space-2) 0;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.chip {
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* --- The list --- */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A read one is plain white. */
+.row {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.row:hover {
+  border-color: var(--color-iris-medium);
+  box-shadow: var(--shadow-card);
+}
+
+/* An unread one has the soft blue of IRIS and an amber edge, so the two
+   look different at a glance (and not only by color: its subject is bold). */
+.rowUnread {
+  background: color-mix(in srgb, var(--color-iris-pale) 55%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-iris-medium) 40%, var(--color-iris-pale));
+}
+
+.rowUnread::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--color-amber);
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rowTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.rowSubject {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+}
+
+.rowUnread .rowSubject {
+  font-weight: 800;
+  color: var(--color-iris-deep);
+}
+
+.rowTime {
+  flex: none;
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+}
+
+/* Only the start of the message, on one line. */
+.rowFragment {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+  color: var(--color-ink-soft);
+}
+
+.rowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-1);
+  font-size: 0.82rem;
+  color: var(--color-ink);
+}
+
+.metaLabel {
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+.trashButton {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  border: none;
+  border-left: 1px solid var(--color-iris-pale);
+  background: none;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.trashButton:hover {
+  background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+  color: var(--color-error);
+}
+
+/* --- Pages --- */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.pagerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: 2px solid var(--color-iris-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.pagerButton:hover:not(:disabled) {
+  border-color: var(--color-iris-deep);
+  background: var(--color-iris-pale);
+}
+
+.pagerButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagerStatus {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+}
+
+/* --- Nothing yet --- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border: 1px dashed var(--color-iris-medium);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.emptyText {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--color-ink-soft);
+  line-height: 1.5;
+}
+
+/* --- One notification, read in full --- */
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-iris-pale);
+}
+
+.detailIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.detailTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.25;
+  color: var(--color-iris-deep);
+}
+
+.detailMeta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.detailMeta dt {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.detailMeta dd {
+  margin: var(--space-1) 0 0 0;
+  font-size: 1rem;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.detailMessage {
+  max-width: 70ch;
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-canvas);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--color-ink);
+}
+
+.detailActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.deleteButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 2px solid color-mix(in srgb, var(--color-error) 35%, var(--color-surface));
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-error);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.deleteButton:hover {
+  border-color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row,
+  .trashButton,
+  .pagerButton,
+  .deleteButton,
+  .backButton {
+    transition: none;
+  }
+}
+
+/* --- Small screens --- */
+@media (max-width: 720px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rowTop {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .detail {
+    padding: var(--space-4);
+  }
+
+  .detailMeta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

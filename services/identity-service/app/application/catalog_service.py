@@ -6,7 +6,13 @@ from __future__ import annotations
 
 from typing import Callable
 
-from app.domain.entities import Avatar, DocumentType, RelationshipType, SignedDownload, SupportCondition
+from app.domain.entities import (
+    Avatar,
+    DocumentType,
+    RelationshipType,
+    SignedDownload,
+    SupportCondition,
+)
 from app.domain.exceptions import ResourceNotFound
 from app.domain.ports import ObjectStorage, UnitOfWork
 

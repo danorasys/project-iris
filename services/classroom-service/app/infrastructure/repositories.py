@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities import STATUS_ACCEPTED, STATUS_PENDING, Classroom, Enrollment
@@ -18,6 +18,7 @@ def _classroom_to_entity(m: ClassroomModel) -> Classroom:
         enrollment_code=m.enrollment_code,
         created_at=m.created_at,
         logo_key=m.logo_key,
+        color=m.color,
     )
 
 
@@ -67,6 +68,7 @@ class SqlAlchemyClassroomRepository:
                 logo_key=classroom.logo_key,
                 enrollment_code=classroom.enrollment_code,
                 created_at=classroom.created_at,
+                color=classroom.color,
             )
         )
 
@@ -77,6 +79,13 @@ class SqlAlchemyClassroomRepository:
         m.name = classroom.name
         m.description = classroom.description
         m.logo_key = classroom.logo_key
+        m.color = classroom.color
+
+    async def delete(self, classroom_id: UUID) -> None:
+        # Through the ORM, so the enrollments go too (cascade) on every database.
+        m = await self._session.get(ClassroomModel, classroom_id)
+        if m is not None:
+            await self._session.delete(m)
 
 
 class SqlAlchemyEnrollmentRepository:
@@ -121,6 +130,17 @@ class SqlAlchemyEnrollmentRepository:
         )
         return [_enrollment_to_entity(m) for m in result.scalars().all()]
 
+    async def count_pending_by_classrooms(self, classroom_ids: list[UUID]) -> dict[UUID, int]:
+        if not classroom_ids:
+            return {}
+        # One GROUP BY served by ix_enrollments_classroom_status.
+        result = await self._session.execute(
+            select(EnrollmentModel.classroom_id, func.count())
+            .where(EnrollmentModel.classroom_id.in_(classroom_ids), EnrollmentModel.status == STATUS_PENDING)
+            .group_by(EnrollmentModel.classroom_id)
+        )
+        return {classroom_id: count for classroom_id, count in result.all()}
+
     async def add(self, enrollment: Enrollment) -> None:
         self._session.add(
             EnrollmentModel(
@@ -140,3 +160,6 @@ class SqlAlchemyEnrollmentRepository:
         m.status = enrollment.status
         m.requested_at = enrollment.requested_at
         m.resolved_at = enrollment.resolved_at
+
+    async def delete(self, enrollment_id: UUID) -> None:
+        await self._session.execute(delete(EnrollmentModel).where(EnrollmentModel.id == enrollment_id))

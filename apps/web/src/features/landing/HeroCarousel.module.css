@@ -2,6 +2,8 @@
    sits on a glass panel anchored bottom-left. */
 
 .carousel {
+  /* Dark blue behind: the focus ring is white here. */
+  --color-focus: var(--color-surface);
   position: relative;
   width: 100%;
   height: min(88vh, 760px);

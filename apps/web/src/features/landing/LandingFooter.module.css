@@ -1,4 +1,6 @@
 .footer {
+  /* Dark blue behind: the focus ring is white here. */
+  --color-focus: var(--color-surface);
   background: var(--color-iris-deep);
   padding: var(--space-6) var(--space-4) var(--space-4);
 }

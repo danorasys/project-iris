@@ -4,7 +4,13 @@
 // caching/revalidation by hand.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Classroom, ClassroomWithStudents, EnrollmentRequest } from "@iris/shared-types";
+import type {
+  Classroom,
+  ClassroomColor,
+  ClassroomWithStudents,
+  EnrollmentRequest,
+  TeacherClassroom,
+} from "@iris/shared-types";
 import { apiFetch, apiUpload } from "@/shared/api/httpClient";
 
 /** Centralized query keys, also reused by `useNotifications.ts` for the
@@ -16,12 +22,18 @@ export const classroomKeys = {
   requests: (classroomId: string) => ["aulas", classroomId, "solicitudes"] as const,
 };
 
-/** `GET /classrooms`. Classrooms owned by the authenticated teacher. */
+// The list also brings each classroom's pending requests, so asking for it
+// now and then keeps the portal's notice up to date with one request.
+const TEACHER_CLASSROOMS_REFRESH_MS = 30_000;
+
+/** `GET /classrooms`. Classrooms owned by the authenticated teacher, each
+ * with how many join requests are waiting (`pending_requests`). */
 export function useTeacherClassrooms(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: classroomKeys.todas,
-    queryFn: () => apiFetch<Classroom[]>("/classrooms"),
+    queryFn: () => apiFetch<TeacherClassroom[]>("/classrooms"),
     enabled: options?.enabled,
+    refetchInterval: TEACHER_CLASSROOMS_REFRESH_MS,
   });
 }
 
@@ -45,6 +57,7 @@ export function useClassroomDetail(classroomId: string | undefined) {
 interface CrearAulaBody {
   name: string;
   description: string;
+  color: ClassroomColor;
 }
 
 /** `POST /classrooms`. Creates a new classroom (teacher). */
@@ -63,7 +76,7 @@ interface UpdateClassroomVariables {
   body: Partial<CrearAulaBody>;
 }
 
-/** `PATCH /classrooms/{classroom_id}`. Edits name/description. */
+/** `PATCH /classrooms/{classroom_id}`. Edits name, description or color. */
 export function useUpdateClassroom() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -92,6 +105,47 @@ export function useUploadClassroomLogo() {
     },
     onSuccess: (_aula, variables) => {
       void queryClient.invalidateQueries({ queryKey: classroomKeys.todas });
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.detail(variables.classroomId) });
+    },
+  });
+}
+
+/** `DELETE /classrooms/{classroom_id}/logo`. Back to the initials on its color. */
+export function useRemoveClassroomLogo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (classroomId: string) => apiFetch<Classroom>(`/classrooms/${classroomId}/logo`, { method: "DELETE" }),
+    onSuccess: (_aula, classroomId) => {
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.todas });
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.detail(classroomId) });
+    },
+  });
+}
+
+/** `DELETE /classrooms/{classroom_id}`. The classroom with its lessons and enrollments. */
+export function useDeleteClassroom() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (classroomId: string) => apiFetch<void>(`/classrooms/${classroomId}`, { method: "DELETE" }),
+    onSuccess: (_nada, classroomId) => {
+      queryClient.removeQueries({ queryKey: classroomKeys.detail(classroomId) });
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.todas });
+    },
+  });
+}
+
+interface RemoveStudentVariables {
+  classroomId: string;
+  enrollmentId: string;
+}
+
+/** `DELETE /classrooms/{classroom_id}/students/{enrollment_id}`. Their guardian is told. */
+export function useRemoveStudent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ classroomId, enrollmentId }: RemoveStudentVariables) =>
+      apiFetch<void>(`/classrooms/${classroomId}/students/${enrollmentId}`, { method: "DELETE" }),
+    onSuccess: (_nada, variables) => {
       void queryClient.invalidateQueries({ queryKey: classroomKeys.detail(variables.classroomId) });
     },
   });
@@ -139,6 +193,8 @@ export function useResolveRequest() {
     onSuccess: (_resultado, variables) => {
       void queryClient.invalidateQueries({ queryKey: classroomKeys.requests(variables.classroomId) });
       void queryClient.invalidateQueries({ queryKey: classroomKeys.detail(variables.classroomId) });
+      // The pending count of the portal's notice goes down right away.
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.todas });
     },
   });
 }

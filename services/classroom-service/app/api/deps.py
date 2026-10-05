@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from functools import lru_cache
 from typing import Annotated
 from uuid import UUID
@@ -10,8 +11,9 @@ from redis.asyncio import Redis, from_url
 
 from app.application.classroom_service import ClassroomService
 from app.config import Settings, get_settings
-from app.domain.exceptions import UnauthorizedInternalAccess, PermissionDenied, InvalidToken
-from app.domain.ports import IdentityGateway
+from app.domain.exceptions import InvalidToken, PermissionDenied, TwoFactorRequired, UnauthorizedInternalAccess
+from app.domain.ports import ContentGateway, IdentityGateway
+from app.infrastructure.http_clients.content_client import ContentHttpClient
 from app.infrastructure.http_clients.identity_client import IdentityHttpClient
 from app.infrastructure.redis_gateway import RedisEventPublisher, RedisRateLimiter
 from app.infrastructure.storage import S3ObjectStorage
@@ -53,9 +55,17 @@ def get_identity_gateway() -> IdentityHttpClient:
     return IdentityHttpClient(base_url=settings.identity_service_url, internal_key=settings.internal_service_key)
 
 
+# Same as the identity client: one per process, so its circuit breaker is shared.
+@lru_cache
+def get_content_gateway() -> ContentHttpClient:
+    settings = get_settings()
+    return ContentHttpClient(base_url=settings.content_service_url, internal_key=settings.internal_service_key)
+
+
 def get_classroom_service(
     settings: Annotated[Settings, Depends(get_settings)],
     identity: Annotated[IdentityGateway, Depends(get_identity_gateway)],
+    content: Annotated[ContentGateway, Depends(get_content_gateway)],
     storage: Annotated[S3ObjectStorage, Depends(get_object_storage)],
     events: Annotated[RedisEventPublisher, Depends(get_event_publisher)],
     rate_limiter: Annotated[RedisRateLimiter, Depends(get_rate_limiter)],
@@ -68,6 +78,7 @@ def get_classroom_service(
         rate_limiter=rate_limiter,
         rate_limit_enrollment_max=settings.rate_limit_enrollment_max,
         rate_limit_enrollment_window_sec=settings.rate_limit_enrollment_window_sec,
+        content_gateway=content,
     )
 
 
@@ -97,6 +108,9 @@ def require_role(*allowed_roles: str):
     async def _dep(user: Annotated[CurrentUser, Depends(get_current_user)]) -> CurrentUser:
         if user.role not in allowed_roles:
             raise PermissionDenied("Tu tipo de cuenta no tiene acceso a esta operación.")
+        # A teacher only gets in from a session that passed the 2FA code.
+        if user.role == "teacher" and user.extra.get("mfa") != "1":
+            raise TwoFactorRequired()
         return user
 
     return _dep
@@ -104,5 +118,6 @@ def require_role(*allowed_roles: str):
 
 async def verify_internal_key(x_internal_key: Annotated[str | None, Header()] = None) -> None:
     settings = get_settings()
-    if x_internal_key != settings.internal_service_key:
+    # Constant-time comparison, so the key can't be guessed by timing.
+    if x_internal_key is None or not secrets.compare_digest(x_internal_key, settings.internal_service_key):
         raise UnauthorizedInternalAccess()

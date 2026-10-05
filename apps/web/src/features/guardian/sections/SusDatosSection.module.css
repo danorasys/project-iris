@@ -42,7 +42,7 @@
 }
 
 .avatarOption:focus-visible {
-  outline: 3px solid var(--color-iris-medium);
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 

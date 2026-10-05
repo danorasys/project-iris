@@ -6,7 +6,12 @@ from fastapi import APIRouter, Depends, Path, Response
 
 from app.api.deps import get_catalog_query_service
 from app.api.media import media_response
-from app.api.schemas import AvatarResponse, DocumentTypeResponse, RelationshipTypeResponse, SupportConditionResponse
+from app.api.schemas import (
+    AvatarResponse,
+    DocumentTypeResponse,
+    RelationshipTypeResponse,
+    SupportConditionResponse,
+)
 from app.application.catalog_service import CatalogQueryService
 
 router = APIRouter(prefix="/catalogs", tags=["catalogs"])

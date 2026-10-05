@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useConfirmarAccesoPortal } from "@/shared/api/hooks/useAuthApi";
 import { PortalAccessContext, isPortalAccessRequired, type WithPortalAccess } from "./portalAccess";
-import { TwoFactorCodeDialog } from "./ui/TwoFactorCodeDialog";
+import { TwoFactorCodeDialog } from "@/shared/ui/profile/TwoFactorCodeDialog";
 
 /** Wraps the parents' portal. When a request finds the portal closed (a
  * while without activity), it asks for the 2FA code right there and repeats

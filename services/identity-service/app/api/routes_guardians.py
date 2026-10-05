@@ -195,12 +195,9 @@ async def get_my_profile(user: CurrentGuardianDep, guardians: GuardianServiceDep
 async def update_my_profile(
     payload: UpdateGuardianProfileRequest, user: CurrentGuardianDep, guardians: GuardianServiceDep
 ) -> GuardianProfileResponse:
-    """Only the fields on UpdateGuardianProfileRequest can change. Document
-    type, document number, email and the document issue date are never
-    accepted here, so a guardian has no way to change what identifies
-    their own account or document. truthful_declaration must be true, and
-    each save that changes something is recorded with the names of the
-    fields that changed (never their values)."""
+    """Changes only the fields of UpdateGuardianProfileRequest, never the
+    document or the email. Needs the truthful declaration, and each save that
+    changes something records the names of those fields (never the values)."""
     person, guardian = await guardians.update_profile(
         user.subject_id,
         UpdateGuardianProfileData(
@@ -244,7 +241,7 @@ async def setup_totp(user: CurrentGuardianDep, totp: TotpServiceDep) -> TotpSetu
 async def verify_totp(payload: TotpVerifyRequest, user: CurrentGuardianDep, totp: TotpServiceDep) -> None:
     """Confirms the guardian's authenticator app is actually producing valid
     codes for the secret from /me/2fa/setup, and only then turns 2FA on."""
-    await totp.verify(user.subject_id, user.session_id, payload.code)
+    await totp.verify(user.subject_id, user.session_id, payload.code, role="guardian")
 
 
 @router.post("/me/2fa/challenge", response_model=PortalChallengeResponse)

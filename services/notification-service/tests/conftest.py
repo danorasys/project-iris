@@ -34,8 +34,14 @@ class FakeIdentityClient:
         self.open_portals: set[tuple[str, str]] = set()
         self.portal_checks: list[bool] = []
 
-    def register(self, token: str, *, sub: str, role: str = "teacher", session_id: str | None = None) -> None:
+    # A teacher comes from a session that already passed the 2FA code,
+    # unless mfa_verified=False.
+    def register(
+        self, token: str, *, sub: str, role: str = "teacher", session_id: str | None = None, mfa_verified: bool = True
+    ) -> None:
         extra = {"sid": session_id} if session_id else {}
+        if role == "teacher" and mfa_verified:
+            extra["mfa"] = "1"
         self.tokens[token] = TokenClaims(sub=sub, role=role, extra=extra)
 
     async def validate_token(self, token: str | None, correlation_id: str | None = None) -> TokenClaims:

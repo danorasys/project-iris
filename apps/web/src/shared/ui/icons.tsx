@@ -87,6 +87,40 @@ export function IconGraduationCap(props: IconProps) {
   );
 }
 
+/** An envelope, for direct messages. */
+export function IconMessage(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+      <path d="m4 7.5 8 6 8-6" />
+    </svg>
+  );
+}
+
+/** Bars of a chart, for statistics. */
+export function IconChart(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 20h16" />
+      <path d="M7 16v-5" />
+      <path d="M12 16V7" />
+      <path d="M17 16v-8" />
+    </svg>
+  );
+}
+
+/** A briefcase, for work and job experience. */
+export function IconBriefcase(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="7" width="18" height="13" rx="2.5" />
+      <path d="M8.5 7V5.5A1.5 1.5 0 0 1 10 4h4a1.5 1.5 0 0 1 1.5 1.5V7" />
+      <path d="M3 12.5h18" />
+      <path d="M10.5 12.5v1.5h3v-1.5" />
+    </svg>
+  );
+}
+
 export function IconSparkle(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -205,6 +239,18 @@ export function IconPlay(props: IconProps) {
   return (
     <svg {...base} {...props} fill="currentColor">
       <path d="M7.5 4.8v14.4c0 .7.77 1.13 1.36.76l11.2-7.2a.9.9 0 0 0 0-1.52L8.86 4.04A.9.9 0 0 0 7.5 4.8Z" />
+    </svg>
+  );
+}
+
+/** A warning sign: a rounded triangle with "!". For confirmations of
+ * something that can't be undone or that loses what was typed. */
+export function IconAlert(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M10.3 4.2 2.9 17.3A2 2 0 0 0 4.6 20.3h14.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9.5v4.5" />
+      <circle cx="12" cy="16.9" r="0.75" fill="currentColor" stroke="none" />
     </svg>
   );
 }

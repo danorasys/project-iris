@@ -1,0 +1,458 @@
+.profile {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* As far apart as the two notices of step 1. */
+.notices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* The notices look exactly like the ones of step 1 ("Indicaciones
+   iniciales", "Seguridad de tu cuenta" in GuardianRegistrationWizard.module.css):
+   an icon, a dark heading and the text in soft gray. */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-canvas);
+  border-radius: var(--radius-medium);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.noticeIcon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--color-iris-medium);
+}
+
+.noticeBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.noticeHeading {
+  margin: 0 0 var(--space-1) 0;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.noticeText {
+  margin: 0;
+}
+
+.noticeText + .noticeText,
+.guideList + .noticeText {
+  margin-top: var(--space-2);
+}
+
+/* Each step: the copy of its button on the left, the words on the right. */
+.guideList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guideList li {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.guideList li > span:first-child {
+  justify-self: center;
+}
+
+/* Copies of the card buttons, drawn the same but they're only pictures. */
+.guideIcon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-iris-pale);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-iris-medium);
+}
+
+.guideConfirm {
+  border-color: var(--color-iris-medium);
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+}
+
+.guideAdd,
+.guideRemove {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.guideAdd {
+  padding: 2px var(--space-2);
+  border: 2px dashed var(--color-iris-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+}
+
+.guideRemove {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* The section and entry titles look like the field labels of step 1
+   (same as .label in Fields.module.css). */
+.sectionTitle,
+.entryTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* "Sobre mí" works as the label of its box, so it sits as close as a
+   label does. */
+.aboutSection {
+  gap: var(--space-1);
+}
+
+.counter {
+  align-self: flex-end;
+  margin: calc(var(--space-2) * -1) 0 0;
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+}
+
+.aboutSection .counter {
+  margin-top: 0;
+}
+
+/* A soft rounded box with an icon, while a list is still empty. */
+.empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: linear-gradient(135deg, var(--color-canvas), var(--color-surface));
+}
+
+.emptyIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.emptyIcon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.emptyHint {
+  margin: var(--space-1) 0 0;
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* An empty list takes no room, so it doesn't add a second gap. */
+.entries:empty {
+  display: none;
+}
+
+/* Each study or job in its own rounded card, with a pale blue band on top
+   and the fields below, so one entry never mixes with the next. */
+.entry {
+  overflow: hidden;
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: 0 6px 18px rgba(30, 58, 82, 0.07);
+}
+
+.entryHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-iris-pale);
+  background: linear-gradient(135deg, var(--color-iris-pale), var(--color-canvas));
+}
+
+/* The icon in a white circle with two soft rings, like an iris, the same
+   idea as the badges of the parents' portal. */
+.entryBadge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.6),
+    0 0 0 4px var(--color-iris-pale);
+}
+
+.entryBadge svg {
+  width: 22px;
+  height: 22px;
+}
+
+.entryHeading {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.entryCaption {
+  overflow: hidden;
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.entryActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Round icon buttons, like the pencil of the parents' portal. */
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-iris-medium);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-iris-medium);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+/* The check stands out: the card is waiting for it. */
+.confirmButton {
+  border-color: var(--color-iris-medium);
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+}
+
+.confirmButton:hover:not(:disabled) {
+  background: var(--color-iris-deep);
+  color: var(--color-surface);
+}
+
+.iconButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.iconButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* A locked value (a confirmed card, or "En curso") can't be changed, but
+   it's still easy to read. */
+.entryBody input:disabled,
+.entryBody select:disabled,
+.entryBody textarea:disabled {
+  border-color: transparent;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-text-fill-color: var(--color-ink);
+  opacity: 1;
+  cursor: default;
+}
+
+.entryLocked .inlineCheck {
+  cursor: default;
+}
+
+.entryBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.inlineCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.inlineCheck input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-iris-medium);
+}
+
+.monthYear {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+/* Without the browser's padding, so it lines up with the other labels. */
+.monthYear legend {
+  padding: 0;
+}
+
+/* A wrong date turns its boxes red, like any other field with an error. */
+.monthYear[aria-invalid="true"] select,
+.monthYear[aria-invalid="true"] input {
+  border-color: var(--color-error);
+}
+
+.monthYear:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.monthYearInputs {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-2);
+  max-width: 360px;
+}
+
+.addButton,
+.removeButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-medium);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.addButton {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border: 2px dashed var(--color-iris-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+}
+
+.addButton:hover:not(:disabled) {
+  border-style: solid;
+  background: var(--color-iris-pale);
+}
+
+.removeButton {
+  flex: none;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-iris-medium);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 0.85rem;
+}
+
+.removeButton:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-error) 40%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+  color: var(--color-error);
+}
+
+.addButton:focus-visible,
+.removeButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.addButton:disabled,
+.removeButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .addButton,
+  .removeButton,
+  .iconButton {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

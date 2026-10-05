@@ -151,6 +151,9 @@ services:
             DATABASE_URL: ${CLASSROOM_DATABASE_URL}
             SERVICE_NAME: classroom-service
             IDENTITY_SERVICE_URL: http://identity-service:8000
+            # Only to delete a classroom's lessons (no depends_on: content-service already
+            # depends on this service, and a classroom can wait to be deleted).
+            CONTENT_SERVICE_URL: http://content-service:8000
             # Its own key, only valid for its own bucket.
             S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
             S3_ACCESS_KEY: ${CLASSROOM_S3_ACCESS_KEY}

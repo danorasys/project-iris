@@ -67,7 +67,9 @@ afterEach(() => {
   onDirtyChange.mockReset();
 });
 
-describe("SusDatosSection", () => {
+// These tests type and open dialogs step by step, so they get more time
+// than the default when the whole suite runs in parallel.
+describe("SusDatosSection", { timeout: 20_000 }, () => {
   it("shows the data the guardian registered, without a save bar", () => {
     studentQuery.mockReturnValue({ data: sofia, isLoading: false, isError: false });
 

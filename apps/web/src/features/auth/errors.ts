@@ -47,8 +47,12 @@ export function getAuthErrorMessage(error: unknown): string {
       return "Primero debemos generar tu código QR. Recarga la página e inténtalo de nuevo.";
     case "acceso_portal_requerido":
       return "Tu verificación expiró. Confirma tu identidad con el código para continuar.";
+    case "verificacion_2fa_requerida":
+      return "Confirma tu identidad con el código de tu aplicación autenticadora para entrar a tu panel docente.";
     case "sesion_cerrada_por_seguridad":
       return "Cerramos tu sesión por seguridad, hubo demasiados intentos fallidos. Inicia sesión de nuevo.";
+    case "totp_ya_activado":
+      return "Tu cuenta ya tiene la verificación en dos pasos activada.";
     case "totp_no_activado":
       return "Tu cuenta todavía no tiene la verificación en dos pasos activada.";
     case "contrasena_actual_incorrecta":

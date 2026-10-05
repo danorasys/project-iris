@@ -31,10 +31,14 @@
   font-weight: 700;
   text-align: center;
   color: var(--color-ink);
+  transition: var(--focus-halo-transition);
 }
 
+/* Selected: a blue border and a sky-blue halo, like the other fields. */
 .box:focus-visible {
   border-color: var(--color-iris-medium);
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
 }
 
 .box[aria-invalid="true"] {
@@ -66,5 +70,11 @@
     width: 38px;
     height: 50px;
     font-size: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .box {
+    transition: none;
   }
 }

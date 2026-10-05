@@ -8,6 +8,8 @@ interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "on
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  /** The label is still read by screen readers, but not shown. */
+  hideLabel?: boolean;
   multiline?: false;
 }
 
@@ -18,6 +20,7 @@ interface TextareaFieldProps
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  hideLabel?: boolean;
   multiline: true;
 }
 
@@ -26,14 +29,14 @@ interface TextareaFieldProps
  * `multiline` switches it to a `<textarea>` for the optional support
  * condition field. */
 export function TextField(props: TextFieldProps | TextareaFieldProps) {
-  const { id, label, value, onChange, error, required } = props;
+  const { id, label, value, onChange, error, required, hideLabel } = props;
   const errorId = `${id}-error`;
   const isPassword = !props.multiline && props.type === "password";
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className={styles.field}>
-      <label htmlFor={id} className={styles.label}>
+      <label htmlFor={id} className={hideLabel ? styles.labelHidden : styles.label}>
         {label}
         {required && <span aria-hidden="true"> *</span>}
       </label>
@@ -50,6 +53,7 @@ export function TextField(props: TextFieldProps | TextareaFieldProps) {
           rows={props.rows ?? 3}
           disabled={props.disabled}
           placeholder={props.placeholder}
+          autoFocus={props.autoFocus}
         />
       ) : (
         <div className={isPassword ? styles.inputWithIcon : undefined}>
@@ -68,6 +72,10 @@ export function TextField(props: TextFieldProps | TextareaFieldProps) {
             inputMode={props.inputMode}
             min={props.min}
             max={props.max}
+            maxLength={props.maxLength}
+            disabled={props.disabled}
+            // A field that opens to be edited (Mi perfil) takes the cursor at once.
+            autoFocus={props.autoFocus}
           />
           {isPassword && (
             <button

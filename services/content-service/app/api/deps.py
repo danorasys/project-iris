@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import secrets
 from functools import lru_cache
 from typing import Annotated
 
 import httpx
-from fastapi import Depends
+from fastapi import Depends, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis, from_url
 
@@ -12,7 +13,7 @@ from app.application.lesson_service import LessonService
 from app.config import Settings, get_settings
 from app.correlation import get_correlation_id
 from app.domain.entities import ValidatedUser
-from app.domain.exceptions import PermissionDenied, InvalidToken
+from app.domain.exceptions import InvalidToken, PermissionDenied, TwoFactorRequired, UnauthorizedInternalAccess
 from app.infrastructure.http_clients.circuit_breaker import CircuitBreaker
 from app.infrastructure.http_clients.classroom_client import HttpClassroomClient
 from app.infrastructure.http_clients.identity_client import HttpIdentityClient
@@ -96,10 +97,20 @@ async def get_current_user(
     return await identity.validate_token(credentials.credentials, get_correlation_id())
 
 
+# Internal routes: only other IRIS services, with the shared key. They're
+# not exposed by the gateway either.
+async def verify_internal_key(x_internal_key: Annotated[str | None, Header()] = None) -> None:
+    if x_internal_key is None or not secrets.compare_digest(x_internal_key, get_settings().internal_service_key):
+        raise UnauthorizedInternalAccess()
+
+
 def require_role(*allowed_roles: str):
     async def _dep(user: Annotated[ValidatedUser, Depends(get_current_user)]) -> ValidatedUser:
         if user.role not in allowed_roles:
             raise PermissionDenied("Tu tipo de cuenta no tiene acceso a esta operación.")
+        # A teacher only gets in from a session that passed the 2FA code.
+        if user.role == "teacher" and user.extra.get("mfa") != "1":
+            raise TwoFactorRequired()
         return user
 
     return _dep

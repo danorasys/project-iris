@@ -17,16 +17,19 @@ from app.application.dtos import (
     ClassroomWithStudents,
     EnrolledStudent,
     EnrichedRequest,
+    TeacherClassroom,
     UpdateClassroomData,
 )
 from app.application.image_rules import EXTENSION_BY_CONTENT_TYPE, matches_declared_type
 from app.domain.entities import (
+    DEFAULT_CLASSROOM_COLOR,
     STATUS_ACCEPTED,
     STATUS_PENDING,
     STATUS_REJECTED,
     Classroom,
     Enrollment,
     SignedDownload,
+    StudentInfo,
 )
 from app.domain.exceptions import (
     AlreadyEnrolledOrPending,
@@ -40,7 +43,7 @@ from app.domain.exceptions import (
     RequestAlreadyResolved,
     ResourceNotFound,
 )
-from app.domain.ports import EventPublisher, IdentityGateway, ObjectStorage, RateLimiter, UnitOfWork
+from app.domain.ports import ContentGateway, EventPublisher, IdentityGateway, ObjectStorage, RateLimiter, UnitOfWork
 
 logger = logging.getLogger(__name__)
 
@@ -65,9 +68,11 @@ class ClassroomService:
         rate_limiter: RateLimiter,
         rate_limit_enrollment_max: int,
         rate_limit_enrollment_window_sec: int,
+        content_gateway: ContentGateway,
     ) -> None:
         self._uow_factory = uow_factory
         self._identity = identity_gateway
+        self._content = content_gateway
         self._storage = storage
         self._events = event_publisher
         self._rate_limiter = rate_limiter
@@ -78,7 +83,9 @@ class ClassroomService:
     # Teacher
     # ------------------------------------------------------------------
 
-    async def create_classroom(self, teacher_id: UUID, name: str, description: str) -> Classroom:
+    async def create_classroom(
+        self, teacher_id: UUID, name: str, description: str, color: str = DEFAULT_CLASSROOM_COLOR
+    ) -> Classroom:
         async with self._uow_factory() as uow:
             code = None
             for _ in range(_MAX_CODE_ATTEMPTS):
@@ -97,14 +104,19 @@ class ClassroomService:
                 enrollment_code=code,
                 created_at=datetime.now(timezone.utc),
                 logo_key=None,
+                color=color,
             )
             await uow.classrooms.add(classroom)
             await uow.commit()
         return classroom
 
-    async def list_teacher_classrooms(self, teacher_id: UUID) -> list[Classroom]:
+    # The teacher's classrooms, each with its pending requests: the panel
+    # adds them up for the notice of HU-69 with this one call.
+    async def list_teacher_classrooms(self, teacher_id: UUID) -> list[TeacherClassroom]:
         async with self._uow_factory() as uow:
-            return await uow.classrooms.list_by_teacher(teacher_id)
+            classrooms = await uow.classrooms.list_by_teacher(teacher_id)
+            pending = await uow.enrollments.count_pending_by_classrooms([c.id for c in classrooms])
+        return [TeacherClassroom(classroom=c, pending_requests=pending.get(c.id, 0)) for c in classrooms]
 
     async def _get_own_classroom(self, uow: UnitOfWork, classroom_id: UUID, teacher_id: UUID) -> Classroom:
         classroom = await uow.classrooms.get_by_id(classroom_id)
@@ -121,18 +133,41 @@ class ClassroomService:
 
         # One call per student to identity-service, but fired all at once
         # instead of one after another, so a classroom with many students
-        # doesn't wait on them one by one.
-        infos = await asyncio.gather(*(self._identity.obtener_estudiante(e.student_id) for e in accepted))
-        students = [
-            EnrolledStudent(
-                enrollment_id=enrollment.id,
-                student_id=enrollment.student_id,
-                first_name=info.first_name,
-                avatar_id=info.avatar_id,
-                status=enrollment.status,
+        # doesn't wait on them one by one. A kid identity-service doesn't
+        # have anymore still shows up, without their data, instead of
+        # breaking the whole page.
+        results = await asyncio.gather(
+            *(self._identity.obtener_estudiante(e.student_id) for e in accepted), return_exceptions=True
+        )
+        students: list[EnrolledStudent] = []
+        for enrollment, result in zip(accepted, results):
+            if isinstance(result, ResourceNotFound):
+                students.append(
+                    EnrolledStudent(
+                        enrollment_id=enrollment.id,
+                        student_id=enrollment.student_id,
+                        first_name="Estudiante sin datos",
+                        avatar_id=1,
+                        status=enrollment.status,
+                    )
+                )
+                continue
+            if isinstance(result, BaseException):
+                raise result
+            info: StudentInfo = result
+            students.append(
+                EnrolledStudent(
+                    enrollment_id=enrollment.id,
+                    student_id=enrollment.student_id,
+                    first_name=info.first_name,
+                    avatar_id=info.avatar_id,
+                    status=enrollment.status,
+                    guardian_name=info.guardian_name,
+                    guardian_email=info.guardian_email,
+                    guardian_phone=info.guardian_phone,
+                )
             )
-            for enrollment, info in zip(accepted, infos)
-        ]
+        students.sort(key=lambda student: student.first_name.casefold())
         return ClassroomWithStudents(classroom=classroom, students=students)
 
     async def update_classroom(self, classroom_id: UUID, teacher_id: UUID, data: UpdateClassroomData) -> Classroom:
@@ -142,6 +177,8 @@ class ClassroomService:
                 classroom.name = data.name
             if data.description is not None:
                 classroom.description = data.description
+            if data.color is not None:
+                classroom.color = data.color
             await uow.classrooms.update(classroom)
             await uow.commit()
         return classroom
@@ -179,6 +216,60 @@ class ClassroomService:
         if old_key:
             await self._delete_quietly(old_key)
         return classroom
+
+    # Back to the initials on its color.
+    async def remove_logo(self, classroom_id: UUID, teacher_id: UUID) -> Classroom:
+        async with self._uow_factory() as uow:
+            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            old_key = classroom.logo_key
+            classroom.logo_key = None
+            await uow.classrooms.update(classroom)
+            await uow.commit()
+        if old_key:
+            await self._delete_quietly(old_key)
+        return classroom
+
+    # HU-76: the kid leaves the classroom and their guardian is told. The
+    # enrollment goes away, so the guardian can ask to join again later.
+    async def remove_student(self, classroom_id: UUID, enrollment_id: UUID, teacher_id: UUID) -> None:
+        async with self._uow_factory() as uow:
+            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            enrollment = await uow.enrollments.get_by_id(enrollment_id)
+            if enrollment is None or enrollment.classroom_id != classroom_id or enrollment.status != STATUS_ACCEPTED:
+                raise EnrollmentNotFound("Ese estudiante no está inscrito en esta clase.")
+            await uow.enrollments.delete(enrollment_id)
+            await uow.commit()
+
+        event: dict[str, object] = {
+            "event": "enrollment.removed",
+            "classroom_id": str(classroom_id),
+            "classroom_name": classroom.name,
+            "enrollment_id": str(enrollment_id),
+            "teacher_id": str(classroom.teacher_id),
+        }
+        event |= await self._guardian_fields(enrollment.student_id)
+        try:
+            event["teacher_name"] = await self._identity.obtener_nombre_docente(classroom.teacher_id)
+        except (IdentityServiceUnavailable, ResourceNotFound):
+            logger.warning("No fue posible resolver el nombre del docente para el evento de retiro.")
+        await self._publish_event_safely(REQUESTS_CHANNEL, event)
+
+    # HU-85: the classroom with its lessons, enrollments and logo. The
+    # lessons go first: if content-service can't delete them, nothing is
+    # deleted and the teacher can try again, so no lesson is ever left
+    # behind without its classroom.
+    async def delete_classroom(self, classroom_id: UUID, teacher_id: UUID) -> None:
+        async with self._uow_factory() as uow:
+            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+
+        await self._content.delete_classroom_lessons(classroom_id)
+
+        async with self._uow_factory() as uow:
+            await uow.classrooms.delete(classroom_id)
+            await uow.commit()
+        if classroom.logo_key:
+            await self._delete_quietly(classroom.logo_key)
+        logger.info("Aula %s eliminada por su docente.", classroom_id)
 
     async def get_logo(self, classroom_id: UUID, file_name: str, subject_id: UUID, role: str) -> SignedDownload:
         # Same rule as the classroom: its teacher and its accepted students.
@@ -345,6 +436,7 @@ class ClassroomService:
             "student_id": str(student_id),
             "student_name": info.first_name,
             "guardian_id": str(info.guardian_person_id),
+            "guardian_name": info.guardian_name,
         }
 
     # ------------------------------------------------------------------

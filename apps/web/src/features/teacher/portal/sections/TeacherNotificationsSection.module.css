@@ -1,0 +1,120 @@
+/* The part of a join request notification where the teacher answers it. */
+.decision {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-canvas);
+}
+
+.decisionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--color-iris-deep);
+}
+
+.people {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.person p {
+  margin: 0;
+}
+
+.personRole {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.personName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.personContact {
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.decisionButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.acceptButton,
+.rejectButton {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-medium);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.acceptButton {
+  border: none;
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
+.acceptButton:hover {
+  background: var(--color-action-hover);
+}
+
+.rejectButton {
+  border: 2px solid var(--color-iris-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+}
+
+.rejectButton:hover {
+  border-color: var(--color-iris-deep);
+}
+
+.acceptButton:disabled,
+.rejectButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.answered {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-canvas);
+  color: var(--color-ink-soft);
+}
+
+@media (max-width: 720px) {
+  .people {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Can't be used yet: a quiet blue-gray instead of a faded button. */
+.acceptButton:disabled {
+  background: var(--color-action-disabled);
+  color: var(--color-action-disabled-text);
+  opacity: 1;
+}

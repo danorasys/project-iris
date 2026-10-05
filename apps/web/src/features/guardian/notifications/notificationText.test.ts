@@ -32,6 +32,13 @@ describe("notification texts", () => {
     expect(notificationMessage(rejected)).toContain("Carlos Ruiz no aceptó la solicitud de Sofía");
   });
 
+  it("tells that the teacher took the kid out of a class", () => {
+    const n: NotificationItem = { ...base, event: "enrollment.removed" };
+
+    expect(notificationSubject(n)).toBe("Retiro de una clase");
+    expect(notificationMessage(n)).toContain('Carlos Ruiz retiró a Sofía de la clase "Matemáticas 3A"');
+  });
+
   it("still reads well when names are missing", () => {
     const n: NotificationItem = {
       ...base,

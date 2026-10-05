@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -67,6 +67,17 @@ class SqlAlchemyLessonRepository:
         stmt = select(func.count()).select_from(LessonModel).where(LessonModel.classroom_id == classroom_id)
         result = await self._session.execute(stmt)
         return int(result.scalar_one())
+
+    async def list_ids_by_classroom(self, classroom_id: UUID) -> list[UUID]:
+        result = await self._session.execute(select(LessonModel.id).where(LessonModel.classroom_id == classroom_id))
+        return list(result.scalars().all())
+
+    async def delete_by_classroom(self, classroom_id: UUID) -> None:
+        # The blocks first, so it doesn't depend on the database enforcing
+        # the foreign key's ON DELETE CASCADE (SQLite in the tests doesn't).
+        lesson_ids = select(LessonModel.id).where(LessonModel.classroom_id == classroom_id)
+        await self._session.execute(delete(ContentBlockModel).where(ContentBlockModel.lesson_id.in_(lesson_ids)))
+        await self._session.execute(delete(LessonModel).where(LessonModel.classroom_id == classroom_id))
 
     async def add(self, lesson: Lesson) -> None:
         self._session.add(

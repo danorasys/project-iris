@@ -1,19 +1,29 @@
+import type { TwoFactorAccount } from "@/shared/api/hooks/useAuthApi";
 import logoIris from "@/assets/landing/logo-iris.png";
 import styles from "./TotpSuccessScreen.module.css";
 
 interface TotpSuccessScreenProps {
-  guardianFirstName: string;
+  firstName: string;
+  /** Whose 2FA was just turned on, it changes what the mascot says. */
+  account?: TwoFactorAccount;
   onContinue: () => void;
 }
 
-/** Shown right after TotpSetupScreen's verify() succeeds — the 2FA
- * equivalent of RegistrationSuccessScreen, reusing the same celebratory
- * beat (mascot lands, badge pops, bubble explains, button appears) but with
- * a padlock swinging shut instead of a checkmark being drawn, since what
- * just happened here is "your account got locked down", not "a record got
- * created". Hands off to `/guardian/portal`, not back into the wizard —
- * this screen is the last thing the registration flow shows. */
-export function TotpSuccessScreen({ guardianFirstName, onContinue }: TotpSuccessScreenProps) {
+const DETAILS: Record<TwoFactorAccount, { why: string; next: string }> = {
+  guardian: {
+    why: "De ahora en adelante, cada vez que quieras ingresar al Portal de Padres, IRIS te pedirá el código de tu aplicación autenticadora además de tu contraseña, así tu cuenta y la información de tu hijo o hija quedan mejor protegidas.",
+    next: "¡Y hablando del Portal de Padres, vamos a llevarte allá!",
+  },
+  teacher: {
+    why: "De ahora en adelante, cada vez que inicies sesión, IRIS te pedirá el código de tu aplicación autenticadora además de tu contraseña, así tu cuenta queda mejor protegida.",
+    next: "¡Ahora sí, vamos a llevarte a tu panel docente!",
+  },
+};
+
+/** After the 2FA is turned on: like RegistrationSuccessScreen, but with a
+ * padlock closing instead of a check. Then on to the portal or the panel. */
+export function TotpSuccessScreen({ firstName, account = "guardian", onContinue }: TotpSuccessScreenProps) {
+  const details = DETAILS[account];
   return (
     <div className={styles.page} role="status">
       <div className={styles.stage}>
@@ -29,14 +39,10 @@ export function TotpSuccessScreen({ guardianFirstName, onContinue }: TotpSuccess
 
       <div className={styles.bubble}>
         <p className={styles.headline}>
-          ¡Listo, <strong>{guardianFirstName}</strong>! Tu verificación en dos pasos ya quedó activada.
+          ¡Listo, <strong>{firstName}</strong>! Tu verificación en dos pasos ya quedó activada.
         </p>
-        <p>
-          De ahora en adelante, cada vez que quieras ingresar al Portal de Padres, IRIS te pedirá el código de tu
-          aplicación autenticadora además de tu contraseña, así tu cuenta y la información de tu hijo o hija
-          quedan mejor protegidas.
-        </p>
-        <p>¡Y hablando del Portal de Padres, vamos a llevarte allá!</p>
+        <p>{details.why}</p>
+        <p>{details.next}</p>
       </div>
 
       <button type="button" className={styles.continueButton} onClick={onContinue}>

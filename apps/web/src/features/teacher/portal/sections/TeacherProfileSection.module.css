@@ -1,0 +1,124 @@
+/* Only what the teacher profile card needs. The rest of Mi perfil comes
+   from shared/ui/profile, the same as the guardian's. The texts use the same
+   sizes and colors as the other fields of the profile. */
+
+/* --- Reading: about me, studies and experience --- */
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.about {
+  margin: 0;
+  padding: var(--space-2) 0;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--color-ink);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-2) 0;
+  font-size: 1.05rem;
+  color: var(--color-ink-soft);
+}
+
+.entries {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each study or job: an icon like the ones of the cards, and its data. */
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.entryIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-medium);
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+.entryText {
+  min-width: 0;
+}
+
+.entryTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.entryLine {
+  margin: 2px 0 0;
+  font-size: 0.95rem;
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.description {
+  margin: var(--space-2) 0 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-ink);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* --- Editing --- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* The buttons at the end of the card, a thin line apart, like Seguridad. */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+@media (max-width: 720px) {
+  .entries {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .actions button {
+    justify-content: center;
+  }
+}

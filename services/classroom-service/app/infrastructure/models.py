@@ -1,20 +1,19 @@
-# SQLAlchemy models.
-#
-# Uuid(as_uuid=True) is SQLAlchemy 2.0's generic type. It maps to the native
-# uuid type on PostgreSQL and to CHAR(32) on SQLite, so the schema doesn't need
-# to be duplicated between the two dialects. teacher_id and student_id are
-# reference UUIDs pointing at identity_db, with no real ForeignKey across
-# databases.
+# SQLAlchemy models. Uuid(as_uuid=True) is uuid on PostgreSQL and CHAR(32)
+# on SQLite (the tests). teacher_id and student_id point to identity_db, so
+# they have no real foreign key.
 
 from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, Uuid
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.domain.entities import CLASSROOM_COLORS, DEFAULT_CLASSROOM_COLOR
 from app.infrastructure.db import Base
+
+_COLORS_SQL = ", ".join(f"'{color}'" for color in CLASSROOM_COLORS)
 
 
 def _uuid4() -> uuid.UUID:
@@ -27,6 +26,7 @@ def _utcnow() -> datetime:
 
 class ClassroomModel(Base):
     __tablename__ = "classrooms"
+    __table_args__ = (CheckConstraint(f"color IN ({_COLORS_SQL})", name="ck_classrooms_color"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=_uuid4)
     teacher_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), index=True)
@@ -35,6 +35,8 @@ class ClassroomModel(Base):
     logo_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     enrollment_code: Mapped[str] = mapped_column(String(7), unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    # The avatar's color, see CLASSROOM_COLORS.
+    color: Mapped[str] = mapped_column(String(10), default=DEFAULT_CLASSROOM_COLOR, server_default=DEFAULT_CLASSROOM_COLOR)
 
     enrollments: Mapped[list["EnrollmentModel"]] = relationship(
         back_populates="classroom", cascade="all, delete-orphan"

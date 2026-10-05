@@ -11,6 +11,9 @@ interface CurrentSession {
   accessToken: string;
   subjectId: string;
   role: Role;
+  /** A teacher's session that already passed the 2FA code. Only picks the
+   * screen, every service checks the token itself. */
+  mfaVerified: boolean;
 }
 
 interface AuthContextValue {
@@ -43,7 +46,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const payload = decodeJwtPayload(tokens.access_token);
     if (!payload) return;
     accessTokenRef.current = tokens.access_token;
-    setSessionState({ accessToken: tokens.access_token, subjectId: payload.sub, role: payload.role });
+    setSessionState({
+      accessToken: tokens.access_token,
+      subjectId: payload.sub,
+      role: payload.role,
+      mfaVerified: payload.mfa === "1",
+    });
   }, []);
 
   const clearSession = useCallback(() => {

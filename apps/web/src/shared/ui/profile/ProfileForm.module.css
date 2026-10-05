@@ -1,0 +1,408 @@
+/* The pieces every editable profile in the parents' portal shares (Mi perfil
+   and the data of each kid): cards, fields that open to edit, the bar to
+   save or discard, and the buttons. */
+
+/* Loading and error lines, before the form shows up. */
+.status {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+/* --- Cards --- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* The cards, the rows and the open field move and resize when a field
+   opens or closes. This class is how theme.css finds them. */
+.card,
+.field,
+.fieldEditing {
+  view-transition-class: profile-part;
+}
+
+.card {
+  padding: var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  border: 1px solid var(--color-iris-pale);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Read only data sits on the page color, so it looks different at a glance. */
+.cardMuted {
+  background: var(--color-canvas);
+  box-shadow: none;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-iris-pale);
+}
+
+.cardIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.cardTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--color-iris-deep);
+}
+
+.cardHint {
+  margin: var(--space-1) 0 0 0;
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+}
+
+/* --- Fields, two per row --- */
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+/* The editable value has a dashed underline as a hint that it can change,
+   and the pencil is the clear way in (double click also works). */
+.fieldValueRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 2px dashed var(--color-iris-pale);
+  transition: border-color 120ms ease;
+}
+
+.field:hover .fieldValueRow {
+  border-bottom-color: var(--color-iris-medium);
+}
+
+/* A value that breaks a rule: red underline and the message below. */
+.fieldInvalid .fieldValueRow,
+.fieldInvalid:hover .fieldValueRow {
+  border-bottom-color: var(--color-error);
+}
+
+.fieldError {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.fieldValue {
+  font-size: 1.05rem;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.fieldReadOnly .fieldValue {
+  padding: var(--space-2) 0;
+  border-bottom: 2px solid transparent;
+  color: var(--color-ink-soft);
+}
+
+.fieldEditing {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-canvas);
+}
+
+.fieldEditingInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.cancelEditingButton {
+  flex: none;
+  border: 2px solid var(--color-iris-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  /* Same height as the input next to it. */
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.cancelEditingButton:hover {
+  border-color: var(--color-iris-deep);
+  background: var(--color-iris-pale);
+}
+
+.cancelEditingButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.editButton {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.editButton:hover,
+.editButton:focus-visible {
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+/* Info box with the "i", same as the 2FA screen and the profile picker. */
+/* --- Bar to save or discard changes --- */
+.saveBar {
+  position: sticky;
+  bottom: var(--space-3);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  /* Blue border and the sky-blue halo of a selected field, so it reads as
+     "this is where you are working". */
+  border: 2px solid var(--color-iris-medium);
+  box-shadow:
+    var(--shadow-card),
+    var(--focus-halo);
+  /* Comes up from below when the first change is made, with the same
+     smooth stop as the 2FA dialog. Then the halo opens with a small
+     bounce, like a field when it's selected. */
+  animation:
+    save-bar-in 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    save-bar-halo 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms both;
+}
+
+@keyframes save-bar-halo {
+  from {
+    box-shadow:
+      var(--shadow-card),
+      0 0 0 0 var(--color-focus-halo);
+  }
+  to {
+    box-shadow:
+      var(--shadow-card),
+      var(--focus-halo);
+  }
+}
+
+@keyframes save-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* When the changes are discarded or saved, it goes back down the same way
+   it came, a little faster. Keeps the end state so it doesn't flash back
+   before it is removed. */
+.saveBarLeaving {
+  animation: save-bar-out 220ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes save-bar-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+}
+
+/* For people who asked their system for less motion, it just shows up and
+   goes away. */
+@media (prefers-reduced-motion: reduce) {
+  .saveBar {
+    animation: none;
+  }
+
+  .saveBarLeaving {
+    animation: none;
+    visibility: hidden;
+  }
+}
+
+.saveBarText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.saveBarTitle {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+/* Soft notice while some data is wrong. The tint comes from the theme's
+   error color, so there are no new colors outside theme.css. */
+.fixNotice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+  background: color-mix(in srgb, var(--color-error) 7%, var(--color-surface));
+  font-size: 0.9rem;
+  color: var(--color-ink);
+}
+
+.fixNotice strong {
+  color: var(--color-error);
+}
+
+.fixNoticeIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-error) 14%, var(--color-surface));
+  color: var(--color-error);
+}
+
+.saveBarButtons {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
+/* --- Buttons and messages --- */
+.error {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.primaryButton {
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-action);
+  color: var(--color-surface);
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-action-hover);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* White with a medium blue border (about 5:1 on white), so it's easy to
+   see as a button next to the cards. */
+.secondaryButton {
+  flex: none;
+  border: 2px solid var(--color-iris-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.secondaryButton:hover {
+  border-color: var(--color-iris-deep);
+  background: var(--color-iris-pale);
+}
+
+.secondaryButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* --- Small screens: one column --- */
+@media (max-width: 720px) {
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldEditing {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cancelEditingButton {
+    align-self: flex-end;
+  }
+
+  .saveBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .saveBarButtons {
+    justify-content: flex-end;
+  }
+}
+
+/* Can't be used yet: a quiet blue-gray instead of a faded button. */
+.primaryButton:disabled {
+  background: var(--color-action-disabled);
+  color: var(--color-action-disabled-text);
+  opacity: 1;
+}
