@@ -33,7 +33,9 @@ class IdentityHttpClient:
         self._internal_key = internal_key
         self._client = httpx.AsyncClient(timeout=httpx.Timeout(timeout_seg))
         self._breaker = CircuitBreaker(umbral_fallos=umbral_fallos, segundos_apertura=segundos_apertura)
-        self._cache_tokens: TTLCache[str, UserClaims] = TTLCache(maxsize=1000, ttl=cache_ttl_seg)
+        # Kept apart by renew, so a request of the page by itself never
+        # hides the activity of a real one.
+        self._cache_tokens: TTLCache[tuple[str, bool], UserClaims] = TTLCache(maxsize=1000, ttl=cache_ttl_seg)
 
     def _headers(self, extra: dict[str, str] | None = None) -> dict[str, str]:
         headers = {"X-Internal-Key": self._internal_key}
@@ -52,14 +54,15 @@ class IdentityHttpClient:
             response.raise_for_status()
         return response
 
-    async def validar_token(self, access_token: str) -> UserClaims:
-        cacheado = self._cache_tokens.get(access_token)
+    async def validar_token(self, access_token: str, renew: bool = True) -> UserClaims:
+        cacheado = self._cache_tokens.get((access_token, renew))
         if cacheado is not None:
             return cacheado
 
         headers = self._headers({"Authorization": f"Bearer {access_token}"})
+        path = "/internal/tokens/validate" if renew else "/internal/tokens/validate?renew=false"
         try:
-            response = await self._breaker.llamar(lambda: self._get("/internal/tokens/validate", headers))
+            response = await self._breaker.llamar(lambda: self._get(path, headers))
         except (httpx.HTTPError, CircuitAbiertoError) as exc:
             raise IdentityServiceUnavailable() from exc
 
@@ -70,7 +73,7 @@ class IdentityHttpClient:
 
         body = response.json()
         claims = UserClaims(sub=UUID(str(body["sub"])), role=str(body["role"]), extra=dict(body.get("extra") or {}))
-        self._cache_tokens[access_token] = claims
+        self._cache_tokens[(access_token, renew)] = claims
         return claims
 
     # No cache here. Used to enrich lists (requests, a classroom's enrolled

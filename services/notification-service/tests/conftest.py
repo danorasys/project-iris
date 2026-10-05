@@ -33,6 +33,8 @@ class FakeIdentityClient:
         # (person_id, session_id) of the guardians with the portal open.
         self.open_portals: set[tuple[str, str]] = set()
         self.portal_checks: list[bool] = []
+        # renew of each token validation, in order.
+        self.renews: list[bool] = []
 
     # A teacher comes from a session that already passed the 2FA code,
     # unless mfa_verified=False.
@@ -44,7 +46,10 @@ class FakeIdentityClient:
             extra["mfa"] = "1"
         self.tokens[token] = TokenClaims(sub=sub, role=role, extra=extra)
 
-    async def validate_token(self, token: str | None, correlation_id: str | None = None) -> TokenClaims:
+    async def validate_token(
+        self, token: str | None, correlation_id: str | None = None, renew: bool = True
+    ) -> TokenClaims:
+        self.renews.append(renew)
         if token is None or token not in self.tokens:
             raise InvalidToken("Token de prueba desconocido.")
         return self.tokens[token]

@@ -10,6 +10,7 @@ import {
 import { RequireRol } from "./RequireRol"
 import { RequirePortalAccess } from "@/features/guardian/RequirePortalAccess"
 import { RequireTeacherVerified } from "@/features/teacher/twoFactor/RequireTeacherVerified"
+import { TeacherAccessProvider } from "@/features/teacher/twoFactor/TeacherAccessProvider"
 import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext"
 import { GazeCursor } from "@/shared/ui/GazeCursor"
 import { LoadingScreen } from "@/shared/ui/LoadingScreen"
@@ -252,11 +253,14 @@ export function AppRouter() {
                             path="setup-2fa"
                             element={<TeacherSetup2faPage />}
                         />
-                        {/* The rest of the panel needs a session that passed the 2FA code. */}
+                        {/* The rest of the panel needs a session that passed the 2FA code,
+                            and asks for it again after a while without activity. */}
                         <Route
                             element={
                                 <RequireTeacherVerified>
-                                    <Outlet />
+                                    <TeacherAccessProvider>
+                                        <Outlet />
+                                    </TeacherAccessProvider>
                                 </RequireTeacherVerified>
                             }
                         >

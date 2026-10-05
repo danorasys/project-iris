@@ -267,3 +267,15 @@ async def test_a_teacher_without_the_2fa_code_has_no_tray(
 
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "verificacion_2fa_requerida"
+
+
+# Reading the tray every so often doesn't keep a teacher's panel open.
+async def test_lo_que_la_pagina_pide_sola_no_cuenta_como_actividad(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    fake_identity_client.register("token-docente", sub=str(uuid.uuid4()), role="teacher")
+
+    await client.get("/notifications/me", headers=_auth("token-docente"))
+    await client.get("/notifications/me", headers={**_auth("token-docente"), "X-Iris-Activity": "background"})
+
+    assert fake_identity_client.renews == [True, False]

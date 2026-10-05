@@ -89,9 +89,15 @@ class CurrentUser:
         self.extra = extra
 
 
+# Sent by the web app on the requests it makes by itself (lists refreshed
+# every so often): they don't keep a teacher's panel open.
+BACKGROUND_ACTIVITY = "background"
+
+
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     identity: Annotated[IdentityGateway, Depends(get_identity_gateway)],
+    x_iris_activity: Annotated[str | None, Header()] = None,
 ) -> CurrentUser:
     # Unlike identity-service, classroom-service never sees JWT_SECRET. It
     # validates the token by calling identity-service's
@@ -100,7 +106,7 @@ async def get_current_user(
     # treated as authenticated.
     if credentials is None:
         raise InvalidToken("Falta el encabezado de autorización.")
-    claims = await identity.validar_token(credentials.credentials)
+    claims = await identity.validar_token(credentials.credentials, renew=x_iris_activity != BACKGROUND_ACTIVITY)
     return CurrentUser(subject_id=claims.sub, role=claims.role, extra=claims.extra)
 
 

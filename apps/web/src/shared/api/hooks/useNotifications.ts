@@ -25,7 +25,8 @@ const trayKeys = {
 export function useNotificationTray(role: TrayRole, page: number, pageSize: number) {
   return useQuery({
     queryKey: trayKeys.page(role, page, pageSize),
-    queryFn: () => apiFetch<NotificationPage>(`/notifications/me?page=${page}&page_size=${pageSize}`),
+    queryFn: () =>
+      apiFetch<NotificationPage>(`/notifications/me?page=${page}&page_size=${pageSize}`, { background: true }),
     refetchInterval: INTERVALO_BANDEJA_MS,
     // Moving to the next page keeps the current one on screen meanwhile.
     placeholderData: (previous) => previous,
@@ -37,7 +38,7 @@ export function useNotificationTray(role: TrayRole, page: number, pageSize: numb
 export function useUnreadNotifications(role: TrayRole) {
   return useQuery({
     queryKey: trayKeys.unread(role),
-    queryFn: () => apiFetch<NotificationPage>("/notifications/me?page=1&page_size=1"),
+    queryFn: () => apiFetch<NotificationPage>("/notifications/me?page=1&page_size=1", { background: true }),
     select: (page) => page.unread_count,
     refetchInterval: INTERVALO_BANDEJA_MS,
     // Without the guardian's portal open there is nothing to count, no need to retry.

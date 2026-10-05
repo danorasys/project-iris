@@ -155,6 +155,8 @@ def get_auth_service(
         pin_lockout=pin_lockout,
         refresh_ttl_seconds=settings.jwt_refresh_ttl_days * 24 * 3600,
         refresh_reuse_grace_sec=settings.refresh_reuse_grace_sec,
+        portal_access_ttl_sec=settings.portal_access_ttl_sec,
+        portal_access_max_age_sec=settings.portal_access_max_age_sec,
     )
 
 
@@ -300,12 +302,23 @@ def require_role(*allowed_roles: str):
     return _dep
 
 
-# A teacher whose session already passed the 2FA code. Guards everything of
-# the teacher except setting up and typing that code.
+# What the web app sends on the requests it makes by itself (the lists it
+# refreshes every so often). They don't count as activity of the person.
+BACKGROUND_ACTIVITY = "background"
+
+
+# A teacher whose session typed the 2FA code, and recently: like the
+# parents' portal, the panel closes after 15 min without activity (2 h at
+# most). Guards everything of the teacher except setting up and typing that code.
 async def require_verified_teacher(
     user: Annotated[CurrentUser, Depends(require_role("teacher"))],
+    auth: Annotated[AuthService, Depends(get_auth_service)],
+    x_iris_activity: Annotated[str | None, Header()] = None,
 ) -> CurrentUser:
-    if user.extra.get(MFA_CLAIM) != MFA_VERIFIED:
+    if user.extra.get(MFA_CLAIM) != MFA_VERIFIED or user.session_id is None:
+        raise TwoFactorRequired()
+    renew = x_iris_activity != BACKGROUND_ACTIVITY
+    if not await auth.teacher_access_open(user.subject_id, user.session_id, renew):
         raise TwoFactorRequired()
     return user
 

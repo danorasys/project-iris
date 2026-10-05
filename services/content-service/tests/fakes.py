@@ -15,6 +15,8 @@ class FakeIdentityClient:
     def __init__(self) -> None:
         self._users: dict[str, ValidatedUser] = {}
         self.available = True
+        # renew of each token validation, in order.
+        self.renews: list[bool] = []
 
     # A teacher comes from a session that already passed the 2FA code,
     # unless mfa_verified=False.
@@ -31,7 +33,10 @@ class FakeIdentityClient:
             claims["mfa"] = "1"
         self._users[token] = ValidatedUser(subject_id=subject_id, role=role, extra=claims)
 
-    async def validate_token(self, access_token: str, correlation_id: str | None) -> ValidatedUser:
+    async def validate_token(
+        self, access_token: str, correlation_id: str | None, renew: bool = True
+    ) -> ValidatedUser:
+        self.renews.append(renew)
         if not self.available:
             raise IdentityServiceUnavailable()
         user = self._users.get(access_token)

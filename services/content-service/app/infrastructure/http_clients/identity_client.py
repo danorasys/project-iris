@@ -32,10 +32,14 @@ class HttpIdentityClient:
         self._base_url = base_url.rstrip("/")
         self._internal_key = internal_key
         self._breaker = breaker or CircuitBreaker()
-        self._cache: TTLCache[str, ValidatedUser] = TTLCache(maxsize=1000, ttl=cache_ttl_seconds)
+        # Kept apart by renew, so a request of the page by itself never
+        # hides the activity of a real one.
+        self._cache: TTLCache[tuple[str, bool], ValidatedUser] = TTLCache(maxsize=1000, ttl=cache_ttl_seconds)
 
-    async def validate_token(self, access_token: str, correlation_id: str | None) -> ValidatedUser:
-        cached = self._cache.get(access_token)
+    async def validate_token(
+        self, access_token: str, correlation_id: str | None, renew: bool = True
+    ) -> ValidatedUser:
+        cached = self._cache.get((access_token, renew))
         if cached is not None:
             return cached
 
@@ -52,6 +56,7 @@ class HttpIdentityClient:
         try:
             response = await self._http.get(
                 f"{self._base_url}/internal/tokens/validate",
+                params=None if renew else {"renew": "false"},
                 headers=headers,
                 timeout=httpx.Timeout(2.0),
             )
@@ -74,5 +79,5 @@ class HttpIdentityClient:
             role=str(data["role"]),
             extra=dict(data.get("extra") or {}),
         )
-        self._cache[access_token] = user
+        self._cache[(access_token, renew)] = user
         return user

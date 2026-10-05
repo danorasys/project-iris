@@ -32,10 +32,13 @@ _bearer = HTTPBearer(auto_error=False)
 async def validate_token(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     auth: Annotated[AuthService, Depends(get_auth_service)],
+    renew: bool = True,
 ) -> TokenClaimsResponse:
+    """renew=false for the requests the page makes by itself: they don't
+    keep a teacher's panel open."""
     if credentials is None:
         raise InvalidToken("Falta el token a validar.")
-    claims = await auth.validate_access_token(credentials.credentials)
+    claims = await auth.validate_access_token(credentials.credentials, renew)
     extra = {k: str(v) for k, v in claims.items() if k not in {"sub", "role", "type", "iat", "exp"}}
     return TokenClaimsResponse(sub=str(claims["sub"]), role=str(claims["role"]), extra=extra)
 

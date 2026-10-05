@@ -8,6 +8,15 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localho
 const CLIENT_HEADER = "X-Iris-Client";
 const CLIENT_HEADER_VALUE = "web";
 
+// Requests the page makes by itself (lists refreshed every so often) say
+// so: they don't count as activity, so they don't keep a teacher's panel
+// open after 15 min without anyone using it.
+const ACTIVITY_HEADER = "X-Iris-Activity";
+const BACKGROUND_ACTIVITY = "background";
+
+// The teacher's panel closed after a while without activity.
+const TWO_FACTOR_REQUIRED = "verificacion_2fa_requerida";
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -35,29 +44,51 @@ export function configureAuthHandlers(handlers: AuthHandlers): void {
   authHandlers = handlers;
 }
 
+// Set by the teacher's portal while it's open: asks for the 2FA code and
+// says whether it was typed, so the request can be made once more.
+let twoFactorHandler: (() => Promise<boolean>) | null = null;
+
+export function configureTwoFactorHandler(handler: (() => Promise<boolean>) | null): void {
+  twoFactorHandler = handler;
+}
+
+// A request that found the teacher's panel closed waits for the code and
+// is made once more. Without a handler, or if the code wasn't typed, the
+// error goes on as usual.
+async function retryAfterCode(error: ApiError, alreadyRetried: boolean): Promise<boolean> {
+  if (alreadyRetried || error.code !== TWO_FACTOR_REQUIRED || !twoFactorHandler) return false;
+  return twoFactorHandler();
+}
+
 interface ApiFetchOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   auth?: boolean; // defaults to true, sends the access token if there is one
+  /** A request the page makes by itself, not the person (see ACTIVITY_HEADER). */
+  background?: boolean;
   /** true on the internal retry request after a refresh, so it doesn't loop */
   _isRetry?: boolean;
+  /** true on the retry after typing the 2FA code, so it doesn't loop */
+  _isRetry2fa?: boolean;
 }
 
-async function parseErrorBody(response: Response): Promise<ErrorApi["error"]> {
+async function readApiError(response: Response): Promise<ApiError> {
+  let error: ErrorApi["error"] = { code: "error_desconocido", message: `Error inesperado (${response.status}).` };
   try {
     const data = (await response.json()) as ErrorApi;
-    if (data?.error?.code) return data.error;
+    if (data?.error?.code) error = data.error;
   } catch {
-    /* response without a JSON body, falls through to the generic message below */
+    /* response without a JSON body, keeps the generic message */
   }
-  return { code: "error_desconocido", message: `Error inesperado (${response.status}).` };
+  return new ApiError(response.status, error.code, error.message, error.details);
 }
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-  const { body, auth = true, headers, _isRetry, ...rest } = options;
+  const { body, auth = true, background = false, headers, _isRetry, _isRetry2fa, ...rest } = options;
 
   const finalHeaders = new Headers(headers);
   finalHeaders.set("Accept", "application/json");
   finalHeaders.set(CLIENT_HEADER, CLIENT_HEADER_VALUE);
+  if (background) finalHeaders.set(ACTIVITY_HEADER, BACKGROUND_ACTIVITY);
   if (body !== undefined) finalHeaders.set("Content-Type", "application/json");
 
   if (auth && authHandlers) {
@@ -83,8 +114,11 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   }
 
   if (!response.ok) {
-    const error = await parseErrorBody(response);
-    throw new ApiError(response.status, error.code, error.message, error.details);
+    const error = await readApiError(response);
+    if (await retryAfterCode(error, Boolean(_isRetry2fa))) {
+      return apiFetch<T>(path, { ...options, _isRetry2fa: true });
+    }
+    throw error;
   }
 
   if (response.status === 204) return undefined as T;
@@ -93,7 +127,12 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
 // Shared by uploads and image downloads: sends the access token and, on a
 // 401, refreshes the session once and retries. Any other error becomes an ApiError.
-async function fetchWithSession(path: string, init: RequestInit = {}, isRetry = false): Promise<Response> {
+async function fetchWithSession(
+  path: string,
+  init: RequestInit = {},
+  isRetry = false,
+  isRetry2fa = false,
+): Promise<Response> {
   const headers = new Headers(init.headers);
   const token = authHandlers?.getAccessToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -102,13 +141,14 @@ async function fetchWithSession(path: string, init: RequestInit = {}, isRetry = 
 
   if (response.status === 401 && authHandlers && !isRetry) {
     const nuevoToken = await authHandlers.refresh();
-    if (nuevoToken) return fetchWithSession(path, init, true);
+    if (nuevoToken) return fetchWithSession(path, init, true, isRetry2fa);
     authHandlers.onAuthFailure();
   }
 
   if (!response.ok) {
-    const error = await parseErrorBody(response);
-    throw new ApiError(response.status, error.code, error.message, error.details);
+    const error = await readApiError(response);
+    if (await retryAfterCode(error, isRetry2fa)) return fetchWithSession(path, init, isRetry, true);
+    throw error;
   }
   return response;
 }

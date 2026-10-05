@@ -86,6 +86,8 @@ class AuthService:
         pin_lockout: AttemptLockout,
         refresh_ttl_seconds: int,
         refresh_reuse_grace_sec: int,
+        portal_access_ttl_sec: int,
+        portal_access_max_age_sec: int,
     ) -> None:
         self._uow_factory = uow_factory
         self._hasher = password_hasher
@@ -99,6 +101,8 @@ class AuthService:
         self._pin_lockout = pin_lockout
         self._refresh_ttl_seconds = refresh_ttl_seconds
         self._refresh_reuse_grace_sec = refresh_reuse_grace_sec
+        self._portal_access_ttl_sec = portal_access_ttl_sec
+        self._portal_access_max_age_sec = portal_access_max_age_sec
 
     async def register_guardian(
         self,
@@ -382,12 +386,32 @@ class AuthService:
     def issue_verified_access_token(self, subject_id: UUID, session_id: str) -> str:
         return self._tokens.emitir_access_token(subject_id, "teacher", {MFA_CLAIM: MFA_VERIFIED}, session_id)
 
-    async def validate_access_token(self, access_token: str) -> dict[str, object]:
+    # Used by the other services. A teacher's token keeps its mfa claim for
+    # the whole session, but the panel closes after a while without activity
+    # (like the parents' portal), so then the claim is left out and every
+    # service answers that the 2FA code is needed. renew=False is for the
+    # requests the page makes by itself, they don't count as activity.
+    async def validate_access_token(self, access_token: str, renew: bool = True) -> dict[str, object]:
         claims = self._tokens.decodificar(access_token)
         if claims.get("type") != "access":
             raise InvalidToken()
         await self._sessions.ensure_active(claims)
+        if claims.get("role") == "teacher" and claims.get(MFA_CLAIM) == MFA_VERIFIED:
+            sid = claims.get("sid")
+            subject = UUID(str(claims["sub"]))
+            if not isinstance(sid, str) or not await self.teacher_access_open(subject, sid, renew):
+                claims = {key: value for key, value in claims.items() if key != MFA_CLAIM}
         return claims
+
+    # Whether the teacher typed their 2FA code in this session recently
+    # enough. With renew, this request counts as activity and the 15 min
+    # start again (never past the 2 h since the code).
+    async def teacher_access_open(self, person_id: UUID, session_id: str, renew: bool) -> bool:
+        if renew:
+            return await self._portal_access.renovar(
+                person_id, session_id, self._portal_access_ttl_sec, self._portal_access_max_age_sec
+            )
+        return await self._portal_access.esta_abierto(person_id, session_id, self._portal_access_max_age_sec)
 
     def _issue_token_pair(
         self, subject_id: UUID, role: str, extra: dict[str, str] | None = None, sid: str | None = None

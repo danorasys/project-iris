@@ -65,7 +65,9 @@ class ObjectStorage(Protocol):
 class IdentityClient(Protocol):
     # Raises InvalidToken (401) if the token is invalid or expired, or
     # IdentityServiceUnavailable (503) if identity-service doesn't respond.
-    async def validate_token(self, access_token: str, correlation_id: str | None) -> ValidatedUser: ...
+    async def validate_token(
+        self, access_token: str, correlation_id: str | None, renew: bool = True
+    ) -> ValidatedUser: ...
 
 
 class ClassroomClient(Protocol):

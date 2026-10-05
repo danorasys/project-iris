@@ -53,10 +53,14 @@ class IdentityClient:
         self._internal_service_key = internal_service_key
         self._timeout_sec = timeout_sec
         self._circuit_breaker = circuit_breaker
-        self._cache: TTLCache[str, TokenClaims] = TTLCache(maxsize=1000, ttl=cache_ttl_seconds)
+        # Kept apart by renew, so a request of the page by itself never
+        # hides the activity of a real one.
+        self._cache: TTLCache[tuple[str, bool], TokenClaims] = TTLCache(maxsize=1000, ttl=cache_ttl_seconds)
 
-    async def validate_token(self, token: str, correlation_id: str | None = None) -> TokenClaims:
-        cached = self._cache.get(token)
+    async def validate_token(
+        self, token: str, correlation_id: str | None = None, renew: bool = True
+    ) -> TokenClaims:
+        cached = self._cache.get((token, renew))
         if cached is not None:
             return cached
 
@@ -69,6 +73,7 @@ class IdentityClient:
                 headers[CORRELATION_HEADER] = correlation_id
             response = await self._http.get(
                 f"{self._base_url}/internal/tokens/validate",
+                params=None if renew else {"renew": "false"},
                 headers=headers,
                 timeout=httpx.Timeout(self._timeout_sec),
             )
@@ -95,7 +100,7 @@ class IdentityClient:
         if result is None:
             raise InvalidToken()
 
-        self._cache[token] = result
+        self._cache[(token, renew)] = result
         return result
 
     # No cache here: the portal closes after a while without use, and a

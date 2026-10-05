@@ -22,6 +22,8 @@ class FakeIdentityGateway:
         self._students: dict[UUID, StudentInfo] = {}
         self._teacher_names: dict[UUID, str] = {}
         self.fallar_con_no_disponible = False
+        # renew of each token validation, in order.
+        self.renews: list[bool] = []
         # The guardian of every student registered here.
         self.guardian_person_id = uuid4()
 
@@ -59,7 +61,8 @@ class FakeIdentityGateway:
         self._tokens[token] = UserClaims(sub=uuid4(), role="guardian", extra={})
         return token
 
-    async def validar_token(self, access_token: str) -> UserClaims:
+    async def validar_token(self, access_token: str, renew: bool = True) -> UserClaims:
+        self.renews.append(renew)
         if self.fallar_con_no_disponible:
             raise IdentityServiceUnavailable()
         claims = self._tokens.get(access_token)

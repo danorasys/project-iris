@@ -534,3 +534,16 @@ async def test_a_teacher_without_the_2fa_code_is_turned_away(
 
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "verificacion_2fa_requerida"
+
+
+# What the page asks by itself doesn't keep a teacher's panel open.
+async def test_lo_que_la_pagina_pide_sola_no_cuenta_como_actividad(
+    client: AsyncClient, identity_client: FakeIdentityClient
+) -> None:
+    identity_client.register("token-docente", uuid4(), "teacher")
+    url = f"/classrooms/{uuid4()}/lessons"
+
+    await client.get(url, headers=_auth("token-docente"))
+    await client.get(url, headers={**_auth("token-docente"), "X-Iris-Activity": "background"})
+
+    assert identity_client.renews == [True, False]

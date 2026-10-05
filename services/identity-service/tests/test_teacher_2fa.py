@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import time
+
 import fakeredis.aioredis
 import jwt
 import pyotp
@@ -187,3 +189,99 @@ async def test_con_el_2fa_activo_no_se_puede_cambiar_de_celular_con_solo_la_cont
     assert setup.json()["error"]["code"] == "totp_ya_activado"
     assert verify.status_code == 409
     assert (await client.get("/teachers/me/2fa", headers=_auth(intruso))).json() == {"enabled": True}
+
+
+# --- The same time limit as the parents' portal: 15 min idle, 2 h at most ---
+
+
+async def _docente_con_acceso(client: AsyncClient, correo: str, document_number: str) -> tuple[str, str]:
+    secret, token = await activar_2fa_docente(client, await _registrar_docente(client, correo, document_number))
+    return token, secret
+
+
+async def _clave_de_acceso(redis_client: fakeredis.aioredis.FakeRedis) -> str:
+    [clave] = [k async for k in redis_client.scan_iter(match="portal-access:*")]
+    return str(clave)
+
+
+async def test_usar_el_panel_docente_reinicia_el_tiempo_de_inactividad(
+    client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
+) -> None:
+    token, _ = await _docente_con_acceso(client, "panel-actividad@example.com", "84000001")
+    clave = await _clave_de_acceso(redis_client)
+    # As if the teacher had been idle almost the whole time.
+    await redis_client.expire(clave, 5)
+
+    assert (await client.get("/teachers/me", headers=_auth(token))).status_code == 200
+    assert await redis_client.ttl(clave) > 5
+
+
+async def test_lo_que_la_pagina_pide_sola_no_cuenta_como_actividad(
+    client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
+) -> None:
+    token, _ = await _docente_con_acceso(client, "panel-fondo@example.com", "84000002")
+    clave = await _clave_de_acceso(redis_client)
+    await redis_client.expire(clave, 5)
+
+    respuesta = await client.get("/teachers/me", headers={**_auth(token), "X-Iris-Activity": "background"})
+
+    assert respuesta.status_code == 200
+    assert await redis_client.ttl(clave) <= 5
+
+
+async def test_el_panel_docente_se_cierra_tras_el_tiempo_de_inactividad(
+    client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
+) -> None:
+    token, secret = await _docente_con_acceso(client, "panel-inactivo@example.com", "84000003")
+    await redis_client.delete(await _clave_de_acceso(redis_client))
+
+    cerrado = await client.get("/teachers/me", headers=_auth(token))
+
+    assert cerrado.status_code == 403
+    assert cerrado.json()["error"]["code"] == "verificacion_2fa_requerida"
+    # The code opens it again in the same session, without signing in again.
+    reto = await client.post("/teachers/me/2fa/challenge", json={"code": pyotp.TOTP(secret).now()}, headers=_auth(token))
+    assert reto.status_code == 200
+    assert (await client.get("/teachers/me", headers=_auth(token))).status_code == 200
+
+
+async def test_el_panel_docente_se_cierra_tras_el_tope_aunque_haya_actividad(
+    client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
+) -> None:
+    token, _ = await _docente_con_acceso(client, "panel-tope@example.com", "84000004")
+    clave = await _clave_de_acceso(redis_client)
+    antes = int(time.time()) - get_settings().portal_access_max_age_sec - 1
+    await redis_client.set(clave, str(antes), keepttl=True)
+
+    assert (await client.get("/teachers/me", headers=_auth(token))).status_code == 403
+    assert await redis_client.exists(clave) == 0
+
+
+async def test_los_otros_servicios_ven_el_panel_cerrado_sin_el_permiso_mfa(
+    client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
+) -> None:
+    token, _ = await _docente_con_acceso(client, "panel-servicios@example.com", "84000005")
+    interno = {"Authorization": f"Bearer {token}", "X-Internal-Key": "test-internal-key"}
+
+    abierto = await client.get("/internal/tokens/validate", headers=interno)
+    await redis_client.delete(await _clave_de_acceso(redis_client))
+    cerrado = await client.get("/internal/tokens/validate", headers=interno)
+
+    assert abierto.json()["extra"].get("mfa") == "1"
+    # The token is still valid (the session is open), only the mfa claim is gone.
+    assert cerrado.status_code == 200
+    assert "mfa" not in cerrado.json()["extra"]
+
+
+async def test_validar_en_segundo_plano_no_alarga_el_panel(
+    client: AsyncClient, redis_client: fakeredis.aioredis.FakeRedis
+) -> None:
+    token, _ = await _docente_con_acceso(client, "panel-validar@example.com", "84000006")
+    clave = await _clave_de_acceso(redis_client)
+    await redis_client.expire(clave, 5)
+    interno = {"Authorization": f"Bearer {token}", "X-Internal-Key": "test-internal-key"}
+
+    await client.get("/internal/tokens/validate", params={"renew": "false"}, headers=interno)
+    assert await redis_client.ttl(clave) <= 5
+    await client.get("/internal/tokens/validate", headers=interno)
+    assert await redis_client.ttl(clave) > 5

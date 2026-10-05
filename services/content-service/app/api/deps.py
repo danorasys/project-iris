@@ -88,13 +88,21 @@ def get_lesson_service(
     )
 
 
+# Sent by the web app on the requests it makes by itself (lists refreshed
+# every so often): they don't keep a teacher's panel open.
+BACKGROUND_ACTIVITY = "background"
+
+
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     identity: Annotated[HttpIdentityClient, Depends(get_identity_client)],
+    x_iris_activity: Annotated[str | None, Header()] = None,
 ) -> ValidatedUser:
     if credentials is None:
         raise InvalidToken("Falta el encabezado de autorización.")
-    return await identity.validate_token(credentials.credentials, get_correlation_id())
+    return await identity.validate_token(
+        credentials.credentials, get_correlation_id(), renew=x_iris_activity != BACKGROUND_ACTIVITY
+    )
 
 
 # Internal routes: only other IRIS services, with the shared key. They're

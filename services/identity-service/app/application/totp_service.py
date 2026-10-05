@@ -129,8 +129,8 @@ class TotpService:
             return
         if role == "teacher":
             await self._session_mfa.mark_verified(person_id, session_id, self._session_mfa_ttl_sec)
-        else:
-            await self._portal_access.conceder(person_id, session_id, self._portal_access_ttl_sec)
+        # The panel or the portal stays open while it's used (see PortalAccessStore).
+        await self._portal_access.conceder(person_id, session_id, self._portal_access_ttl_sec)
 
     # Checked before the parents' portal, so a session left open on a shared
     # computer can't get in. A good code opens the portal for a while (see
@@ -147,12 +147,14 @@ class TotpService:
             await self._portal_access.conceder(person_id, session_id, self._portal_access_ttl_sec)
         return missed_attempts
 
-    # Asked when a teacher opens their panel in a new session. A good code
-    # marks that session as verified for as long as it lasts.
+    # Asked when a teacher opens their panel, and again after a while
+    # without activity. A good code marks the session as verified and opens
+    # the panel for a while, like the parents' portal.
     async def confirm_teacher_session(self, person_id: UUID, session_id: str | None, code: str) -> None:
         await self._check_code(person_id, session_id, code)
         if session_id is not None:
             await self._session_mfa.mark_verified(person_id, session_id, self._session_mfa_ttl_sec)
+            await self._portal_access.conceder(person_id, session_id, self._portal_access_ttl_sec)
 
     # Asked right before a sensitive change (the password), so both factors
     # are proven at that moment.

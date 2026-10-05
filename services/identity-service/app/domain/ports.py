@@ -227,9 +227,9 @@ class TokenIssuer(Protocol):
 
 
 class PortalAccessStore(Protocol):
-    # Short lived proof that a guardian passed the 2FA check for the parents'
-    # portal. It belongs to the session where the code was typed, so the code
-    # never opens the portal in another browser with the same account.
+    # Short lived proof that a guardian (parents' portal) or a teacher (their
+    # panel) passed the 2FA check. It belongs to the session where the code
+    # was typed, so the code never opens another browser with that account.
     async def conceder(self, person_id: UUID, session_id: str, ttl_seg: int) -> None: ...
 
     # True while the access is still open, and in that case it starts the
@@ -244,9 +244,9 @@ class PortalAccessStore(Protocol):
     async def revocar_todas(self, person_id: UUID) -> None: ...
 
 
-# Proof that a teacher typed their 2FA code in a session. It lasts as long as
-# the session itself (a teacher works for hours editing lessons), and only
-# that session gets it, the code never opens another browser.
+# Proof that a teacher typed their 2FA code in a session at some point. It
+# lasts as long as the session and keeps the mfa claim in renewed tokens;
+# whether it's still recent is the PortalAccessStore's job.
 class SessionMfaStore(Protocol):
     async def mark_verified(self, person_id: UUID, session_id: str, ttl_sec: int) -> None: ...
     async def is_verified(self, person_id: UUID, session_id: str) -> bool: ...

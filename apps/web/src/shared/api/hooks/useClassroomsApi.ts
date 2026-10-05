@@ -31,7 +31,7 @@ const TEACHER_CLASSROOMS_REFRESH_MS = 30_000;
 export function useTeacherClassrooms(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: classroomKeys.todas,
-    queryFn: () => apiFetch<TeacherClassroom[]>("/classrooms"),
+    queryFn: () => apiFetch<TeacherClassroom[]>("/classrooms", { background: true }),
     enabled: options?.enabled,
     refetchInterval: TEACHER_CLASSROOMS_REFRESH_MS,
   });

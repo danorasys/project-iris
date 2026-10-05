@@ -302,3 +302,16 @@ async def test_no_se_elimina_una_clase_ajena(
 
     assert response.status_code == 403
     assert content_gateway.deleted == []
+
+
+# The lists the page refreshes by itself say so, and then they don't keep
+# a teacher's panel open in identity-service.
+async def test_lo_que_la_pagina_pide_sola_no_cuenta_como_actividad(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+
+    await client.get("/classrooms", headers=_auth(token))
+    await client.get("/classrooms", headers={**_auth(token), "X-Iris-Activity": "background"})
+
+    assert identity_gateway.renews == [True, False]

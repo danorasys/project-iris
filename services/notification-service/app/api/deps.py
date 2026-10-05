@@ -5,7 +5,7 @@ from typing import Annotated
 from uuid import UUID
 
 import httpx
-from fastapi import Depends
+from fastapi import Depends, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis, from_url
 
@@ -67,15 +67,23 @@ class CurrentUser:
         self.mfa_verified = mfa_verified
 
 
+# Sent by the web app on the requests it makes by itself (lists refreshed
+# every so often): they don't keep a teacher's panel open.
+BACKGROUND_ACTIVITY = "background"
+
+
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     identity: Annotated[IdentityClient, Depends(get_identity_client)],
+    x_iris_activity: Annotated[str | None, Header()] = None,
 ) -> CurrentUser:
     # Same pattern as the other services: notification-service never sees
     # JWT_SECRET, it validates the token by calling identity-service.
     if credentials is None:
         raise InvalidToken("Falta el encabezado de autorización.")
-    claims = await identity.validate_token(credentials.credentials, get_correlation_id())
+    claims = await identity.validate_token(
+        credentials.credentials, get_correlation_id(), renew=x_iris_activity != BACKGROUND_ACTIVITY
+    )
     return CurrentUser(
         subject_id=UUID(claims.sub),
         role=claims.role,
