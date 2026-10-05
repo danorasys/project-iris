@@ -94,6 +94,36 @@
   font-weight: 700;
 }
 
+/* The classes go on a white card, the same as the cards of Mi perfil, so
+   the group stands apart from the page background. */
+.panel {
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+/* No classes yet: the notice centered, and the card to create one below. */
+.emptyPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3);
+  text-align: center;
+}
+
+.emptyPanel .emptyText {
+  max-width: 52ch;
+}
+
+.emptyAction {
+  display: flex;
+  width: min(240px, 100%);
+  margin-top: var(--space-3);
+}
+
 /* --- One card per item (a classroom) --- */
 .grid {
   display: grid;

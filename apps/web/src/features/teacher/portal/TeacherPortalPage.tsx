@@ -6,7 +6,7 @@ import { useTeacherClassrooms } from "@/shared/api/hooks/useClassroomsApi";
 import { useUnreadNotifications } from "@/shared/api/hooks/useNotifications";
 import { useMyTeacherAccount } from "@/shared/api/hooks/useTeacherProfileApi";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { IconBell, IconLogOut, IconSchool, IconUserCircle } from "@/shared/ui/icons";
+import { IconBell, IconClassroom, IconLogOut, IconUserCircle } from "@/shared/ui/icons";
 import { PortalSection, PortalShell, type PortalNavItem } from "@/shared/ui/portal/PortalShell";
 import { ClassroomsSection } from "./sections/ClassroomsSection";
 import type { ClassroomView } from "./sections/ClassroomSpace";
@@ -106,7 +106,7 @@ export default function TeacherPortalPage() {
       badgeLabel: "sin leer",
     },
     { key: "perfil", label: "Mi perfil", Icon: IconUserCircle, onSelect: () => select("perfil"), active: section === "perfil" },
-    { key: "clases", label: "Mis clases", Icon: IconSchool, onSelect: () => select("clases"), active: section === "clases" },
+    { key: "clases", label: "Mis clases", Icon: IconClassroom, onSelect: () => select("clases"), active: section === "clases" },
     { key: "salir", label: "Cerrar sesión", Icon: IconLogOut, onSelect: requestLogout, danger: true },
   ];
 

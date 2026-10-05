@@ -66,50 +66,53 @@ export function MisPequesSection({ onDirtyChange }: MisPequesSectionProps) {
         meta={<span className={styles.chip}>{list.length === 1 ? "1 perfil" : `${list.length} perfiles`}</span>}
       />
 
-      {list.length === 0 && (
-        <div className={styles.empty}>
-          <span className={styles.emptyIcon} aria-hidden="true">
-            <IconChild width={26} height={26} />
-          </span>
-          <p className={styles.emptyTitle}>Todavía no tienes ningún perfil de estudiante</p>
-          <p className={styles.emptyText}>Cuando registres a tu peque, su perfil va a aparecer aquí.</p>
-        </div>
-      )}
+      {/* The profiles go on their own soft panel, apart from the page. */}
+      <section className={styles.profilesPanel} aria-label="Perfiles de tus peques">
+        {list.length === 0 && (
+          <div className={styles.empty}>
+            <span className={styles.emptyIcon} aria-hidden="true">
+              <IconChild width={26} height={26} />
+            </span>
+            <p className={styles.emptyTitle}>Todavía no tienes ningún perfil de estudiante</p>
+            <p className={styles.emptyText}>Cuando registres a tu peque, su perfil va a aparecer aquí.</p>
+          </div>
+        )}
 
-      <ul className={styles.grid}>
-        {list.map((student) => (
-          <li key={student.id}>
-            {/* The label reads the card as one sentence, the pieces alone
-                come out glued together in a screen reader. */}
-            <button
-              type="button"
-              className={styles.studentCard}
-              aria-label={`${student.first_name}, ${ageLabel(student.date_of_birth)}. Ver su espacio`}
-              onClick={() => setSelectedId(student.id)}
-            >
-              <span className={styles.avatarRing}>
-                <StudentAvatarImage avatarId={student.avatar_id} size="medium" label="" />
+        <ul className={styles.grid}>
+          {list.map((student) => (
+            <li key={student.id}>
+              {/* The label reads the card as one sentence, the pieces alone
+                  come out glued together in a screen reader. */}
+              <button
+                type="button"
+                className={styles.studentCard}
+                aria-label={`${student.first_name}, ${ageLabel(student.date_of_birth)}. Ver su espacio`}
+                onClick={() => setSelectedId(student.id)}
+              >
+                <span className={styles.avatarRing}>
+                  <StudentAvatarImage avatarId={student.avatar_id} size="medium" label="" />
+                </span>
+                <span className={styles.studentName}>{student.first_name}</span>
+                <span className={styles.studentAge}>{ageLabel(student.date_of_birth)}</span>
+                <span className={styles.studentAction}>
+                  Ver su espacio
+                  <IconArrowRight width={16} height={16} />
+                </span>
+              </button>
+            </li>
+          ))}
+          {/* Adding a kid from here isn't built yet, so the card is only shown.
+              aria-disabled tells screen readers it does nothing for now. */}
+          <li>
+            <button type="button" className={styles.addCard} aria-disabled="true">
+              <span className={styles.addIcon} aria-hidden="true">
+                <IconPlus width={34} height={34} />
               </span>
-              <span className={styles.studentName}>{student.first_name}</span>
-              <span className={styles.studentAge}>{ageLabel(student.date_of_birth)}</span>
-              <span className={styles.studentAction}>
-                Ver su espacio
-                <IconArrowRight width={16} height={16} />
-              </span>
+              <span className={styles.addTitle}>Agregar estudiante</span>
             </button>
           </li>
-        ))}
-        {/* Adding a kid from here isn't built yet, so the card is only shown.
-            aria-disabled tells screen readers it does nothing for now. */}
-        <li>
-          <button type="button" className={styles.addCard} aria-disabled="true">
-            <span className={styles.addIcon} aria-hidden="true">
-              <IconPlus width={34} height={34} />
-            </span>
-            <span className={styles.addTitle}>Agregar estudiante</span>
-          </button>
-        </li>
-      </ul>
+        </ul>
+      </section>
     </div>
   );
 }

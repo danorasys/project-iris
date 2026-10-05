@@ -136,7 +136,7 @@ export function SecurityCard({ changePassword }: { changePassword: PasswordChang
       id="perfil-seguridad"
       icon={<IconKey width={20} height={20} />}
       title="Seguridad"
-      hint="Aquí puedes cambiar la contraseña con la que inicias sesión en IRIS. Para confirmar que eres tú, te pediremos tu contraseña actual y un código de tu aplicación autenticadora. Al cambiarla cerraremos tus sesiones abiertas en todos los dispositivos y tendrás que iniciar sesión de nuevo con la nueva contraseña."
+      hint="Aquí gestionas la seguridad de tu cuenta: puedes cambiar la contraseña con la que inicias sesión en IRIS y cerrar tus sesiones abiertas en todos los dispositivos si notas algo extraño. Para cambiar la contraseña te pediremos la actual y un código de tu aplicación autenticadora. Al hacerlo, cerraremos tus sesiones y tendrás que iniciar sesión de nuevo."
     >
       {!expanded ? (
         <div className={styles.securityRow}>

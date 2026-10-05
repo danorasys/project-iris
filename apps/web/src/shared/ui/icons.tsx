@@ -66,12 +66,15 @@ export function IconBell(props: IconProps) {
   );
 }
 
-export function IconSchool(props: IconProps) {
+/** A board on its easel with something written on it: a classroom. */
+export function IconClassroom(props: IconProps) {
   return (
     <svg {...base} {...props}>
-      <path d="M3 10 12 4l9 6" />
-      <path d="M5 10v9h14v-9" />
-      <path d="M10 19v-5h4v5" />
+      <rect x="3" y="3.5" width="18" height="12" rx="1.5" />
+      <path d="M7 8h6" />
+      <path d="M7 11.3h9" />
+      <path d="M9.5 15.5 7.5 20.5" />
+      <path d="M14.5 15.5 16.5 20.5" />
     </svg>
   );
 }

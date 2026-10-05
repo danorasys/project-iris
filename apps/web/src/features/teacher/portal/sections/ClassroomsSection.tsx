@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Classroom } from "@iris/shared-types";
 import { useTeacherClassrooms } from "@/shared/api/hooks/useClassroomsApi";
-import { IconArrowRight, IconPlus, IconSchool } from "@/shared/ui/icons";
+import { IconArrowRight, IconClassroom, IconPlus } from "@/shared/ui/icons";
 import { Toast } from "@/shared/ui/Toast";
 import { ClassroomAvatar } from "../../classrooms/ClassroomAvatar";
 import { ClassroomFormDialog } from "../../classrooms/ClassroomFormDialog";
@@ -56,11 +56,20 @@ export function ClassroomsSection({ initialClassroomId, initialView }: Classroom
   const list = classrooms.data ?? [];
   const pending = list.reduce((total, classroom) => total + classroom.pending_requests, 0);
 
+  const newClassCard = (
+    <button type="button" className={styles.addCard} onClick={() => setCreating(true)}>
+      <span className={styles.addIcon} aria-hidden="true">
+        <IconPlus width={34} height={34} />
+      </span>
+      <span className={styles.addTitle}>Nueva clase</span>
+    </button>
+  );
+
   return (
     <div className={styles.section}>
       <header className={styles.hero}>
         <span className={styles.heroBadge} aria-hidden="true">
-          <IconSchool width={34} height={34} />
+          <IconClassroom width={34} height={34} />
         </span>
         <div className={styles.heroText}>
           <p className={styles.eyebrow}>Mis clases</p>
@@ -76,51 +85,49 @@ export function ClassroomsSection({ initialClassroomId, initialView }: Classroom
         </div>
       </header>
 
-      <ul className={styles.grid} aria-label="Tus clases">
-        <li>
-          <button type="button" className={styles.addCard} onClick={() => setCreating(true)}>
-            <span className={styles.addIcon} aria-hidden="true">
-              <IconPlus width={34} height={34} />
+      {/* Everything goes on a white card like the ones of Mi perfil. Without
+          classes, the notice and right below it the card to create one. */}
+      <section className={styles.panel} aria-label="Tus clases">
+        {list.length === 0 ? (
+          <div className={styles.emptyPanel}>
+            <span className={styles.emptyIcon} aria-hidden="true">
+              <IconClassroom width={24} height={24} />
             </span>
-            <span className={styles.addTitle}>Nueva clase</span>
-          </button>
-        </li>
-        {list.map((classroom) => (
-          <li key={classroom.id}>
-            <button type="button" className={styles.card} onClick={() => setOpenId(classroom.id)}>
-              {classroom.pending_requests > 0 && (
-                <span className={styles.cardBadge}>
-                  {classroom.pending_requests}
-                  <span className={styles.visuallyHidden}>
-                    {classroom.pending_requests === 1 ? " solicitud pendiente" : " solicitudes pendientes"}
+            <p className={styles.emptyTitle}>Todavía no tienes clases</p>
+            <p className={styles.emptyText}>
+              Crea tu primera clase con "Nueva clase". Después comparte su código de ingreso con las familias de tus
+              estudiantes.
+            </p>
+            <div className={styles.emptyAction}>{newClassCard}</div>
+          </div>
+        ) : (
+          <ul className={styles.grid}>
+            <li>{newClassCard}</li>
+            {list.map((classroom) => (
+              <li key={classroom.id}>
+                <button type="button" className={styles.card} onClick={() => setOpenId(classroom.id)}>
+                  {classroom.pending_requests > 0 && (
+                    <span className={styles.cardBadge}>
+                      {classroom.pending_requests}
+                      <span className={styles.visuallyHidden}>
+                        {classroom.pending_requests === 1 ? " solicitud pendiente" : " solicitudes pendientes"}
+                      </span>
+                    </span>
+                  )}
+                  <span className={`${styles.avatarRing} ${styles.squareRing}`}>
+                    <ClassroomAvatar classroom={classroom} size={88} />
                   </span>
-                </span>
-              )}
-              <span className={`${styles.avatarRing} ${styles.squareRing}`}>
-                <ClassroomAvatar classroom={classroom} size={88} />
-              </span>
-              <span className={styles.cardName}>{classroom.name}</span>
-              <span className={styles.cardAction}>
-                Entrar a la clase
-                <IconArrowRight width={16} height={16} />
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {list.length === 0 && (
-        <div className={styles.empty}>
-          <span className={styles.emptyIcon} aria-hidden="true">
-            <IconSchool width={24} height={24} />
-          </span>
-          <p className={styles.emptyTitle}>Todavía no tienes clases</p>
-          <p className={styles.emptyText}>
-            Crea tu primera clase con "Nueva clase". Después comparte su código de ingreso con las familias de tus
-            estudiantes.
-          </p>
-        </div>
-      )}
+                  <span className={styles.cardName}>{classroom.name}</span>
+                  <span className={styles.cardAction}>
+                    Entrar a la clase
+                    <IconArrowRight width={16} height={16} />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {creating && <ClassroomFormDialog onClose={() => setCreating(false)} onSaved={created} />}
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
