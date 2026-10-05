@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { TeacherAccount, TeacherProfile } from "@iris/shared-types";
 import { MemoryRouter } from "react-router-dom";
@@ -144,7 +144,10 @@ describe("TeacherProfileSection", { timeout: 20_000 }, () => {
     expect(updateAccount).not.toHaveBeenCalled();
     expect(await screen.findByText("Tus datos se guardaron correctamente.")).toBeTruthy();
     // Back to reading, with the focus on the button that opened the editor.
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Editar perfil docente" }));
+    // It moves on the next frame, once the button is drawn again.
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: "Editar perfil docente" })),
+    );
   });
 
   it("one save sends the personal data and the teacher profile together", async () => {
@@ -192,7 +195,10 @@ describe("TeacherProfileSection", { timeout: 20_000 }, () => {
     expect(saveProfile).not.toHaveBeenCalled();
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
     // The focus goes back to the button that opened the editor.
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Editar perfil docente" }));
+    // It moves on the next frame, once the button is drawn again.
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: "Editar perfil docente" })),
+    );
   });
 
   it("saves the personal data only after the truthful declaration", async () => {
