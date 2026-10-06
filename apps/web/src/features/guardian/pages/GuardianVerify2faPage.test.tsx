@@ -8,7 +8,7 @@ import GuardianVerify2faPage from "./GuardianVerify2faPage";
 const mutateAsync = vi.fn();
 const discardSession = vi.fn();
 
-vi.mock("@/shared/auth/AuthContext", () => ({
+vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => ({ discardSession }),
 }));
 

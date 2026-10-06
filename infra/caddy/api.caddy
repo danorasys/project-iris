@@ -4,6 +4,12 @@
 # The BFF already expects the /api prefix itself (see api-gateway's
 # routes_proxy.py), so requests are forwarded as-is, no path rewriting.
 handle /api/* {
+	# The biggest thing the API takes is a 5 MB picture. Anything heavier is
+	# turned down here (413), before a service reads it into memory.
+	request_body {
+		max_size 6MB
+	}
+
 	reverse_proxy api-gateway:8000 {
 		# Private images: the service only checks access and answers with
 		# X-Iris-Media (the Garage path) plus a signature for that one GET

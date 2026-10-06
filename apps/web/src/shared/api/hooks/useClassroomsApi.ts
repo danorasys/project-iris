@@ -6,6 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Classroom,
+  ClassroomArea,
   ClassroomColor,
   ClassroomWithStudents,
   EnrollmentRequest,
@@ -58,6 +59,10 @@ interface CrearAulaBody {
   name: string;
   description: string;
   color: ClassroomColor;
+  area: ClassroomArea;
+  /** Required with area "other", null with any other area. */
+  area_other: string | null;
+  grade: number;
 }
 
 /** `POST /classrooms`. Creates a new classroom (teacher). */

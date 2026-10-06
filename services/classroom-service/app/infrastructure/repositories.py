@@ -19,6 +19,9 @@ def _classroom_to_entity(m: ClassroomModel) -> Classroom:
         created_at=m.created_at,
         logo_key=m.logo_key,
         color=m.color,
+        area=m.area,
+        area_other=m.area_other,
+        grade=m.grade,
     )
 
 
@@ -69,6 +72,9 @@ class SqlAlchemyClassroomRepository:
                 enrollment_code=classroom.enrollment_code,
                 created_at=classroom.created_at,
                 color=classroom.color,
+                area=classroom.area,
+                area_other=classroom.area_other,
+                grade=classroom.grade,
             )
         )
 
@@ -80,6 +86,9 @@ class SqlAlchemyClassroomRepository:
         m.description = classroom.description
         m.logo_key = classroom.logo_key
         m.color = classroom.color
+        m.area = classroom.area
+        m.area_other = classroom.area_other
+        m.grade = classroom.grade
 
     async def delete(self, classroom_id: UUID) -> None:
         # Through the ORM, so the enrollments go too (cascade) on every database.

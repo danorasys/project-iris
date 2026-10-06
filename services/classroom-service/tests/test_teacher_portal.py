@@ -6,11 +6,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+from uuid import UUID
 
 import fakeredis.aioredis
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import update
 
+from app.infrastructure.db import SessionLocal
+from app.infrastructure.models import ClassroomModel
 from tests.fakes import FakeContentGateway, FakeIdentityGateway, FakeObjectStorage
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"datos-de-prueba"
@@ -23,7 +27,7 @@ def _auth(token: str) -> dict[str, str]:
 
 
 async def _create(client: AsyncClient, token: str, **body: object) -> dict:
-    payload = {"name": "Matemáticas Básicas", "description": "Sumas y restas", **body}
+    payload = {"name": "Matemáticas Básicas", "description": "Sumas y restas", "area": "mathematics", "grade": 1, **body}
     response = await client.post("/classrooms", json=payload, headers=_auth(token))
     assert response.status_code == 201, response.text
     result: dict = response.json()
@@ -97,7 +101,9 @@ async def test_datos_de_clase_no_validos_dan_422(
     token, _ = identity_gateway.registrar_docente()
 
     response = await client.post(
-        "/classrooms", json={"name": "Clase", "description": "d", **body}, headers=_auth(token)
+        "/classrooms",
+        json={"name": "Clase", "description": "d", "area": "arts", "grade": 1, **body},
+        headers=_auth(token),
     )
 
     assert response.status_code == 422
@@ -315,3 +321,141 @@ async def test_lo_que_la_pagina_pide_sola_no_cuenta_como_actividad(
     await client.get("/classrooms", headers={**_auth(token), "X-Iris-Activity": "background"})
 
     assert identity_gateway.renews == [True, False]
+
+
+# --- area and grade (HU-100) ---------------------------------------------
+
+
+async def test_la_clase_lleva_su_area_y_su_grado(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
+    token, _ = identity_gateway.registrar_docente()
+
+    classroom = await _create(client, token, area="mathematics", grade=2)
+    listed = (await client.get("/classrooms", headers=_auth(token))).json()
+
+    assert (classroom["area"], classroom["grade"]) == ("mathematics", 2)
+    assert (listed[0]["area"], listed[0]["grade"]) == ("mathematics", 2)
+
+
+@pytest.mark.parametrize("missing", ["area", "grade"])
+async def test_sin_area_o_sin_grado_no_se_crea_la_clase(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway, missing: str
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    body = {"name": "Clase", "description": "d", "area": "arts", "grade": 1}
+    del body[missing]
+
+    response = await client.post("/classrooms", json=body, headers=_auth(token))
+
+    assert response.status_code == 422
+
+
+async def test_editar_cambia_area_y_grado_pero_no_los_deja_vacios(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    classroom = await _create(client, token, area="natural_sciences", grade=1)
+    url = f"/classrooms/{classroom['id']}"
+
+    kept = await client.patch(url, json={"name": "Ciencias"}, headers=_auth(token))
+    changed = await client.patch(url, json={"area": "arts", "grade": 3}, headers=_auth(token))
+    cleared = await client.patch(url, json={"grade": None}, headers=_auth(token))
+
+    # Leaving them out keeps them, sending them changes them, null is refused.
+    assert (kept.json()["area"], kept.json()["grade"]) == ("natural_sciences", 1)
+    assert (changed.json()["area"], changed.json()["grade"]) == ("arts", 3)
+    assert cleared.status_code == 422
+
+
+async def test_una_clase_de_antes_se_completa_al_editarla(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    classroom = await _create(client, token)
+    # As if it had been created before area and grade existed.
+    async with SessionLocal() as session:
+        await session.execute(
+            update(ClassroomModel).where(ClassroomModel.id == UUID(classroom["id"])).values(area=None, grade=None)
+        )
+        await session.commit()
+    url = f"/classrooms/{classroom['id']}"
+
+    without_them = await client.patch(url, json={"name": "Matemáticas"}, headers=_auth(token))
+    with_them = await client.patch(url, json={"area": "mathematics", "grade": 4}, headers=_auth(token))
+
+    assert without_them.status_code == 422
+    assert without_them.json()["error"]["code"] == "clase_incompleta"
+    assert (with_them.json()["area"], with_them.json()["grade"]) == ("mathematics", 4)
+
+
+# Transición (0) isn't a primary school grade, and only one grade is taken.
+@pytest.mark.parametrize("body", [{"area": "music"}, {"grade": 0}, {"grade": 6}, {"grade": [1, 2]}, {"grade": "uno"}])
+async def test_area_o_grado_no_validos_dan_422(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway, body: dict
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+
+    response = await client.post(
+        "/classrooms",
+        json={"name": "Clase", "description": "d", "area": "arts", "grade": 1, **body},
+        headers=_auth(token),
+    )
+
+    assert response.status_code == 422
+
+
+# The description takes up to 2000 characters, not one more.
+async def test_la_descripcion_llega_hasta_2000_caracteres(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+
+    classroom = await _create(client, token, description="a" * 2000)
+    too_long = await client.patch(f"/classrooms/{classroom['id']}", json={"description": "a" * 2001}, headers=_auth(token))
+
+    assert len(classroom["description"]) == 2000
+    assert too_long.status_code == 422
+
+
+# --- "Otra" area, written by the teacher ----------------------------------
+
+
+async def test_con_otra_area_se_escribe_cual_es(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
+    token, _ = identity_gateway.registrar_docente()
+
+    without_it = await client.post(
+        "/classrooms",
+        json={"name": "Taller", "description": "d", "area": "other", "grade": 2},
+        headers=_auth(token),
+    )
+    classroom = await _create(client, token, area="other", area_other="  Música  ")
+
+    assert without_it.status_code == 422
+    assert without_it.json()["error"]["code"] == "otra_area_requerida"
+    assert (classroom["area"], classroom["area_other"]) == ("other", "Música")
+
+
+async def test_el_area_escrita_solo_queda_con_otra(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
+    token, _ = identity_gateway.registrar_docente()
+
+    # Sent with another area, it's simply not kept.
+    classroom = await _create(client, token, area="arts", area_other="Música")
+
+    assert classroom["area_other"] is None
+
+
+async def test_editar_el_area_escrita_y_quitarla_al_cambiar_de_area(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    classroom = await _create(client, token, area="other", area_other="Música")
+    url = f"/classrooms/{classroom['id']}"
+
+    renamed = await client.patch(url, json={"area_other": "Danza"}, headers=_auth(token))
+    to_maths = await client.patch(url, json={"area": "mathematics"}, headers=_auth(token))
+    back_without_it = await client.patch(url, json={"area": "other"}, headers=_auth(token))
+    too_long = await client.patch(url, json={"area": "other", "area_other": "a" * 61}, headers=_auth(token))
+
+    assert renamed.json()["area_other"] == "Danza"
+    assert (to_maths.json()["area"], to_maths.json()["area_other"]) == ("mathematics", None)
+    assert back_without_it.status_code == 422
+    assert too_long.status_code == 422

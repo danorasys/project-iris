@@ -1,358 +1,1056 @@
-/* Opening carousel: 4 real photos tinted toward the brand palette. Text
-   sits on a glass panel anchored bottom-left. */
-
-.carousel {
-  /* Dark blue behind: the focus ring is white here. */
+/* The hero: bright blue with a sky blue glow behind the carousel (never
+   behind the texts, so white letters keep their contrast) and the rings. */
+.hero {
   --color-focus: var(--color-surface);
   position: relative;
-  width: 100%;
-  height: min(88vh, 760px);
-  min-height: 520px;
   overflow: hidden;
-  background: var(--color-iris-deep);
-  isolation: isolate;
-}
-
-.track {
-  position: absolute;
-  inset: 0;
-}
-
-.slide {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 900ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.slideActive {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.image {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 30%;
-  animation: iris-ken-burns 22s ease-in-out infinite alternate;
-}
-
-@keyframes iris-ken-burns {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.06);
-  }
-}
-
-.overlay {
-  position: absolute;
-  inset: 0;
   background:
-    linear-gradient(120deg, rgba(14, 26, 38, 0.85) 0%, rgba(24, 46, 66, 0.55) 40%, rgba(30, 58, 82, 0.16) 68%),
-    linear-gradient(to top, rgba(10, 20, 30, 0.5) 0%, transparent 42%);
+    radial-gradient(42% 52% at 76% 30%, color-mix(in srgb, var(--landing-sky) 60%, transparent), transparent 70%),
+    radial-gradient(60% 70% at 0% 100%, color-mix(in srgb, var(--landing-navy) 60%, transparent), transparent 70%),
+    var(--landing-blue);
+  color: var(--color-surface);
 }
 
-.content {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: flex-end;
-  padding: var(--space-7) var(--space-6);
+.rings {
+  top: 46%;
+  left: 74%;
+  width: 1280px;
+  height: 1280px;
+  transform: translate(-50%, -50%);
 }
 
-/* Reads like an engraved plaque: near-straight
-   corners, double edge, a 1px top highlight for a beveled-glass look. */
-.textPanel {
+.inner {
   position: relative;
-  max-width: 34rem;
-  padding: var(--space-5) var(--space-6);
-  border-radius: 6px;
-  background: linear-gradient(160deg, rgba(22, 42, 60, 0.68), rgba(56, 100, 130, 0.4));
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid rgba(220, 232, 239, 0.28);
-  box-shadow:
-    inset 0 0 0 1px rgba(10, 20, 30, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 24px 60px rgba(8, 18, 28, 0.45);
-}
-
-.brandLockup {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-7);
+  max-width: 1240px;
+  min-height: min(100dvh, 920px);
+  margin: 0 auto;
+  padding: 104px var(--space-5) var(--space-6);
 }
 
-.brandLogo {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
-}
+/* --- Left: who IRIS is --- */
 
-.wordmark {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.05rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-surface);
-}
-
-.brandRule {
-  display: block;
-  width: 100%;
-  height: 1px;
-  margin: var(--space-3) 0;
-  background: linear-gradient(90deg, var(--color-amber) 0 42px, rgba(220, 232, 239, 0.3) 42px 100%);
-}
-
-.title {
-  margin: 0 0 var(--space-2);
-  font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: -0.005em;
-  font-size: clamp(1.3rem, 2vw, 1.7rem);
-  line-height: 1.22;
-  color: var(--color-surface);
-  text-shadow: 0 2px 18px rgba(6, 14, 22, 0.35);
-}
-
-.text {
-  margin: 0;
-  max-width: 30rem;
-  font-size: 1.02rem;
-  line-height: 1.6;
-  color: var(--color-iris-pale);
-}
-
-/* Brand slide: no photo, radial gradient background with floating shapes
-   and the breathing logo as the focus. */
-
-.slideBrand {
-  background: radial-gradient(120% 120% at 30% 24%, var(--color-iris-medium) 0%, var(--color-iris-deep) 62%);
-  /* Color of the floating shapes (FloatingShapes) over this dark background. */
-  --color-shape: rgba(220, 232, 239, 0.45);
-  --color-shape-accent: rgba(227, 169, 63, 0.6);
-}
-
-.brandContent {
-  position: relative;
-  height: 100%;
+.copy {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+}
+
+/* The name, big: the logo and IRIS side by side, the logo as tall as the
+   letters. The amber ring around the logo draws itself during the entrance,
+   the same ring a look fills to press a button. */
+.brand {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: var(--space-1);
-  padding: var(--space-5) var(--space-6);
+  gap: 0.26em;
+  margin: 0 0 var(--space-3);
+  font-size: clamp(3.2rem, 6.2vw, 5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.03em;
 }
 
-.heroLogo {
-  width: clamp(112px, 20vw, 208px);
-  height: clamp(112px, 20vw, 208px);
-  margin-bottom: var(--space-2);
-  filter: drop-shadow(0 14px 38px rgba(6, 14, 22, 0.45));
-  animation: iris-breathe 4s ease-in-out infinite;
+.brandMark {
+  position: relative;
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
 }
 
-.heroWordmark {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(2.4rem, 6vw, 4.2rem);
-  letter-spacing: 0.02em;
-  color: var(--color-surface);
-  text-shadow: 0 4px 30px rgba(6, 14, 22, 0.4);
+.brandMark img {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 10px 18px rgba(10, 47, 102, 0.35));
 }
 
-.heroRule {
-  display: block;
-  width: 64px;
+.brandRing {
+  position: absolute;
+  inset: -0.11em;
+  width: calc(100% + 0.22em);
+  height: calc(100% + 0.22em);
+  overflow: visible;
+  transform: rotate(-90deg);
+  fill: none;
+  stroke: var(--color-amber);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+/* What IRIS is, said the same way every section opens its own label: an
+   amber line and spaced capitals, without a box around it. */
+.eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 var(--space-4);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
+
+.eyebrow::before {
+  content: "";
+  flex: none;
+  width: 28px;
   height: 3px;
-  margin: var(--space-2) 0;
   border-radius: 2px;
   background: var(--color-amber);
 }
 
-.heroSlogan {
+/* "LMS" gets the yellow marker of the open source strip, painted behind
+   it from left to right once the hero is in. The letters turn navy as
+   it passes, so they always read well. */
+.lms {
+  position: relative;
+  z-index: 0;
+  padding: 0.1em 0.45em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-surface);
+  transition: color 240ms ease 1000ms;
+}
+
+.lms::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 3px 8px 4px 9px;
+  background: var(--color-gold);
+  transform: scaleX(0) skewX(-8deg);
+  transform-origin: left;
+  transition: transform 700ms var(--ease-out) 800ms;
+}
+
+[data-entered="true"] .lms {
+  color: var(--landing-navy);
+}
+
+[data-entered="true"] .lms::before {
+  transform: scaleX(1) skewX(-8deg);
+}
+
+.title {
   margin: 0;
-  max-width: 28rem;
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: clamp(1.1rem, 2.2vw, 1.4rem);
-  line-height: 1.35;
+  font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+  font-weight: 700;
+  line-height: 1.16;
+  letter-spacing: -0.025em;
+}
+
+.line {
+  display: block;
+}
+
+/* Each line of the slogan comes up on its own, the first one a bit before. */
+.lineInner {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.45em);
+  transition:
+    opacity 700ms var(--ease-out),
+    transform 900ms var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 110ms);
+}
+
+[data-entered="true"] .lineInner {
+  opacity: 1;
+  transform: none;
+}
+
+/* The sparkle stays glued to the last word, never alone on a new line. */
+.nowrap {
+  white-space: nowrap;
+}
+
+/* "mirada" gets an amber line drawn by hand under it. */
+.marked {
+  position: relative;
+  white-space: nowrap;
+}
+
+.underline {
+  position: absolute;
+  left: -3%;
+  bottom: -0.02em;
+  width: 106%;
+  height: 0.3em;
+  overflow: visible;
+  fill: none;
+  stroke: var(--color-amber);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.underline path + path {
+  stroke-width: 3.5;
+  opacity: 0.75;
+}
+
+/* Three little strokes in the top right corner of "Tu mirada.", like it
+   just lit up. They hang out of the line (negative margin), so they never
+   push the text, and sit a bit above it, the way the design has them. */
+.sparkle {
+  display: inline-block;
+  width: 0.56em;
+  height: 0.56em;
+  margin: 0 -0.56em 0 0.02em;
+  vertical-align: top;
+  overflow: visible;
+  transform: translateY(-0.06em);
+  fill: none;
+  stroke: var(--color-gold);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+}
+
+/* They grow out of their corner, the bottom left of the drawing. */
+.sparkle g {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+}
+
+.lead {
+  max-width: 33rem;
+  margin: var(--space-4) 0 0;
+  font-size: 1.1rem;
+  line-height: 1.65;
+  color: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
+
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 0 26px 0 28px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.55);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-iris-deep);
+  text-decoration: none;
+  transition:
+    background-color 220ms ease,
+    transform 220ms var(--ease-out),
+    box-shadow 220ms ease;
+}
+
+.primary svg {
+  transition: transform 260ms var(--ease-spring);
+}
+
+.primary:hover {
+  background: var(--color-iris-pale);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 34px -14px rgba(0, 0, 0, 0.6);
+}
+
+.primary:hover svg {
+  transform: translateX(3px);
+}
+
+.primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.secondary {
+  color: color-mix(in srgb, var(--color-surface) 85%, transparent);
+}
+
+.secondary:hover {
   color: var(--color-surface);
 }
 
-.heroDescription {
-  margin: var(--space-1) 0 0;
-  max-width: 26rem;
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: var(--color-iris-pale);
+/* --- Right: the carousel --- */
+
+.showcase {
+  display: grid;
+  /* minmax(0, ...) lets the tabs scroll instead of widening the column. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 480px;
+  justify-self: end;
 }
 
-@media (max-width: 720px) {
-  .brandContent {
-    padding: var(--space-4);
+/* Every size in the stage is a share of its width (cqw), so the whole
+   picture shrinks together on a phone instead of breaking apart. */
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 100 / 76;
+  container-type: inline-size;
+}
+
+.blob {
+  position: absolute;
+  top: 28cqw;
+  left: 5cqw;
+  width: 42cqw;
+  height: 42cqw;
+  border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+  background: var(--color-amber);
+}
+
+.dot {
+  position: absolute;
+  top: 12cqw;
+  left: 3cqw;
+  width: 5cqw;
+  height: 6cqw;
+  border-radius: 50%;
+  background: var(--color-focus-halo);
+}
+
+/* The ring around the photo is the carousel's clock: it fills like a
+   button being looked at, and when it closes the next scene comes. */
+.dwell {
+  position: absolute;
+  top: 1cqw;
+  left: 13cqw;
+  z-index: 2;
+  width: 70cqw;
+  height: 70cqw;
+  overflow: visible;
+  transform: rotate(-90deg);
+  fill: none;
+}
+
+.dwellTrack {
+  stroke: color-mix(in srgb, var(--color-surface) 18%, transparent);
+  stroke-width: 0.6;
+}
+
+.dwellFill {
+  stroke: var(--color-amber);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: dwell-fill linear forwards;
+}
+
+.dwellFull {
+  stroke-dashoffset: 0;
+  animation: none;
+}
+
+@keyframes dwell-fill {
+  to {
+    stroke-dashoffset: 0;
   }
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  visibility: hidden;
+  transition: visibility 0s linear 700ms;
+}
+
+.sceneActive {
+  z-index: 3;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.portrait {
+  position: absolute;
+  top: 6cqw;
+  left: 18cqw;
+  width: 60cqw;
+  height: 60cqw;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--color-iris-deep);
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: opacity 700ms var(--ease-out);
+}
+
+.portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.08);
+  transition: transform 1600ms var(--ease-out);
+}
+
+.sceneActive .portrait {
+  opacity: 1;
+}
+
+.sceneActive .portrait img {
+  transform: none;
+}
+
+/* The little cards leave fast and all together, and come back one by one
+   with a small bounce once the new photo is in. */
+.chip,
+.card {
+  position: absolute;
+  z-index: 3;
+  opacity: 0;
+  transform: translateY(6px) scale(0.92);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+.sceneActive .chip,
+.sceneActive .card {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 380ms var(--ease-out),
+    transform 560ms var(--ease-spring);
+}
+
+.sceneActive .topChip {
+  transition-delay: 260ms;
+}
+
+.sceneActive .card {
+  transition-delay: 620ms;
+}
+
+.sceneActive .sideChip {
+  transition-delay: 780ms;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.4cqw;
+  padding: 1.8cqw 2.8cqw 1.8cqw 2.2cqw;
+  /* Rectangular labels with soft corners, like small cards of an app,
+     instead of round pills. */
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: 0 12px 24px -14px rgba(0, 0, 0, 0.55);
+  font-size: clamp(11px, 2.5cqw, 14px);
+  font-weight: 600;
+  color: var(--color-iris-deep);
+  white-space: nowrap;
+}
+
+.chip svg {
+  flex: none;
+  color: var(--color-iris-medium);
+}
+
+.topChip {
+  top: 2cqw;
+  right: 0;
+}
+
+.sideChip {
+  top: 58cqw;
+  left: 0;
 }
 
 .arrow {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(20, 36, 50, 0.35);
-  backdrop-filter: blur(8px);
-  color: var(--color-surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition:
-    background 150ms ease,
-    transform 150ms ease;
+  top: 10cqw;
+  right: 9cqw;
+  z-index: 3;
+  width: 11cqw;
+  height: 16cqw;
+  overflow: visible;
+  stroke: color-mix(in srgb, var(--color-surface) 75%, transparent);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.arrow svg {
-  width: 22px;
-  height: 22px;
+.arrow path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 200ms ease;
 }
 
-.arrow:hover {
-  background: rgba(20, 36, 50, 0.62);
+.sceneActive .arrow path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 700ms var(--ease-out) 420ms;
 }
 
-.arrow:active {
-  transform: translateY(-50%) scale(0.94);
+.sceneActive .arrow path + path {
+  transition-delay: 1000ms;
+  transition-duration: 300ms;
 }
 
-.arrowLeft {
-  left: var(--space-4);
+.card {
+  top: 29cqw;
+  right: 0;
+  width: 34cqw;
+  padding: 3cqw;
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 22px 40px -20px rgba(0, 0, 0, 0.6);
+  color: var(--color-ink);
 }
 
-.arrowRight {
-  right: var(--space-4);
+.cardLabel {
+  margin: 0;
+  font-size: clamp(11px, 2.5cqw, 14px);
+  font-weight: 700;
+  color: var(--color-iris-deep);
 }
 
-.bottomControls {
+.cardText {
+  margin: 0.6cqw 0 0;
+  font-size: clamp(10px, 2.2cqw, 12.5px);
+  color: var(--color-ink-soft);
+}
+
+.cardIcon {
+  display: grid;
+  place-items: center;
+  width: 8cqw;
+  height: 8cqw;
+  margin-bottom: 1.6cqw;
+  border-radius: 30%;
+  background: color-mix(in srgb, var(--color-amber) 16%, var(--color-surface));
+  color: var(--color-amber-dark);
+}
+
+.celebrate {
+  position: relative;
+}
+
+.burst {
   position: absolute;
-  right: var(--space-6);
-  bottom: var(--space-5);
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  inset: -45%;
+  width: 190%;
+  height: 190%;
+  overflow: visible;
+  opacity: 0;
+  fill: none;
+  stroke: var(--landing-sun);
+  stroke-width: 7;
+  stroke-linecap: round;
 }
 
-.pauseButton {
-  width: 34px;
-  height: 34px;
-  flex: none;
+/* The star waits small until the card is in, then pops (only its outline,
+   never filled); a moment later the burst flashes around it, and then it
+   twinkles twice while the scene lasts. */
+.sceneActive .celebrate > svg:first-child {
+  animation:
+    star-pop 620ms var(--ease-spring) 1100ms both,
+    star-twinkle 2400ms ease-in-out 2100ms 2;
+}
+
+.sceneActive .burst {
+  animation: star-burst 700ms ease-out 1350ms forwards;
+}
+
+@keyframes star-pop {
+  from {
+    scale: 0.3;
+    rotate: -45deg;
+  }
+  to {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+@keyframes star-twinkle {
+  0%,
+  100% {
+    transform: none;
+  }
+  8% {
+    transform: scale(1.2) rotate(14deg);
+  }
+  16% {
+    transform: none;
+  }
+}
+
+/* The new kid: the person walks in from the left, a green check pops on
+   the corner (registered!) and then the person hops twice, happy. */
+.register {
+  position: relative;
+}
+
+.registerBadge {
+  position: absolute;
+  right: -1cqw;
+  bottom: -1cqw;
+  display: grid;
+  place-items: center;
+  width: clamp(14px, 3.8cqw, 20px);
+  height: clamp(14px, 3.8cqw, 20px);
+  border: 2px solid var(--color-surface);
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(20, 36, 50, 0.35);
+  background: var(--color-mint);
   color: var(--color-surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  scale: 0;
 }
 
-.pauseButton svg {
-  width: 15px;
-  height: 15px;
+.registerBadge svg {
+  width: 70%;
+  height: 70%;
 }
 
-.dots {
+.sceneActive .register > svg:first-child {
+  animation:
+    kid-walk-in 560ms var(--ease-out) 1100ms both,
+    kid-hop 2400ms ease-in-out 2200ms 2;
+}
+
+.sceneActive .registerBadge {
+  animation: badge-pop 480ms var(--ease-spring) 1650ms forwards;
+}
+
+@keyframes kid-walk-in {
+  from {
+    opacity: 0;
+    translate: -70% 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes kid-hop {
+  0%,
+  100% {
+    transform: none;
+  }
+  6% {
+    transform: translateY(-22%);
+  }
+  12% {
+    transform: none;
+  }
+  16% {
+    transform: translateY(-10%);
+  }
+  20% {
+    transform: none;
+  }
+}
+
+@keyframes badge-pop {
+  from {
+    scale: 0;
+  }
+  to {
+    scale: 1;
+  }
+}
+
+@keyframes star-burst {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.15;
+  }
+}
+
+.cardList {
+  display: grid;
+  gap: 1.2cqw;
+  margin: 1.6cqw 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: clamp(10px, 2.2cqw, 12.5px);
+  color: var(--color-ink-soft);
+}
+
+.cardList li {
   display: flex;
   align-items: center;
+  gap: 1.2cqw;
+  white-space: nowrap;
+}
+
+.cardList svg {
+  flex: none;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--color-mint);
+  color: var(--color-surface);
+}
+
+/* The lessons slide in one after another (--n is their place in the list),
+   and once all three are there, their checks turn green one by one. */
+.sceneActive .cardList li {
+  animation: lesson-in 420ms var(--ease-out) both;
+  animation-delay: calc(900ms + var(--n) * 250ms);
+}
+
+.sceneActive .cardList svg {
+  animation: lesson-check 420ms var(--ease-spring) both;
+  animation-delay: calc(1800ms + var(--n) * 280ms);
+}
+
+@keyframes lesson-in {
+  from {
+    opacity: 0;
+    translate: -14px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Before its turn the check is an empty circle; then it pops green. */
+@keyframes lesson-check {
+  from {
+    scale: 0.6;
+    background: transparent;
+    color: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--color-iris-pale);
+  }
+  to {
+    scale: 1;
+    background: var(--color-mint);
+    color: var(--color-surface);
+    box-shadow: inset 0 0 0 1.5px transparent;
+  }
+}
+
+/* A small copy of the big ring inside the card, filling in 0.9 s, the
+   real time a look takes to press a button in IRIS. */
+.miniDwell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 20cqw;
+  height: 20cqw;
+  margin: 1.8cqw auto 0;
+}
+
+.miniRing {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+  fill: none;
+}
+
+.miniEye {
+  width: 8cqw;
+  height: 8cqw;
+  color: var(--color-iris-deep);
+  opacity: 0.3;
+  transform-origin: center;
+}
+
+/* The two labels share one place: "Seleccionando" while the ring fills,
+   "¡Seleccionado!" once it's full. */
+.dwellLabels {
+  display: grid;
+}
+
+.dwellLabels span {
+  grid-area: 1 / 1;
+}
+
+.labelAfter {
+  opacity: 0;
+  color: var(--landing-mint-dark);
+}
+
+.miniTrack {
+  stroke: var(--color-iris-pale);
+  stroke-width: 5;
+}
+
+.miniFill {
+  stroke: var(--color-mint);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.sceneActive .miniFill {
+  animation: dwell-fill 900ms linear 1100ms forwards;
+}
+
+/* At 2 s the ring is full: the eye lights up with a small bounce and then
+   blinks twice, like someone who just picked something with a look. */
+.sceneActive .miniEye {
+  animation:
+    eye-open 420ms var(--ease-spring) 2000ms forwards,
+    eye-blink 2200ms ease-in-out 2500ms 2;
+}
+
+.sceneActive .labelBefore {
+  animation: label-out 200ms ease 2000ms forwards;
+}
+
+.sceneActive .labelAfter {
+  animation: label-in 300ms var(--ease-out) 2050ms forwards;
+}
+
+@keyframes eye-open {
+  from {
+    opacity: 0.3;
+    scale: 0.8;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* A blink is fast: the eye closes and opens in a tenth of the loop. */
+@keyframes eye-blink {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  6% {
+    transform: scaleY(0.1);
+  }
+  12% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes label-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes label-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.badge {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: 0 10px 22px -10px rgba(0, 0, 0, 0.6);
+}
+
+.badgeStar {
+  top: 7cqw;
+  left: 17cqw;
+  width: 10cqw;
+  height: 10cqw;
+  background: var(--color-gold);
+  color: var(--color-iris-deep);
+}
+
+.caption {
+  min-height: 6.6rem;
+}
+
+.captionText {
+  animation: caption-in 560ms var(--ease-out);
+}
+
+@keyframes caption-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.captionTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.captionBody {
+  margin: var(--space-1) 0 0;
+  font-size: 0.97rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  padding: 0;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.4);
+/* When the four tabs don't fit next to the pause button they scroll
+   sideways instead of going under it. The small padding keeps the focus
+   ring visible inside the scrolling box. */
+.tabs {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px;
+  margin: -3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  position: relative;
+  /* Its own layer, so the progress fill can sit behind the name. */
+  isolation: isolate;
+  flex: none;
+  overflow: hidden;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--color-surface) 18%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 7%, transparent);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  white-space: nowrap;
   cursor: pointer;
   transition:
-    width 200ms ease,
-    background 200ms ease;
+    background-color 240ms ease,
+    color 240ms ease;
 }
 
-.dotActive {
-  width: 26px;
-  border-radius: 4px;
-  background: var(--color-amber);
+.tab:hover {
+  background: color-mix(in srgb, var(--color-surface) 16%, transparent);
+  color: var(--color-surface);
 }
 
-.srAnnouncement {
+.tabActive,
+.tabActive:hover {
+  border-color: color-mix(in srgb, var(--color-surface) 60%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 14%, transparent);
+  color: var(--color-surface);
+}
+
+/* The chosen tab fills from left to right with a soft white glow behind
+   its name, in step with the ring around the photo; when it's full, the
+   next scene comes. */
+.tabProgress {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--color-surface) 32%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: tab-progress linear forwards;
+}
+
+@keyframes tab-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.pause {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid color-mix(in srgb, var(--color-surface) 18%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-surface) 7%, transparent);
+  color: var(--color-surface);
+  cursor: pointer;
+}
+
+.pause:hover {
+  background: color-mix(in srgb, var(--color-surface) 16%, transparent);
+}
+
+/* Between laptop and tablet the carousel column is narrow: smaller tabs, so
+   all four fit next to the pause button. */
+@media (max-width: 1180px) {
+  .tab {
+    padding: 0 11px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 1020px) {
+  .inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+    min-height: 0;
+    padding-top: 112px;
+  }
+
+  .showcase {
+    justify-self: center;
+  }
+
+  .rings {
+    top: 70%;
+    left: 50%;
+  }
+}
+
+@media (max-width: 560px) {
+  .inner {
+    padding: 96px var(--space-3) var(--space-6);
+  }
+
+  .lead {
+    font-size: 1.04rem;
+  }
+
+  /* Smaller and a bit tighter, so the label and "LMS" fit in one line. */
+  .eyebrow {
+    gap: 8px;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+  }
+
+  .eyebrow::before {
+    width: 18px;
+  }
+
+  .primary {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .secondary {
+    margin: 0 auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .image {
-    animation: none;
-  }
-
-  .slide {
-    transition: opacity 300ms linear;
-  }
-}
-
-@media (max-width: 720px) {
-  .carousel {
-    height: min(92vh, 640px);
-    min-height: 480px;
-  }
-
-  .content {
-    padding: var(--space-5) var(--space-4);
-  }
-
-  .textPanel {
-    max-width: 100%;
-    padding: var(--space-4);
-  }
-
-  .arrow {
-    width: 40px;
-    height: 40px;
-  }
-
-  .arrowLeft {
-    left: var(--space-2);
-  }
-
-  .arrowRight {
-    right: var(--space-2);
-  }
-
-  .bottomControls {
-    right: var(--space-3);
-    bottom: var(--space-3);
+  .primary:hover,
+  .primary:active,
+  .primary:hover svg {
+    transform: none;
   }
 }

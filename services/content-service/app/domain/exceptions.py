@@ -61,3 +61,28 @@ class UnauthorizedInternalAccess(DomainError):
 class TwoFactorRequired(DomainError):
     code = "verificacion_2fa_requerida"
     message = "Confirma tu identidad con el código de verificación para entrar a tu panel docente."
+
+
+class UnitNotEmpty(DomainError):
+    # A unit with lessons can't go, so a click never deletes a lot of work.
+    code = "unidad_con_lecciones"
+    message = "Mueve o elimina primero las lecciones de esta unidad."
+
+
+class InvalidOrder(DomainError):
+    # A new order must name every unit (or lesson) exactly once.
+    code = "orden_invalido"
+    message = "El nuevo orden no coincide con los elementos actuales."
+
+
+class LessonIncomplete(DomainError):
+    # Publishing (or saving a published lesson) needs everything in place.
+    # details["missing"] lists what's left, in words the teacher reads.
+    code = "leccion_incompleta"
+    message = "A la lección todavía le faltan cosas para publicarla."
+
+
+class InvalidAudience(DomainError):
+    # An extra can only be for kids that are members of the class.
+    code = "estudiantes_no_validos"
+    message = "Elige estudiantes que sean miembros de la clase."

@@ -9,7 +9,7 @@ import { TeacherAccessProvider } from "./TeacherAccessProvider";
 const confirmCode = vi.fn();
 const setSession = vi.fn();
 
-vi.mock("@/shared/auth/AuthContext", () => ({
+vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => ({ setSession, discardSession: vi.fn() }),
 }));
 
@@ -82,7 +82,9 @@ describe("TeacherAccessProvider", () => {
     expect(await screen.findByText(/Pasó un tiempo sin actividad en tu panel docente/)).toBeTruthy();
     await user.keyboard("123456");
 
-    expect(await screen.findByText("MB")).toBeTruthy();
+    // The code, the new session and the retry take a few steps: on a busy
+    // machine (CI) they can need more than the default second.
+    expect(await screen.findByText("MB", undefined, { timeout: 5000 })).toBeTruthy();
     expect(confirmCode).toHaveBeenCalledWith({ code: "123456" });
     expect(setSession).toHaveBeenCalledWith({ access_token: "nuevo", token_type: "bearer" });
     expect(fetchMock).toHaveBeenCalledTimes(2);

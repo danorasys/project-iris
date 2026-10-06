@@ -1,0 +1,26 @@
+/* A text link with the hover of the top bar's links: the amber line grows
+   from the middle under the text. Each link uses it next to its own class,
+   which only adds the colors. */
+.lineLink {
+  position: relative;
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-small);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 200ms ease;
+}
+
+.lineLink::after {
+  content: "";
+  position: absolute;
+  inset: auto var(--space-1) 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-amber);
+  transform: scaleX(0);
+  transition: transform 360ms var(--ease-spring);
+}
+
+.lineLink:hover::after {
+  transform: scaleX(1);
+}

@@ -1,0 +1,39 @@
+/* The rings take the color of whatever they're on (currentColor), so the
+   caller only sets `color` and the size and place. */
+.rings {
+  position: absolute;
+  pointer-events: none;
+  color: var(--color-surface);
+  opacity: 0.13;
+}
+
+.ring,
+.ringStill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+}
+
+.ring {
+  animation: iris-ring-turn linear infinite paused;
+}
+
+.turning .ring {
+  will-change: transform;
+  animation-play-state: running;
+}
+
+@keyframes iris-ring-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none;
+  }
+}

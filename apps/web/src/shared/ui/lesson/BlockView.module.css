@@ -1,0 +1,93 @@
+/* How the blocks of a lesson look when read: the teacher's preview and the
+   kids' viewer share it, so what the teacher sees is what the kid gets. */
+.title,
+.subtitle,
+.paragraph,
+.list {
+  margin: 0;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-iris-deep);
+}
+
+.subtitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+/* Line breaks written by the teacher stay. */
+.paragraph {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.list {
+  padding-left: 1.4em;
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.list li::marker {
+  color: var(--color-iris-medium);
+}
+
+/* A wide table scrolls by itself, never the whole page. */
+.tableWrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  min-width: 60%;
+  font-size: 1rem;
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  text-align: left;
+}
+
+.table th {
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.figure {
+  margin: 0;
+}
+
+.image {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  border-radius: var(--radius-medium);
+  object-fit: contain;
+}
+
+/* The kids' viewer: bigger letters, easier to read from further away. */
+.large.title {
+  font-size: 2.2rem;
+}
+
+.large.subtitle {
+  font-size: 1.7rem;
+}
+
+.large.paragraph,
+.large.list,
+.large.table {
+  font-size: 1.4rem;
+}

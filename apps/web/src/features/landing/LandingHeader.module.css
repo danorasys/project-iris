@@ -1,181 +1,261 @@
-/* Fixed bar, consistent blue glass over any background (the carousel's dark
-   photo or the rest of the page's light canvas), never fully transparent.
-   It's stable chrome, not a decoration that blends into the content. */
-
+/* The top bar. Two looks: see-through with white letters over the dark hero,
+   and white glass with dark letters once the page moves (.solid). Only the
+   colors change between them, the bar never jumps. */
 .header {
-  /* Dark blue behind: the focus ring is white here. */
+  --header-ink: var(--color-surface);
+  --header-ink-soft: color-mix(in srgb, var(--color-surface) 78%, transparent);
   --color-focus: var(--color-surface);
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  inset: 0 0 auto;
   z-index: 100;
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color 320ms var(--ease-out),
+    border-color 320ms var(--ease-out),
+    box-shadow 320ms var(--ease-out);
+}
+
+.solid {
+  --header-ink: var(--color-iris-deep);
+  --header-ink-soft: var(--color-ink-soft);
+  --color-focus: var(--color-iris-medium);
+  background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border-bottom-color: var(--color-iris-pale);
+  box-shadow: 0 6px 24px -18px rgba(10, 47, 102, 0.5);
+}
+
+/* With the phone menu open the glass turns solid, so the links read well
+   over whatever is behind. */
+.open {
+  background: var(--color-surface);
+}
+
+.bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-4);
-  height: 68px;
+  max-width: 1240px;
+  height: 76px;
+  margin: 0 auto;
   padding: 0 var(--space-5);
-  background: rgba(20, 36, 50, 0.6);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border-bottom: 1px solid rgba(220, 232, 239, 0.14);
 }
 
 .brandLockup {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  text-decoration: none;
+  gap: 10px;
   flex: none;
+  border-radius: var(--radius-small);
+  text-decoration: none;
 }
 
 .logo {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
 }
 
 .wordmark {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-surface);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+  color: var(--header-ink);
+  transition: color 320ms var(--ease-out);
 }
 
 .nav {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-5);
   flex: 1;
-  justify-content: center;
 }
 
 .navLink {
   position: relative;
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 0.92rem;
-  color: var(--color-iris-pale);
-  text-decoration: none;
   padding: var(--space-1) 0;
-  transition:
-    color 200ms ease,
-    transform 200ms ease;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.94rem;
+  color: var(--header-ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 200ms ease;
 }
 
-/* Underline grows from the center on hover instead of snapping in. */
+/* The amber line grows from the middle under the link you point at. */
 .navLink::after {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -2px;
+  inset: auto 0 -3px;
   height: 2px;
   border-radius: 2px;
   background: var(--color-amber);
   transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 360ms var(--ease-spring);
 }
 
 .navLink:hover {
-  color: var(--color-surface);
-  transform: translateY(-1px);
+  color: var(--header-ink);
 }
 
 .navLink:hover::after {
   transform: scaleX(1);
 }
 
-.headerActions {
+.actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex: none;
 }
 
-/* Secondary: existing users signing in. A quiet outline against the
-   header's glass, since it needs less persuasion than joining does. */
-.loginButton {
-  flex: none;
-  border: 1.5px solid rgba(220, 232, 239, 0.5);
-  border-radius: var(--radius-medium);
-  background: transparent;
-  color: var(--color-surface);
-  padding: var(--space-2) var(--space-4);
+.loginButton,
+.registerButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 var(--space-4);
+  border-radius: 999px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.94rem;
   text-decoration: none;
+  white-space: nowrap;
   transition:
-    background 200ms ease,
-    border-color 200ms ease,
-    transform 200ms ease;
+    background-color 220ms ease,
+    color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms var(--ease-out);
+}
+
+.loginButton {
+  color: var(--header-ink);
 }
 
 .loginButton:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(220, 232, 239, 0.85);
-  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--header-ink) 10%, transparent);
 }
 
-/* Primary: the conversion goal, solid and closest to the edge of the bar
-   so it's the last, most prominent thing a scanning eye lands on. Same
-   quiet lift as "Ingresar" on hover, just a color change instead of an
-   outline, since this one already stands out by being solid. */
+/* Over the hero: a white pill with blue letters. On the glass: the IRIS
+   blue of every main button. */
 .registerButton {
-  flex: none;
-  border: none;
-  border-radius: var(--radius-medium);
-  background: var(--color-amber);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.5);
+}
+
+.solid .registerButton {
+  background: var(--color-action);
   color: var(--color-surface);
-  padding: var(--space-2) var(--space-4);
-  font-weight: 700;
-  font-size: 0.95rem;
-  text-decoration: none;
-  transition:
-    background 200ms ease,
-    transform 200ms ease;
 }
 
 .registerButton:hover {
-  background: var(--color-amber-dark);
   transform: translateY(-1px);
+  background: var(--color-iris-pale);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .navLink,
-  .navLink::after,
-  .loginButton,
-  .registerButton {
-    transition: color 120ms ease;
-  }
+.solid .registerButton:hover {
+  background: var(--color-action-hover);
+}
 
-  .navLink:hover,
-  .loginButton:hover,
-  .registerButton:hover {
-    transform: none;
+.registerButton:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.menuButton {
+  display: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--header-ink) 10%, transparent);
+  color: var(--header-ink);
+  cursor: pointer;
+}
+
+/* The phone menu drops under the bar, as part of the same glass. */
+.menu {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2) var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-iris-pale);
+  animation: menu-in 260ms var(--ease-out);
+}
+
+.menu[hidden] {
+  display: none;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
   }
 }
 
-@media (max-width: 860px) {
+.menuLink,
+.menuLogin {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-small);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--color-iris-deep);
+  text-decoration: none;
+}
+
+.menuLink + .menuLink {
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.menuLink:hover {
+  background: var(--color-canvas);
+}
+
+.menuLogin {
+  justify-content: center;
+  margin-top: var(--space-3);
+  border: 2px solid var(--color-iris-pale);
+  border-radius: 999px;
+}
+
+/* Below this width the six links don't fit in one line next to the
+   buttons, so they move to the menu. */
+@media (max-width: 1300px) {
   .nav {
     display: none;
   }
+
+  .actions {
+    margin-left: auto;
+  }
+
+  .menuButton {
+    display: grid;
+  }
 }
 
-@media (max-width: 480px) {
-  .header {
+@media (max-width: 560px) {
+  .bar {
+    height: 64px;
     padding: 0 var(--space-3);
   }
 
-  .wordmark {
-    display: none;
-  }
-
-  /* Only one button fits comfortably; keep the conversion goal. */
+  /* On phones the menu already has "Ingresar", so the bar keeps only the
+     sign-up button. */
   .loginButton {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .registerButton:hover,
+  .registerButton:active {
+    transform: none;
   }
 }

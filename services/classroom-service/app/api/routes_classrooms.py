@@ -48,6 +48,9 @@ def _classroom_response(classroom: Classroom) -> ClassroomResponse:
         description=classroom.description,
         logo_file=classroom.logo_file,
         color=classroom.color,  # type: ignore[arg-type]  # the CHECK in the database keeps it in the list
+        area=classroom.area,  # type: ignore[arg-type]  # same, ck_classrooms_area
+        area_other=classroom.area_other,
+        grade=classroom.grade,
         enrollment_code=classroom.enrollment_code,
         created_at=classroom.created_at,
     )
@@ -55,7 +58,15 @@ def _classroom_response(classroom: Classroom) -> ClassroomResponse:
 
 @router.post("", response_model=ClassroomResponse, status_code=status.HTTP_201_CREATED)
 async def create_classroom(payload: CreateClassroomRequest, user: TeacherDep, classrooms: ClassroomServiceDep) -> ClassroomResponse:
-    classroom = await classrooms.create_classroom(user.subject_id, payload.name, payload.description, payload.color)
+    classroom = await classrooms.create_classroom(
+        user.subject_id,
+        payload.name,
+        payload.description,
+        payload.area,
+        payload.grade,
+        payload.color,
+        payload.area_other,
+    )
     return _classroom_response(classroom)
 
 
@@ -110,7 +121,14 @@ async def update_classroom(
     classroom = await classrooms.update_classroom(
         classroom_id,
         user.subject_id,
-        UpdateClassroomData(name=payload.name, description=payload.description, color=payload.color),
+        UpdateClassroomData(
+            name=payload.name,
+            description=payload.description,
+            color=payload.color,
+            area=payload.area,
+            area_other=payload.area_other,
+            grade=payload.grade,
+        ),
     )
     return _classroom_response(classroom)
 

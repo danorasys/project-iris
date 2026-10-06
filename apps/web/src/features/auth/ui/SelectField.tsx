@@ -4,6 +4,8 @@ import styles from "./Fields.module.css";
 interface SelectOption {
   value: string;
   label: string;
+  /** For a placeholder like "Elige el área", shown but not choosable. */
+  disabled?: boolean;
 }
 
 interface SelectFieldProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "onChange" | "value" | "id"> {
@@ -44,7 +46,7 @@ export function SelectField({
         {...rest}
       >
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value} disabled={option.disabled}>
             {option.label}
           </option>
         ))}

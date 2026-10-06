@@ -1,0 +1,361 @@
+/* The units of a classroom: white cards like the ones of Mi perfil, each
+   one with its number in an IRIS blue circle, its guiding question and its
+   lessons as rows. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--color-iris-deep);
+}
+
+.lead {
+  margin: var(--space-1) 0 0;
+  max-width: 60ch;
+  font-size: 0.95rem;
+  color: var(--color-ink-soft);
+}
+
+.status {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.error {
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.primaryButton,
+.addLesson {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-medium);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.primaryButton {
+  border: none;
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
+.primaryButton:hover {
+  background: var(--color-action-hover);
+}
+
+.primaryButton:active,
+.addLesson:active {
+  transform: scale(0.98);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-iris-pale);
+  color: var(--color-iris-medium);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.emptyText {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--color-ink-soft);
+}
+
+.units {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.unit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.unitHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+/* The unit's number in a blue circle with a soft ring. */
+.unitNumber {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  box-shadow: 0 0 0 5px var(--color-iris-pale);
+}
+
+.unitText {
+  flex: 1;
+  min-width: 0;
+}
+
+.unitEyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-iris-medium);
+}
+
+.unitTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+/* The guiding question, in quotes like something the kids will answer. */
+.unitQuestion {
+  margin: var(--space-1) 0 0;
+  font-style: italic;
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.unitActions,
+.lessonMove {
+  flex: none;
+  display: flex;
+  gap: var(--space-1);
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.iconButton:hover:not(:disabled) {
+  border-color: var(--color-iris-medium);
+  background: var(--color-iris-pale);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.iconDanger {
+  color: var(--color-error);
+}
+
+.iconDanger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-error) 40%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+}
+
+.iconButton:focus-visible,
+.lessonMain:focus-visible,
+.addLesson:focus-visible,
+.primaryButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.noLessons {
+  margin: 0 0 0 calc(44px + var(--space-3));
+  color: var(--color-ink-soft);
+  font-size: 0.95rem;
+}
+
+.lessons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 0 calc(44px + var(--space-3));
+  padding: 0;
+  list-style: none;
+}
+
+.lesson {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.lessonMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-canvas);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.lessonMain:hover {
+  border-color: var(--color-iris-medium);
+  background: var(--color-surface);
+}
+
+.lessonIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-small);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-medium);
+}
+
+.lessonText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lessonTitle {
+  font-weight: 700;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.lessonPurpose {
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusChip {
+  flex: none;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: var(--color-iris-pale);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+
+.published {
+  background: color-mix(in srgb, var(--color-mint) 18%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-mint) 80%, black);
+}
+
+.lessonArrow {
+  flex: none;
+  color: var(--color-iris-medium);
+}
+
+.addLesson {
+  align-self: flex-start;
+  margin-left: calc(44px + var(--space-3));
+  border: 2px dashed var(--color-iris-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+}
+
+.addLesson:hover {
+  border-style: solid;
+  background: var(--color-iris-pale);
+}
+
+@media (max-width: 640px) {
+  .unitHead {
+    flex-wrap: wrap;
+  }
+
+  .unitActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .lessons,
+  .noLessons,
+  .addLesson {
+    margin-left: 0;
+  }
+
+  .lessonPurpose {
+    white-space: normal;
+  }
+}

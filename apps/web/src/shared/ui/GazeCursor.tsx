@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useGazeSource } from "@/shared/gaze/GazeSourceContext";
+import { useGazeSource } from "@/shared/gaze/useGazeSource";
 import styles from "./GazeCursor.module.css";
 
 /** Visual cursor that follows the active gaze source. The same component is

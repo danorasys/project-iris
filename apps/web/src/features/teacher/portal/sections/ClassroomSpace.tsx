@@ -14,8 +14,9 @@ import {
   IconTrash,
 } from "@/shared/ui/icons";
 import { ClassroomAvatar } from "../../classrooms/ClassroomAvatar";
+import { classroomAudience } from "../../classrooms/classroomDetails";
 import { ClassroomFormDialog } from "../../classrooms/ClassroomFormDialog";
-import { LessonsPanel } from "./LessonsPanel";
+import { UnitsPanel } from "../../lessons/UnitsPanel";
 import { MembersPanel } from "./MembersPanel";
 import styles from "../portalSection.module.css";
 
@@ -38,7 +39,7 @@ interface Option {
 
 const OPTIONS: Option[] = [
   { view: "miembros", title: "Miembros", hint: "Tus estudiantes y sus familias", Icon: IconChild },
-  { view: "lecciones", title: "Lecciones", hint: "Crea y publica el material", Icon: IconBook },
+  { view: "lecciones", title: "Unidades y lecciones", hint: "Organiza y publica el material", Icon: IconBook },
   { view: "mensajes", title: "Mensajes", hint: "Escríbele a un estudiante o a su tutor", Icon: IconMessage },
   { view: "estadisticas", title: "Estadísticas", hint: "El avance de la clase", Icon: IconChart },
 ];
@@ -106,6 +107,9 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
           <p className={styles.eyebrow}>Clase</p>
           <h1 className={styles.heroTitle}>{classroom.name}</h1>
           <p className={styles.heroMeta}>
+            {classroomAudience(classroom.area, classroom.grade, classroom.area_other) && (
+              <span className={styles.chip}>{classroomAudience(classroom.area, classroom.grade, classroom.area_other)}</span>
+            )}
             <span className={styles.chip}>Código de ingreso: {classroom.enrollment_code}</span>
             <span className={styles.chip}>{students === 1 ? "1 estudiante" : `${students} estudiantes`}</span>
             {pending > 0 && (
@@ -168,7 +172,7 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
       )}
 
       {view === "miembros" && <MembersPanel classroom={classroom} onToast={onToast} />}
-      {view === "lecciones" && <LessonsPanel classroomId={classroom.id} />}
+      {view === "lecciones" && <UnitsPanel classroomId={classroom.id} onToast={onToast} />}
       {(view === "mensajes" || view === "estadisticas") && (
         <div className={styles.comingSoon}>
           <span className={styles.optionIcon} aria-hidden="true">

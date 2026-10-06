@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import type { StudentProfile } from "@iris/shared-types";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { useEstudiantesDeTutor, useLoginPerfilEstudiante } from "@/shared/api/hooks/useAuthApi";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { isTourSeen } from "@/features/student/lib/dwellPreferences";

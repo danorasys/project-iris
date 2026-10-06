@@ -20,18 +20,10 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      // eslint-plugin-react-hooks v7 (upgraded from v5) adds these two rules
-      // as errors by default. They flag real, pre-existing patterns in this
-      // codebase (setState-from-effect for "default to first loaded catalog
-      // option", and a ref written during render for "always call the latest
-      // callback"), not anything introduced by this dependency upgrade.
-      // Downgraded to warnings, same as react-refresh below, so the upgrade
-      // doesn't silently start failing `npm run lint` — fixing the
-      // underlying patterns is a separate, deliberate follow-up.
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/refs": "warn",
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      // The react-hooks rules stay as errors (their default): the old cases
+      // were fixed, so a new one stops the CI instead of piling up.
+      "react-refresh/only-export-components": ["error", { allowConstantExport: true }],
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", ignoreRestSiblings: true }],
     },
   },
 );

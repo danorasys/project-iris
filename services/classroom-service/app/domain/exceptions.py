@@ -70,6 +70,16 @@ class InvalidFile(DomainError):
     message = "El archivo enviado no es válido."
 
 
+class IncompleteClassroom(DomainError):
+    code = "clase_incompleta"
+    message = "Elige el área y el grado de la clase."
+
+
+class MissingOtherArea(DomainError):
+    code = "otra_area_requerida"
+    message = "Escribe cuál es el área de la clase."
+
+
 class StorageFull(DomainError):
     code = "almacenamiento_lleno"
     message = "Se llenó el espacio para imágenes. Avísale al administrador de IRIS."

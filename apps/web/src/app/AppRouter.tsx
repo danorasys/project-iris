@@ -75,7 +75,7 @@ const LegacyClassroomRedirect = lazy(
     () => import("@/features/teacher/portal/LegacyClassroomRedirect"),
 )
 const LessonEditorPage = lazy(
-    () => import("@/features/teacher/pages/LessonEditorPage"),
+    () => import("@/features/teacher/lessons/LessonEditorPage"),
 )
 const TeacherVerify2faPage = lazy(
     () => import("@/features/teacher/twoFactor/TeacherVerify2faPage"),
@@ -311,10 +311,6 @@ export function AppRouter() {
                             <Route
                                 path="classrooms/:classroomId"
                                 element={<LegacyClassroomRedirect />}
-                            />
-                            <Route
-                                path="classrooms/:classroomId/lessons/create"
-                                element={<LessonEditorPage />}
                             />
                             <Route
                                 path="classrooms/:classroomId/lessons/:lessonId/edit"

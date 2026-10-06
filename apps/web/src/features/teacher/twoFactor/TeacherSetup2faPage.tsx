@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { useUsuarioActual } from "@/shared/api/hooks/useTeacherTwoFactorApi";
 import { TotpSetupScreen } from "@/features/auth/student/TotpSetupScreen";
 import { TotpSuccessScreen } from "@/features/auth/student/TotpSuccessScreen";

@@ -7,7 +7,7 @@ import TeacherRegistrationWizard from "./TeacherRegistrationWizard";
 const register = vi.fn();
 const setSession = vi.fn();
 
-vi.mock("@/shared/auth/AuthContext", () => ({
+vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => ({ setSession }),
 }));
 

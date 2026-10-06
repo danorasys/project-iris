@@ -1,0 +1,52 @@
+/* The landing's entrances. A part with .rise waits a bit lower and see-through
+   until its group gets .visible, then comes up in its turn: --i is its place
+   in the line, so a group never appears all at once. */
+.rise {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 640ms var(--ease-out),
+    transform 760ms var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 110ms);
+}
+
+/* Small things (chips, tags, badges) pop instead of rising. */
+.pop {
+  opacity: 0;
+  transform: scale(0.82);
+  transition:
+    opacity 420ms var(--ease-out),
+    transform 560ms var(--ease-spring);
+  transition-delay: calc(var(--i, 0) * 110ms);
+}
+
+.visible .rise,
+.visible .pop {
+  opacity: 1;
+  transform: none;
+}
+
+/* A hand-drawn line (an arrow, an underline) traces itself from start to
+   end. The path needs pathLength="1" so the same numbers work for any size. */
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 900ms var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 110ms);
+}
+
+.visible .draw {
+  stroke-dashoffset: 0;
+}
+
+/* Dashed lines can't use the trick above, so they are uncovered with a
+   mask that slides from left to right instead. */
+.wipe {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 800ms var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 110ms);
+}
+
+.visible .wipe {
+  clip-path: inset(0 0 0 0);
+}

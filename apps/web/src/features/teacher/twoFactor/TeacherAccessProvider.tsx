@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useLocation, useNavigate } from "react-router-dom";
 import { useConfirmarSesionDocente } from "@/shared/api/hooks/useTeacherTwoFactorApi";
 import { configureTwoFactorHandler } from "@/shared/api/httpClient";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { TwoFactorCodeDialog } from "@/shared/ui/profile/TwoFactorCodeDialog";
 
 /** Wraps the teacher's screens. Like the parents' portal, the panel closes

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { useConfirmarSesionDocente } from "@/shared/api/hooks/useTeacherTwoFactorApi";
 import { VerifyCodePage } from "@/features/auth/VerifyCodePage";
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { useEstado2faDocente } from "@/shared/api/hooks/useTeacherTwoFactorApi";
 import { LoadingScreen } from "@/shared/ui/LoadingScreen";
 

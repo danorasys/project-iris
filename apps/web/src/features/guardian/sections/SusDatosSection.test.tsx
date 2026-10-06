@@ -22,7 +22,7 @@ const sofia = {
   additional_support_need: null,
 };
 
-vi.mock("@/shared/auth/AuthContext", () => ({
+vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => ({ discardSession: vi.fn() }),
 }));
 

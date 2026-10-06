@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { initials } from "@/features/utils/initials";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { useTeacherClassrooms } from "@/shared/api/hooks/useClassroomsApi";
 import { useUnreadNotifications } from "@/shared/api/hooks/useNotifications";
 import { useMyTeacherAccount } from "@/shared/api/hooks/useTeacherProfileApi";

@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { createGazeSource, type GazeSource } from "./GazeSource";
-
-const GazeSourceContext = createContext<GazeSource | null>(null);
+import { GazeSourceContext } from "./gazeContext";
 
 /** Provides an already-built gaze source. Whoever instantiates it decides
  * if it's the real engine/mouse (`createGazeSource()`, see
@@ -22,18 +21,4 @@ export function GazeSourceProvider({ fuente, children }: { fuente: GazeSource; c
 export function StudentGazeProvider({ children }: { children: ReactNode }) {
   const fuente = useMemo(() => createGazeSource(), []);
   return <GazeSourceProvider fuente={fuente}>{children}</GazeSourceProvider>;
-}
-
-export function useGazeSource(): GazeSource {
-  const ctx = useContext(GazeSourceContext);
-  if (!ctx) throw new Error("useGazeSource must be used inside <GazeSourceProvider>");
-  return ctx;
-}
-
-/** Same as `useGazeSource`, but returns `null` instead of throwing when
- * there's no provider. For shared components (like `BigChoiceButton`) that
- * are also used outside the student routes, where dwell simply doesn't
- * apply. */
-export function useGazeSourceOptional(): GazeSource | null {
-  return useContext(GazeSourceContext);
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { useAuth } from "@/shared/auth/AuthContext"
+import { useAuth } from "@/shared/auth/useAuth"
 import { useLogin } from "@/shared/api/hooks/useAuthApi"
 import { decodeJwtPayload } from "@/shared/auth/jwt"
 import { getAuthErrorMessage } from "./errors"

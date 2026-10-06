@@ -9,7 +9,7 @@ import { useWithPortalAccess } from "./portalAccess";
 
 const confirmCode = vi.fn();
 
-vi.mock("@/shared/auth/AuthContext", () => ({
+vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => ({ discardSession: vi.fn() }),
 }));
 

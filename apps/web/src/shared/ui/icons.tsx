@@ -229,23 +229,6 @@ export function IconText(props: IconProps) {
   );
 }
 
-export function IconPause(props: IconProps) {
-  return (
-    <svg {...base} {...props}>
-      <path d="M8 5v14" />
-      <path d="M16 5v14" />
-    </svg>
-  );
-}
-
-export function IconPlay(props: IconProps) {
-  return (
-    <svg {...base} {...props} fill="currentColor">
-      <path d="M7.5 4.8v14.4c0 .7.77 1.13 1.36.76l11.2-7.2a.9.9 0 0 0 0-1.52L8.86 4.04A.9.9 0 0 0 7.5 4.8Z" />
-    </svg>
-  );
-}
-
 /** A warning sign: a rounded triangle with "!". For confirmations of
  * something that can't be undone or that loses what was typed. */
 export function IconAlert(props: IconProps) {
@@ -312,6 +295,76 @@ export function IconUserCircle(props: IconProps) {
       <circle cx="12" cy="12" r="9.5" />
       <circle cx="12" cy="10" r="2.6" />
       <path d="M6 18.2c1.1-2.6 3.3-4 6-4s4.9 1.4 6 4" />
+    </svg>
+  );
+}
+
+export function IconArrowUp(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5 15l7-7 7 7" />
+    </svg>
+  );
+}
+
+export function IconArrowDown(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5 9l7 7 7-7" />
+    </svg>
+  );
+}
+
+/** A big T over a line: a title or a subtitle. */
+export function IconHeading(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M6 5h12M12 5v10" />
+      <path d="M7 19h10" />
+    </svg>
+  );
+}
+
+/** Three dots with their lines: a list. */
+export function IconList(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9 6.5h11M9 12h11M9 17.5h11" />
+      <circle cx="4.75" cy="6.5" r="0.9" />
+      <circle cx="4.75" cy="12" r="0.9" />
+      <circle cx="4.75" cy="17.5" r="0.9" />
+    </svg>
+  );
+}
+
+/** A grid with a header row: a table. */
+export function IconTable(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M3.5 9.5h17M3.5 14.5h17M10 9.5v10" />
+    </svg>
+  );
+}
+
+/** Stacked sheets: a unit, a group of lessons. */
+export function IconLayers(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="m12 4 8.5 4.5L12 13 3.5 8.5 12 4Z" />
+      <path d="m3.5 12.5 8.5 4.5 8.5-4.5" />
+      <path d="m3.5 16.5 8.5 4.5 8.5-4.5" />
+    </svg>
+  );
+}
+
+/** A circle with a question mark: an activity of questions. */
+export function IconQuestion(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4" />
+      <path d="M12 16.8v.2" />
     </svg>
   );
 }

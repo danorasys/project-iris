@@ -12,7 +12,7 @@ export type EnrollmentStatus = "pendiente" | "aceptada" | "rechazada";
 // the type/field names around them were translated in this phase.
 export type LessonStatus = "borrador" | "publicada";
 
-export type BlockType = "texto" | "imagen";
+export type BlockType = ContentBlockInput["type"];
 
 export interface ErrorApi {
   error: {
@@ -285,6 +285,19 @@ export interface ChangePasswordRequest {
 /** The colors of a classroom's avatar: the initials of its name on one of them. */
 export type ClassroomColor = "blue" | "navy" | "orange" | "green" | "gold";
 
+/** What a classroom is about: the nine areas of Ley 115 (art. 23) plus "other". */
+export type ClassroomArea =
+  | "natural_sciences"
+  | "social_sciences"
+  | "arts"
+  | "ethics"
+  | "physical_education"
+  | "religion"
+  | "humanities"
+  | "mathematics"
+  | "technology"
+  | "other";
+
 export interface Classroom {
   id: string;
   teacher_id: string;
@@ -294,6 +307,12 @@ export interface Classroom {
    * Without it, the avatar is the initials of the name on `color`. */
   logo_file?: string | null;
   color: ClassroomColor;
+  /** See `ClassroomArea`. Required since HU-100, null only in older classes. */
+  area?: ClassroomArea | null;
+  /** With area "other", which area it is, written by the teacher. */
+  area_other?: string | null;
+  /** The grade it's for, 1 to 5 (primary school). Same as `area`. */
+  grade?: number | null;
   enrollment_code: string;
   created_at: string;
 }
@@ -330,27 +349,97 @@ export interface EnrollmentRequest {
   requested_at: string;
 }
 
+/** A group of lessons about the same topic, with the question that guides it (HU-101). */
+export interface Unit {
+  id: string;
+  classroom_id: string;
+  title: string;
+  guiding_question: string;
+  order_index: number;
+}
+
+/** `GET /content/classrooms/{id}/units`: each unit with its lessons, in order. */
+export interface UnitWithLessons extends Unit {
+  lessons: Lesson[];
+}
+
 export interface Lesson {
   id: string;
   classroom_id: string;
+  unit_id: string;
   teacher_id: string;
   title: string;
+  /** The sentence the mascot says when the kid opens it (HU-102). */
+  purpose: string;
+  /** What the kid should be able to do after it, from the DBA (HU-102). */
+  learning_goal: string;
   order_index: number;
   status: LessonStatus;
 }
 
-export interface ContentBlock {
-  id: string;
-  lesson_id: string;
-  type: BlockType;
-  content?: string | null;
-  /** File name of the private image. Show it with `lessonImagePath` + `AuthImage`. */
-  image_file?: string | null;
+interface BlockBase {
+  /** Which page of the lesson (or of the extra) it's on, from 0. */
+  page_index: number;
+  /** Its place inside the page, from 0. */
   order_index: number;
+}
+
+/** One block of a page, by type (HU-79). Never HTML: text is shown as text. */
+export type BlockFields =
+  | { type: "titulo" | "subtitulo" | "texto"; text: string }
+  | { type: "lista"; items: string[] }
+  /** The first row is the header. */
+  | { type: "tabla"; rows: string[][] }
+  /** The private image of the lesson, with what it shows (HU-103). */
+  | { type: "imagen"; image_file: string; alt_text?: string | null };
+
+/** What the editor sends for a block. */
+export type ContentBlockInput = BlockBase & BlockFields;
+
+/** A saved block. */
+export type ContentBlock = ContentBlockInput & { id: string };
+
+export interface QuestionOption {
+  text: string;
+  is_correct: boolean;
+}
+
+export interface Question {
+  prompt: string;
+  /** Two to four, exactly one right to publish. */
+  options: QuestionOption[];
+}
+
+/** The questions of a lesson or of an extra activity (HU-80). */
+export interface Activity {
+  /** Right answers it takes to pass. */
+  pass_threshold: number;
+  questions: Question[];
+}
+
+export type ExtraKind = "contenido" | "actividad";
+
+/** More to read or one more activity, for everyone or some kids (HU-82). */
+export interface Extra {
+  id: string;
+  kind: ExtraKind;
+  title: string;
+  order_index: number;
+  for_everyone: boolean;
+  student_ids: string[];
+  blocks: ContentBlock[];
+  activity: Activity | null;
+  /** What it still needs; the kids only see it once this is empty. */
+  missing: string[];
 }
 
 export interface LessonDetail extends Lesson {
   blocks: ContentBlock[];
+  /** Only for its teacher: a kid never gets the right answers. */
+  activity: Activity | null;
+  extras: Extra[];
+  /** Only for its teacher: what's still missing to publish it. */
+  missing: string[];
 }
 
 interface NotificationBase {

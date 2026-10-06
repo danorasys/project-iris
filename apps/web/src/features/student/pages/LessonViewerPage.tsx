@@ -2,10 +2,9 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { Mascot } from "@/shared/ui/Mascot";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { useLessonDetail } from "@/shared/api/hooks/useLessonsApi";
-import { lessonImagePath } from "@/shared/api/mediaPaths";
-import { AuthImage } from "@/shared/ui/AuthImage";
+import { BlockView } from "@/shared/ui/lesson/BlockView";
 import { DwellArrow } from "../components/DwellArrow";
 import { getDwellDurationMs } from "../lib/dwellPreferences";
 import styles from "./LessonViewerPage.module.css";
@@ -47,7 +46,7 @@ export default function LessonViewerPage() {
   }
 
   const lesson = lessonQuery.data;
-  const blocks = [...lesson.blocks].sort((a, b) => a.order_index - b.order_index);
+  const blocks = [...lesson.blocks].sort((a, b) => a.page_index - b.page_index || a.order_index - b.order_index);
 
   const goToLessons = () => navigate(`/student/classrooms/${lesson.classroom_id}/lessons`);
 
@@ -95,14 +94,7 @@ export default function LessonViewerPage() {
           {index + 1} de {blocks.length}
         </p>
         <h1 className={styles.lessonTitle}>{lesson.title}</h1>
-        {currentBlock.type === "texto" ? (
-          <p className={styles.text}>{currentBlock.content}</p>
-        ) : (
-          <AuthImage
-            path={currentBlock.image_file ? lessonImagePath(currentBlock.lesson_id, currentBlock.image_file) : null}
-            className={styles.image}
-          />
-        )}
+        <BlockView block={currentBlock} lessonId={lesson.id} large />
       </div>
 
       <DwellArrow

@@ -11,7 +11,7 @@ import {
     parsePhoneNumber,
 } from "react-phone-number-input"
 import type { GuardianRegistrationRequest } from "@iris/shared-types"
-import { useAuth } from "@/shared/auth/AuthContext"
+import { useAuth } from "@/shared/auth/useAuth"
 import {
     useRegistrarTutor,
     useDocumentTypes,
@@ -20,13 +20,12 @@ import {
     useAvatars,
 } from "@/shared/api/hooks/useAuthApi"
 import { getAuthErrorMessage } from "@/features/auth/errors"
+import { firstOptionId } from "./firstOption"
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage"
 import { TextField } from "@/features/auth/ui/TextField"
 import { PhoneField } from "@/features/auth/ui/PhoneField"
-import {
-    PasswordRequirements,
-    passwordMeetsRequirements,
-} from "@/features/auth/ui/PasswordRequirements"
+import { PasswordRequirements } from "@/features/auth/ui/PasswordRequirements"
+import { passwordMeetsRequirements } from "@/features/auth/ui/passwordRules"
 import {
     DOCUMENT_TYPE_NAME_PASSPORT,
     documentNumberFormatError,
@@ -126,13 +125,13 @@ export default function GuardianRegistrationWizard() {
     // Step 1, guardian data.
     const [guardianFirstName, setGuardianFirstName] = useState("")
     const [guardianLastName, setGuardianLastName] = useState("")
-    const [documentType, setDocumentType] = useState<string>("")
+    const [chosenDocumentType, setDocumentType] = useState<string>("")
     const [documentNumber, setDocumentNumber] = useState("")
     const [guardianBirthDate, setGuardianBirthDate] = useState("")
     const [documentIssuedAt, setDocumentIssuedAt] = useState("")
     const [email, setEmail] = useState("")
     const [phone, setPhone] = useState("")
-    const [relationship, setRelationship] = useState<string>("")
+    const [chosenRelationship, setRelationship] = useState<string>("")
     const [password, setPassword] = useState("")
     const [passwordConfirmation, setPasswordConfirmation] = useState("")
     const [acceptsDataProcessing, setAcceptsDataProcessing] = useState(false)
@@ -172,33 +171,19 @@ export default function GuardianRegistrationWizard() {
         setAuthorizesSupportConditionError,
     ] = useState<string | null>(null)
 
-    // Default to the first catalog option once it loads, only if the field
-    // is still untouched, so a returning user's selection is never overridden.
-    useEffect(() => {
-        if (
-            documentType === "" &&
-            documentTypesQuery.data &&
-            documentTypesQuery.data.length > 0
-        ) {
-            setDocumentType(String(documentTypesQuery.data[0].id))
-        }
-    }, [documentType, documentTypesQuery.data])
-
-    useEffect(() => {
-        if (
-            relationship === "" &&
-            relationshipTypesQuery.data &&
-            relationshipTypesQuery.data.length > 0
-        ) {
-            setRelationship(String(relationshipTypesQuery.data[0].id))
-        }
-    }, [relationship, relationshipTypesQuery.data])
+    // Until the person picks one, the first option of each catalog is the
+    // one used. It's worked out on every render instead of copied into the
+    // state, so it never overrides a choice already made.
+    const documentType =
+        chosenDocumentType || firstOptionId(documentTypesQuery.data)
+    const relationship =
+        chosenRelationship || firstOptionId(relationshipTypesQuery.data)
 
     // Step 2, first student profile.
     const [studentFirstName, setStudentFirstName] = useState("")
     const [studentLastName, setStudentLastName] = useState("")
     const [birthDate, setBirthDate] = useState("")
-    const [avatarId, setAvatarId] = useState<string>("")
+    const [chosenAvatarId, setAvatarId] = useState<string>("")
     const [supportConditionIds, setSupportConditionIds] = useState<number[]>(
         [],
     )
@@ -223,19 +208,9 @@ export default function GuardianRegistrationWizard() {
     const [supportConditionOtherError, setSupportConditionOtherError] =
         useState<string | null>(null)
 
-    // Default to the first avatar once the catalog loads, same reasoning as
-    // document type/relationship in step 1: unlike the support condition
-    // below, there's no "safe-looking default" concern here, any avatar is a
-    // fine starting point and the tutor can simply pick a different one.
-    useEffect(() => {
-        if (
-            avatarId === "" &&
-            avatarsQuery.data &&
-            avatarsQuery.data.length > 0
-        ) {
-            setAvatarId(String(avatarsQuery.data[0].id))
-        }
-    }, [avatarId, avatarsQuery.data])
+    // The first avatar until the family picks another one. Unlike the support
+    // condition below, any avatar is a fine starting point.
+    const avatarId = chosenAvatarId || firstOptionId(avatarsQuery.data)
 
     // Nothing marked on purpose: the family has to pick at least one option
     // (even "Prefiero no especificar") instead of moving on without looking.

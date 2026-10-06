@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { useMiPerfilTutor } from "@/shared/api/hooks/useAuthApi";
 import { useNotificacionesSinLeer } from "@/shared/api/hooks/useNotifications";
 import { IconArrowLeft, IconBell, IconChild, IconInfo, IconLogOut, IconUserCircle } from "@/shared/ui/icons";

@@ -31,7 +31,7 @@ async def _classroom_and_request(client: AsyncClient, identity: FakeIdentityGate
     token_docente, _ = identity.registrar_docente(nombre="Carlos Ruiz")
     token_estudiante, _ = identity.registrar_estudiante_token(nombres="Sofía")
     aula = await client.post(
-        "/classrooms", json={"name": "Matemáticas 3A", "description": "d"}, headers=_auth(token_docente)
+        "/classrooms", json={"name": "Matemáticas 3A", "description": "d", "area": "mathematics", "grade": 3}, headers=_auth(token_docente)
     )
     ingreso = await client.post(
         "/classrooms/enroll", json={"enrollment_code": aula.json()["enrollment_code"]}, headers=_auth(token_estudiante)

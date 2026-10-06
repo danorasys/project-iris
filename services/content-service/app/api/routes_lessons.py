@@ -1,4 +1,4 @@
-"""Routes for lessons and their content blocks."""
+"""Routes for a lesson: its pages, activity, extras, images and publishing."""
 
 from __future__ import annotations
 
@@ -8,20 +8,29 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Path, Response, UploadFile, status
 
 from app.api.deps import get_lesson_service, require_role
+from app.api.mappers import (
+    extra_response,
+    lesson_detail_response,
+    lesson_response,
+    to_activity_input,
+    to_block_inputs,
+)
 from app.api.media import media_response
 from app.api.schemas import (
     IMAGE_FILE_PATTERN,
-    ContentBlockResponse,
-    CreateLessonRequest,
+    ActivityRequest,
+    CreateExtraRequest,
+    ExtraResponse,
     ImageUploadResponse,
     LessonDetailResponse,
     LessonResponse,
+    UpdateExtraRequest,
     UpdateLessonRequest,
 )
-from app.application.dtos import ContentBlockInput
+from app.application.dtos import ExtraChanges, LessonChanges
 from app.application.lesson_service import LessonService
 from app.correlation import get_correlation_id
-from app.domain.entities import Lesson, ValidatedUser
+from app.domain.entities import ValidatedUser
 from app.domain.exceptions import InvalidFile
 
 router = APIRouter(tags=["lessons"])
@@ -35,81 +44,93 @@ ImageFileName = Annotated[str, Path(pattern=IMAGE_FILE_PATTERN)]
 _IMAGE_CACHE = "private, max-age=3600"
 
 
-def _to_block_inputs(blocks: list) -> list[ContentBlockInput]:
-    return [ContentBlockInput(type=b.type, order_index=b.order_index, content=b.content, image_file=b.image_file) for b in blocks]
-
-
-def _to_lesson_response(lesson: Lesson) -> LessonResponse:
-    return LessonResponse(
-        id=lesson.id,
-        classroom_id=lesson.classroom_id,
-        teacher_id=lesson.teacher_id,
-        title=lesson.title,
-        order_index=lesson.order_index,
-        status=lesson.status,
-    )
-
-
-def _to_lesson_detail_response(lesson: Lesson) -> LessonDetailResponse:
-    return LessonDetailResponse(
-        **_to_lesson_response(lesson).model_dump(),
-        blocks=[
-            ContentBlockResponse(
-                id=b.id, lesson_id=b.lesson_id, type=b.type, content=b.content, image_file=b.image_file, order_index=b.order_index
-            )
-            for b in sorted(lesson.blocks, key=lambda b: b.order_index)
-        ],
-    )
-
-
-@router.post("/classrooms/{classroom_id}/lessons", response_model=LessonDetailResponse, status_code=status.HTTP_201_CREATED)
-async def create_lesson(
-    classroom_id: UUID,
-    payload: CreateLessonRequest,
-    user: TeacherUser,
-    service: Service,
-) -> LessonDetailResponse:
-    lesson = await service.create_lesson(
-        classroom_id, user, payload.title, _to_block_inputs(payload.blocks), get_correlation_id()
-    )
-    return _to_lesson_detail_response(lesson)
-
-
 @router.get("/classrooms/{classroom_id}/lessons", response_model=list[LessonResponse])
-async def list_lessons(
-    classroom_id: UUID,
-    user: ReaderUser,
-    service: Service,
-) -> list[LessonResponse]:
+async def list_lessons(classroom_id: UUID, user: ReaderUser, service: Service) -> list[LessonResponse]:
+    """Every lesson of a classroom, without units. A kid only gets the published ones."""
     lessons = await service.list_classroom_lessons(classroom_id, user, get_correlation_id())
-    return [_to_lesson_response(lesson) for lesson in lessons]
+    return [lesson_response(lesson) for lesson in lessons]
 
 
 @router.get("/lessons/{lesson_id}", response_model=LessonDetailResponse)
-async def get_lesson(
-    lesson_id: UUID,
-    user: ReaderUser,
-    service: Service,
-) -> LessonDetailResponse:
+async def get_lesson(lesson_id: UUID, user: ReaderUser, service: Service) -> LessonDetailResponse:
+    """The lesson with its pages. Its teacher also gets the activity, the
+    extras and what's missing to publish it; a kid never gets the answers."""
     lesson = await service.get_lesson(lesson_id, user, get_correlation_id())
-    return _to_lesson_detail_response(lesson)
+    return lesson_detail_response(lesson, for_teacher=user.role == "teacher")
 
 
 @router.patch("/lessons/{lesson_id}", response_model=LessonDetailResponse)
 async def update_lesson(
-    lesson_id: UUID,
-    payload: UpdateLessonRequest,
-    user: TeacherUser,
-    service: Service,
+    lesson_id: UUID, payload: UpdateLessonRequest, user: TeacherUser, service: Service
 ) -> LessonDetailResponse:
-    blocks = _to_block_inputs(payload.blocks) if payload.blocks is not None else None
-    lesson = await service.update_lesson(lesson_id, user, payload.title, payload.status, blocks)
-    return _to_lesson_detail_response(lesson)
+    """Its unit, title, purpose, learning goal and, if sent, the whole set of
+    pages. A published lesson only saves complete (422 `leccion_incompleta`)."""
+    blocks = to_block_inputs(payload.blocks) if payload.blocks is not None else None
+    changes = LessonChanges(
+        unit_id=payload.unit_id, title=payload.title, purpose=payload.purpose, learning_goal=payload.learning_goal
+    )
+    lesson = await service.update_lesson(lesson_id, user, changes, blocks)
+    return lesson_detail_response(lesson, for_teacher=True)
 
 
-@router.post(
-    "/lessons/{lesson_id}/images", response_model=ImageUploadResponse, status_code=status.HTTP_201_CREATED
-)
+@router.delete("/lessons/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_lesson(lesson_id: UUID, user: TeacherUser, service: Service) -> None:
+    """The lesson with its pages, activity, extras and images (HU-84)."""
+    await service.delete_lesson(lesson_id, user)
+
+
+@router.put("/lessons/{lesson_id}/activity", response_model=LessonDetailResponse)
+async def set_activity(
+    lesson_id: UUID, payload: ActivityRequest, user: TeacherUser, service: Service
+) -> LessonDetailResponse:
+    """The lesson's questions, replaced whole (HU-80)."""
+    lesson = await service.set_activity(lesson_id, user, to_activity_input(payload))
+    return lesson_detail_response(lesson, for_teacher=True)
+
+
+@router.post("/lessons/{lesson_id}/publish", response_model=LessonDetailResponse)
+async def publish_lesson(lesson_id: UUID, user: TeacherUser, service: Service) -> LessonDetailResponse:
+    """Publishes it for the kids (HU-81) if nothing is missing; otherwise 422
+    `leccion_incompleta` with `details.missing`."""
+    lesson = await service.publish(lesson_id, user)
+    return lesson_detail_response(lesson, for_teacher=True)
+
+
+@router.post("/lessons/{lesson_id}/extras", response_model=ExtraResponse, status_code=status.HTTP_201_CREATED)
+async def add_extra(
+    lesson_id: UUID, payload: CreateExtraRequest, user: TeacherUser, service: Service
+) -> ExtraResponse:
+    """More content or one more activity, for everyone or some kids (HU-82)."""
+    extra = await service.add_extra(
+        lesson_id, user, payload.kind, payload.title, payload.for_everyone, payload.student_ids, get_correlation_id()
+    )
+    return extra_response(extra)
+
+
+@router.patch("/lessons/{lesson_id}/extras/{extra_id}", response_model=ExtraResponse)
+async def update_extra(
+    lesson_id: UUID, extra_id: UUID, payload: UpdateExtraRequest, user: TeacherUser, service: Service
+) -> ExtraResponse:
+    blocks = to_block_inputs(payload.blocks) if payload.blocks is not None else None
+    changes = ExtraChanges(title=payload.title, for_everyone=payload.for_everyone, student_ids=payload.student_ids)
+    extra = await service.update_extra(lesson_id, extra_id, user, changes, blocks, get_correlation_id())
+    return extra_response(extra)
+
+
+@router.put("/lessons/{lesson_id}/extras/{extra_id}/activity", response_model=ExtraResponse)
+async def set_extra_activity(
+    lesson_id: UUID, extra_id: UUID, payload: ActivityRequest, user: TeacherUser, service: Service
+) -> ExtraResponse:
+    extra = await service.set_extra_activity(lesson_id, extra_id, user, to_activity_input(payload))
+    return extra_response(extra)
+
+
+@router.delete("/lessons/{lesson_id}/extras/{extra_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_extra(lesson_id: UUID, extra_id: UUID, user: TeacherUser, service: Service) -> None:
+    await service.delete_extra(lesson_id, extra_id, user)
+
+
+@router.post("/lessons/{lesson_id}/images", response_model=ImageUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_image(
     lesson_id: UUID,
     user: TeacherUser,

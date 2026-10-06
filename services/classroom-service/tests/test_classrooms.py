@@ -17,7 +17,7 @@ def _auth(token: str) -> dict[str, str]:
 
 
 async def _crear_aula(client: AsyncClient, token: str, nombre: str = "Aula", descripcion: str = "d") -> dict:
-    response = await client.post("/classrooms", json={"name": nombre, "description": descripcion}, headers=_auth(token))
+    response = await client.post("/classrooms", json={"name": nombre, "description": descripcion, "area": "mathematics", "grade": 3}, headers=_auth(token))
     assert response.status_code == 201
     return response.json()
 

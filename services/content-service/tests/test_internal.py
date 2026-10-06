@@ -10,8 +10,8 @@ import pytest
 from httpx import AsyncClient
 
 from tests.fakes import FakeClassroomClient, FakeIdentityClient, FakeObjectStorage
+from tests.helpers import PNG, auth, lesson, page, teacher, unit
 
-PNG = b"\x89PNG\r\n\x1a\n" + b"datos-de-prueba"
 INTERNAL = {"X-Internal-Key": "test-internal-key"}
 
 pytestmark = pytest.mark.asyncio
@@ -24,25 +24,18 @@ def _auth(token: str) -> dict[str, str]:
 async def _lesson_with_image(
     client: AsyncClient, identity: FakeIdentityClient, classrooms: FakeClassroomClient, classroom_id: UUID
 ) -> tuple[str, str]:
-    teacher_id = uuid4()
-    token = f"token-{teacher_id.hex}"
-    identity.register(token, teacher_id, "teacher")
-    classrooms.authorize(classroom_id, teacher_id, "teacher", authorized=True)
-    created = await client.post(
-        f"/classrooms/{classroom_id}/lessons",
-        json={"title": "Sumas", "blocks": [{"type": "texto", "content": "Hola", "order_index": 0}]},
-        headers=_auth(token),
-    )
-    lesson_id: str = created.json()["id"]
+    who = teacher(identity, classrooms, classroom_id)
+    created = await lesson(client, who, (await unit(client, who))["id"])
+    lesson_id: str = created["id"]
     # One image used in a block and one uploaded but never used.
-    used = await client.post(f"/lessons/{lesson_id}/images", files={"file": ("a.png", PNG, "image/png")}, headers=_auth(token))
-    await client.post(f"/lessons/{lesson_id}/images", files={"file": ("b.png", PNG, "image/png")}, headers=_auth(token))
+    used = await client.post(f"/lessons/{lesson_id}/images", files={"file": ("a.png", PNG, "image/png")}, headers=auth(who.token))
+    await client.post(f"/lessons/{lesson_id}/images", files={"file": ("b.png", PNG, "image/png")}, headers=auth(who.token))
     await client.patch(
         f"/lessons/{lesson_id}",
-        json={"blocks": [{"type": "imagen", "image_file": used.json()["image_file"], "order_index": 0}]},
-        headers=_auth(token),
+        json={"blocks": page({"type": "imagen", "image_file": used.json()["image_file"], "alt_text": "Un gato"})},
+        headers=auth(who.token),
     )
-    return lesson_id, token
+    return lesson_id, who.token
 
 
 async def test_borra_las_lecciones_de_la_clase_con_todas_sus_imagenes(
@@ -62,6 +55,8 @@ async def test_borra_las_lecciones_de_la_clase_con_todas_sus_imagenes(
     assert not any(key.startswith(f"lessons/{gone}/") for key in object_storage.files)
     assert sum(key.startswith(f"lessons/{kept}/") for key in object_storage.files) == 2
     assert (await client.get(f"/lessons/{gone}", headers=_auth(gone_token))).status_code == 404
+    # Its units are gone too.
+    assert (await client.get(f"/classrooms/{classroom_id}/units", headers=_auth(gone_token))).json() == []
     # The lesson of the other classroom is still there.
     assert (await client.get(f"/lessons/{kept}", headers=_auth(kept_token))).status_code == 200
 

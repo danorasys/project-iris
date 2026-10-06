@@ -1,0 +1,26 @@
+/* The counter goes on the line of the field's label, at the right. */
+.counted {
+  position: relative;
+}
+
+.counter {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  /* Digits of the same width, so the number doesn't jump while typing. */
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-soft);
+}
+
+.counterOver {
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.hint {
+  margin: var(--space-1) 0 0;
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}

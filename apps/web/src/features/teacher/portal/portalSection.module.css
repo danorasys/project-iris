@@ -254,6 +254,13 @@
   overflow-wrap: anywhere;
 }
 
+/* What the class is about and who it's for, like "Matemáticas · 1.° y 2.°". */
+.cardAudience {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+}
+
 .cardAction {
   display: inline-flex;
   align-items: center;

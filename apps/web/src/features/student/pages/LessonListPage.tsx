@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { Mascot } from "@/shared/ui/Mascot";
 import { IconArrowLeft } from "@/shared/ui/icons";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { useClassroomLessons } from "@/shared/api/hooks/useLessonsApi";
 import { getDwellDurationMs } from "../lib/dwellPreferences";
 import styles from "./LessonListPage.module.css";

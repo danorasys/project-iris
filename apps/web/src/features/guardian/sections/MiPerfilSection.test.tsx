@@ -25,7 +25,7 @@ const profile = {
   relationship_type_id: 1,
 };
 
-vi.mock("@/shared/auth/AuthContext", () => ({
+vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => ({ discardSession }),
 }));
 

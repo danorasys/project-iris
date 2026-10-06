@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { Mascot } from "@/shared/ui/Mascot";
 import { NumericKeypad } from "@/shared/ui/NumericKeypad";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { useJoinClassroom } from "@/shared/api/hooks/useClassroomsApi";
 import { ApiError } from "@/shared/api/httpClient";
 import { getDwellDurationMs } from "../lib/dwellPreferences";

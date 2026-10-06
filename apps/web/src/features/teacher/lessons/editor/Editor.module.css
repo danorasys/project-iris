@@ -1,0 +1,506 @@
+/* The pieces of the lesson editor: pages with their blocks, questions with
+   their options and extras. White cards on the sky-blue canvas, blue for
+   what can be clicked, red only for deleting. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.hint {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 0.92rem;
+  color: var(--color-ink-soft);
+}
+
+/* Editar / Vista previa: a track with a white thumb that slides. */
+.modes {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+}
+
+.modes::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 9px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.modesSecond::before {
+  transform: translateX(100%);
+}
+
+.mode {
+  position: relative;
+  min-height: 38px;
+  padding: var(--space-1) var(--space-4);
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-ink-soft);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.modeActive {
+  color: var(--color-iris-deep);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cardTitle {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.number {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 var(--space-1);
+  border-radius: 999px;
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  cursor: pointer;
+}
+
+.iconButton:hover:not(:disabled) {
+  border-color: var(--color-iris-medium);
+  background: var(--color-iris-pale);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.danger {
+  color: var(--color-error);
+}
+
+/* One block inside a page. */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  border-left: 4px solid var(--color-iris-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-canvas);
+}
+
+.blockHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.blockType {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-iris-medium);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  font: inherit;
+  color: var(--color-ink);
+  transition: var(--focus-halo-transition);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.55;
+}
+
+.headingInput {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.input:focus-visible,
+.textarea:focus-visible {
+  border-color: var(--color-iris-medium);
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+.inputMissing {
+  border-color: color-mix(in srgb, var(--color-error) 55%, var(--color-surface));
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.row > .input {
+  flex: 1;
+}
+
+.bullet {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-iris-medium);
+}
+
+/* The table editor: a grid of inputs, the first row is the header. */
+.tableWrap {
+  overflow-x: auto;
+}
+
+.tableGrid {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.headerCell {
+  font-weight: 700;
+  background: var(--color-iris-pale);
+}
+
+.small {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 34px;
+  padding: var(--space-1) var(--space-3);
+  border: 1px dashed var(--color-iris-medium);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  cursor: pointer;
+}
+
+.small:hover:not(:disabled) {
+  border-style: solid;
+  background: var(--color-iris-pale);
+}
+
+.small:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.image {
+  display: block;
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: var(--radius-medium);
+  object-fit: contain;
+  background: var(--color-surface);
+}
+
+.missing {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+/* The row of "add a block" buttons at the end of each page. */
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--color-iris-pale);
+}
+
+.addLabel {
+  align-self: center;
+  margin-right: var(--space-1);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+
+.addBig {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 48px;
+  padding: var(--space-2) var(--space-4);
+  border: 2px dashed var(--color-iris-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  cursor: pointer;
+}
+
+.addBig:hover:not(:disabled) {
+  border-style: solid;
+  background: var(--color-iris-pale);
+}
+
+.addBig:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* The page as the kid will read it. */
+.previewPage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.previewLabel {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+/* Questions. */
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.correct {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+}
+
+.correct:has(input:checked) {
+  border-color: color-mix(in srgb, var(--color-mint) 60%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-mint) 16%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-mint) 80%, black);
+}
+
+.correct input {
+  accent-color: var(--color-mint);
+}
+
+.correct:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.threshold {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.select {
+  padding: var(--space-1) var(--space-2);
+  border: 2px solid var(--color-iris-pale);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+/* Extras. */
+.chip {
+  flex: none;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ready {
+  background: color-mix(in srgb, var(--color-mint) 18%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-mint) 80%, black);
+}
+
+.notReady {
+  background: color-mix(in srgb, var(--color-gold) 25%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-gold) 40%, black);
+}
+
+.audience {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pill {
+  position: relative;
+  cursor: pointer;
+}
+
+.pill input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.pill span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: var(--space-1) var(--space-3);
+  border: 2px solid var(--color-iris-pale);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-weight: 700;
+  color: var(--color-ink-soft);
+  transition: var(--focus-halo-transition);
+}
+
+.pill input:checked + span {
+  border-color: var(--color-iris-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.pill input:focus-visible + span {
+  border-color: var(--color-iris-medium);
+  box-shadow: var(--focus-halo);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.iconButton:focus-visible,
+.small:focus-visible,
+.addBig:focus-visible,
+.mode:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modes::before {
+    transition: none;
+  }
+}
+
+/* The options of a question, without the default fieldset frame. */
+.optionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* Inside a block (list items, table buttons, image): closer together. */
+.stackTight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

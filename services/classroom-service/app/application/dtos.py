@@ -16,6 +16,9 @@ class UpdateClassroomData:
     name: str | None = None
     description: str | None = None
     color: str | None = None
+    area: str | None = None
+    area_other: str | None = None
+    grade: int | None = None
 
 
 # A classroom in the teacher's list, with how many requests wait for them.

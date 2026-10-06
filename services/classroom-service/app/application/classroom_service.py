@@ -23,6 +23,7 @@ from app.application.dtos import (
 from app.application.image_rules import EXTENSION_BY_CONTENT_TYPE, matches_declared_type
 from app.domain.entities import (
     DEFAULT_CLASSROOM_COLOR,
+    OTHER_AREA,
     STATUS_ACCEPTED,
     STATUS_PENDING,
     STATUS_REJECTED,
@@ -37,8 +38,10 @@ from app.domain.exceptions import (
     ClassroomNotFound,
     EnrollmentNotFound,
     IdentityServiceUnavailable,
+    IncompleteClassroom,
     InvalidEnrollmentCode,
     InvalidFile,
+    MissingOtherArea,
     PermissionDenied,
     RequestAlreadyResolved,
     ResourceNotFound,
@@ -56,6 +59,16 @@ _MAX_LOGO_SIZE_BYTES = 5 * 1024 * 1024
 
 def _generate_enrollment_code() -> str:
     return f"{random.randint(0, 9_999_999):07d}"
+
+
+# The area written by the teacher is needed with "other" and dropped with
+# any other area, so it never stays behind after changing the area.
+def _written_area(area: str, area_other: str | None) -> str | None:
+    if area != OTHER_AREA:
+        return None
+    if not area_other:
+        raise MissingOtherArea()
+    return area_other
 
 
 class ClassroomService:
@@ -84,8 +97,16 @@ class ClassroomService:
     # ------------------------------------------------------------------
 
     async def create_classroom(
-        self, teacher_id: UUID, name: str, description: str, color: str = DEFAULT_CLASSROOM_COLOR
+        self,
+        teacher_id: UUID,
+        name: str,
+        description: str,
+        area: str,
+        grade: int,
+        color: str = DEFAULT_CLASSROOM_COLOR,
+        area_other: str | None = None,
     ) -> Classroom:
+        area_other = _written_area(area, area_other)
         async with self._uow_factory() as uow:
             code = None
             for _ in range(_MAX_CODE_ATTEMPTS):
@@ -105,6 +126,9 @@ class ClassroomService:
                 created_at=datetime.now(timezone.utc),
                 logo_key=None,
                 color=color,
+                area=area,
+                area_other=area_other,
+                grade=grade,
             )
             await uow.classrooms.add(classroom)
             await uow.commit()
@@ -179,6 +203,14 @@ class ClassroomService:
                 classroom.description = data.description
             if data.color is not None:
                 classroom.color = data.color
+            if data.area is not None:
+                classroom.area = data.area
+            if data.grade is not None:
+                classroom.grade = data.grade
+            # A classroom from before HU-100 can't be saved until it has both.
+            if classroom.area is None or classroom.grade is None:
+                raise IncompleteClassroom()
+            classroom.area_other = _written_area(classroom.area, data.area_other or classroom.area_other)
             await uow.classrooms.update(classroom)
             await uow.commit()
         return classroom

@@ -1,0 +1,38 @@
+/* A small line that says if the changes are saved. Green when they are,
+   red with what's missing when they couldn't be. */
+.status {
+  min-height: 1.4em;
+  font-size: 0.88rem;
+}
+
+.saving {
+  color: var(--color-ink-soft);
+}
+
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 700;
+  color: color-mix(in srgb, var(--color-mint) 80%, black);
+}
+
+.error {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--color-error) 35%, var(--color-surface));
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-error) 85%, black);
+}
+
+.errorTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 700;
+}
+
+.missing {
+  margin: var(--space-1) 0 0;
+  padding-left: 1.3em;
+}

@@ -13,13 +13,17 @@ from fastapi.responses import JSONResponse
 from app.domain.exceptions import (
     DomainError,
     IdentityServiceUnavailable,
+    InvalidAudience,
     InvalidFile,
+    InvalidOrder,
     InvalidToken,
+    LessonIncomplete,
     PermissionDenied,
     TwoFactorRequired,
     UnauthorizedInternalAccess,
     ResourceNotFound,
     StorageFull,
+    UnitNotEmpty,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,6 +37,10 @@ _STATUS_BY_ERROR: dict[type[DomainError], int] = {
     ResourceNotFound: status.HTTP_404_NOT_FOUND,
     InvalidFile: status.HTTP_422_UNPROCESSABLE_CONTENT,
     StorageFull: status.HTTP_507_INSUFFICIENT_STORAGE,
+    UnitNotEmpty: status.HTTP_409_CONFLICT,
+    InvalidOrder: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    LessonIncomplete: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    InvalidAudience: status.HTTP_422_UNPROCESSABLE_CONTENT,
 }
 
 

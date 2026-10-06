@@ -1,0 +1,767 @@
+/* --- The blue panel: the gaze shown in a call-like picture --- */
+.panel {
+  --color-focus: var(--color-surface);
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-6) var(--space-6) 0;
+  border-radius: 32px;
+  background:
+    radial-gradient(80% 70% at 50% 110%, color-mix(in srgb, var(--landing-sky) 85%, transparent), transparent 70%),
+    linear-gradient(
+      180deg,
+      var(--landing-blue) 0%,
+      var(--landing-blue) 30%,
+      color-mix(in srgb, var(--landing-blue) 80%, var(--landing-sky)) 100%
+    );
+  color: var(--color-surface);
+}
+
+.panelRings {
+  top: 100%;
+  left: 50%;
+  width: 1400px;
+  height: 1400px;
+  transform: translate(-50%, -50%);
+}
+
+.panelHead {
+  position: relative;
+  max-width: 40rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: clamp(1.7rem, 3.2vw, 2.4rem);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.panelText {
+  margin: var(--space-2) 0 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--color-surface) 85%, transparent);
+}
+
+.call {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 2.6fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  max-width: 900px;
+  margin: var(--space-5) auto 0;
+  padding-bottom: 56px;
+}
+
+/* Two dashed curves leave the picture towards the panel's edges. */
+.curves {
+  position: absolute;
+  inset: 0 -16%;
+  width: 132%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-surface) 55%, transparent);
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
+  vector-effect: non-scaling-stroke;
+}
+
+.curves path {
+  vector-effect: non-scaling-stroke;
+}
+
+.mainTile,
+.sideTile {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border: 4px solid color-mix(in srgb, var(--color-surface) 22%, transparent);
+  border-radius: 22px;
+  background: var(--color-iris-deep);
+  box-shadow: 0 30px 50px -30px rgba(0, 0, 0, 0.6);
+}
+
+.mainTile {
+  aspect-ratio: 16 / 10.5;
+  container-type: inline-size;
+  overflow: visible;
+}
+
+.mainTile img {
+  border-radius: 18px;
+}
+
+.mainTile img,
+.sideTile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sideTiles {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+/* The side tiles are figures too, so their badges sit outside the
+   rounded corner a bit (the tile itself clips the photo, not them). */
+.sideTile {
+  overflow: visible;
+}
+
+.sideTile img {
+  border-radius: 18px;
+}
+
+.tileLabel {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-iris-deep) 70%, transparent);
+  backdrop-filter: blur(6px);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-surface);
+}
+
+.tileBadge {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-surface);
+  border-radius: 50%;
+  box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.6);
+  color: var(--color-surface);
+}
+
+.badgeAmber {
+  background: var(--color-amber);
+}
+
+.badgeMint {
+  background: var(--color-mint);
+}
+
+.badgeBlue {
+  background: var(--landing-blue);
+}
+
+.callPill {
+  position: absolute;
+  bottom: 30px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+  min-height: 48px;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: 0 16px 30px -14px rgba(0, 0, 0, 0.55);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-iris-deep);
+}
+
+.callPill svg {
+  color: var(--color-amber);
+}
+
+/* --- The gaze demo in the student's tile (a 5 s loop) ---
+   Without animation it shows the end: ring full, check and "¡Listo!". */
+.gazeButton {
+  position: absolute;
+  right: 9cqw;
+  bottom: 10cqw;
+  display: grid;
+  place-items: center;
+  width: 17cqw;
+  height: 17cqw;
+}
+
+.gazeRingSvg {
+  position: absolute;
+  inset: -1.6cqw;
+  width: calc(100% + 3.2cqw);
+  height: calc(100% + 3.2cqw);
+  transform: rotate(-90deg);
+  fill: none;
+}
+
+.gazeTrack {
+  stroke: color-mix(in srgb, var(--color-surface) 45%, transparent);
+  stroke-width: 3;
+}
+
+.gazeRing {
+  /* Full and green at rest: the selection is done. */
+  stroke: var(--color-mint);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.gazeButtonFace {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 10px 22px -10px rgba(0, 0, 0, 0.6);
+  color: var(--landing-navy);
+  font-size: clamp(10px, 2.3cqw, 15px);
+  font-weight: 700;
+}
+
+/* The word and the check share the middle of the circle. At rest (and for
+   people who asked for less movement) the check is the one showing. */
+.gazeLabel,
+.gazeCheck {
+  grid-area: 1 / 1;
+}
+
+.gazeLabel {
+  opacity: 0;
+}
+
+.gazeCheck {
+  width: 46%;
+  height: 46%;
+  fill: none;
+  stroke: var(--landing-mint-dark);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.gazeDot {
+  /* At rest the selection is done, so the pointer is already gone. */
+  opacity: 0;
+  position: absolute;
+  right: calc(9cqw + 8.5cqw - 1.4cqw);
+  bottom: calc(10cqw + 8.5cqw - 1.4cqw);
+  width: 2.8cqw;
+  height: 2.8cqw;
+  border: 0.5cqw solid var(--landing-sky);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--landing-sky) 35%, transparent);
+  box-shadow: 0 0 0 1.2cqw color-mix(in srgb, var(--landing-sky) 30%, transparent);
+}
+
+.gazeDone {
+  position: absolute;
+  right: 6cqw;
+  bottom: 30cqw;
+  padding: 1cqw 2.4cqw;
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.5);
+  font-size: clamp(11px, 2.4cqw, 15px);
+  font-weight: 700;
+  color: var(--landing-mint-dark);
+}
+
+[data-playing="true"] .gazeDot {
+  animation: gaze-dot 5s var(--ease-out) infinite;
+}
+
+[data-playing="true"] .gazeRing {
+  animation: gaze-ring 5s linear infinite;
+}
+
+[data-playing="true"] .gazeButtonFace {
+  animation: gaze-press 5s ease infinite;
+}
+
+[data-playing="true"] .gazeDone {
+  animation: gaze-done 5s var(--ease-spring) infinite;
+}
+
+[data-playing="true"] .gazeLabel {
+  animation: gaze-label 5s ease infinite;
+}
+
+[data-playing="true"] .gazeCheck {
+  animation: gaze-check 5s var(--ease-out) infinite;
+}
+
+/* 1 s is 20 % of the loop: the ring goes from 32 % to 50 %, 0.9 s. */
+/* The pointer travels to the button, holds while the ring fills and fades
+   away once the selection is done, so the check is left in plain view. */
+@keyframes gaze-dot {
+  0% {
+    opacity: 0;
+    transform: translate(-46cqw, -26cqw);
+  }
+  8% {
+    opacity: 1;
+    transform: translate(-46cqw, -26cqw);
+  }
+  30%,
+  50% {
+    opacity: 1;
+    transform: none;
+  }
+  56%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* The ring fills sky blue while the look holds, and turns green the moment
+   it closes, together with the check. */
+@keyframes gaze-ring {
+  0%,
+  32% {
+    opacity: 1;
+    stroke: var(--landing-sky);
+    stroke-dashoffset: 1;
+  }
+  50% {
+    opacity: 1;
+    stroke: var(--landing-sky);
+    stroke-dashoffset: 0;
+  }
+  54%,
+  86% {
+    opacity: 1;
+    stroke: var(--color-mint);
+    stroke-dashoffset: 0;
+  }
+  94% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+}
+
+/* The circle stays white: it only sinks a little when pressed. */
+@keyframes gaze-press {
+  0%,
+  50% {
+    transform: none;
+  }
+  54% {
+    transform: scale(0.88);
+  }
+  60%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes gaze-label {
+  0%,
+  52% {
+    opacity: 1;
+  }
+  56%,
+  92% {
+    opacity: 0;
+  }
+  97%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* The check draws itself from the short stroke to the long one, stays, and
+   fades out before the loop starts again. */
+@keyframes gaze-check {
+  0%,
+  55% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  66%,
+  88% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  94% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes gaze-done {
+  0%,
+  56% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.85);
+  }
+  62%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  95%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* --- The three steps --- */
+.steps {
+  display: grid;
+  gap: var(--space-7);
+  margin-top: 96px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-7);
+}
+
+.stepReverse .stepText {
+  order: 2;
+}
+
+.stepWho {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-iris-medium);
+}
+
+.stepNumber {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-iris-deep);
+  font-size: 0.8rem;
+  color: var(--color-surface);
+}
+
+.stepTitle {
+  margin: var(--space-3) 0 0;
+  font-size: clamp(1.6rem, 2.8vw, 2.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--color-iris-deep);
+}
+
+.stepBody {
+  max-width: 30rem;
+  margin: var(--space-3) 0 0;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--color-ink-soft);
+}
+
+/* The flow sits on a soft tinted card, each step with its own tint. */
+.flow {
+  --flow-tint: var(--color-iris-pale);
+  --flow-accent: var(--color-iris-medium);
+  margin: 0;
+  padding: var(--space-5) var(--space-5) var(--space-5) var(--space-4);
+  list-style: none;
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--flow-tint) 40%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--flow-tint) 70%, var(--color-surface));
+}
+
+.amber {
+  --flow-tint: color-mix(in srgb, var(--color-amber) 30%, var(--color-surface));
+  --flow-accent: var(--color-amber-dark);
+}
+
+.mint {
+  --flow-tint: color-mix(in srgb, var(--color-mint) 30%, var(--color-surface));
+  --flow-accent: var(--color-mint);
+}
+
+.sky {
+  /* A light sky blue, like the family's warm card and the teacher's mint. */
+  --flow-tint: color-mix(in srgb, var(--landing-sky) 50%, var(--color-surface));
+  --flow-accent: var(--color-iris-medium);
+}
+
+/* Steps zigzag: even ones on the left, odd ones moved right. The dashed
+   line above each step comes from the one before. */
+.flowItem {
+  position: relative;
+}
+
+.flowItem + .flowItem {
+  margin-top: 40px;
+}
+
+.flowItem[data-side="b"] .node {
+  margin-left: 34%;
+}
+
+.connector {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--color-iris-deep);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 6;
+  opacity: 0.55;
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 520ms var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 110ms);
+}
+
+.connector path {
+  vector-effect: non-scaling-stroke;
+}
+
+[data-visible="true"] .connector {
+  clip-path: inset(0 0 0 0);
+}
+
+.node {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 66%;
+  padding: 10px var(--space-3);
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.node svg {
+  flex: none;
+}
+
+.chip {
+  background: var(--color-surface);
+  box-shadow: 0 10px 22px -16px rgba(10, 47, 102, 0.6);
+  color: var(--color-iris-deep);
+}
+
+.chip svg {
+  color: var(--flow-accent);
+}
+
+/* Tags are tilted a little, like stickers put by hand. */
+.tag {
+  background: var(--color-gold);
+  color: var(--color-iris-deep);
+  rotate: -4deg;
+}
+
+.block {
+  background: var(--color-iris-deep);
+  color: var(--color-surface);
+}
+
+.mint .block {
+  background: var(--color-mint);
+  color: var(--landing-navy);
+}
+
+/* On the family's warm card the last step is reddish, to go with it. */
+.amber .block {
+  background: var(--landing-brick);
+}
+
+/* --- The call to join after the three paths --- */
+.startNow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: var(--space-7);
+  padding: var(--space-6) var(--space-5);
+  border-radius: 28px;
+  background: var(--landing-mist-1);
+  border: 1px solid color-mix(in srgb, var(--landing-mist-1) 82%, var(--landing-navy));
+  text-align: center;
+}
+
+.startTitle {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-iris-deep);
+}
+
+.startText {
+  max-width: 34rem;
+  margin: var(--space-2) 0 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+.startActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.startButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 0 26px 0 28px;
+  border-radius: 999px;
+  background: var(--color-action);
+  box-shadow: 0 14px 26px -16px rgba(31, 98, 191, 0.9);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-surface);
+  text-decoration: none;
+  transition:
+    background-color 200ms ease,
+    transform 220ms var(--ease-out);
+}
+
+.startButton svg {
+  transition: transform 260ms var(--ease-spring);
+}
+
+.startButton:hover {
+  background: var(--color-action-hover);
+  transform: translateY(-2px);
+}
+
+.startButton:hover svg {
+  transform: translateX(3px);
+}
+
+.startButton:active {
+  transform: scale(0.98);
+}
+
+.startLogin {
+  color: var(--color-iris-medium);
+}
+
+.startLogin:hover {
+  color: var(--color-iris-deep);
+}
+
+@media (max-width: 900px) {
+  .panel {
+    padding: var(--space-5) var(--space-3) 0;
+    border-radius: 24px;
+  }
+
+  .call {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 84px;
+  }
+
+  .sideTiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+  }
+
+  .sideTile {
+    aspect-ratio: 4 / 3;
+  }
+
+  .curves {
+    display: none;
+  }
+
+  .steps {
+    gap: var(--space-6);
+    margin-top: var(--space-7);
+  }
+
+  .step {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .stepReverse .stepText {
+    order: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .startNow {
+    margin-top: var(--space-6);
+    padding: var(--space-5) var(--space-3);
+    border-radius: 22px;
+  }
+
+  .startButton {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .flow {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .flowItem[data-side="b"] .node {
+    margin-left: 18%;
+  }
+
+  .node {
+    max-width: 82%;
+    font-size: 0.9rem;
+  }
+
+  .callPill {
+    font-size: 0.86rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .startButton:hover,
+  .startButton:active,
+  .startButton:hover svg {
+    transform: none;
+  }
+
+  [data-playing="true"] .gazeDot,
+  [data-playing="true"] .gazeRing,
+  [data-playing="true"] .gazeButtonFace,
+  [data-playing="true"] .gazeDone,
+  [data-playing="true"] .gazeLabel,
+  [data-playing="true"] .gazeCheck {
+    animation: none;
+  }
+}

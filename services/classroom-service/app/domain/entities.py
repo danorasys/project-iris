@@ -18,6 +18,30 @@ STATUS_REJECTED = "rechazada"
 CLASSROOM_COLORS = ("blue", "navy", "orange", "green", "gold")
 DEFAULT_CLASSROOM_COLOR = "blue"
 
+# The subject of a classroom: the nine mandatory areas of basic education
+# (Ley 115 de 1994, art. 23) plus "other", for what doesn't fit in them.
+# Same list as the CHECK in the database.
+CLASSROOM_AREAS = (
+    "natural_sciences",
+    "social_sciences",
+    "arts",
+    "ethics",
+    "physical_education",
+    "religion",
+    "humanities",
+    "mathematics",
+    "technology",
+    "other",
+)
+
+# With "other" the teacher writes which area it is, in a few words.
+OTHER_AREA = "other"
+AREA_OTHER_MAX_LENGTH = 60
+
+# The grade a classroom is for: first to fifth, the primary school kids IRIS
+# is made for. Only one, like the DBA, which go grade by grade.
+CLASSROOM_GRADES = (1, 2, 3, 4, 5)
+
 
 @dataclass
 class Classroom:
@@ -30,6 +54,12 @@ class Classroom:
     # Where the logo lives inside the private bucket, never a public URL.
     logo_key: str | None = None
     color: str = DEFAULT_CLASSROOM_COLOR
+    # Required for every classroom since HU-100. Empty only in the ones
+    # created before, until the teacher edits them.
+    area: str | None = None
+    # Only with area "other": the area written by the teacher.
+    area_other: str | None = None
+    grade: int | None = None
 
     @property
     def logo_file(self) -> str | None:

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { calculateProgress, isInsideRect, isProgressComplete } from "./dwellMath";
-import { useGazeSourceOptional } from "./GazeSourceContext";
+import { useGazeSourceOptional } from "./useGazeSource";
 
 interface DwellSelectOptions {
   onSelect: () => void;
@@ -32,15 +32,17 @@ export function useDwellSelect<T extends HTMLElement>({
 
   const dwellStartRef = useRef<number | null>(null);
   const selectedRef = useRef(false);
+  // Always calls the newest onSelect, without starting the dwell over when
+  // the parent passes a new function on each render.
   const onSelectRef = useRef(onSelect);
-  onSelectRef.current = onSelect;
+  useLayoutEffect(() => {
+    onSelectRef.current = onSelect;
+  });
+
+  const enabled = active && source !== null;
 
   useEffect(() => {
-    if (!active || !source) {
-      setProgress(0);
-      setFocused(false);
-      return;
-    }
+    if (!enabled || !source) return;
 
     const unsubscribe = source.subscribe(({ x, y }) => {
       const element = ref.current;
@@ -69,8 +71,17 @@ export function useDwellSelect<T extends HTMLElement>({
       }
     });
 
-    return unsubscribe;
-  }, [source, durationMs, active]);
+    // Stops listening and leaves everything at zero, so a button that gets
+    // turned back on starts from the beginning.
+    return () => {
+      unsubscribe();
+      dwellStartRef.current = null;
+      selectedRef.current = false;
+      setProgress(0);
+      setFocused(false);
+    };
+  }, [source, durationMs, enabled]);
 
-  return { ref, progress, focused };
+  // While it's off it always reads as empty, whatever was left in the state.
+  return { ref, progress: enabled ? progress : 0, focused: enabled && focused };
 }

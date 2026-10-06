@@ -23,7 +23,7 @@ function classroom(id: string, pending: number): TeacherClassroom {
 
 let classrooms: TeacherClassroom[] = [];
 
-vi.mock("@/shared/auth/AuthContext", () => ({ useAuth: () => ({ closeSession }) }));
+vi.mock("@/shared/auth/useAuth", () => ({ useAuth: () => ({ closeSession }) }));
 vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
   useTeacherClassrooms: () => ({ data: classrooms, isLoading: false, isError: false }),
 }));

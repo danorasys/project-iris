@@ -18,6 +18,8 @@ const math: TeacherClassroom = {
   description: "Sumas y restas",
   logo_file: null,
   color: "green",
+  area: "mathematics",
+  grade: 2,
   enrollment_code: "1234567",
   created_at: "2026-10-04T10:00:00Z",
   pending_requests: 2,
@@ -67,7 +69,10 @@ vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
 }));
 
 vi.mock("@/shared/api/hooks/useLessonsApi", () => ({
-  useClassroomLessons: () => ({ data: [], isLoading: false, isError: false }),
+  useClassroomUnits: () => ({ data: [], isLoading: false, isError: false }),
+  useReorderUnits: () => ({ mutate: vi.fn(), isPending: false }),
+  useReorderLessons: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteUnit: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 // The kids' avatars come from a catalog, not needed here.
@@ -94,6 +99,7 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     const card = screen.getByRole("button", { name: /Matemáticas Básicas/ });
     expect(within(card).getByText("MB")).toBeTruthy();
     expect(within(card).getByText("2")).toBeTruthy();
+    expect(within(card).getByText("Matemáticas · 2.°")).toBeTruthy();
     expect(screen.getByText("2 solicitudes pendientes")).toBeTruthy();
   });
 
@@ -106,6 +112,8 @@ describe("Mis clases", { timeout: 20_000 }, () => {
 
     expect(screen.getByText("Escribe el nombre de la clase.")).toBeTruthy();
     expect(screen.getByText("Escribe una descripción de la clase.")).toBeTruthy();
+    expect(screen.getByText("Elige el área de la clase.")).toBeTruthy();
+    expect(screen.getByText("Elige el grado de la clase.")).toBeTruthy();
     expect(createClassroom).not.toHaveBeenCalled();
   });
 
@@ -118,13 +126,68 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     expect(document.activeElement).toBe(screen.getByLabelText(/^Nombre de la clase/));
     await user.type(screen.getByLabelText(/^Nombre de la clase/), "  Ciencias  ");
     await user.type(screen.getByLabelText(/^Descripción/), "Plantas y animales");
+    await user.selectOptions(screen.getByLabelText(/^Área/), "natural_sciences");
+    await user.click(screen.getByRole("radio", { name: "3.°" }));
     await user.click(screen.getByRole("radio", { name: "Amarillo" }));
     await user.click(screen.getByRole("button", { name: "Crear clase" }));
 
-    expect(createClassroom).toHaveBeenCalledWith({ name: "Ciencias", description: "Plantas y animales", color: "gold" });
+    expect(createClassroom).toHaveBeenCalledWith({
+      name: "Ciencias",
+      description: "Plantas y animales",
+      color: "gold",
+      area: "natural_sciences",
+      area_other: null,
+      grade: 3,
+    });
     expect(await screen.findByText("La clase se creó.")).toBeTruthy();
     // It opens the new classroom's space.
     expect(screen.getByRole("button", { name: "Regresar a mis clases" })).toBeTruthy();
+  });
+
+  it("shows the card of the new class while it's filled in, and the X closes it", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderSection();
+
+    await user.click(screen.getByRole("button", { name: "Nueva clase" }));
+    const preview = screen.getByRole("complementary", { name: "Vista previa" });
+    expect(within(preview).getByText("Nombre de la clase")).toBeTruthy();
+
+    await user.type(screen.getByLabelText(/^Nombre de la clase/), "Ciencias Naturales");
+    expect(within(preview).getByText("Ciencias Naturales")).toBeTruthy();
+    expect(within(preview).getByText("CN")).toBeTruthy();
+    expect(screen.getByText("18/120")).toBeTruthy();
+
+    await user.click(screen.getByRole("radio", { name: "Verde" }));
+    expect(screen.getByText("Verde", { selector: "p" })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Cerrar" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(createClassroom).not.toHaveBeenCalled();
+  });
+
+  it("with Otra as area asks which area it is", async () => {
+    createClassroom.mockResolvedValue({ ...math, id: "c3", area: "other", area_other: "Música" });
+    const user = userEvent.setup({ delay: null });
+    renderSection();
+
+    await user.click(screen.getByRole("button", { name: "Nueva clase" }));
+    await user.type(screen.getByLabelText(/^Nombre de la clase/), "Coro");
+    await user.type(screen.getByLabelText(/^Descripción/), "Canciones");
+    await user.selectOptions(screen.getByLabelText(/^Área/), "other");
+    await user.click(screen.getByRole("radio", { name: "2.°" }));
+    await user.click(screen.getByRole("button", { name: "Crear clase" }));
+
+    expect(screen.getByText("Escribe cuál es el área de la clase.")).toBeTruthy();
+    expect(createClassroom).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText(/^¿Cuál área\?/), "Música");
+    const preview = screen.getByRole("complementary", { name: "Vista previa" });
+    expect(within(preview).getByText("Música · 2.°")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Crear clase" }));
+
+    expect(createClassroom).toHaveBeenCalledWith(
+      expect.objectContaining({ area: "other", area_other: "Música", grade: 2 }),
+    );
   });
 
   it("opens a classroom with its options and goes back", async () => {
@@ -133,7 +196,7 @@ describe("Mis clases", { timeout: 20_000 }, () => {
 
     await user.click(screen.getByRole("button", { name: /Matemáticas Básicas/ }));
 
-    for (const option of ["Miembros", "Lecciones", "Mensajes", "Estadísticas"]) {
+    for (const option of ["Miembros", "Unidades y lecciones", "Mensajes", "Estadísticas"]) {
       expect(screen.getByRole("button", { name: new RegExp(`^${option}`) })).toBeTruthy();
     }
     expect(screen.getByRole("button", { name: "Regresar Volver a mis clases" })).toBeTruthy();
@@ -176,7 +239,15 @@ describe("Mis clases", { timeout: 20_000 }, () => {
 
     expect(updateClassroom).toHaveBeenCalledWith({
       classroomId: "c1",
-      body: { name: "Matemáticas 1", description: "Sumas y restas", color: "green" },
+      // The area and grade it already had stay as they were.
+      body: {
+        name: "Matemáticas 1",
+        description: "Sumas y restas",
+        color: "green",
+        area: "mathematics",
+        area_other: null,
+        grade: 2,
+      },
     });
     expect(await screen.findByText("Los cambios de la clase se guardaron.")).toBeTruthy();
   });

@@ -37,6 +37,30 @@
   --focus-halo: 0 0 0 4px var(--color-focus-halo);
   --focus-halo-transition: border-color 160ms ease, box-shadow 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
+  /* --- The landing's livelier palette (only the landing and its footer) ---
+     Blue and navy carry white text (5.9:1 and 13:1); the rest are fills and
+     touches, with navy text on top when they have any. */
+  --landing-blue: #1f62bf; /* hero, main buttons, links */
+  --landing-blue-hover: #184e99;
+  --landing-navy: #0a2f66; /* titles, dark cards, footer */
+  --landing-sky: #5bbcf0; /* sky blue, only for glows and touches */
+  --landing-sky-pale: #dcefff; /* soft tints and borders */
+  --landing-canvas: #f2f8ff; /* page background */
+  /* Three different blues of the same family for cards that go together,
+     like the three people of "Un lugar para todos": a clear sky blue, a
+     soft cornflower blue and a water blue. */
+  --landing-mist-1: #e6f3fd;
+  --landing-mist-2: #e2ebfc;
+  --landing-mist-3: #e3f3f6;
+  --landing-orange: #ff8a3d; /* the warm accent: lines, shapes, progress */
+  --landing-orange-dark: #d9611a; /* orange icons on light tints */
+  --landing-brick: #c4451c; /* reddish orange that carries white text (5:1) */
+  --landing-sun: #ffc93c; /* yellow highlights and stickers */
+  --landing-mint: #12b886; /* success fills */
+  --landing-mint-dark: #0b7a52; /* success text on white */
+  --landing-ink: #0b2545;
+  --landing-ink-soft: #4a5d73;
+
   /* --- Old names. Most components already use these, so instead of
      rewriting every CSS module we just point them to the colors above --- */
   --color-cream: var(--color-canvas);
@@ -61,6 +85,9 @@
   --font-display: "DM Sans", "Segoe UI", sans-serif; /* headings, heavier weight than body */
   --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif; /* body text */
   --font-mono: "Spline Sans Mono", ui-monospace, "Cascadia Code", monospace; /* codes, PIN, figures */
+  /* Only the landing (and its footer on the legal pages) uses Poppins, the
+     font of the video it was redesigned from. The app keeps DM Sans. */
+  --font-landing: "Poppins", "Segoe UI", system-ui, sans-serif;
 
   /* Smallest a gaze-selectable (dwell) button can be. We had it at 128px
      but after testing the gaze engine with real users it wasn't accurate
@@ -74,6 +101,11 @@
   --shadow-card: 0 10px 28px rgba(20, 32, 42, 0.1);
   --shadow-soft: 0 2px 10px rgba(20, 32, 42, 0.06);
   --shadow-lift: 0 16px 36px rgba(20, 32, 42, 0.16); /* a card lifted on hover */
+
+  /* How things move: "out" slows down at the end (things arriving), and
+     "spring" passes a bit and comes back (small things that pop in). */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   --space-1: 4px;
   --space-2: 8px;

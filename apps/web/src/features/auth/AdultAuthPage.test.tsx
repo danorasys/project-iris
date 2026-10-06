@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { leaveLoginNotice, peekLoginNotice } from "@/shared/ui/loginNotice";
 import AdultAuthPage from "./AdultAuthPage";
 
-vi.mock("@/shared/auth/AuthContext", () => ({
+vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => ({ setSession: vi.fn() }),
 }));
 

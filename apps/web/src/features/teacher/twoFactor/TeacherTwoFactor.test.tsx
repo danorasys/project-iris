@@ -14,7 +14,7 @@ const auth = {
 const status = vi.fn();
 const confirm = vi.fn();
 
-vi.mock("@/shared/auth/AuthContext", () => ({
+vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => auth,
 }));
 

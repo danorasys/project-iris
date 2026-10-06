@@ -6,20 +6,19 @@ import {
     parsePhoneNumber,
 } from "react-phone-number-input"
 import type { TeacherRegistrationRequest } from "@iris/shared-types"
-import { useAuth } from "@/shared/auth/AuthContext"
+import { useAuth } from "@/shared/auth/useAuth"
 import {
     useDocumentTypes,
     useRegistrarDocente,
 } from "@/shared/api/hooks/useAuthApi"
 import { getAuthErrorMessage } from "@/features/auth/errors"
+import { firstOptionId } from "./firstOption"
 import { TextField } from "@/features/auth/ui/TextField"
 import { SelectField } from "@/features/auth/ui/SelectField"
 import { PhoneField } from "@/features/auth/ui/PhoneField"
 import { CheckboxField } from "@/features/auth/ui/CheckboxField"
-import {
-    PasswordRequirements,
-    passwordMeetsRequirements,
-} from "@/features/auth/ui/PasswordRequirements"
+import { PasswordRequirements } from "@/features/auth/ui/PasswordRequirements"
+import { passwordMeetsRequirements } from "@/features/auth/ui/passwordRules"
 import {
     DOCUMENT_TYPE_NAME_PASSPORT,
     documentNumberFormatError,
@@ -106,7 +105,7 @@ export default function TeacherRegistrationWizard() {
     const [firstName, setFirstName] = useState("")
     const [lastName, setLastName] = useState("")
     const [dateOfBirth, setDateOfBirth] = useState("")
-    const [documentType, setDocumentType] = useState("")
+    const [chosenDocumentType, setDocumentType] = useState("")
     const [documentNumber, setDocumentNumber] = useState("")
     const [documentIssuedAt, setDocumentIssuedAt] = useState("")
     const [email, setEmail] = useState("")
@@ -134,10 +133,10 @@ export default function TeacherRegistrationWizard() {
         window.scrollTo(0, 0)
     }, [phase])
 
-    useEffect(() => {
-        if (!documentType && documentTypesQuery.data?.length)
-            setDocumentType(String(documentTypesQuery.data[0].id))
-    }, [documentType, documentTypesQuery.data])
+    // The first document type until the teacher picks another one, worked
+    // out on every render so it never overrides a choice already made.
+    const documentType =
+        chosenDocumentType || firstOptionId(documentTypesQuery.data)
 
     const selectedDocumentType = documentTypesQuery.data?.find(
         (item) => String(item.id) === documentType,

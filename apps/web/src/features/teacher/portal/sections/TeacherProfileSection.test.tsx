@@ -41,7 +41,7 @@ vi.mock("@/shared/api/hooks/useAuthApi", () => ({
   useCerrarTodasMisSesiones: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
-vi.mock("@/shared/auth/AuthContext", () => ({
+vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => ({ discardSession: vi.fn() }),
 }));
 

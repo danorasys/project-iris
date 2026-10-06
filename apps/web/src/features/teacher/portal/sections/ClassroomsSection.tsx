@@ -4,6 +4,7 @@ import { useTeacherClassrooms } from "@/shared/api/hooks/useClassroomsApi";
 import { IconArrowRight, IconClassroom, IconPlus } from "@/shared/ui/icons";
 import { Toast } from "@/shared/ui/Toast";
 import { ClassroomAvatar } from "../../classrooms/ClassroomAvatar";
+import { classroomAudience } from "../../classrooms/classroomDetails";
 import { ClassroomFormDialog } from "../../classrooms/ClassroomFormDialog";
 import { ClassroomSpace, type ClassroomView } from "./ClassroomSpace";
 import styles from "../portalSection.module.css";
@@ -118,6 +119,11 @@ export function ClassroomsSection({ initialClassroomId, initialView }: Classroom
                     <ClassroomAvatar classroom={classroom} size={88} />
                   </span>
                   <span className={styles.cardName}>{classroom.name}</span>
+                  {classroomAudience(classroom.area, classroom.grade, classroom.area_other) && (
+                    <span className={styles.cardAudience}>
+                      {classroomAudience(classroom.area, classroom.grade, classroom.area_other)}
+                    </span>
+                  )}
                   <span className={styles.cardAction}>
                     Entrar a la clase
                     <IconArrowRight width={16} height={16} />

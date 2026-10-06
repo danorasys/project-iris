@@ -1,33 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { TokensAuth } from "@iris/shared-types";
 import { ApiError, apiFetch, configureAuthHandlers } from "@/shared/api/httpClient";
 import { queryClient } from "@/shared/api/queryClient";
 import { decodeJwtPayload } from "./jwt";
 import { removeLegacySessionData } from "./legacyStorage";
-
-type Role = "guardian" | "teacher" | "student";
-
-interface CurrentSession {
-  accessToken: string;
-  subjectId: string;
-  role: Role;
-  /** A teacher's session that already passed the 2FA code. Only picks the
-   * screen, every service checks the token itself. */
-  mfaVerified: boolean;
-}
-
-interface AuthContextValue {
-  session: CurrentSession | null;
-  /** true while trying to restore the session with the refresh cookie */
-  loading: boolean;
-  setSession: (tokens: TokensAuth) => void;
-  closeSession: () => Promise<void>;
-  /** Drops the local session without calling the server, for when the server
-   * already closed it (password change, "close all sessions", security lock). */
-  discardSession: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue, type CurrentSession } from "./sessionContext";
 
 // Enough for the browser to store the cookie the other tab just received.
 const REFRESH_RETRY_WAIT_MS = 300;
@@ -124,14 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthContextValue>(
     () => ({ session, loading, setSession, closeSession, discardSession: clearSession }),
-    [session, loading, setSession, closeSession, clearSession]
+    [session, loading, setSession, closeSession, clearSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth debe usarse dentro de <AuthProvider>");
-  return ctx;
 }

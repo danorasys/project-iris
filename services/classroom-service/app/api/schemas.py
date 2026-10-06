@@ -1,13 +1,29 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # Same list as CLASSROOM_COLORS in the domain and the CHECK in the database.
 ClassroomColor = Literal["blue", "navy", "orange", "green", "gold"]
+
+# Same lists as CLASSROOM_AREAS and CLASSROOM_GRADES in the domain: the nine
+# areas of Ley 115 (art. 23) plus "other", and first to fifth grade.
+ClassroomArea = Literal[
+    "natural_sciences",
+    "social_sciences",
+    "arts",
+    "ethics",
+    "physical_education",
+    "religion",
+    "humanities",
+    "mathematics",
+    "technology",
+    "other",
+]
+ClassroomGrade = Annotated[int, Field(ge=1, le=5)]
 
 
 def _no_control_chars(v: str | None) -> str | None:
@@ -22,20 +38,35 @@ class CreateClassroomRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     name: str = Field(min_length=1, max_length=120)
-    description: str = Field(min_length=1, max_length=1000)
+    description: str = Field(min_length=1, max_length=2000)
     color: ClassroomColor = "blue"
+    area: ClassroomArea
+    # Which area it is, only with area "other" (and then required).
+    area_other: str | None = Field(default=None, min_length=1, max_length=60)
+    grade: ClassroomGrade
 
-    _clean = field_validator("name", "description")(_no_control_chars)
+    _clean = field_validator("name", "description", "area_other")(_no_control_chars)
 
 
 class UpdateClassroomRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     name: str | None = Field(default=None, min_length=1, max_length=120)
-    description: str | None = Field(default=None, min_length=1, max_length=1000)
+    description: str | None = Field(default=None, min_length=1, max_length=2000)
     color: ClassroomColor | None = None
+    # Leaving them out keeps them. They can't be cleared, so null is refused.
+    area: ClassroomArea | None = None
+    area_other: str | None = Field(default=None, min_length=1, max_length=60)
+    grade: ClassroomGrade | None = None
 
-    _clean = field_validator("name", "description")(_no_control_chars)
+    _clean = field_validator("name", "description", "area_other")(_no_control_chars)
+
+    @model_validator(mode="after")
+    def area_and_grade_not_null(self) -> UpdateClassroomRequest:
+        for field in ("area", "grade"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError("El área y el grado de la clase son obligatorios.")
+        return self
 
 
 class EnrollRequest(BaseModel):
@@ -63,6 +94,11 @@ class ClassroomResponse(BaseModel):
     logo_file: str | None = None
     # The avatar's color, used when there's no logo (initials on this color).
     color: ClassroomColor
+    # What it's about and who it's for (see ClassroomArea). Empty only in
+    # classrooms created before they were required.
+    area: ClassroomArea | None = None
+    area_other: str | None = None
+    grade: int | None = None
     enrollment_code: str
     created_at: datetime
 

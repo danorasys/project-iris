@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError } from "@/shared/api/httpClient";
-import { useAuth } from "@/shared/auth/AuthContext";
+import { useAuth } from "@/shared/auth/useAuth";
 import { useCountdown } from "@/shared/hooks/useCountdown";
 import { formatClock, getAuthErrorMessage, getRetryAfterSeconds } from "@/features/auth/errors";
 import { OtpCodeInput } from "@/features/auth/ui/OtpCodeInput";
