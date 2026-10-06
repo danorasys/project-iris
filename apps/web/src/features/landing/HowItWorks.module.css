@@ -1,8 +1,13 @@
 /* --- The blue panel: the gaze shown in a call-like picture --- */
+/* The words on the left and the call on the right, side by side. */
 .panel {
   --color-focus: var(--color-surface);
   position: relative;
   overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  align-items: center;
+  gap: var(--space-5);
   padding: var(--space-6) var(--space-6) 0;
   border-radius: 32px;
   background:
@@ -24,11 +29,11 @@
   transform: translate(-50%, -50%);
 }
 
+/* The bottom padding matches the room the call leaves for its pill, so the
+   words line up with the picture and not with the pill. */
 .panelHead {
   position: relative;
-  max-width: 40rem;
-  margin: 0 auto;
-  text-align: center;
+  padding-bottom: 56px;
 }
 
 .panelTitle {
@@ -50,8 +55,6 @@
   display: grid;
   grid-template-columns: minmax(0, 2.6fr) minmax(0, 1fr);
   gap: var(--space-3);
-  max-width: 900px;
-  margin: var(--space-5) auto 0;
   padding-bottom: 56px;
 }
 
@@ -429,25 +432,60 @@
   }
 }
 
-/* --- The three steps --- */
-.steps {
+/* --- The three paths: one card each, side by side --- */
+.paths {
   display: grid;
-  gap: var(--space-7);
-  margin-top: 96px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.step {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+.path {
+  --path-tint: var(--landing-mist-1);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5);
+  border-radius: 28px;
+  background: var(--path-tint);
+  border: 1px solid color-mix(in srgb, var(--path-tint) 82%, var(--landing-navy));
+  transition:
+    opacity 640ms var(--ease-out),
+    transform 760ms var(--ease-out),
+    box-shadow 300ms ease;
+  /* Keeps its turn in the entrance (the hover shadow has no wait). */
+  transition-delay: calc(var(--i, 0) * 110ms), calc(var(--i, 0) * 110ms), 0s;
+}
+
+.path:hover {
+  box-shadow: 0 26px 44px -30px rgba(10, 47, 102, 0.55);
+}
+
+.mistLight {
+  --path-tint: var(--landing-mist-1);
+}
+
+.mistMid {
+  --path-tint: var(--landing-mist-2);
+}
+
+.mistDeep {
+  --path-tint: var(--landing-mist-3);
+}
+
+.pathTop {
+  display: flex;
   align-items: center;
-  gap: var(--space-7);
+  gap: var(--space-3);
 }
 
-.stepReverse .stepText {
-  order: 2;
+.pathBadge {
+  width: 60px;
+  height: 60px;
 }
 
-.stepWho {
+.pathWho {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -457,108 +495,76 @@
   color: var(--color-iris-medium);
 }
 
-.stepNumber {
+.pathNumber {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--color-iris-deep);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--color-surface);
 }
 
-.stepTitle {
+.pathTitle {
   margin: var(--space-3) 0 0;
-  font-size: clamp(1.6rem, 2.8vw, 2.25rem);
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
   color: var(--color-iris-deep);
 }
 
-.stepBody {
-  max-width: 30rem;
-  margin: var(--space-3) 0 0;
-  font-size: 1.05rem;
-  line-height: 1.65;
+.pathText {
+  margin: var(--space-2) 0 0;
+  font-size: 0.97rem;
+  line-height: 1.55;
   color: var(--color-ink-soft);
 }
 
-/* The flow sits on a soft tinted card, each step with its own tint. */
+/* The steps one under the other, tied by a dashed line on their left. The
+   list sits at the bottom so the three cards line up. */
 .flow {
-  --flow-tint: var(--color-iris-pale);
   --flow-accent: var(--color-iris-medium);
-  margin: 0;
-  padding: var(--space-5) var(--space-5) var(--space-5) var(--space-4);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin: auto 0 0;
+  padding: var(--space-4) 0 0;
   list-style: none;
-  border-radius: 28px;
-  background: color-mix(in srgb, var(--flow-tint) 40%, var(--color-surface));
-  border: 1px solid color-mix(in srgb, var(--flow-tint) 70%, var(--color-surface));
+}
+
+.flow::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--space-4) + 18px);
+  bottom: 18px;
+  left: 20px;
+  border-left: 2px dashed color-mix(in srgb, var(--color-iris-deep) 30%, transparent);
 }
 
 .amber {
-  --flow-tint: color-mix(in srgb, var(--color-amber) 30%, var(--color-surface));
   --flow-accent: var(--color-amber-dark);
 }
 
 .mint {
-  --flow-tint: color-mix(in srgb, var(--color-mint) 30%, var(--color-surface));
   --flow-accent: var(--color-mint);
 }
 
 .sky {
-  /* A light sky blue, like the family's warm card and the teacher's mint. */
-  --flow-tint: color-mix(in srgb, var(--landing-sky) 50%, var(--color-surface));
   --flow-accent: var(--color-iris-medium);
 }
 
-/* Steps zigzag: even ones on the left, odd ones moved right. The dashed
-   line above each step comes from the one before. */
-.flowItem {
-  position: relative;
-}
-
-.flowItem + .flowItem {
-  margin-top: 40px;
-}
-
-.flowItem[data-side="b"] .node {
-  margin-left: 34%;
-}
-
-.connector {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  width: 100%;
-  height: 40px;
-  overflow: visible;
-  fill: none;
-  stroke: var(--color-iris-deep);
-  stroke-width: 1.6;
-  stroke-dasharray: 5 6;
-  opacity: 0.55;
-  clip-path: inset(0 0 100% 0);
-  transition: clip-path 520ms var(--ease-out);
-  transition-delay: calc(var(--i, 0) * 110ms);
-}
-
-.connector path {
-  vector-effect: non-scaling-stroke;
-}
-
-[data-visible="true"] .connector {
-  clip-path: inset(0 0 0 0);
-}
-
 .node {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  max-width: 66%;
-  padding: 10px var(--space-3);
-  border-radius: 14px;
-  font-size: 0.95rem;
+  max-width: 100%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.3;
 }
@@ -581,7 +587,7 @@
 .tag {
   background: var(--color-gold);
   color: var(--color-iris-deep);
-  rotate: -4deg;
+  rotate: -3deg;
 }
 
 .block {
@@ -594,35 +600,78 @@
   color: var(--landing-navy);
 }
 
-/* On the family's warm card the last step is reddish, to go with it. */
+/* On the family's path the last step is reddish. */
 .amber .block {
   background: var(--landing-brick);
 }
 
 /* --- The call to join after the three paths --- */
 .startNow {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   align-items: center;
-  margin-top: var(--space-7);
-  padding: var(--space-6) var(--space-5);
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+  padding: var(--space-5) var(--space-6);
   border-radius: 28px;
-  background: var(--landing-mist-1);
-  border: 1px solid color-mix(in srgb, var(--landing-mist-1) 82%, var(--landing-navy));
-  text-align: center;
+  border: 1px solid color-mix(in srgb, var(--landing-sky-pale) 70%, var(--landing-sky));
+  background:
+    radial-gradient(55% 85% at 82% 50%, color-mix(in srgb, var(--landing-sky) 32%, transparent), transparent 72%),
+    linear-gradient(135deg, var(--landing-mist-1) 0%, var(--landing-sky-pale) 100%);
+}
+
+/* The iris rings again, in blue and very faint, around the trail. */
+.startRings {
+  top: 50%;
+  right: -330px;
+  width: 1000px;
+  height: 1000px;
+  color: var(--landing-blue);
+  opacity: 0.08;
+  transform: translateY(-50%);
+}
+
+.startCopy {
+  position: relative;
 }
 
 .startTitle {
   margin: 0;
-  font-size: clamp(1.5rem, 2.6vw, 2rem);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  color: var(--color-iris-deep);
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  color: var(--landing-navy);
+}
+
+/* "el camino" gets the same yellow marker as "LMS" in the hero, painted
+   once the title is up. */
+.startMark {
+  position: relative;
+  z-index: 0;
+  white-space: nowrap;
+}
+
+.startMark::before {
+  content: "";
+  position: absolute;
+  inset: 0.08em -0.18em 0.02em;
+  z-index: -1;
+  border-radius: 3px 8px 4px 9px;
+  background: var(--color-gold);
+  transform: scaleX(0) skewX(-8deg);
+  transform-origin: left;
+  transition: transform 700ms var(--ease-out) 600ms;
+}
+
+[data-visible="true"] .startMark::before {
+  transform: scaleX(1) skewX(-8deg);
 }
 
 .startText {
-  max-width: 34rem;
-  margin: var(--space-2) 0 0;
+  max-width: 32rem;
+  margin: var(--space-3) 0 0;
   font-size: 1.05rem;
   line-height: 1.6;
   color: var(--color-ink-soft);
@@ -632,27 +681,73 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
   gap: var(--space-2) var(--space-4);
-  margin-top: var(--space-4);
+  margin-top: var(--space-5);
 }
 
+/* The button sends out a sky ring now and then and a shine crosses it, so it
+   doesn't sit still next to the rest. Both start once the block is in. */
 .startButton {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  min-height: 54px;
-  padding: 0 26px 0 28px;
+  min-height: 56px;
+  padding: 0 28px 0 30px;
   border-radius: 999px;
   background: var(--color-action);
   box-shadow: 0 14px 26px -16px rgba(31, 98, 191, 0.9);
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   color: var(--color-surface);
   text-decoration: none;
   transition:
     background-color 200ms ease,
     transform 220ms var(--ease-out);
+}
+
+.startButton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.42) 50%, transparent 70%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+[data-visible="true"] .startButton {
+  animation: start-halo 2.8s ease-out 1.8s infinite;
+}
+
+[data-visible="true"] .startButton::after {
+  animation: start-shine 3.6s ease-in-out 2.2s infinite;
+}
+
+@keyframes start-halo {
+  0% {
+    box-shadow:
+      0 14px 26px -16px rgba(31, 98, 191, 0.9),
+      0 0 0 0 color-mix(in srgb, var(--landing-sky) 60%, transparent);
+  }
+
+  70%,
+  100% {
+    box-shadow:
+      0 14px 26px -16px rgba(31, 98, 191, 0.9),
+      0 0 0 14px transparent;
+  }
+}
+
+@keyframes start-shine {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  45%,
+  100% {
+    transform: translateX(120%);
+  }
 }
 
 .startButton svg {
@@ -665,7 +760,7 @@
 }
 
 .startButton:hover svg {
-  transform: translateX(3px);
+  transform: translateX(4px);
 }
 
 .startButton:active {
@@ -680,10 +775,161 @@
   color: var(--color-iris-deep);
 }
 
+/* The trail: a dotted orange line that draws itself, with the family, the
+   teacher and the student on it and a sparkle where it ends. The box keeps
+   the 4:3 of the drawing so the people sit right on the line. */
+.startArt {
+  position: relative;
+  justify-self: center;
+  width: min(100%, 320px);
+  aspect-ratio: 4 / 3;
+  margin-bottom: 30px;
+}
+
+.startTrail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--landing-orange);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-dasharray: 2 11;
+}
+
+.startPerson {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 25%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+}
+
+.startPerson[data-spot="0"] {
+  --x: 17.5%;
+  --y: 71.7%;
+}
+
+.startPerson[data-spot="1"] {
+  --x: 50%;
+  --y: 28.3%;
+}
+
+.startPerson[data-spot="2"] {
+  --x: 82.5%;
+  --y: 68.3%;
+}
+
+.startBubble {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 4px solid var(--color-surface);
+  box-shadow: 0 16px 28px -14px rgba(10, 47, 102, 0.55);
+}
+
+.startBubble img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Once they're in, each one floats a little, out of step with the others. */
+[data-visible="true"] .startBubble {
+  animation: start-float 4.6s ease-in-out infinite;
+  animation-delay: calc(1.8s + var(--i, 0) * 260ms);
+}
+
+@keyframes start-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -7px;
+  }
+}
+
+.startTag {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  translate: -50% 0;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 1.5px solid var(--landing-sky-pale);
+  background: var(--color-surface);
+  box-shadow:
+    0 3px 0 color-mix(in srgb, var(--landing-sky-pale) 65%, var(--landing-navy)),
+    0 10px 18px -12px rgba(10, 47, 102, 0.5);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--color-iris-deep);
+}
+
+.startGoal {
+  position: absolute;
+  left: 98%;
+  top: 23.3%;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: var(--color-gold);
+  color: var(--landing-navy);
+  box-shadow: 0 10px 18px -10px rgba(10, 47, 102, 0.55);
+}
+
+[data-visible="true"] .startGoal {
+  animation: start-goal 2.4s ease-out 2.4s infinite;
+}
+
+@keyframes start-goal {
+  0% {
+    box-shadow:
+      0 10px 18px -10px rgba(10, 47, 102, 0.55),
+      0 0 0 0 color-mix(in srgb, var(--color-gold) 70%, transparent);
+  }
+
+  70%,
+  100% {
+    box-shadow:
+      0 10px 18px -10px rgba(10, 47, 102, 0.55),
+      0 0 0 12px transparent;
+  }
+}
+
 @media (max-width: 900px) {
+  /* The trail goes on top and a bit smaller, the text right under it. */
+  .startNow {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-5);
+  }
+
+  .startArt {
+    order: -1;
+    width: min(100%, 320px);
+  }
+
   .panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
     padding: var(--space-5) var(--space-3) 0;
     border-radius: 24px;
+  }
+
+  .panelHead {
+    padding-bottom: 0;
+    text-align: center;
   }
 
   .call {
@@ -704,18 +950,11 @@
     display: none;
   }
 
-  .steps {
-    gap: var(--space-6);
-    margin-top: var(--space-7);
-  }
-
-  .step {
+  .paths {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-4);
-  }
-
-  .stepReverse .stepText {
-    order: 0;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 
@@ -731,17 +970,8 @@
     justify-content: center;
   }
 
-  .flow {
-    padding: var(--space-4) var(--space-3);
-  }
-
-  .flowItem[data-side="b"] .node {
-    margin-left: 18%;
-  }
-
-  .node {
-    max-width: 82%;
-    font-size: 0.9rem;
+  .path {
+    padding: var(--space-4);
   }
 
   .callPill {
@@ -754,6 +984,13 @@
   .startButton:active,
   .startButton:hover svg {
     transform: none;
+  }
+
+  [data-visible="true"] .startButton,
+  [data-visible="true"] .startButton::after,
+  [data-visible="true"] .startBubble,
+  [data-visible="true"] .startGoal {
+    animation: none;
   }
 
   [data-playing="true"] .gazeDot,

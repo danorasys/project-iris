@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Check, HeartHandshake } from "lucide-react";
-import badgeTeachers from "@/assets/landing/badge-teachers.png";
-import badgeStudents from "@/assets/landing/badge-students.png";
-import badgeFamily from "@/assets/landing/badge-family.png";
+import { ArrowRight, HeartHandshake } from "lucide-react";
 import logoIris from "@/assets/landing/logo-iris.png";
 import { HeroCarousel } from "./HeroCarousel";
 import { Curriculum } from "./Curriculum";
@@ -19,48 +16,6 @@ import { turn } from "./turn";
 import links from "./links.module.css";
 import motion from "./motion.module.css";
 import styles from "./LandingPage.module.css";
-
-interface Role {
-  image: string;
-  title: string;
-  text: string;
-  points: string[];
-  tone: string;
-}
-
-// Three real spaces inside IRIS. Each card says what that person does
-// there, with things the app already lets them do.
-const ROLES: Role[] = [
-  {
-    image: badgeStudents,
-    title: "Estudiantes",
-    text: "Su propio lugar, donde cada mirada sostenida es una decisión: eligen, avanzan y crecen a su manera.",
-    points: [
-      "Calibran la cámara a su medida",
-      "Exploran sus clases y lecciones",
-      "Avanzan sus lecciones con la mirada",
-    ],
-    tone: styles.mistLight,
-  },
-  {
-    image: badgeFamily,
-    title: "Familia",
-    text: "El respaldo detrás de cada avance: abren la puerta, cuidan los datos y acompañan de cerca a su hijo o hija.",
-    points: ["Crean la cuenta de su peque", "Lo inscriben en sus clases", "Reciben los avisos de sus clases"],
-    tone: styles.mistMid,
-  },
-  {
-    image: badgeTeachers,
-    title: "Docentes",
-    text: "Quienes diseñan el camino: arman sus clases y dan forma a cada lección para sus estudiantes.",
-    points: [
-      "Crean clases por área y grado",
-      "Organizan unidades y lecciones",
-      "Publican cada lección con su actividad",
-    ],
-    tone: styles.mistDeep,
-  },
-];
 
 // The same opening for every section: a small label, the title and a line
 // under it, coming up in turn when they show up.
@@ -108,28 +63,6 @@ function Reveal({
     <div ref={ref} className={`${className ?? ""} ${inView ? motion.visible : ""}`}>
       {children}
     </div>
-  );
-}
-
-function RoleCards() {
-  return (
-    <Reveal className={styles.roles}>
-      {ROLES.map((role, index) => (
-        <article key={role.title} className={`${styles.role} ${role.tone} ${motion.rise}`} style={turn(index)}>
-          <img src={role.image} alt="" className={styles.roleBadge} />
-          <h3 className={styles.roleTitle}>{role.title}</h3>
-          <p className={styles.roleText}>{role.text}</p>
-          <ul className={styles.rolePoints}>
-            {role.points.map((point) => (
-              <li key={point}>
-                <Check size={14} strokeWidth={3} aria-hidden="true" />
-                {point}
-              </li>
-            ))}
-          </ul>
-        </article>
-      ))}
-    </Reveal>
   );
 }
 
@@ -197,7 +130,7 @@ export default function LandingPage() {
       <HeroCarousel />
 
       <Section id="conoce-iris" className={styles.meet}>
-        <div className={styles.meetText}>
+        <div>
           <SectionHead
             id="conoce-iris-titulo"
             eyebrow="Conoce a IRIS"
@@ -210,16 +143,6 @@ export default function LandingPage() {
             <MeetIris />
           </div>
         </Reveal>
-      </Section>
-
-      <Section id="para-quien" className={styles.centered}>
-        <SectionHead
-          id="para-quien-titulo"
-          eyebrow="Un lugar para todos"
-          title="Tres espacios, una misma comunidad"
-          lead="Cada persona tiene su propio lugar dentro de IRIS, pensado para lo que hace en él."
-        />
-        <RoleCards />
       </Section>
 
       <Section id="como-funciona" className={styles.centered}>
@@ -239,7 +162,7 @@ export default function LandingPage() {
           id="como-se-organiza-titulo"
           eyebrow="Cómo se organiza"
           title="Una estructura clara para cada clase"
-          lead="Cada clase en IRIS se apoya en el currículo colombiano: las áreas de la Ley 115, los grados de primaria y los Derechos Básicos de Aprendizaje del Ministerio de Educación Nacional."
+          lead="Cada clase en IRIS se apoya en el currículo colombiano del Ministerio de Educación Nacional."
         />
         <Curriculum />
       </Section>

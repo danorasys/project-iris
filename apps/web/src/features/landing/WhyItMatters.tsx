@@ -1,9 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
-import { Sprout } from "lucide-react";
-import joinCommunity from "@/assets/landing/join-community.jpg";
 import { formatNumber } from "./formatNumber";
-import { REGISTER_LINK } from "./landingLinks";
 import { turn } from "./turn";
 import { prefersReducedMotion, useReveal } from "./useReveal";
 import motion from "./motion.module.css";
@@ -31,7 +27,7 @@ const STATISTICS: Statistic[] = [
     decimals: 0,
     unit: "millones",
     before: "de personas en el mundo necesitan tecnología de apoyo para vivir con autonomía. ",
-    emphasis: "Solo el 3 % accede",
+    emphasis: "Solo el 3\u00a0% accede",
     after: " a ella en países de bajos ingresos.",
     source: 'Organización Mundial de la Salud (OMS), hoja informativa "Assistive technology"',
     date: "Actualizada el 2 de enero de 2024",
@@ -53,7 +49,7 @@ const STATISTICS: Statistic[] = [
     decimals: 0,
     unit: "personas",
     before: "en Colombia reportan dificultades para realizar actividades básicas diarias (",
-    emphasis: "7,1 % de la población",
+    emphasis: "7,1\u00a0% de la población",
     after: "), como moverse, caminar o subir y bajar escaleras.",
     source: "DANE, Censo Nacional de Población y Vivienda (CNPV)",
     date: "Datos del censo 2018",
@@ -113,10 +109,6 @@ export function WhyItMatters() {
       </header>
 
       <div className={`${styles.card} ${motion.rise}`} style={turn(2)}>
-        <div className={styles.photo}>
-          <img src={joinCommunity} alt="" />
-        </div>
-
         <dl className={styles.stats}>
           {STATISTICS.map((statistic, index) => (
             <div key={statistic.source} className={`${styles.stat} ${motion.rise}`} style={turn(index + 3)}>
@@ -140,14 +132,6 @@ export function WhyItMatters() {
             </div>
           ))}
         </dl>
-      </div>
-
-      <div className={`${styles.cta} ${motion.rise}`} style={turn(6)}>
-        <p>Detrás de cada cifra hay una historia que puede cambiar.</p>
-        <Link to={REGISTER_LINK.to} state={REGISTER_LINK.state} className={styles.ctaButton}>
-          <Sprout size={20} strokeWidth={2} aria-hidden="true" />
-          Empieza el cambio hoy
-        </Link>
       </div>
     </div>
   );

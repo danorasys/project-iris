@@ -12,12 +12,16 @@ import {
   PencilLine,
   ScanEye,
   School,
+  Sparkles,
   UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import heroStudent from "@/assets/landing/hero-student.jpg";
 import heroFamily from "@/assets/landing/hero-family.jpg";
 import heroTeacher from "@/assets/landing/hero-teacher.jpg";
+import badgeFamily from "@/assets/landing/badge-family.png";
+import badgeStudents from "@/assets/landing/badge-students.png";
+import badgeTeachers from "@/assets/landing/badge-teachers.png";
 import { IrisRings } from "./IrisRings";
 import { REGISTER_LINK } from "./landingLinks";
 import { useReveal } from "./useReveal";
@@ -28,7 +32,8 @@ import styles from "./HowItWorks.module.css";
 
 // The gaze, shown instead of told: the pointer goes to "Siguiente", the ring
 // fills sky blue in 0.9 s, turns green and a check appears. It only plays
-// once the panel is on screen.
+// once the panel is on screen. The words go on the left and the call on the
+// right, so the panel takes less height.
 function GazePanel() {
   const { ref, inView } = useReveal<HTMLDivElement>(0.3);
 
@@ -110,21 +115,27 @@ interface FlowNode {
   text: string;
 }
 
-interface Step {
+interface Path {
   who: string;
+  badge: string;
   title: string;
   text: string;
+  // The card's soft blue and the color of its steps.
+  card: "mistLight" | "mistMid" | "mistDeep";
   tone: "sky" | "amber" | "mint";
   flow: FlowNode[];
 }
 
-// Who does what, in the order it happens. Every step is something the app
-// really does today.
-const STEPS: Step[] = [
+// Who does what, in the order it happens: the family opens the door, the
+// teacher builds the way and the student walks it. Every step is something
+// the app really does today.
+const PATHS: Path[] = [
   {
     who: "Familia",
+    badge: badgeFamily,
     title: "La familia abre la puerta",
-    text: "Crea su cuenta, registra a su hijo o hija y lo inscribe en sus clases con el código que le da el docente. Desde su portal recibe los avisos de esas clases.",
+    text: "El respaldo detrás de cada avance: cuida los datos y acompaña de cerca a su hijo o hija.",
+    card: "mistMid",
     tone: "amber",
     flow: [
       { kind: "chip", icon: UserPlus, text: "Crea la cuenta de la familia" },
@@ -135,8 +146,10 @@ const STEPS: Step[] = [
   },
   {
     who: "Docente",
+    badge: badgeTeachers,
     title: "El docente arma el camino",
-    text: "Crea su clase por área y grado, la organiza en unidades y publica cada lección con su actividad cuando está completa.",
+    text: "Crea su clase por área y grado, la organiza en unidades y publica cada lección cuando está completa.",
+    card: "mistDeep",
     tone: "mint",
     flow: [
       { kind: "chip", icon: School, text: "Clase de Matemáticas, 3.°" },
@@ -147,8 +160,10 @@ const STEPS: Step[] = [
   },
   {
     who: "Estudiante",
+    badge: badgeStudents,
     title: "El estudiante aprende mirando",
-    text: "Calibra la cámara a su medida, explora sus clases y recorre sus lecciones solo con la mirada.",
+    text: "Su propio lugar, donde cada mirada sostenida es una decisión.",
+    card: "mistLight",
     tone: "sky",
     flow: [
       { kind: "chip", icon: ScanEye, text: "Calibra la cámara" },
@@ -159,77 +174,98 @@ const STEPS: Step[] = [
   },
 ];
 
-// One step: the words on one side and, on the other, a small flow that
-// builds itself node by node, joined by dashed lines that draw as it goes.
-function StepRow({ step, index }: { step: Step; index: number }) {
-  const { ref, inView } = useReveal<HTMLDivElement>(0.35);
+// The three paths side by side, one card each: who it is, what they do there
+// and their steps one under the other, the last one in color.
+function PathCards() {
+  const { ref, inView } = useReveal<HTMLUListElement>(0.25);
 
   return (
-    <div
-      ref={ref}
-      className={`${styles.step} ${index % 2 ? styles.stepReverse : ""} ${inView ? motion.visible : ""}`}
-      data-visible={inView}
-    >
-      <div className={styles.stepText}>
-        <p className={`${styles.stepWho} ${motion.rise}`}>
-          <span className={styles.stepNumber}>{String(index + 1).padStart(2, "0")}</span>
-          {step.who}
-        </p>
-        <h3 className={`${styles.stepTitle} ${motion.rise}`} style={turn(1)}>
-          {step.title}
-        </h3>
-        <p className={`${styles.stepBody} ${motion.rise}`} style={turn(2)}>
-          {step.text}
-        </p>
-      </div>
-
-      <ol className={`${styles.flow} ${styles[step.tone]}`} aria-label={`Pasos: ${step.who}`}>
-        {step.flow.map((node, i) => {
-          const Icon = node.icon;
-          return (
-            <li key={node.text} className={styles.flowItem} data-side={i % 2 ? "b" : "a"}>
-              {i > 0 && (
-                <svg
-                  className={styles.connector}
-                  style={turn(i * 2 + 1)}
-                  viewBox="0 0 100 40"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
+    <ul ref={ref} className={`${styles.paths} ${inView ? motion.visible : ""}`}>
+      {PATHS.map((path, index) => (
+        <li key={path.who} className={`${styles.path} ${styles[path.card]} ${motion.rise}`} style={turn(index)}>
+          <div className={styles.pathTop}>
+            <img src={path.badge} alt="" className={styles.pathBadge} />
+            <p className={styles.pathWho}>
+              <span className={styles.pathNumber}>{String(index + 1).padStart(2, "0")}</span>
+              {path.who}
+            </p>
+          </div>
+          <h3 className={styles.pathTitle}>{path.title}</h3>
+          <p className={styles.pathText}>{path.text}</p>
+          <ol className={`${styles.flow} ${styles[path.tone]}`} aria-label={`Pasos: ${path.who}`}>
+            {path.flow.map((node, i) => {
+              const Icon = node.icon;
+              return (
+                <li
+                  key={node.text}
+                  className={`${styles.node} ${styles[node.kind]} ${motion.pop}`}
+                  style={turn(index + i + 2)}
                 >
-                  <path d={i % 2 ? "M18 0 C 18 26, 52 12, 52 40" : "M52 0 C 52 26, 18 12, 18 40"} />
-                </svg>
-              )}
-              <span className={`${styles.node} ${styles[node.kind]} ${motion.pop}`} style={turn(i * 2 + 2)}>
-                {Icon && <Icon size={16} strokeWidth={2.3} aria-hidden="true" />}
-                {node.text}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
+                  {Icon && <Icon size={16} strokeWidth={2.3} aria-hidden="true" />}
+                  {node.text}
+                </li>
+              );
+            })}
+          </ol>
+        </li>
+      ))}
+    </ul>
   );
 }
 
+// The three people of the paths, one after the other on the little trail
+// next to the call to join.
+const START_PEOPLE = [
+  { photo: heroFamily, label: "Familias" },
+  { photo: heroTeacher, label: "Docentes" },
+  { photo: heroStudent, label: "Estudiantes" },
+];
+
 // Right after the three paths, a call to join while the whole way is still
-// fresh, so nobody has to scroll to the end of the page to sign up.
+// fresh, so nobody has to scroll to the end of the page to sign up. The
+// trail draws itself, the people pop onto it and the button keeps a soft
+// shine so the eye goes there.
 function StartNow() {
   const { ref, inView } = useReveal<HTMLDivElement>(0.4);
 
   return (
-    <div ref={ref} className={`${styles.startNow} ${inView ? motion.visible : ""}`}>
-      <h3 className={`${styles.startTitle} ${motion.rise}`}>¿Listos para empezar el camino?</h3>
-      <p className={`${styles.startText} ${motion.rise}`} style={turn(1)}>
-        Las familias registran a sus peques y los docentes crean sus clases. Todo comienza con una cuenta.
-      </p>
-      <div className={`${styles.startActions} ${motion.rise}`} style={turn(2)}>
-        <Link to={REGISTER_LINK.to} state={REGISTER_LINK.state} className={styles.startButton}>
-          Únete a IRIS
-          <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
-        </Link>
-        <Link to="/login/adult" className={`${links.lineLink} ${styles.startLogin}`}>
-          Ya tengo cuenta
-        </Link>
+    <div ref={ref} className={`${styles.startNow} ${inView ? motion.visible : ""}`} data-visible={inView}>
+      <IrisRings className={styles.startRings} />
+      <div className={styles.startCopy}>
+        <h3 className={`${styles.startTitle} ${motion.rise}`}>
+          ¿Listos para empezar <span className={styles.startMark}>el camino</span>?
+        </h3>
+        <p className={`${styles.startText} ${motion.rise}`} style={turn(1)}>
+          Las familias registran a sus peques y los docentes crean sus clases. Todo comienza con una cuenta.
+        </p>
+        <div className={`${styles.startActions} ${motion.rise}`} style={turn(2)}>
+          <Link to={REGISTER_LINK.to} state={REGISTER_LINK.state} className={styles.startButton}>
+            Únete a IRIS
+            <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
+          </Link>
+          <Link to="/login/adult" className={`${links.lineLink} ${styles.startLogin}`}>
+            Ya tengo cuenta
+          </Link>
+        </div>
+      </div>
+
+      <div className={styles.startArt} aria-hidden="true">
+        <svg className={`${styles.startTrail} ${motion.wipe}`} style={turn(2)} viewBox="0 0 400 300" focusable="false">
+          <path d="M8 280 C 30 250, 40 225, 70 215 S 150 120, 200 85 S 290 200, 330 205 S 385 140, 392 70" />
+        </svg>
+        {START_PEOPLE.map((person, i) => (
+          <span key={person.label} className={styles.startPerson} data-spot={i}>
+            <span className={`${styles.startBubble} ${motion.pop}`} style={turn(i * 2 + 4)}>
+              <img src={person.photo} alt="" />
+            </span>
+            <span className={`${styles.startTag} ${motion.pop}`} style={turn(i * 2 + 5)}>
+              {person.label}
+            </span>
+          </span>
+        ))}
+        <span className={`${styles.startGoal} ${motion.pop}`} style={turn(10)}>
+          <Sparkles size={18} strokeWidth={2.4} />
+        </span>
       </div>
     </div>
   );
@@ -239,11 +275,7 @@ export function HowItWorks() {
   return (
     <>
       <GazePanel />
-      <div className={styles.steps}>
-        {STEPS.map((step, index) => (
-          <StepRow key={step.who} step={step} index={index} />
-        ))}
-      </div>
+      <PathCards />
       <StartNow />
     </>
   );

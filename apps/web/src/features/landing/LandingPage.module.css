@@ -38,7 +38,7 @@
 .section {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 120px var(--space-5) 0;
+  padding: 88px var(--space-5) 0;
   /* The bar on top covers the first 76px, so a jump from the menu stops
      a bit lower than the section's real top. */
   scroll-margin-top: 40px;
@@ -107,93 +107,6 @@
   max-width: 560px;
 }
 
-/* --- Un lugar para todos --- */
-.roles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-6);
-  text-align: left;
-}
-
-.role {
-  --role-tint: var(--landing-mist-1);
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-5);
-  border-radius: 28px;
-  background: var(--role-tint);
-  border: 1px solid color-mix(in srgb, var(--role-tint) 82%, var(--landing-navy));
-  transition:
-    opacity 640ms var(--ease-out),
-    transform 760ms var(--ease-out),
-    box-shadow 300ms ease;
-  /* Keeps its turn in the entrance (the hover shadow has no wait). */
-  transition-delay: calc(var(--i, 0) * 110ms), calc(var(--i, 0) * 110ms), 0s;
-}
-
-.mistLight {
-  --role-tint: var(--landing-mist-1);
-}
-
-.mistMid {
-  --role-tint: var(--landing-mist-2);
-}
-
-.mistDeep {
-  --role-tint: var(--landing-mist-3);
-}
-
-.role:hover {
-  box-shadow: 0 26px 44px -30px rgba(10, 47, 102, 0.55);
-}
-
-.roleBadge {
-  width: 76px;
-  height: 76px;
-}
-
-.roleTitle {
-  margin: var(--space-4) 0 0;
-  font-size: 1.45rem;
-  letter-spacing: -0.02em;
-  color: var(--color-iris-deep);
-}
-
-.roleText {
-  margin: var(--space-2) 0 0;
-  line-height: 1.6;
-  color: var(--color-ink-soft);
-}
-
-.rolePoints {
-  display: grid;
-  gap: 10px;
-  margin: auto 0 0;
-  padding: var(--space-4) 0 0;
-  list-style: none;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-iris-deep);
-}
-
-.rolePoints li {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.rolePoints svg {
-  flex: none;
-  margin-top: 2px;
-  padding: 3px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--color-surface);
-  color: var(--color-iris-medium);
-}
-
 /* --- Cómo funciona --- */
 .howBody {
   margin-top: var(--space-6);
@@ -202,7 +115,7 @@
 
 /* --- Únete --- */
 .joinSection {
-  padding-bottom: 120px;
+  padding-bottom: 88px;
 }
 
 .join {
@@ -213,7 +126,7 @@
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-6);
-  padding: 72px var(--space-7);
+  padding: var(--space-6) var(--space-7);
   border-radius: 32px;
   background:
     radial-gradient(45% 70% at 82% 45%, color-mix(in srgb, var(--landing-sky) 60%, transparent), transparent 70%),
@@ -300,7 +213,7 @@
 .joinArt {
   position: relative;
   justify-self: center;
-  width: min(100%, 340px);
+  width: min(100%, 270px);
   aspect-ratio: 1;
   container-type: inline-size;
 }
@@ -392,13 +305,6 @@
     justify-content: flex-start;
   }
 
-  .roles {
-    grid-template-columns: minmax(0, 1fr);
-    max-width: 560px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
   .join {
     grid-template-columns: minmax(0, 1fr);
     padding: var(--space-6) var(--space-5);
@@ -416,15 +322,11 @@
 
 @media (max-width: 560px) {
   .section {
-    padding: 88px var(--space-3) 0;
+    padding: 64px var(--space-3) 0;
   }
 
   .joinSection {
-    padding-bottom: 88px;
-  }
-
-  .role {
-    padding: var(--space-4);
+    padding-bottom: 64px;
   }
 
   .join {
