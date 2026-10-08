@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Path, Response, UploadFile, status
 
-from app.api.deps import CurrentUser, get_classroom_service, require_role
+from app.api.deps import CurrentUser, get_classroom_service, require_portal_guardian, require_role
 from app.api.media import media_response
 from app.api.schemas import (
     ClassroomResponse,
@@ -14,6 +14,7 @@ from app.api.schemas import (
     EnrolledStudentResponse,
     EnrollmentResponse,
     EnrollRequest,
+    FamilyClassroomResponse,
     RequestResponse,
     ResolveRequestBody,
     ResolveResponse,
@@ -31,6 +32,7 @@ ClassroomServiceDep = Annotated[ClassroomService, Depends(get_classroom_service)
 TeacherDep = Annotated[CurrentUser, Depends(require_role("teacher"))]
 StudentDep = Annotated[CurrentUser, Depends(require_role("student"))]
 ReaderDep = Annotated[CurrentUser, Depends(require_role("teacher", "student"))]
+GuardianPortalDep = Annotated[CurrentUser, Depends(require_portal_guardian)]
 
 # Same shape as the names this service creates (32 hex chars and an
 # extension), anything else is rejected before touching the database.
@@ -73,10 +75,14 @@ async def create_classroom(payload: CreateClassroomRequest, user: TeacherDep, cl
 @router.get("", response_model=list[TeacherClassroomResponse])
 async def list_classrooms(user: TeacherDep, classrooms: ClassroomServiceDep) -> list[TeacherClassroomResponse]:
     """The teacher's classrooms, newest first, each with how many join
-    requests are waiting."""
+    requests are waiting and how many students it has."""
     result = await classrooms.list_teacher_classrooms(user.subject_id)
     return [
-        TeacherClassroomResponse(**_classroom_response(item.classroom).model_dump(), pending_requests=item.pending_requests)
+        TeacherClassroomResponse(
+            **_classroom_response(item.classroom).model_dump(),
+            pending_requests=item.pending_requests,
+            student_count=item.student_count,
+        )
         for item in result
     ]
 
@@ -85,6 +91,33 @@ async def list_classrooms(user: TeacherDep, classrooms: ClassroomServiceDep) -> 
 async def list_my_classrooms(user: StudentDep, classrooms: ClassroomServiceDep) -> list[ClassroomResponse]:
     result = await classrooms.list_my_classrooms(user.subject_id)
     return [_classroom_response(c) for c in result]
+
+
+@router.get("/family", response_model=list[FamilyClassroomResponse])
+async def list_family_classrooms(user: GuardianPortalDep, classrooms: ClassroomServiceDep) -> list[FamilyClassroomResponse]:
+    """The classes of the guardian's kids, for the parents' portal: the ones
+    they're in and the requests still waiting for the teacher, newest first.
+    Needs the portal's 2FA code, like the rest of the portal."""
+    result = await classrooms.list_family_classrooms(user.subject_id)
+    return [
+        FamilyClassroomResponse(
+            enrollment_id=f.enrollment_id,
+            student_id=f.student_id,
+            student_first_name=f.student_first_name,
+            status=f.status,  # type: ignore[arg-type]  # only pending and accepted come back
+            requested_at=f.requested_at,
+            classroom_id=f.classroom.id,
+            name=f.classroom.name,
+            description=f.classroom.description,
+            color=f.classroom.color,  # type: ignore[arg-type]  # the CHECK in the database keeps it in the list
+            area=f.classroom.area,  # type: ignore[arg-type]  # same, ck_classrooms_area
+            area_other=f.classroom.area_other,
+            grade=f.classroom.grade,
+            teacher_name=f.teacher_name,
+            published_lessons=f.published_lessons,
+        )
+        for f in result
+    ]
 
 
 @router.post("/enroll", response_model=EnrollmentResponse, status_code=status.HTTP_201_CREATED)

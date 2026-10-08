@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import type { NotificationItem } from "@iris/shared-types";
 import {
   useBandejaNotificaciones,
   useEliminarNotificacion,
+  useEliminarNotificaciones,
   useMarcarNotificacionLeida,
 } from "@/shared/api/hooks/useNotifications";
 import { getAuthErrorMessage } from "@/features/auth/errors";
-import { IconArrowLeft, IconArrowRight, IconBell, IconTrash } from "@/shared/ui/icons";
+import { IconBell, IconTrash } from "@/shared/ui/icons";
 import {
   formatArrival,
+  formatShortArrival,
   notificationMessage,
   notificationSubject,
   senderOf,
@@ -17,22 +19,27 @@ import {
 } from "../notifications/notificationText";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { Toast } from "@/shared/ui/Toast";
+import { NotificationMail, type MailPosition } from "@/shared/ui/portal/NotificationMail";
+import { Highlight, PortalBanner } from "@/shared/ui/portal/PortalBanner";
+import { TrayPager } from "@/shared/ui/portal/TrayPager";
+import { TrayToolbar } from "@/shared/ui/portal/TraySelection";
+import { useTraySelection } from "@/shared/ui/portal/useTraySelection";
 import { isPortalAccessRequired, useWithPortalAccess } from "../portalAccess";
 import styles from "@/shared/ui/portal/NotificationTray.module.css";
 
 const PAGE_SIZE = 8;
 
-interface NotificacionesSectionProps {
-  /** Goes back to the section the guardian was in before. */
-  onBack: () => void;
-}
-
 /** "Notificaciones": the guardian's tray. The newest first and a page at a
  * time, the unread ones stand out, each one says which kid, which class and
  * who it's from, and it can be opened to read in full or deleted. */
-export function NotificacionesSection({ onBack }: NotificacionesSectionProps) {
+export function NotificacionesSection({
+  initialNotification = null,
+}: {
+  /** Opened right away, like when it's clicked in Inicio. */
+  initialNotification?: NotificationItem | null;
+}) {
   const [page, setPage] = useState(1);
-  const [opened, setOpened] = useState<NotificationItem | null>(null);
+  const [opened, setOpened] = useState<NotificationItem | null>(initialNotification);
   const [toDelete, setToDelete] = useState<NotificationItem | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -40,19 +47,59 @@ export function NotificacionesSection({ onBack }: NotificacionesSectionProps) {
   const tray = useBandejaNotificaciones(page, PAGE_SIZE);
   const markRead = useMarcarNotificacionLeida();
   const remove = useEliminarNotificacion();
+  const removeMany = useEliminarNotificaciones();
   const withPortalAccess = useWithPortalAccess();
+  const [confirmingMany, setConfirmingMany] = useState(false);
 
   const items = tray.data?.items ?? [];
+  const selection = useTraySelection(items.map((n) => n.id));
   const totalPages = Math.max(1, Math.ceil((tray.data?.total ?? 0) / PAGE_SIZE));
 
-  // Opening one marks it as read. A failure here isn't worth bothering the
-  // guardian, it just stays unread.
+  // Whatever is open and still unread gets marked as read, once: opened
+  // from the list, from Inicio or with the arrows. A failure here isn't worth
+  // bothering anyone, it just stays unread.
+  const markedIds = useRef(new Set<string>());
+  useEffect(() => {
+    if (!opened || opened.read || markedIds.current.has(opened.id)) return;
+    markedIds.current.add(opened.id);
+    void withPortalAccess(() => markRead.mutateAsync(opened.id)).catch(() => undefined);
+  }, [opened, markRead, withPortalAccess]);
+
   function open(notification: NotificationItem) {
     setActionError(null);
     setOpened(notification);
-    if (!notification.read) {
-      void withPortalAccess(() => markRead.mutateAsync(notification.id)).catch(() => undefined);
+  }
+
+  // Going to the one before or after. Past the edge of the page, the tray
+  // moves to the next page and opens its first one (or the last one of the
+  // page before) once that page has arrived.
+  const [pendingEdge, setPendingEdge] = useState<"first" | "last" | null>(null);
+  if (pendingEdge && !tray.isPlaceholderData && items.length > 0) {
+    setPendingEdge(null);
+    open(pendingEdge === "first" ? items[0] : items[items.length - 1]);
+  }
+
+  const openedIndex = opened ? items.findIndex((n) => n.id === opened.id) : -1;
+  // All of them, every page, not only the ones on this page.
+  const total = tray.data?.total ?? 0;
+  const position: MailPosition | null =
+    openedIndex >= 0
+      ? {
+          current: (page - 1) * PAGE_SIZE + openedIndex + 1,
+          total,
+          onPrev: openedIndex > 0 || page > 1 ? () => step(-1) : undefined,
+          onNext: openedIndex < items.length - 1 || page < totalPages ? () => step(1) : undefined,
+        }
+      : null;
+
+  function step(direction: 1 | -1) {
+    const target = openedIndex + direction;
+    if (target >= 0 && target < items.length) {
+      open(items[target]);
+      return;
     }
+    setPendingEdge(direction === 1 ? "first" : "last");
+    changePage(page + direction);
   }
 
   async function confirmDelete() {
@@ -69,6 +116,32 @@ export function NotificacionesSection({ onBack }: NotificacionesSectionProps) {
     } catch (error) {
       setActionError(getAuthErrorMessage(error));
     }
+  }
+
+  // Several at once, the ones picked with the boxes.
+  async function confirmDeleteMany() {
+    const ids = selection.selected;
+    setConfirmingMany(false);
+    setActionError(null);
+    try {
+      await withPortalAccess(() => removeMany.mutateAsync(ids));
+      if (opened && ids.includes(opened.id)) setOpened(null);
+      // The whole page went, so the page before is shown.
+      if (ids.length === items.length && page > 1) setPage(page - 1);
+      selection.clear();
+      setToast(ids.length === 1 ? "Se eliminó 1 notificación." : `Se eliminaron ${ids.length} notificaciones.`);
+    } catch (error) {
+      setActionError(getAuthErrorMessage(error));
+    }
+  }
+
+  // Moving to another page leaves nothing picked, and goes back up to the
+  // start of the list (the numbers are under it).
+  const inbox = useRef<HTMLDivElement>(null);
+  function changePage(next: number) {
+    selection.clear();
+    setPage(next);
+    inbox.current?.scrollIntoView?.({ block: "start" });
   }
 
   if (tray.isLoading) return <p className={styles.status}>Cargando tus notificaciones…</p>;
@@ -89,28 +162,26 @@ export function NotificacionesSection({ onBack }: NotificacionesSectionProps) {
       {opened ? (
         <NotificationDetail
           notification={opened}
+          position={position}
           onBack={() => setOpened(null)}
           onDelete={() => setToDelete(opened)}
         />
       ) : (
         <>
-          <button type="button" className={styles.backButton} onClick={onBack}>
-            <IconArrowLeft width={18} height={18} />
-            Regresar
-          </button>
-
-          <header className={styles.hero}>
-            <span className={styles.heroBadge} aria-hidden="true">
-              <IconBell width={32} height={32} />
-            </span>
-            <div className={styles.heroText}>
-              <p className={styles.eyebrow}>Notificaciones</p>
-              <h1 className={styles.heroTitle}>Tus notificaciones</h1>
-              <p className={styles.heroMeta}>
-                <span className={styles.chip}>{unread === 1 ? "1 sin leer" : `${unread} sin leer`}</span>
-              </p>
-            </div>
-          </header>
+          <PortalBanner
+            label="Notificaciones"
+            eyebrow="Notificaciones"
+            title={
+              <>
+                Tus <Highlight>notificaciones</Highlight>
+              </>
+            }
+            chips={[
+              total === 1 ? "1 notificación" : `${total} notificaciones`,
+              unread === 1 ? "1 sin leer" : `${unread} sin leer`,
+            ]}
+            icon={<IconBell width={40} height={40} />}
+          />
 
           {items.length === 0 ? (
             <div className={styles.empty}>
@@ -118,44 +189,39 @@ export function NotificacionesSection({ onBack }: NotificacionesSectionProps) {
                 <IconBell width={26} height={26} />
               </span>
               <p className={styles.emptyTitle}>No tienes notificaciones por ahora</p>
-              <p className={styles.emptyText}>
-                Aquí vas a ver, por ejemplo, cuando un docente responda la solicitud de tu peque para unirse a una
-                clase.
-              </p>
             </div>
           ) : (
-            <ul className={styles.list} aria-label="Lista de notificaciones">
-              {items.map((n) => (
-                <NotificationRow key={n.id} notification={n} onOpen={() => open(n)} onDelete={() => setToDelete(n)} />
-              ))}
-            </ul>
+            <div ref={inbox} className={styles.inbox}>
+              <TrayToolbar
+                selectedCount={selection.selected.length}
+                allSelected={selection.allSelected}
+                onToggleAll={selection.toggleAll}
+                onDelete={() => setConfirmingMany(true)}
+                busy={removeMany.isPending}
+                range={{
+                  from: (page - 1) * PAGE_SIZE + 1,
+                  to: (page - 1) * PAGE_SIZE + items.length,
+                  total,
+                  onPrev: page > 1 ? () => changePage(page - 1) : undefined,
+                  onNext: page < totalPages ? () => changePage(page + 1) : undefined,
+                }}
+              />
+              <ul className={styles.list} aria-label="Lista de notificaciones">
+                {items.map((n) => (
+                  <NotificationRow
+                    key={n.id}
+                    notification={n}
+                    selected={selection.isSelected(n.id)}
+                    onToggle={() => selection.toggle(n.id)}
+                    onOpen={() => open(n)}
+                    onDelete={() => setToDelete(n)}
+                  />
+                ))}
+              </ul>
+            </div>
           )}
 
-          {totalPages > 1 && (
-            <nav className={styles.pager} aria-label="Páginas de notificaciones">
-              <button
-                type="button"
-                className={styles.pagerButton}
-                onClick={() => setPage((current) => current - 1)}
-                disabled={page <= 1}
-              >
-                <IconArrowLeft width={16} height={16} />
-                Anterior
-              </button>
-              <span className={styles.pagerStatus} aria-live="polite">
-                Página {page} de {totalPages}
-              </span>
-              <button
-                type="button"
-                className={styles.pagerButton}
-                onClick={() => setPage((current) => current + 1)}
-                disabled={page >= totalPages}
-              >
-                Siguiente
-                <IconArrowRight width={16} height={16} />
-              </button>
-            </nav>
-          )}
+          <TrayPager page={page} totalPages={totalPages} onChange={changePage} />
         </>
       )}
 
@@ -163,6 +229,22 @@ export function NotificacionesSection({ onBack }: NotificacionesSectionProps) {
         <p role="alert" className={`${styles.status} ${styles.error}`}>
           {actionError}
         </p>
+      )}
+
+      {confirmingMany && (
+        <ConfirmDialog
+          title="Eliminar notificaciones"
+          message={
+            selection.selected.length === 1
+              ? "¿Quieres eliminar la notificación seleccionada? No se puede deshacer."
+              : `¿Quieres eliminar las ${selection.selected.length} notificaciones seleccionadas? No se puede deshacer.`
+          }
+          acceptLabel="Sí, eliminar"
+          cancelLabel="Cancelar"
+          danger
+          onAccept={() => void confirmDeleteMany()}
+          onCancel={() => setConfirmingMany(false)}
+        />
       )}
 
       {toDelete && (
@@ -184,38 +266,39 @@ export function NotificacionesSection({ onBack }: NotificacionesSectionProps) {
 
 interface RowProps {
   notification: NotificationItem;
+  selected: boolean;
+  onToggle: () => void;
   onOpen: () => void;
   onDelete: () => void;
 }
 
-function NotificationRow({ notification: n, onOpen, onDelete }: RowProps) {
+function NotificationRow({ notification: n, selected, onToggle, onOpen, onDelete }: RowProps) {
   const subject = notificationSubject(n);
+  const classes = [styles.row, !n.read && styles.rowUnread, selected && styles.rowSelected].filter(Boolean).join(" ");
   return (
-    <li className={n.read ? styles.row : `${styles.row} ${styles.rowUnread}`}>
+    <li className={classes}>
+      <label className={styles.check}>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggle}
+          aria-label={`Seleccionar: ${subject}, de ${senderOf(n)}`}
+        />
+      </label>
       {/* The whole row opens it. The trash is a separate button, a button
           can't go inside another one. */}
       <button type="button" className={styles.rowMain} onClick={onOpen}>
-        <span className={styles.rowTop}>
-          <span className={styles.rowSubject}>
-            {!n.read && <span className={styles.visuallyHidden}>No leída: </span>}
-            {subject}
-          </span>
-          <time className={styles.rowTime} dateTime={n.created_at}>
-            {formatArrival(n.created_at)}
-          </time>
+        <span className={styles.dot} aria-hidden="true" />
+        <span className={styles.rowSender}>
+          {!n.read && <span className={styles.visuallyHidden}>No leída: </span>}
+          {senderOf(n)}
         </span>
-        <span className={styles.rowFragment}>{notificationMessage(n)}</span>
-        <span className={styles.rowMeta}>
-          <span>
-            <span className={styles.metaLabel}>Peque:</span> {studentOf(n)}
-          </span>
-          <span>
-            <span className={styles.metaLabel}>Clase:</span> {n.classroom_name ?? "Sin nombre"}
-          </span>
-          <span>
-            <span className={styles.metaLabel}>De:</span> {senderOf(n)}
-          </span>
+        <span className={styles.rowText}>
+          <span className={styles.rowSubject}>{subject}</span> — {notificationMessage(n)}
         </span>
+        <time className={styles.rowTime} dateTime={n.created_at} title={formatArrival(n.created_at)}>
+          {formatShortArrival(n.created_at)}
+        </time>
       </button>
       <button type="button" className={styles.trashButton} onClick={onDelete} aria-label={`Eliminar: ${subject}`}>
         <IconTrash width={18} height={18} />
@@ -226,58 +309,24 @@ function NotificationRow({ notification: n, onOpen, onDelete }: RowProps) {
 
 interface DetailProps {
   notification: NotificationItem;
+  position: MailPosition | null;
   onBack: () => void;
   onDelete: () => void;
 }
 
-function NotificationDetail({ notification: n, onBack, onDelete }: DetailProps) {
+function NotificationDetail({ notification: n, position, onBack, onDelete }: DetailProps) {
   return (
-    <>
-      <button type="button" className={styles.backButton} onClick={onBack}>
-        <IconArrowLeft width={18} height={18} />
-        Regresar a notificaciones
-      </button>
-
-      <article className={styles.detail} aria-labelledby="notificacion-asunto">
-        <header className={styles.detailHeader}>
-          <span className={styles.detailIcon} aria-hidden="true">
-            <IconBell width={22} height={22} />
-          </span>
-          <h1 id="notificacion-asunto" className={styles.detailTitle}>
-            {notificationSubject(n)}
-          </h1>
-        </header>
-
-        <dl className={styles.detailMeta}>
-          <div>
-            <dt>Peque</dt>
-            <dd>{studentOf(n)}</dd>
-          </div>
-          <div>
-            <dt>Clase</dt>
-            <dd>{n.classroom_name ?? "Sin nombre"}</dd>
-          </div>
-          <div>
-            <dt>De parte de</dt>
-            <dd>{senderOf(n)}</dd>
-          </div>
-          <div>
-            <dt>Recibida</dt>
-            <dd>
-              <time dateTime={n.created_at}>{formatArrival(n.created_at)}</time>
-            </dd>
-          </div>
-        </dl>
-
-        <p className={styles.detailMessage}>{notificationMessage(n)}</p>
-
-        <div className={styles.detailActions}>
-          <button type="button" className={styles.deleteButton} onClick={onDelete}>
-            <IconTrash width={18} height={18} />
-            Eliminar notificación
-          </button>
-        </div>
-      </article>
-    </>
+    <NotificationMail
+      subject={notificationSubject(n)}
+      sender={senderOf(n)}
+      kidLabel="Peque"
+      kidName={studentOf(n)}
+      classroomName={n.classroom_name ?? "Sin nombre"}
+      createdAt={n.created_at}
+      message={notificationMessage(n)}
+      onBack={onBack}
+      onDelete={onDelete}
+      position={position}
+    />
   );
 }

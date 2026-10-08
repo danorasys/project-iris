@@ -1,4 +1,9 @@
-/* Same backdrop as ConfirmDialog: dark blue and a little blurred. */
+/* The dialog to create or edit a classroom, with the look of the portal
+   (after Horizon UI): a white card with no borders and a wide soft shadow,
+   lavender for the soft backgrounds, 16px corners on fields and buttons,
+   and the same class card of "Mis clases" as the live preview. */
+
+/* The page behind goes navy and a bit blurred. */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -7,9 +12,9 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-4);
-  background: rgba(22, 36, 46, 0.5);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  background: color-mix(in srgb, var(--color-iris-deep) 42%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   animation: backdrop-in 200ms ease both;
 }
 
@@ -18,31 +23,25 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 860px;
+  max-width: 940px;
   max-height: calc(100dvh - 2 * var(--space-4));
   overflow: hidden;
   border-radius: 24px;
   background: var(--color-surface);
-  box-shadow:
-    0 24px 60px rgba(30, 58, 82, 0.28),
-    0 2px 6px rgba(30, 58, 82, 0.12);
+  box-shadow: var(--shadow-lift);
   animation: dialog-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* --- Header: white with a soft sky-blue light on top, like ConfirmDialog --- */
+/* --- Header --- */
 .header {
   flex: none;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-iris-pale);
-  background:
-    radial-gradient(90% 160% at 0% 0%, color-mix(in srgb, var(--color-iris-pale) 75%, transparent) 0%, transparent 70%),
-    var(--color-surface);
+  gap: 18px;
+  padding: 28px 32px 20px;
 }
 
-/* The board in a sky-blue circle with two rings, like the rings of an iris. */
+/* The icon on a lavender circle, like the counts of the Inicio. */
 .badge {
   flex: none;
   display: grid;
@@ -50,18 +49,14 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--color-iris-pale);
+  background: var(--color-canvas);
   color: var(--color-iris-medium);
-  box-shadow:
-    0 0 0 6px color-mix(in srgb, var(--color-iris-pale) 55%, transparent),
-    0 0 0 7px color-mix(in srgb, var(--color-iris-medium) 25%, transparent);
   animation: badge-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 100ms both;
 }
 
 .headerText {
   flex: 1;
   min-width: 0;
-  margin-left: var(--space-2);
 }
 
 .eyebrow {
@@ -74,7 +69,7 @@
 }
 
 .title {
-  margin: 0;
+  margin: 2px 0 0;
   font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 700;
@@ -83,32 +78,31 @@
 }
 
 .intro {
-  margin: var(--space-1) 0 0;
+  margin: 4px 0 0;
   font-size: 0.95rem;
-  color: var(--color-ink-soft);
+  color: var(--portal-muted, var(--color-ink-soft));
 }
 
+/* Round and lavender, like the bell of the top bar. */
 .closeButton {
   flex: none;
   align-self: flex-start;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--color-iris-pale);
+  width: 42px;
+  height: 42px;
+  border: none;
   border-radius: 50%;
-  background: var(--color-surface);
+  background: var(--color-canvas);
   color: var(--color-iris-deep);
   cursor: pointer;
   transition:
     background 140ms ease,
-    border-color 140ms ease,
     transform 140ms ease;
 }
 
 .closeButton:hover {
-  border-color: var(--color-iris-medium);
-  background: var(--color-iris-pale);
+  background: var(--landing-mist-1);
 }
 
 .closeButton:active {
@@ -126,55 +120,90 @@
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
+  padding: 4px 32px 24px;
 }
 
+/* The preview sits on a lavender panel, like a soft card of the portal. */
 .previewColumn {
-  padding: var(--space-4);
-  border-right: 1px solid var(--color-iris-pale);
+  position: sticky;
+  top: 0;
+  padding: 20px;
+  border-radius: 20px;
   background: var(--color-canvas);
 }
 
-/* The preview goes along while the form scrolls. */
 .previewSticky {
-  position: sticky;
-  top: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 16px;
 }
 
 .previewLabel {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-ink-soft);
+  color: var(--portal-muted, var(--color-ink-soft));
 }
 
-/* A copy of the card in "Mis clases" (portalSection.module.css .card). */
+/* A copy of the class card of "Mis clases" (portalSection.module.css
+   .classCard): the band of the picked color with the avatar hanging. */
 .previewCard {
+  --class-color: var(--color-iris-medium);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-5) var(--space-3) var(--space-3);
-  border: 1px solid var(--color-iris-pale);
+  padding: 12px 12px 0;
   border-radius: var(--radius-large);
   background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-card);
   text-align: center;
+}
+
+.previewCard[data-color="navy"] {
+  --class-color: var(--color-iris-deep);
+}
+
+.previewCard[data-color="orange"] {
+  --class-color: var(--color-amber-dark);
+}
+
+.previewCard[data-color="green"] {
+  --class-color: var(--color-mint);
+}
+
+.previewCard[data-color="gold"] {
+  --class-color: var(--color-gold);
+}
+
+.previewBanner {
+  align-self: stretch;
+  height: 78px;
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      circle at 88% 20%,
+      color-mix(in srgb, var(--color-surface) 22%, transparent) 0 40px,
+      transparent 41px
+    ),
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--class-color) 82%, var(--color-surface)),
+      color-mix(in srgb, var(--class-color) 30%, var(--color-surface))
+    );
+  transition: background 220ms ease;
 }
 
 .previewRing {
   display: grid;
-  place-items: center;
-  margin-bottom: var(--space-3);
-  border-radius: 28%;
-  box-shadow:
-    0 0 0 5px var(--color-iris-pale),
-    0 0 0 6px var(--color-iris-medium);
+  margin: -34px 0 8px;
+  padding: 4px;
+  border-radius: 26%;
+  background: var(--color-surface);
 }
 
 .previewImage {
@@ -186,7 +215,7 @@
 .previewName {
   max-width: 100%;
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--color-iris-deep);
   overflow-wrap: anywhere;
@@ -203,8 +232,8 @@
 
 /* What it's about and who it's for, under the name. */
 .previewAudience {
+  margin-top: 2px;
   font-size: 0.85rem;
-  font-weight: 600;
   color: var(--color-ink-soft);
 }
 
@@ -214,53 +243,66 @@
   justify-content: center;
   gap: var(--space-1);
   align-self: stretch;
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-iris-pale);
+  margin-top: 14px;
+  padding: 12px 0 14px;
+  border-top: 1px solid var(--portal-line, var(--color-iris-pale));
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--color-iris-medium);
 }
 
+/* The note about the code, a white card on the lavender panel. */
 .note {
   display: flex;
-  gap: var(--space-2);
+  gap: 10px;
   margin: 0;
-  padding: var(--space-3);
-  border-radius: var(--radius-medium);
-  background: var(--color-iris-pale);
-  font-size: 0.88rem;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--color-surface);
+  font-size: 0.86rem;
   line-height: 1.5;
-  color: var(--color-iris-deep);
+  color: var(--color-ink-soft);
 }
 
 .note svg {
   flex: none;
   margin-top: 2px;
+  color: var(--color-iris-medium);
 }
 
+/* The fields of the app, shaped like the portal's only here: rounder
+   corners, the thin blue-gray line and navy labels. */
 .fields {
+  --radius-medium: 16px;
+  --color-iris-pale: var(--portal-line, #e1eaf5);
+  --color-ink: var(--color-iris-deep);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
+  min-width: 0;
 }
 
-/* Each step: a number in a blue circle and its fields below. */
+/* Each step: a number on a lavender circle, its fields below, and a thin
+   line between one step and the next. */
 .step {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 14px;
   min-width: 0;
   margin: 0;
   padding: 0;
   border: none;
 }
 
+.step + .step {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--portal-line, var(--color-iris-pale));
+}
+
 .stepTitle {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 10px;
   margin: 0;
   padding: 0;
   font-family: var(--font-display);
@@ -269,18 +311,35 @@
   color: var(--color-iris-deep);
 }
 
-/* A legend only takes the gap of its fieldset with a margin. */
+/* A legend only takes the gap of its fieldset with a margin, and the line
+   between steps with padding on the fieldset, not on the legend. */
 legend.stepTitle {
-  margin-bottom: var(--space-3);
+  float: left;
+  width: 100%;
+}
+
+legend.stepTitle + * {
+  clear: both;
+}
+
+.stepNumber {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+  font-size: 0.85rem;
 }
 
 .stepHint {
-  margin: calc(-1 * var(--space-2)) 0 0;
+  margin: -6px 0 0;
   font-size: 0.9rem;
-  color: var(--color-ink-soft);
+  color: var(--portal-muted, var(--color-ink-soft));
 }
 
-/* The grades as pills, only one can be picked (a radio each). */
+/* --- Grades: chips on lavender, the picked one in blue --- */
 .grades {
   min-width: 0;
   margin: 0;
@@ -290,17 +349,17 @@ legend.stepTitle {
 
 /* Same look as the labels of the fields above. */
 .gradesLegend {
-  margin-bottom: var(--space-1);
+  margin-bottom: 6px;
   padding: 0;
   font-weight: 700;
   font-size: 0.95rem;
-  color: var(--color-ink);
+  color: var(--color-iris-deep);
 }
 
 .gradeOptions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 8px;
 }
 
 .gradeOption {
@@ -319,43 +378,33 @@ legend.stepTitle {
 .gradeOption span {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
-  padding: var(--space-1) var(--space-3);
-  border: 2px solid var(--color-iris-pale);
-  border-radius: 999px;
-  background: var(--color-surface);
+  justify-content: center;
+  min-width: 56px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--color-canvas);
   font-weight: 700;
   color: var(--color-ink-soft);
   transition:
-    var(--focus-halo-transition),
     background 160ms ease,
-    color 160ms ease;
+    color 160ms ease,
+    box-shadow 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .gradeOption:hover span {
-  border-color: var(--color-iris-medium);
-}
-
-.gradeOption input:checked + span {
-  border-color: var(--color-iris-medium);
-  background: var(--color-iris-pale);
+  background: var(--landing-mist-1);
   color: var(--color-iris-deep);
 }
 
-.gradeOption input:focus-visible + span {
-  border-color: var(--color-iris-medium);
-  box-shadow: var(--focus-halo);
-}
-
-.stepNumber {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+.gradeOption input:checked + span {
   background: var(--color-iris-medium);
   color: var(--color-surface);
-  font-size: 0.85rem;
+  box-shadow: 0 10px 18px -10px color-mix(in srgb, var(--color-iris-medium) 85%, transparent);
+}
+
+.gradeOption input:focus-visible + span {
+  box-shadow: var(--focus-halo);
 }
 
 /* The counter goes on the line of the field's label, at the right. */
@@ -371,7 +420,7 @@ legend.stepTitle {
   font-size: 0.8rem;
   /* Digits of the same width, so the number doesn't jump while typing. */
   font-variant-numeric: tabular-nums;
-  color: var(--color-ink-soft);
+  color: var(--portal-muted, var(--color-ink-soft));
 }
 
 .counterOver {
@@ -379,24 +428,24 @@ legend.stepTitle {
   color: var(--color-error);
 }
 
-/* --- Avatar type: a track with a white thumb that slides --- */
+/* --- Avatar type: a lavender track with a white thumb that slides --- */
 .modes {
   position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding: 4px;
-  border-radius: var(--radius-medium);
-  background: var(--color-iris-pale);
+  padding: 5px;
+  border-radius: 16px;
+  background: var(--color-canvas);
 }
 
 .modes::before {
   content: "";
   position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc(50% - 4px);
-  border-radius: 9px;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc(50% - 5px);
+  border-radius: 12px;
   background: var(--color-surface);
   box-shadow: var(--shadow-soft);
   transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -411,23 +460,20 @@ legend.stepTitle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  min-height: 42px;
-  padding: var(--space-2) var(--space-3);
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
   border: none;
-  border-radius: 9px;
+  border-radius: 12px;
   background: transparent;
-  color: var(--color-ink-soft);
+  color: var(--portal-muted, var(--color-ink-soft));
   font: inherit;
   font-weight: 700;
   cursor: pointer;
   transition: color 160ms ease;
 }
 
-.mode:hover {
-  color: var(--color-iris-deep);
-}
-
+.mode:hover,
 .modeActive {
   color: var(--color-iris-deep);
 }
@@ -437,14 +483,14 @@ legend.stepTitle {
   outline-offset: 1px;
 }
 
+/* The box of the picked type, on lavender with no border. */
 .option {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-medium);
+  gap: 14px;
+  padding: 20px;
+  border-radius: 20px;
   background: var(--color-canvas);
   animation: option-in 220ms ease both;
 }
@@ -457,8 +503,8 @@ legend.stepTitle {
 }
 
 .letters {
-  padding: 1px 6px;
-  border-radius: var(--radius-small);
+  padding: 2px 8px;
+  border-radius: 8px;
   background: var(--color-surface);
   font-family: var(--font-mono);
   color: var(--color-iris-deep);
@@ -468,19 +514,19 @@ legend.stepTitle {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: var(--space-3);
+  gap: 14px;
 }
 
 .swatch {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border: none;
   border-radius: 50%;
   color: var(--color-surface);
   cursor: pointer;
-  box-shadow: 0 0 0 2px var(--color-surface);
+  box-shadow: 0 0 0 3px var(--color-surface);
   transition:
     transform 120ms ease,
     box-shadow 200ms ease;
@@ -528,6 +574,38 @@ legend.stepTitle {
   color: var(--color-ink);
 }
 
+/* Color and avatar: two small groups inside step 3, each with its title. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.groupTitle {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-iris-deep);
+}
+
+.groupHint {
+  margin: -6px 0 0;
+  font-size: 0.9rem;
+  color: var(--portal-muted, var(--color-ink-soft));
+}
+
+/* Same lavender box as the avatar options, but it stays still. */
+.colorBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: var(--color-canvas);
+}
+
 .colorName {
   margin: 0;
   font-size: 0.9rem;
@@ -540,11 +618,11 @@ legend.stepTitle {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
   width: 100%;
-  padding: var(--space-4) var(--space-3);
-  border: 2px dashed var(--color-iris-medium);
-  border-radius: var(--radius-medium);
+  padding: 24px 16px;
+  border: 2px dashed color-mix(in srgb, var(--color-iris-medium) 45%, var(--color-surface));
+  border-radius: 16px;
   background: var(--color-surface);
   text-align: center;
   cursor: pointer;
@@ -554,8 +632,8 @@ legend.stepTitle {
 }
 
 .dropZone:hover {
-  border-style: solid;
-  background: color-mix(in srgb, var(--color-iris-pale) 45%, var(--color-surface));
+  border-color: var(--color-iris-medium);
+  background: color-mix(in srgb, var(--landing-mist-1) 55%, var(--color-surface));
 }
 
 .dropIcon {
@@ -563,9 +641,9 @@ legend.stepTitle {
   place-items: center;
   width: 52px;
   height: 52px;
-  margin-bottom: var(--space-1);
+  margin-bottom: 4px;
   border-radius: 50%;
-  background: var(--color-iris-pale);
+  background: var(--color-canvas);
   color: var(--color-iris-medium);
 }
 
@@ -576,22 +654,24 @@ legend.stepTitle {
 
 .dropHint {
   font-size: 0.85rem;
-  color: var(--color-ink-soft);
+  color: var(--portal-muted, var(--color-ink-soft));
 }
 
 .pickButton {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-2) var(--space-4);
-  border: 2px solid var(--color-iris-medium);
-  border-radius: var(--radius-medium);
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 14px;
   background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
   font-weight: 700;
+  color: var(--color-iris-medium);
   cursor: pointer;
 }
 
 .pickButton:hover {
-  background: var(--color-iris-pale);
+  background: var(--landing-mist-1);
 }
 
 .dropZone:focus-within,
@@ -620,30 +700,30 @@ legend.stepTitle {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-5);
-  border-top: 1px solid var(--color-iris-pale);
+  padding: 18px 32px 24px;
+  border-top: 1px solid var(--portal-line, var(--color-iris-pale));
   background: var(--color-surface);
 }
 
 /* Always on the right, also when there is no error next to them. */
 .buttons {
   display: flex;
-  gap: var(--space-3);
+  gap: 12px;
   margin-left: auto;
 }
 
 .cancelButton,
 .saveButton {
-  min-height: 48px;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-medium);
+  min-height: 50px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 16px;
   font: inherit;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
   transition:
     background 140ms ease,
-    border-color 140ms ease,
     transform 140ms ease;
 }
 
@@ -652,27 +732,31 @@ legend.stepTitle {
   transform: scale(0.98);
 }
 
+/* Lavender, like the soft buttons of the portal. */
 .cancelButton {
-  border: 2px solid var(--color-iris-medium);
-  background: var(--color-surface);
-  color: var(--color-iris-deep);
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
 }
 
 .cancelButton:hover {
-  border-color: var(--color-iris-deep);
-  background: var(--color-iris-pale);
+  background: var(--landing-mist-1);
 }
 
 .saveButton {
-  min-width: 150px;
-  border: 2px solid var(--color-action);
+  min-width: 160px;
   background: var(--color-action);
   color: var(--color-surface);
+  box-shadow: 0 12px 22px -12px color-mix(in srgb, var(--color-action) 90%, transparent);
 }
 
 .saveButton:hover {
-  border-color: var(--color-action-hover);
   background: var(--color-action-hover);
+}
+
+.cancelButton:focus-visible,
+.saveButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .cancelButton:disabled {
@@ -682,9 +766,9 @@ legend.stepTitle {
 
 /* Can't be used yet: a quiet blue-gray instead of a faded button. */
 .saveButton:disabled {
-  border-color: var(--color-action-disabled);
   background: var(--color-action-disabled);
   color: var(--color-action-disabled-text);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -766,50 +850,43 @@ legend.stepTitle {
   }
 }
 
-/* Narrow screens: one column, the preview on top. */
+/* Narrow screens: one column, the preview on top as a short row. */
 @media (max-width: 760px) {
+  .header {
+    padding: 22px 20px 14px;
+  }
+
   .body {
     grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding: 4px 20px 20px;
   }
 
   .previewColumn {
-    border-right: none;
-    border-bottom: 1px solid var(--color-iris-pale);
-  }
-
-  .previewSticky {
     position: static;
+    padding: 14px;
   }
 
-  .previewColumn {
-    padding-block: var(--space-3);
-  }
-
-  /* A short row: the avatar and the name, nothing else. */
   .previewCard {
     flex-direction: row;
-    gap: var(--space-3);
-    padding: var(--space-3);
+    gap: 14px;
+    padding: 12px;
     text-align: left;
   }
 
-  .previewRing {
-    flex: none;
-    margin: 6px;
-  }
-
-  .previewAction {
-    display: none;
-  }
-
+  .previewBanner,
+  .previewAction,
   .note {
     display: none;
   }
 
-  .fields,
-  .header,
+  .previewRing {
+    flex: none;
+    margin: 0;
+  }
+
   .footer {
-    padding-inline: var(--space-4);
+    padding: 14px 20px 20px;
   }
 }
 
@@ -830,6 +907,41 @@ legend.stepTitle {
   .saveButton {
     min-width: 0;
   }
+
+  /* On a phone the icon circle leaves the title too little room. */
+  .badge {
+    display: none;
+  }
+
+  /* Without their icons the two modes fit on one line, and a smaller
+     gap keeps the five colors in one row. */
+  .mode {
+    padding: 0 8px;
+  }
+
+  .mode svg {
+    display: none;
+  }
+
+  .option {
+    padding: 18px 12px;
+  }
+
+  .colors {
+    gap: 10px;
+  }
+
+  /* The five grades share the row in equal parts. */
+  .gradeOptions {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .gradeOption span {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
 }
 
 /* Less motion asked for: everything just shows up and goes away. */
@@ -846,7 +958,9 @@ legend.stepTitle {
 
   .modes::before,
   .mode,
-  .swatch {
+  .swatch,
+  .previewBanner,
+  .gradeOption span {
     transition: none;
   }
 

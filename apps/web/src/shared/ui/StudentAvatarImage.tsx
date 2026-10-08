@@ -18,5 +18,7 @@ export function StudentAvatarImage({ avatarId, size = "medium", label }: Student
   const avatarsQuery = useAvatars();
   const avatar = avatarsQuery.data?.find((a) => a.id === avatarId);
   if (!avatar) return null;
-  return <img src={avatarImageUrl(avatar.id)} alt={label ?? avatar.name} className={`${styles.image} ${styles[size]}`} />;
+  return (
+    <img src={avatarImageUrl(avatar.id)} alt={label ?? avatar.name} className={`${styles.image} ${styles[size]}`} />
+  );
 }

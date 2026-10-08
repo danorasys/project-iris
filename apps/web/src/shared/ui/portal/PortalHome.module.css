@@ -1,0 +1,621 @@
+/* "Inicio" of both portals (docente and padres), after the look of Horizon
+   UI: white cards of 20px corners with no border, lifted by a wide soft
+   shadow; small gray labels, big bold numbers; tables with gray uppercase
+   headings and rows without lines. Four counts on top, then the main list
+   on the left and what needs attention and the latest notices on the
+   right. The rows of classes (classRow and the rest) are the teacher's. */
+
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.status {
+  margin: 0;
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+/* --- The four counts --- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 100px;
+  padding: 16px 20px;
+  border-radius: var(--portal-radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+/* The icon on a lavender circle, the same for every count. */
+.statIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+/* When the number needs the teacher: white icon on a blue gradient. */
+.statIconStrong {
+  background: linear-gradient(90deg, var(--color-iris-medium) 0%, var(--landing-sky) 100%);
+  color: var(--color-surface);
+  box-shadow: 0 10px 20px -10px color-mix(in srgb, var(--color-iris-medium) 80%, transparent);
+}
+
+.statBody {
+  min-width: 0;
+}
+
+.statLabel {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--portal-muted);
+}
+
+.statValue {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-iris-deep);
+}
+
+.statHint {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--portal-muted);
+}
+
+/* --- The two columns --- */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel {
+  padding: 24px;
+  border-radius: var(--portal-radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: 16px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-iris-deep);
+}
+
+/* "Ver todas": a soft lavender chip, like the small buttons of the cards. */
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.linkButton:hover {
+  background: var(--landing-mist-1);
+}
+
+.linkButton svg {
+  transition: transform 200ms var(--ease-out);
+}
+
+.linkButton:hover svg {
+  transform: translateX(2px);
+}
+
+/* --- Classes, as a table --- */
+.classList,
+.tasks,
+.notices {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.classRow,
+.tableHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr) minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tableHead {
+  margin-bottom: 6px;
+  padding: 0 10px 12px;
+  border-bottom: 1px solid var(--portal-line);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--portal-muted);
+}
+
+.classRow {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.classRow:hover {
+  background: var(--color-canvas);
+}
+
+/* The avatar and the name share the first column. */
+.className {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: center;
+}
+
+.className > :first-child {
+  grid-row: span 2;
+}
+
+.classTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.classAudience {
+  font-size: 0.8rem;
+  color: var(--portal-muted);
+}
+
+.classStudents {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.classStudents svg {
+  flex: none;
+  color: var(--color-iris-medium);
+}
+
+.studentsWord {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: pre;
+}
+
+.classProgress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressText {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-iris-deep);
+}
+
+.progressTrack {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-canvas);
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-iris-medium), var(--landing-sky));
+  transition: width 600ms var(--ease-out);
+}
+
+.pendingPill {
+  justify-self: end;
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-amber);
+  color: var(--color-iris-deep);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.chevron {
+  flex: none;
+  justify-self: end;
+  color: var(--portal-muted);
+}
+
+/* --- What needs attention --- */
+.task {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.task:hover {
+  background: var(--color-canvas);
+}
+
+.taskIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.blue {
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+/* Requests waiting: the warm color, only for what needs attention. */
+.orange {
+  background: color-mix(in srgb, var(--color-amber) 16%, var(--color-surface));
+  color: var(--color-amber-dark);
+}
+
+.taskText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.taskTitle {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.taskHint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--portal-muted);
+}
+
+/* --- Latest notices --- */
+/* Each notification is a button that opens it in Notificaciones. */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.notice:hover {
+  background: var(--color-canvas);
+}
+
+.notice:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+.notice .chevron {
+  align-self: center;
+}
+
+/* A plain solid dot, the same as in the tray: blue while it hasn't been
+   read, grey once it has. */
+.unreadDot,
+.readDot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+}
+
+.unreadDot {
+  background: var(--color-iris-medium);
+}
+
+.readDot {
+  background: color-mix(in srgb, var(--portal-muted) 40%, var(--color-surface));
+}
+
+.noticeText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.noticeTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.noticeTime {
+  font-size: 0.78rem;
+  color: var(--portal-muted);
+}
+
+/* --- Empty and loading --- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 12px 8px;
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+.emptyIconDone {
+  background: color-mix(in srgb, var(--landing-mint) 14%, var(--color-surface));
+  color: var(--color-mint);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.emptyText {
+  max-width: 34ch;
+  margin: 0 0 var(--space-2);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--portal-muted);
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 16px;
+  background: var(--color-action);
+  color: var(--color-surface);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.primaryButton:hover {
+  background: var(--color-action-hover);
+}
+
+.skeletonRows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.skeleton {
+  display: block;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--color-canvas) 0%, var(--landing-mist-1) 50%, var(--color-canvas) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeletonRow {
+  height: 48px;
+}
+
+.skeletonNumber {
+  width: 56px;
+  height: 30px;
+  margin-top: 4px;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- Responsive --- */
+@media (max-width: 1280px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1120px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* On a phone: two counts per row with the icon on top, and each class row
+   folds (name on top, students and lessons under it, no table heading). */
+@media (max-width: 640px) {
+  .stats {
+    gap: 12px;
+  }
+
+  .stat {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .statIcon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .statIcon svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .statValue {
+    font-size: 1.4rem;
+  }
+
+  .panel {
+    padding: 18px;
+  }
+
+  .tableHead {
+    display: none;
+  }
+
+  .classRow {
+    grid-template-columns: minmax(0, 1fr) 28px;
+    grid-template-areas:
+      "name end"
+      "students end"
+      "progress end";
+    row-gap: 8px;
+  }
+
+  .className {
+    grid-area: name;
+  }
+
+  .classStudents {
+    grid-area: students;
+    padding-left: 56px;
+  }
+
+  .studentsWord {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+    font-weight: 500;
+  }
+
+  .classProgress {
+    grid-area: progress;
+    padding-left: 56px;
+  }
+
+  .pendingPill,
+  .chevron {
+    grid-area: end;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+
+  .progressFill,
+  .primaryButton,
+  .linkButton,
+  .linkButton svg,
+  .notice {
+    transition: none;
+  }
+}

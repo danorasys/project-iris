@@ -473,6 +473,13 @@ class LessonService:
 
     # --- classroom-service (HU-85) ---------------------------------------------
 
+    # Called by classroom-service for the parents' portal: how many lessons
+    # each of the kids' classrooms already has for them. classroom-service
+    # already checked those are the guardian's kids' classrooms.
+    async def published_counts(self, classroom_ids: list[UUID]) -> dict[UUID, int]:
+        async with self._uow_factory() as uow:
+            return await uow.lessons.count_published_by_classrooms(classroom_ids)
+
     # Called by classroom-service before deleting a classroom: every lesson
     # of it, with everything inside, its units and the images of each
     # lesson's folder, also the ones uploaded but never used in a block.

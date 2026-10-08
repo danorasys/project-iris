@@ -5,7 +5,7 @@ import logoIris from "@/assets/landing/logo-iris.png";
 import { HeroCarousel } from "./HeroCarousel";
 import { Curriculum } from "./Curriculum";
 import { HowItWorks } from "./HowItWorks";
-import { IrisRings } from "./IrisRings";
+import { IrisRings } from "@/shared/ui/IrisRings";
 import { LandingFooter } from "./LandingFooter";
 import { LandingHeader } from "./LandingHeader";
 import { MeetIris } from "./MeetIris";
@@ -41,7 +41,7 @@ function SectionHead({ id, eyebrow, title, lead }: { id: string; eyebrow: string
 // play everything while only its top is on screen.
 function Section({ id, className, children }: { id: string; className?: string; children: ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-titulo`} className={`${styles.section} ${className ?? ""}`}>
+    <section id={id} aria-labelledby={`${id}-title`} className={`${styles.section} ${className ?? ""}`}>
       {children}
     </section>
   );
@@ -73,7 +73,7 @@ function JoinBand() {
     <Reveal className={styles.join} threshold={0.35}>
       <IrisRings className={styles.joinRings} />
       <div className={styles.joinText}>
-        <h2 id="unete-titulo" className={`${styles.joinTitle} ${motion.rise}`}>
+        <h2 id="join-title" className={`${styles.joinTitle} ${motion.rise}`}>
           Únete a la comunidad IRIS
         </h2>
         <p className={`${styles.joinLead} ${motion.rise}`} style={turn(1)}>
@@ -129,10 +129,10 @@ export default function LandingPage() {
       <LandingHeader />
       <HeroCarousel />
 
-      <Section id="conoce-iris" className={styles.meet}>
+      <Section id="meet-iris" className={styles.meet}>
         <div>
           <SectionHead
-            id="conoce-iris-titulo"
+            id="meet-iris-title"
             eyebrow="Conoce a IRIS"
             title="Tiene algo que contarte"
             lead="IRIS es el compañero que va de la mano de cada estudiante en sus clases. Antes de empezar, le escribe a su familia."
@@ -145,9 +145,9 @@ export default function LandingPage() {
         </Reveal>
       </Section>
 
-      <Section id="como-funciona" className={styles.centered}>
+      <Section id="how-it-works" className={styles.centered}>
         <SectionHead
-          id="como-funciona-titulo"
+          id="how-it-works-title"
           eyebrow="Cómo funciona"
           title="Tres miradas, un mismo camino"
           lead="La familia abre la puerta, el docente arma el camino y el estudiante lo recorre con la mirada."
@@ -157,9 +157,9 @@ export default function LandingPage() {
         </div>
       </Section>
 
-      <Section id="como-se-organiza" className={styles.centered}>
+      <Section id="how-it-is-organized" className={styles.centered}>
         <SectionHead
-          id="como-se-organiza-titulo"
+          id="how-it-is-organized-title"
           eyebrow="Cómo se organiza"
           title="Una estructura clara para cada clase"
           lead="Cada clase en IRIS se apoya en el currículo colombiano del Ministerio de Educación Nacional."
@@ -167,11 +167,11 @@ export default function LandingPage() {
         <Curriculum />
       </Section>
 
-      <section id="por-que-importa" aria-labelledby="por-que-importa-titulo" className={styles.section}>
+      <section id="why-it-matters" aria-labelledby="why-it-matters-title" className={styles.section}>
         <WhyItMatters />
       </section>
 
-      <Section id="unete" className={styles.joinSection}>
+      <Section id="join" className={styles.joinSection}>
         <JoinBand />
       </Section>
 

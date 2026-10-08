@@ -10,7 +10,7 @@ import pytest
 from httpx import AsyncClient
 
 from tests.fakes import FakeClassroomClient, FakeIdentityClient, FakeObjectStorage
-from tests.helpers import PNG, auth, lesson, page, teacher, unit
+from tests.helpers import PNG, auth, lesson, page, published_lesson, teacher, unit
 
 INTERNAL = {"X-Internal-Key": "test-internal-key"}
 
@@ -65,6 +65,36 @@ async def test_una_clase_sin_lecciones_tambien_responde_204(client: AsyncClient)
     response = await client.delete(f"/internal/classrooms/{uuid4()}/lessons", headers=INTERNAL)
 
     assert response.status_code == 204
+
+
+async def test_cuenta_solo_las_lecciones_publicadas_de_cada_clase(
+    client: AsyncClient, identity_client: FakeIdentityClient, classroom_client: FakeClassroomClient
+) -> None:
+    classroom_id = uuid4()
+    empty_classroom = uuid4()
+    who = teacher(identity_client, classroom_client, classroom_id)
+    unit_id = (await unit(client, who))["id"]
+    await published_lesson(client, who, unit_id)
+    await published_lesson(client, who, unit_id)
+    await lesson(client, who, unit_id)  # a draft doesn't count
+
+    response = await client.get(
+        "/internal/classrooms/published-lessons",
+        params={"classroom_id": [str(classroom_id), str(empty_classroom)]},
+        headers=INTERNAL,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"classroom_id": str(classroom_id), "published_lessons": 2},
+        {"classroom_id": str(empty_classroom), "published_lessons": 0},
+    ]
+
+
+async def test_las_lecciones_publicadas_piden_la_llave_interna(client: AsyncClient) -> None:
+    response = await client.get("/internal/classrooms/published-lessons", params={"classroom_id": str(uuid4())})
+
+    assert response.status_code == 401
 
 
 @pytest.mark.parametrize("headers", [{}, {"X-Internal-Key": "otra-llave"}])

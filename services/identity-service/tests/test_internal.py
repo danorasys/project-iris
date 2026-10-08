@@ -42,6 +42,26 @@ async def test_el_estudiante_trae_el_id_de_su_tutor(client: AsyncClient) -> None
     assert respuesta.json()["guardian_person_id"] == (await _claims(client, token))["sub"]
 
 
+async def test_los_peques_de_un_tutor(client: AsyncClient) -> None:
+    token = await registrar_tutor(client, "interno-peques@example.com", "9100000004")
+    person_id = (await _claims(client, token))["sub"]
+    student_id = await _student_id(client, token)
+
+    respuesta = await client.get(f"/internal/guardians/{person_id}/students", headers=_internal())
+
+    assert respuesta.status_code == 200
+    assert [s["student_id"] for s in respuesta.json()] == [student_id]
+    assert set(respuesta.json()[0]) == {"student_id", "first_name", "avatar_id"}
+
+
+async def test_quien_no_es_tutor_no_tiene_peques(client: AsyncClient) -> None:
+    respuesta = await client.get(f"/internal/guardians/{uuid.uuid4()}/students", headers=_internal())
+    sin_clave = await client.get(f"/internal/guardians/{uuid.uuid4()}/students")
+
+    assert respuesta.status_code == 404
+    assert sin_clave.status_code == 401
+
+
 async def test_el_nombre_de_un_docente(client: AsyncClient) -> None:
     registro = await client.post(
         "/auth/teachers",

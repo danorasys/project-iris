@@ -10,3 +10,9 @@ export function calculateAge(birthDateISO: string, today: Date = new Date()): nu
     if (hasNotHadBirthdayYet) age--
     return age
 }
+
+// "1 año" or "7 años", for the kids' rows of the parents' portal.
+export function ageLabel(birthDateISO: string): string {
+    const age = calculateAge(birthDateISO)
+    return age === 1 ? "1 año" : `${age} años`
+}

@@ -21,11 +21,28 @@ class UpdateClassroomData:
     grade: int | None = None
 
 
-# A classroom in the teacher's list, with how many requests wait for them.
+# A classroom in the teacher's list, with how many requests wait for them
+# and how many students it already has.
 @dataclass
 class TeacherClassroom:
     classroom: Classroom
     pending_requests: int
+    student_count: int
+
+
+# One classroom of a guardian's kid, for the parents' portal: the kid, how
+# the request is going, who teaches it and how many lessons it already has.
+# teacher_name and published_lessons are None when that service didn't answer.
+@dataclass
+class FamilyClassroom:
+    student_id: UUID
+    student_first_name: str
+    enrollment_id: UUID
+    status: str
+    requested_at: datetime
+    classroom: Classroom
+    teacher_name: str | None
+    published_lessons: int | None
 
 
 @dataclass

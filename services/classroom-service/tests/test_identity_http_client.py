@@ -9,7 +9,7 @@ import uuid
 import httpx
 import pytest
 
-from app.domain.exceptions import IdentityServiceUnavailable, ResourceNotFound, InvalidToken
+from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken, PortalAccessRequired, ResourceNotFound
 from app.infrastructure.http_clients.identity_client import IdentityHttpClient
 
 pytestmark = pytest.mark.asyncio
@@ -110,3 +110,53 @@ async def test_obtener_estudiante_404_levanta_recurso_no_encontrado() -> None:
 
     with pytest.raises(ResourceNotFound):
         await cliente.obtener_estudiante(uuid.uuid4())
+
+
+async def test_los_peques_de_un_tutor() -> None:
+    guardian_id = uuid.uuid4()
+    kid = uuid.uuid4()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == f"/internal/guardians/{guardian_id}/students"
+        assert request.headers["X-Internal-Key"] == "clave-interna"
+        return httpx.Response(200, json=[{"student_id": str(kid), "first_name": "Sofía", "avatar_id": 2}])
+
+    [peque] = await _client_con_transporte(handler).list_guardian_students(guardian_id)
+
+    assert (peque.student_id, peque.first_name, peque.avatar_id) == (kid, "Sofía", 2)
+
+
+async def test_quien_no_es_tutor_no_tiene_peques() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={})
+
+    assert await _client_con_transporte(handler).list_guardian_students(uuid.uuid4()) == []
+
+
+async def test_el_portal_abierto_responde_204_y_cerrado_403() -> None:
+    person_id = uuid.uuid4()
+    bodies: list[bytes] = []
+    open_portal = {"value": True}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/internal/portal-access/check"
+        bodies.append(request.content)
+        return httpx.Response(204 if open_portal["value"] else 403, json=None if open_portal["value"] else {})
+
+    client = _client_con_transporte(handler)
+    await client.check_portal_access(person_id, "sesion-1", renew=True)
+    open_portal["value"] = False
+    with pytest.raises(PortalAccessRequired):
+        await client.check_portal_access(person_id, "sesion-1", renew=False)
+
+    assert b'"renew":true' in bodies[0].replace(b" ", b"")
+    assert str(person_id).encode() in bodies[0]
+
+
+@pytest.mark.parametrize("status_code", [401, 500])
+async def test_el_portal_sin_respuesta_clara_es_no_disponible(status_code: int) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(status_code, json={})
+
+    with pytest.raises(IdentityServiceUnavailable):
+        await _client_con_transporte(handler).check_portal_access(uuid.uuid4(), "sesion-1", renew=False)

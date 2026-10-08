@@ -42,7 +42,7 @@ export function LandingHeader() {
   return (
     <header ref={headerRef} className={`${styles.header} ${solid ? styles.solid : ""} ${menuOpen ? styles.open : ""}`}>
       <div className={styles.bar}>
-        <a href="#inicio" className={styles.brandLockup} aria-label="IRIS, ir al inicio">
+        <a href="#top" className={styles.brandLockup} aria-label="IRIS, ir al inicio">
           <img src={logoIris} alt="" className={styles.logo} />
           <span className={styles.wordmark}>IRIS</span>
         </a>

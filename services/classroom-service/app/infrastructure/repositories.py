@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.entities import STATUS_ACCEPTED, STATUS_PENDING, Classroom, Enrollment
+from app.domain.entities import STATUS_ACCEPTED, STATUS_PENDING, Classroom, Enrollment, EnrollmentCounts
 from app.infrastructure.models import ClassroomModel, EnrollmentModel
 
 
@@ -139,16 +139,40 @@ class SqlAlchemyEnrollmentRepository:
         )
         return [_enrollment_to_entity(m) for m in result.scalars().all()]
 
-    async def count_pending_by_classrooms(self, classroom_ids: list[UUID]) -> dict[UUID, int]:
+    # The index on student_id serves it.
+    async def list_active_by_students(self, student_ids: list[UUID]) -> list[Enrollment]:
+        if not student_ids:
+            return []
+        result = await self._session.execute(
+            select(EnrollmentModel).where(
+                EnrollmentModel.student_id.in_(student_ids),
+                EnrollmentModel.status.in_((STATUS_PENDING, STATUS_ACCEPTED)),
+            )
+        )
+        return [_enrollment_to_entity(m) for m in result.scalars().all()]
+
+    async def count_by_classrooms(self, classroom_ids: list[UUID]) -> dict[UUID, EnrollmentCounts]:
         if not classroom_ids:
             return {}
-        # One GROUP BY served by ix_enrollments_classroom_status.
+        # One GROUP BY by classroom and status, served by
+        # ix_enrollments_classroom_status. Rejected requests aren't counted.
         result = await self._session.execute(
-            select(EnrollmentModel.classroom_id, func.count())
-            .where(EnrollmentModel.classroom_id.in_(classroom_ids), EnrollmentModel.status == STATUS_PENDING)
-            .group_by(EnrollmentModel.classroom_id)
+            select(EnrollmentModel.classroom_id, EnrollmentModel.status, func.count())
+            .where(
+                EnrollmentModel.classroom_id.in_(classroom_ids),
+                EnrollmentModel.status.in_((STATUS_PENDING, STATUS_ACCEPTED)),
+            )
+            .group_by(EnrollmentModel.classroom_id, EnrollmentModel.status)
         )
-        return {classroom_id: count for classroom_id, count in result.all()}
+        rows: dict[UUID, dict[str, int]] = {}
+        for classroom_id, status, count in result.all():
+            rows.setdefault(classroom_id, {})[status] = count
+        return {
+            classroom_id: EnrollmentCounts(
+                pending=by_status.get(STATUS_PENDING, 0), accepted=by_status.get(STATUS_ACCEPTED, 0)
+            )
+            for classroom_id, by_status in rows.items()
+        }
 
     async def add(self, enrollment: Enrollment) -> None:
         self._session.add(

@@ -84,7 +84,13 @@ function toValues(student: StudentDetail): StudentValues {
   };
 }
 
-function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onDirtyChange: (dirty: boolean) => void }) {
+function StudentEditor({
+  student,
+  onDirtyChange,
+}: {
+  student: StudentDetail;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
   const supportConditionsQuery = useSupportConditions();
   const avatarsQuery = useAvatars();
   const updateStudent = useActualizarEstudianteDeTutor(student.id);
@@ -150,9 +156,9 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
 
   return (
     <div className={styles.stack}>
-      <form id="sus-datos-form" className={form.form} onSubmit={handleSubmit}>
+      <form id="kid-data-form" className={form.form} onSubmit={handleSubmit}>
         <Card
-          id="peque-datos-personales"
+          id="kid-personal-data"
           icon={<IconUserCircle width={22} height={22} />}
           title="Datos personales"
           hint={`Estos son los datos personales de tu peque, los que nos diste al registrarlo. ${EDIT_HINT}`}
@@ -160,7 +166,7 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
           <div className={form.fieldGrid}>
             <EditableRow label="Nombres" displayValue={values.firstName} {...rowProps("firstName")}>
               <TextField
-                id="peque-first-name"
+                id="kid-first-name"
                 label="Nombres"
                 value={values.firstName}
                 onChange={(v) => fields.setField("firstName", v)}
@@ -172,7 +178,7 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
 
             <EditableRow label="Apellidos" displayValue={values.lastName} {...rowProps("lastName")}>
               <TextField
-                id="peque-last-name"
+                id="kid-last-name"
                 label="Apellidos"
                 value={values.lastName}
                 onChange={(v) => fields.setField("lastName", v)}
@@ -188,7 +194,7 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
               {...rowProps("dateOfBirth")}
             >
               <TextField
-                id="peque-date-of-birth"
+                id="kid-date-of-birth"
                 label="Fecha de nacimiento"
                 type="date"
                 max={toIsoDate(new Date())}
@@ -202,7 +208,7 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
         </Card>
 
         <Card
-          id="peque-apoyos"
+          id="kid-supports"
           icon={<IconSparkle width={20} height={20} />}
           title="Condición o necesidad de apoyo"
           hint="Cuéntanos si tu peque tiene alguna condición o necesita un apoyo adicional. Con esta información sus docentes pueden conocerlo mejor y darle un mejor seguimiento y acompañamiento. Puedes actualizarla cuando quieras."
@@ -214,7 +220,7 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
               {...rowProps("supportConditionIds")}
             >
               <SupportConditionsField
-                id="peque-support-condition"
+                id="kid-support-condition"
                 label="Condición o condiciones"
                 options={conditions}
                 value={conditionIds}
@@ -231,7 +237,7 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
                 {...rowProps("supportConditionOther")}
               >
                 <TextField
-                  id="peque-support-condition-other"
+                  id="kid-support-condition-other"
                   label="Cuál condición"
                   value={values.supportConditionOther}
                   onChange={(v) => fields.setField("supportConditionOther", v)}
@@ -248,7 +254,7 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
               {...rowProps("additionalSupportNeed")}
             >
               <TextField
-                id="peque-additional-support-need"
+                id="kid-additional-support-need"
                 label="Necesidad de apoyo adicional (opcional)"
                 value={values.additionalSupportNeed}
                 onChange={(v) => fields.setField("additionalSupportNeed", v)}
@@ -262,7 +268,7 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
         </Card>
 
         <Card
-          id="peque-avatar"
+          id="kid-avatar"
           icon={<IconImage width={20} height={20} />}
           title="Su avatar"
           hint="Es la imagen con la que tu peque se reconoce al entrar a IRIS."
@@ -275,10 +281,10 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
               displayValue={<StudentAvatarImage avatarId={Number(values.avatarId)} size="large" label={avatarName} />}
               {...rowProps("avatarId")}
             >
-              <span className={styles.avatarLabel} id="peque-avatar-label">
+              <span className={styles.avatarLabel} id="kid-avatar-label">
                 Avatar
               </span>
-              <div className={styles.avatarGrid} role="radiogroup" aria-labelledby="peque-avatar-label">
+              <div className={styles.avatarGrid} role="radiogroup" aria-labelledby="kid-avatar-label">
                 {avatars.map((option) => {
                   const selected = values.avatarId === String(option.id);
                   return (
@@ -288,7 +294,9 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
                       role="radio"
                       aria-checked={selected}
                       aria-label={option.name}
-                      className={selected ? `${styles.avatarOption} ${styles.avatarOptionSelected}` : styles.avatarOption}
+                      className={
+                        selected ? `${styles.avatarOption} ${styles.avatarOptionSelected}` : styles.avatarOption
+                      }
                       onClick={() => fields.setField("avatarId", String(option.id))}
                     >
                       <StudentAvatarImage avatarId={option.id} size="large" label="" />
@@ -306,7 +314,7 @@ function StudentEditor({ student, onDirtyChange }: { student: StudentDetail; onD
       {/* Out of the form and last, so it floats over every card while
           scrolling. It saves the form above through formId. */}
       <SaveBar
-        formId="sus-datos-form"
+        formId="kid-data-form"
         shown={fields.saveBarShown}
         leaving={fields.saveBarLeaving}
         confirmed={fields.confirmed}
@@ -363,7 +371,7 @@ function PinCard({ studentId, firstName, onChanged }: PinCardProps) {
 
   return (
     <Card
-      id="peque-pin"
+      id="kid-pin"
       icon={<IconKey width={20} height={20} />}
       title="Su PIN"
       hint="Son los 4 dígitos con los que tu peque entra a IRIS. Al cambiarlo cerramos sus sesiones abiertas."

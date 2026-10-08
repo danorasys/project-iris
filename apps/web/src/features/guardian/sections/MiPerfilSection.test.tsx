@@ -344,7 +344,7 @@ describe("MiPerfilSection", { timeout: 20_000 }, () => {
 
       await user.type(screen.getByLabelText(/Contraseña actual/), "Otra-Clave-456");
       expect(
-        screen.getByText("La nueva contraseña no puede ser igual a la que escribiste en \"Contraseña actual\"."),
+        screen.getByText('La nueva contraseña no puede ser igual a la que escribiste en "Contraseña actual".'),
       ).toBeTruthy();
       expect(submit().disabled).toBe(true);
     });

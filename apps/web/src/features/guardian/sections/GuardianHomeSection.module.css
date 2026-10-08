@@ -1,0 +1,304 @@
+/* The parts of the parents' "Inicio" that the teacher's doesn't have: a
+   row per kid with a button to their classes, and the band with what helps a session with the
+   gaze go well. The rest (counts, panels, tasks, notices) comes from
+   shared/ui/portal/PortalHome.module.css. */
+
+/* --- The layout: two rows of two panels. The kids next to what to look
+   at, the tips next to the notifications; the panels of a row stretch to
+   the same height, so their edges line up. On a narrow screen it's one
+   column: kids, what to look at, notifications and the tips last. --- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  grid-template-areas:
+    "kids tasks"
+    "tips notices";
+  align-items: stretch;
+  gap: 20px;
+}
+
+.kidsArea {
+  grid-area: kids;
+}
+
+.tasksArea {
+  grid-area: tasks;
+}
+
+.tipsArea {
+  grid-area: tips;
+}
+
+.noticesArea {
+  grid-area: notices;
+}
+
+/* --- One row per kid, however many classes they have --- */
+.kids {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A soft lavender row per kid, so siblings read apart. */
+.kid {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: var(--color-canvas);
+}
+
+.kidHead {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 10px 6px 6px;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kidHead:focus-visible,
+.classesButton:focus-visible,
+.moreKids:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+/* The avatar gets a white ring, like on the kids' cards. */
+.kidHead img {
+  box-shadow: 0 0 0 3px var(--color-surface);
+}
+
+.kidText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kidName {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.kidMeta {
+  font-size: 0.86rem;
+  color: var(--portal-muted);
+}
+
+/* "Ver su espacio" looks like "Ver todos" of the panel title: a small
+   rounded pill with blue text that turns sky blue under the mouse. It's
+   white here because the kid's row is already lavender. */
+.kidLink {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--color-surface);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  transition: background-color 160ms ease;
+}
+
+.kidHead:hover .kidLink {
+  background: var(--landing-mist-1);
+}
+
+.kidLink svg {
+  transition: transform 200ms var(--ease-out);
+}
+
+.kidHead:hover .kidLink svg {
+  transform: translateX(2px);
+}
+
+/* "3 clases": a white button that opens the kid's classes, with the
+   requests still waiting under it. */
+.classesButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  /* One width for all, so the buttons line up from kid to kid. */
+  width: 232px;
+  min-height: 52px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.classesButton:hover {
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+
+.classesIcon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+.classesText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.classesCount {
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+/* "1 en espera" with its clock, in the IRIS blue. */
+.classesWaiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+.classesNone {
+  font-size: 0.78rem;
+  color: var(--portal-muted);
+}
+
+.classesUnavailable {
+  flex: none;
+  font-size: 0.84rem;
+  color: var(--portal-muted);
+}
+
+/* More kids than fit: one link to all of them. */
+.moreKids {
+  align-self: center;
+  margin-top: 4px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  cursor: pointer;
+}
+
+.moreKids:hover {
+  background: var(--color-canvas);
+}
+
+/* --- Before each session: four tips, two by two --- */
+.tips {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--color-canvas);
+}
+
+.tipIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-iris-medium);
+}
+
+.tipText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tipTitle {
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.tipHint {
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--portal-muted);
+}
+
+@media (max-width: 1120px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "kids"
+      "tasks"
+      "notices"
+      "tips";
+  }
+}
+
+/* On a phone: the classes button goes under the kid, the whole width. */
+@media (max-width: 640px) {
+  .kid {
+    flex-wrap: wrap;
+  }
+
+  .kidLink {
+    display: none;
+  }
+
+  .classesButton {
+    flex-basis: 100%;
+    width: auto;
+  }
+
+  .tips {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kidLink,
+  .kidLink svg,
+  .classesButton {
+    transition: none;
+  }
+}

@@ -1,7 +1,8 @@
-/* The pieces every section of the teacher's portal shares. The same look as
-   the sections of the Portal de Padres (MisPequesSection), so both portals
-   feel like one IRIS: the blue header band, the cards that lift, the dashed
-   card to add, the option cards and the "coming soon" box. */
+/* The pieces the sections of the Portal Docente share: "Mis clases", the
+   space of one classroom and its members. The same look as the sections of
+   the Portal de Padres (MisPequesSection), so both portals feel like one
+   IRIS: the light header card, the white panel with the cards that lift,
+   the dashed card to add, and the option cards. */
 
 .section {
   display: flex;
@@ -20,61 +21,66 @@
   color: var(--color-error);
 }
 
-/* --- Header, the same blue band as Mi perfil --- */
+/* A light card, like the headings of Horizon UI: white, with two soft sky
+   circles in the corner. */
 .hero {
-  /* Dark blue behind: the focus ring is white here. */
-  --color-focus: var(--color-surface);
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  border-radius: var(--radius-large);
-  background: radial-gradient(130% 180% at 0% 0%, var(--color-iris-medium) 0%, var(--color-iris-deep) 62%);
-  color: var(--color-surface);
-  box-shadow:
-    var(--shadow-card),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  gap: 20px;
+  padding: 24px;
+  border-radius: var(--portal-radius, var(--radius-large));
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      color-mix(in srgb, var(--landing-sky) 20%, transparent) 0 150px,
+      transparent 151px
+    ),
+    radial-gradient(
+      circle at 88% 135%,
+      color-mix(in srgb, var(--color-iris-medium) 10%, transparent) 0 110px,
+      transparent 111px
+    ),
+    var(--color-surface);
+  color: var(--color-iris-deep);
+  box-shadow: var(--shadow-card);
 }
 
-/* White circle with two soft rings around it, like the rings of an iris. */
 .heroBadge {
   flex: none;
   display: grid;
   place-items: center;
-  width: 76px;
-  height: 76px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--color-surface);
-  color: var(--color-iris-deep);
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
   box-shadow:
-    0 0 0 5px rgba(255, 255, 255, 0.14),
-    0 0 0 6px rgba(255, 255, 255, 0.35);
-}
-
-.heroBadge img {
-  width: 100%;
-  height: 100%;
+    0 0 0 6px var(--color-surface),
+    0 0 0 7px var(--landing-sky-pale);
 }
 
 .heroText {
+  flex: 1;
   min-width: 0;
 }
 
 .eyebrow {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-iris-pale);
+  color: var(--color-iris-medium);
 }
 
 .heroTitle {
-  margin: var(--space-1) 0 var(--space-2) 0;
+  margin: 4px 0 10px;
   font-family: var(--font-display);
-  font-size: 1.75rem;
+  font-size: 1.7rem;
+  font-weight: 700;
   line-height: 1.2;
+  color: var(--color-iris-deep);
   overflow-wrap: anywhere;
 }
 
@@ -85,18 +91,46 @@
   margin: 0;
 }
 
+.heroDescription {
+  margin: 10px 0 0;
+  color: var(--color-ink-soft);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .chip {
-  padding: 3px 12px;
+  padding: 4px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  background: var(--color-canvas);
+  color: var(--color-iris-deep);
   font-size: 0.8rem;
   font-weight: 700;
 }
 
-/* The classes go on a white card, the same as the cards of Mi perfil, so
-   the group stands apart from the page background. */
+/* Requests waiting: the warm color, only for what needs attention. */
+.pendingChip {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-amber) 18%, var(--color-surface));
+  color: var(--color-amber-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Editar and Eliminar, on the right of the classroom's header. */
+.heroActions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: flex-start;
+}
+
+/* --- The classrooms go on a white panel, like the kids' profiles --- */
 .panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   padding: var(--space-4);
   border: 1px solid var(--color-iris-pale);
   border-radius: var(--radius-large);
@@ -104,66 +138,14 @@
   box-shadow: var(--shadow-soft);
 }
 
-/* No classes yet: the notice centered, and the card to create one below. */
-.emptyPanel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-4) var(--space-3);
-  text-align: center;
-}
-
-.emptyPanel .emptyText {
-  max-width: 52ch;
-}
-
-.emptyAction {
-  display: flex;
-  width: min(240px, 100%);
-  margin-top: var(--space-3);
-}
-
-/* --- One card per item (a classroom) --- */
+/* A bit wider than the kids' cards, so the three numbers fit side by side. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  width: 100%;
-  padding: var(--space-5) var(--space-4) var(--space-4);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
-  font: inherit;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-.card:hover {
-  border-color: var(--color-iris-medium);
-  box-shadow: var(--shadow-card);
-  transform: translateY(-3px);
-}
-
-.card:focus-visible,
-.optionCard:focus-visible,
-.backButton:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 3px;
 }
 
 /* Each card fills its cell, so they all end up the same height. */
@@ -171,8 +153,177 @@
   display: flex;
 }
 
-/* The card to add one: same size as the others, but dashed and without
-   a white fill, so it reads as an empty spot. */
+.classCard:focus-visible,
+.optionCard:focus-visible,
+.backButton:focus-visible,
+.addCard:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* Each classroom brings its own color to its band. */
+.classCard,
+.spaceHeader {
+  --class-color: var(--color-iris-medium);
+}
+
+[data-color="navy"] {
+  --class-color: var(--color-iris-deep);
+}
+
+[data-color="orange"] {
+  --class-color: var(--color-amber-dark);
+}
+
+[data-color="green"] {
+  --class-color: var(--color-mint);
+}
+
+[data-color="gold"] {
+  --class-color: var(--color-gold);
+}
+
+/* A classroom as a profile card: the band of its color, its avatar in the
+   middle, its name and three numbers. */
+.classCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 14px 14px 0;
+  border: 1px solid color-mix(in srgb, var(--color-iris-medium) 35%, var(--color-surface));
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.classCard:hover {
+  border-color: var(--color-iris-medium);
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-3px);
+}
+
+/* The band takes the classroom's color, lightened with white, with two
+   soft circles on it. */
+.cardBanner,
+.spaceBanner {
+  align-self: stretch;
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      circle at 88% 20%,
+      color-mix(in srgb, var(--color-surface) 22%, transparent) 0 46px,
+      transparent 47px
+    ),
+    radial-gradient(
+      circle at 70% 120%,
+      color-mix(in srgb, var(--color-surface) 14%, transparent) 0 62px,
+      transparent 63px
+    ),
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--class-color) 82%, var(--color-surface)),
+      color-mix(in srgb, var(--class-color) 30%, var(--color-surface))
+    );
+}
+
+.cardBanner {
+  height: 86px;
+}
+
+.cardAvatar {
+  margin: -38px 0 8px;
+  padding: 4px;
+  border-radius: 26%;
+  background: var(--color-surface);
+}
+
+.cardStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: stretch;
+  margin-top: 16px;
+}
+
+.cardStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cardStatValue {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-iris-deep);
+}
+
+.cardStatLabel {
+  font-size: 0.76rem;
+  color: var(--color-ink-soft);
+}
+
+/* Requests waiting stand out in the warm color. */
+.cardStat[data-pending="true"] .cardStatValue {
+  color: var(--color-amber-dark);
+}
+
+.cardStats + .cardAction {
+  margin: 14px 0 0;
+  padding-bottom: 14px;
+}
+
+/* The header of an open classroom: the band of its color on top and the
+   avatar hanging from it, with the name and the actions beside it. */
+.spaceHeader {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-radius: var(--portal-radius, var(--radius-large));
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.spaceBanner {
+  height: 110px;
+}
+
+.spaceRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 0 12px 6px;
+}
+
+.spaceAvatar {
+  flex: none;
+  margin-top: -42px;
+  padding: 5px;
+  border-radius: 26%;
+  background: var(--color-surface);
+}
+
+.spaceBody {
+  flex: 1;
+  min-width: 0;
+  padding-top: 14px;
+}
+
+.spaceRow .heroActions {
+  padding-top: 14px;
+}
+
+/* The card to create a classroom: same size as the others, but dashed and
+   without a white fill, so it reads as an empty spot. */
 .addCard {
   display: flex;
   flex-direction: column;
@@ -207,11 +358,6 @@
   transform: rotate(90deg) scale(1.06);
 }
 
-.addCard:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 3px;
-}
-
 /* Same size as an avatar with its rings. */
 .addIcon {
   display: grid;
@@ -235,30 +381,19 @@
   color: var(--color-iris-deep);
 }
 
-/* The same two rings as the header, in the pale blue of the cards. */
-.avatarRing {
-  display: grid;
-  place-items: center;
-  margin-bottom: var(--space-3);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 5px var(--color-iris-pale),
-    0 0 0 6px var(--color-iris-medium);
-}
-
 .cardName {
   font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-iris-deep);
+  text-align: center;
   overflow-wrap: anywhere;
 }
 
-/* What the class is about and who it's for, like "Matemáticas · 1.° y 2.°". */
 .cardAudience {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.9rem;
   color: var(--color-ink-soft);
+  text-align: center;
 }
 
 .cardAction {
@@ -267,7 +402,7 @@
   gap: var(--space-1);
   align-self: stretch;
   justify-content: center;
-  margin-top: var(--space-3);
+  margin-top: auto;
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-iris-pale);
   font-size: 0.9rem;
@@ -275,7 +410,7 @@
   color: var(--color-iris-medium);
 }
 
-.card:hover .cardAction {
+.classCard:hover .cardAction {
   color: var(--color-iris-deep);
 }
 
@@ -320,7 +455,7 @@
   line-height: 1.5;
 }
 
-/* --- One item's space --- */
+/* --- One classroom's space --- */
 .backButton {
   align-self: flex-start;
   display: inline-flex;
@@ -410,106 +545,6 @@
   border: 1px solid var(--color-iris-pale);
   border-radius: var(--radius-large);
   background: var(--color-canvas);
-}
-
-@media (max-width: 720px) {
-  .hero {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .options {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card,
-  .addCard,
-  .addIcon,
-  .optionCard,
-  .optionArrow {
-    transition: none;
-  }
-
-  .card:hover,
-  .addCard:hover,
-  .addCard:hover .addIcon,
-  .optionCard:hover .optionArrow {
-    transform: none;
-  }
-}
-
-/* --- Extra pieces of the teacher's portal --- */
-
-/* Actions next to the title of the header (edit, delete). */
-.heroBody {
-  flex: 1;
-  min-width: 0;
-}
-
-.heroDescription {
-  margin: var(--space-2) 0 0;
-  color: var(--color-iris-pale);
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.heroActions {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  align-self: flex-start;
-}
-
-.heroButton {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: none;
-  border-radius: var(--radius-medium);
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
-  color: var(--color-surface);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 120ms ease;
-}
-
-.heroButton:hover {
-  background: rgba(255, 255, 255, 0.24);
-}
-
-.heroButtonDanger:hover {
-  background: rgba(194, 68, 68, 0.55);
-}
-
-.heroButton:focus-visible {
-  outline: 2px solid var(--color-surface);
-  outline-offset: 2px;
-}
-
-/* The number of waiting requests on a classroom's card. */
-.cardBadge {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  min-width: 26px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--color-amber);
-  color: var(--color-iris-deep);
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-align: center;
-}
-
-.card {
-  position: relative;
 }
 
 /* --- Lists of people (members, requests) --- */
@@ -637,7 +672,35 @@
   cursor: not-allowed;
 }
 
+/* Can't be used yet: a quiet blue-gray instead of a faded button. */
+.primaryButton:disabled {
+  background: var(--color-action-disabled);
+  color: var(--color-action-disabled-text);
+  opacity: 1;
+}
+
 @media (max-width: 720px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .heroActions {
+    flex-direction: row;
+  }
+
+  .spaceRow {
+    flex-wrap: wrap;
+  }
+
+  .spaceBody {
+    flex-basis: calc(100% - 120px);
+  }
+
+  .options {
+    grid-template-columns: 1fr;
+  }
+
   .row {
     flex-wrap: wrap;
   }
@@ -646,42 +709,24 @@
     width: 100%;
     justify-content: flex-end;
   }
-
-  .heroActions {
-    flex-direction: row;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .heroButton,
+  .classCard,
+  .addCard,
+  .addIcon,
+  .optionCard,
+  .optionArrow,
   .primaryButton,
   .secondaryButton,
   .dangerButton {
     transition: none;
   }
-}
 
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.alignStart {
-  align-self: flex-start;
-}
-
-/* The same rings, around a classroom's rounded square instead of a circle. */
-.squareRing {
-  border-radius: 28%;
-}
-
-/* Can't be used yet: a quiet blue-gray instead of a faded button. */
-.primaryButton:disabled {
-  background: var(--color-action-disabled);
-  color: var(--color-action-disabled-text);
-  opacity: 1;
+  .classCard:hover,
+  .addCard:hover,
+  .addCard:hover .addIcon,
+  .optionCard:hover .optionArrow {
+    transform: none;
+  }
 }

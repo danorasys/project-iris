@@ -55,4 +55,4 @@ function quoted(classroom: string): string {
 }
 
 // Shared with the teacher's tray.
-export { formatArrival } from "@/features/utils/formatArrival";
+export { formatArrival, formatShortArrival } from "@/features/utils/formatArrival";

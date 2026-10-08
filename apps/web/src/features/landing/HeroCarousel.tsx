@@ -23,7 +23,7 @@ import heroEye from "@/assets/landing/hero-eye.jpg";
 import heroStudent from "@/assets/landing/hero-student.jpg";
 import heroFamily from "@/assets/landing/hero-family.jpg";
 import heroTeacher from "@/assets/landing/hero-teacher.jpg";
-import { IrisRings } from "./IrisRings";
+import { IrisRings } from "@/shared/ui/IrisRings";
 import { REGISTER_LINK } from "./landingLinks";
 import { prefersReducedMotion } from "./useReveal";
 import { turn } from "./turn";
@@ -271,7 +271,7 @@ export function HeroCarousel() {
   }
 
   return (
-    <section ref={heroRef} id="inicio" className={styles.hero} aria-labelledby="hero-title">
+    <section ref={heroRef} id="top" className={styles.hero} aria-labelledby="hero-title">
       <IrisRings className={styles.rings} />
       <div className={`${styles.inner} ${entered ? motion.visible : ""}`} data-entered={entered}>
         <div className={styles.copy}>
@@ -345,7 +345,7 @@ export function HeroCarousel() {
               Únete a IRIS
               <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
             </Link>
-            <a href="#como-funciona" className={`${links.lineLink} ${styles.secondary}`}>
+            <a href="#how-it-works" className={`${links.lineLink} ${styles.secondary}`}>
               Ver cómo funciona
             </a>
           </div>

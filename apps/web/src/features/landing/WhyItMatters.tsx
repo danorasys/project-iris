@@ -100,7 +100,7 @@ export function WhyItMatters() {
   return (
     <div ref={ref} className={`${styles.panel} ${inView ? motion.visible : ""}`}>
       <header className={styles.head}>
-        <h2 id="por-que-importa-titulo" className={`${styles.title} ${motion.rise}`}>
+        <h2 id="why-it-matters-title" className={`${styles.title} ${motion.rise}`}>
           Por qué importa
         </h2>
         <p className={`${styles.lead} ${motion.rise}`} style={turn(1)}>

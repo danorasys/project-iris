@@ -119,6 +119,15 @@ class NotificationService:
             await uow.notifications.delete(notification_id)
             await uow.commit()
 
+    # Several at once, all or none. Only the person's own are deleted: an id
+    # of someone else (or that doesn't exist) is just left out, so ids can't
+    # be probed from outside. Says how many were deleted.
+    async def delete_many(self, notification_ids: list[UUID], recipient_id: UUID, role: str) -> int:
+        async with self._uow_factory() as uow:
+            deleted = await uow.notifications.delete_owned(notification_ids, recipient_id, role)
+            await uow.commit()
+            return deleted
+
 
 # Someone else's notification answers the same as one that doesn't exist,
 # so ids can't be probed from outside.

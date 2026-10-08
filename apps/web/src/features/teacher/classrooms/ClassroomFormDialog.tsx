@@ -2,7 +2,6 @@ import { useEffect, useId, useState, type ChangeEvent, type FormEvent } from "re
 import { createPortal } from "react-dom";
 import type { Classroom, ClassroomArea, ClassroomColor } from "@iris/shared-types";
 import { getAuthErrorMessage } from "@/features/auth/errors";
-import { SelectField } from "@/features/auth/ui/SelectField";
 import { TextField } from "@/features/auth/ui/TextField";
 import {
   useCreateClassroom,
@@ -20,6 +19,7 @@ import {
   IconPencil,
   IconText,
 } from "@/shared/ui/icons";
+import { PortalSelect } from "@/shared/ui/portal/PortalSelect";
 import { ClassroomAvatar } from "./ClassroomAvatar";
 import { AREA_OTHER_MAX, CLASSROOM_AREAS, CLASSROOM_GRADES, classroomAudience } from "./classroomDetails";
 import { CLASSROOM_COLORS, classroomInitials } from "./classroomInitials";
@@ -33,7 +33,7 @@ const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 // How long the closing animation takes. Same as dialog-out in the CSS.
 const LEAVE_MS = 180;
-const PREVIEW_SIZE = 88;
+const PREVIEW_SIZE = 68;
 
 type AvatarMode = "initials" | "image";
 
@@ -106,7 +106,7 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
     const app = document.getElementById("root");
     const wasInert = app?.inert ?? false;
     if (app) app.inert = true;
-    document.getElementById("clase-name")?.focus();
+    document.getElementById("classroom-name")?.focus();
     return () => {
       if (app) app.inert = wasInert;
       if (before?.isConnected) before.focus();
@@ -181,7 +181,7 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
       (field) => found[field],
     );
     if (first) {
-      document.getElementById(`clase-${first}`)?.focus();
+      document.getElementById(`classroom-${first}`)?.focus();
       return;
     }
 
@@ -257,7 +257,8 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
       aria-describedby={introId}
     >
       <form className={styles.card} onSubmit={submit} noValidate>
-        {/* Light header with the board in rings, like ConfirmDialog. */}
+        {/* The header of the panel: the icon on a lavender circle, the title
+            and what to do, and the round close button. */}
         <header className={styles.header}>
           <span className={styles.badge} aria-hidden="true">
             {editing ? <IconPencil width={26} height={26} /> : <IconClassroom width={28} height={28} />}
@@ -285,11 +286,13 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
         </header>
 
         <div className={styles.body}>
-          {/* The live preview, the same card of "Mis clases". */}
+          {/* The live preview, the same card of "Mis clases": the band of the
+              picked color with the avatar hanging from it. */}
           <aside className={styles.previewColumn} aria-label="Vista previa">
             <div className={styles.previewSticky}>
               <p className={styles.previewLabel}>Así se verá en Mis clases</p>
-              <div className={styles.previewCard} aria-hidden="true">
+              <div className={styles.previewCard} data-color={color} aria-hidden="true">
+                <span className={styles.previewBanner} />
                 <span className={styles.previewRing}>{previewAvatar}</span>
                 <span className={previewName ? styles.previewName : `${styles.previewName} ${styles.previewEmpty}`}>
                   {previewName || "Nombre de la clase"}
@@ -313,8 +316,8 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
           </aside>
 
           <div className={styles.fields}>
-            <section className={styles.step} aria-labelledby={`${titleId}-datos`}>
-              <h3 id={`${titleId}-datos`} className={styles.stepTitle}>
+            <section className={styles.step} aria-labelledby={`${titleId}-details`}>
+              <h3 id={`${titleId}-details`} className={styles.stepTitle}>
                 <span className={styles.stepNumber} aria-hidden="true">
                   1
                 </span>
@@ -322,7 +325,7 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
               </h3>
               <div className={styles.counted}>
                 <TextField
-                  id="clase-name"
+                  id="classroom-name"
                   label="Nombre de la clase"
                   value={name}
                   onChange={(value) => {
@@ -340,7 +343,7 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
               </div>
               <div className={styles.counted}>
                 <TextField
-                  id="clase-description"
+                  id="classroom-description"
                   label="Descripción"
                   multiline
                   rows={4}
@@ -370,8 +373,8 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
 
             {/* The area of Ley 115 (or "Otra") and one grade, so families see how
                 the class fits with school. */}
-            <section className={styles.step} aria-labelledby={`${titleId}-para-quien`}>
-              <h3 id={`${titleId}-para-quien`} className={styles.stepTitle}>
+            <section className={styles.step} aria-labelledby={`${titleId}-audience`}>
+              <h3 id={`${titleId}-audience`} className={styles.stepTitle}>
                 <span className={styles.stepNumber} aria-hidden="true">
                   2
                 </span>
@@ -380,15 +383,16 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
               <p className={styles.stepHint}>
                 Ayuda a las familias a ubicar la clase junto a lo que sus peques ven en el colegio.
               </p>
-              <SelectField
-                id="clase-area"
+              <PortalSelect
+                id="classroom-area"
                 label="Área"
                 value={area}
                 onChange={(value) => {
                   setArea(value as ClassroomArea);
                   setErrors((current) => ({ ...current, area: undefined }));
                 }}
-                options={[{ value: "", label: "Elige el área", disabled: true }, ...CLASSROOM_AREAS]}
+                options={CLASSROOM_AREAS}
+                placeholder="Elige el área"
                 error={errors.area}
                 required
                 disabled={saving}
@@ -396,7 +400,7 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
               {/* Only with "Otra": then the teacher writes which area it is. */}
               {area === "other" && (
                 <TextField
-                  id="clase-areaOther"
+                  id="classroom-areaOther"
                   label="¿Cuál área?"
                   value={areaOther}
                   onChange={(value) => {
@@ -413,7 +417,7 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
                 className={styles.grades}
                 disabled={saving}
                 aria-invalid={Boolean(errors.grade) || undefined}
-                aria-describedby={errors.grade ? "clase-grade-error" : undefined}
+                aria-describedby={errors.grade ? "classroom-grade-error" : undefined}
               >
                 <legend className={styles.gradesLegend}>
                   Grado<span aria-hidden="true"> *</span>
@@ -423,9 +427,9 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
                     <label key={option.value} className={styles.gradeOption}>
                       <input
                         // The first one takes the focus when no grade was picked.
-                        id={index === 0 ? "clase-grade" : undefined}
+                        id={index === 0 ? "classroom-grade" : undefined}
                         type="radio"
-                        name="clase-grade"
+                        name="classroom-grade"
                         checked={grade === option.value}
                         onChange={() => {
                           setGrade(option.value);
@@ -437,56 +441,34 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
                   ))}
                 </div>
                 {errors.grade && (
-                  <p id="clase-grade-error" role="alert" className={styles.error}>
+                  <p id="classroom-grade-error" role="alert" className={styles.error}>
                     {errors.grade}
                   </p>
                 )}
               </fieldset>
             </section>
 
+            {/* The color is for the whole class (the band of its card and the
+                back of the initials), so it's picked apart from the avatar. */}
             <fieldset className={styles.step} disabled={saving}>
               <legend className={styles.stepTitle}>
                 <span className={styles.stepNumber} aria-hidden="true">
                   3
                 </span>
-                <span>
-                  Avatar de la clase<span aria-hidden="true"> *</span>
-                </span>
+                <span>Color y avatar</span>
               </legend>
 
-              {/* Two options on a track, the white thumb slides to the picked one. */}
-              <div
-                className={mode === "image" ? `${styles.modes} ${styles.modesImage}` : styles.modes}
-                role="radiogroup"
-                aria-label="Tipo de avatar"
-              >
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={mode === "initials"}
-                  className={mode === "initials" ? `${styles.mode} ${styles.modeActive}` : styles.mode}
-                  onClick={() => setMode("initials")}
-                >
-                  <IconText width={18} height={18} /> Iniciales y color
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={mode === "image"}
-                  className={mode === "image" ? `${styles.mode} ${styles.modeActive}` : styles.mode}
-                  onClick={() => setMode("image")}
-                >
-                  <IconImage width={18} height={18} /> Imagen propia
-                </button>
-              </div>
-
-              {mode === "initials" ? (
-                <div className={styles.option}>
-                  <p className={styles.optionText}>
-                    Las letras <strong className={styles.letters}>{classroomInitials(previewName || "Clase")}</strong>{" "}
-                    salen del nombre. Elige el color:
-                  </p>
-                  <div className={styles.colors} role="radiogroup" aria-label="Color del avatar">
+              <div className={styles.group}>
+                <p id={`${titleId}-color`} className={styles.groupTitle}>
+                  Color de la clase
+                </p>
+                <p className={styles.groupHint}>
+                  {mode === "image"
+                    ? "Pinta la franja de arriba de la tarjeta de la clase."
+                    : "Pinta la franja de arriba de la tarjeta y el fondo de las iniciales."}
+                </p>
+                <div className={styles.colorBox}>
+                  <div className={styles.colors} role="radiogroup" aria-labelledby={`${titleId}-color`}>
                     {CLASSROOM_COLORS.map((option) => (
                       <button
                         key={option.value}
@@ -504,37 +486,77 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
                   </div>
                   <p className={styles.colorName}>{pickedColor?.label}</p>
                 </div>
-              ) : (
-                <div className={styles.option}>
-                  {file && <ImageCropper file={file} onChange={takeCrop} />}
-                  {/* The real file input stays for keyboards and screen readers, unseen. */}
-                  <label className={file || classroom?.logo_file ? styles.pickButton : styles.dropZone}>
-                    {!file && !classroom?.logo_file && (
-                      <span className={styles.dropIcon} aria-hidden="true">
-                        <IconImage width={26} height={26} />
-                      </span>
-                    )}
-                    <span className={styles.dropTitle}>
-                      {file || classroom?.logo_file ? "Elegir otra imagen" : "Elegir una imagen"}
-                    </span>
-                    {!file && !classroom?.logo_file && (
-                      <span className={styles.dropHint}>PNG, JPEG, WEBP o GIF, hasta 5 MB.</span>
-                    )}
-                    <input
-                      id="clase-image"
-                      type="file"
-                      accept={IMAGE_TYPES.join(",")}
-                      className={styles.fileInput}
-                      onChange={pickImage}
-                    />
-                  </label>
-                  {errors.image && (
-                    <p role="alert" className={styles.error}>
-                      {errors.image}
-                    </p>
-                  )}
+              </div>
+
+              <div className={styles.group}>
+                <p id={`${titleId}-avatar`} className={styles.groupTitle}>
+                  Avatar
+                </p>
+                {/* Two options on a track, the white thumb slides to the picked one. */}
+                <div
+                  className={mode === "image" ? `${styles.modes} ${styles.modesImage}` : styles.modes}
+                  role="radiogroup"
+                  aria-labelledby={`${titleId}-avatar`}
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={mode === "initials"}
+                    className={mode === "initials" ? `${styles.mode} ${styles.modeActive}` : styles.mode}
+                    onClick={() => setMode("initials")}
+                  >
+                    <IconText width={18} height={18} /> Iniciales
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={mode === "image"}
+                    className={mode === "image" ? `${styles.mode} ${styles.modeActive}` : styles.mode}
+                    onClick={() => setMode("image")}
+                  >
+                    <IconImage width={18} height={18} /> Imagen propia
+                  </button>
                 </div>
-              )}
+
+                {mode === "initials" ? (
+                  <div className={styles.option}>
+                    <p className={styles.optionText}>
+                      Las letras <strong className={styles.letters}>{classroomInitials(previewName || "Clase")}</strong>{" "}
+                      salen del nombre de la clase.
+                    </p>
+                  </div>
+                ) : (
+                  <div className={styles.option}>
+                    {file && <ImageCropper file={file} onChange={takeCrop} />}
+                    {/* The real file input stays for keyboards and screen readers, unseen. */}
+                    <label className={file || classroom?.logo_file ? styles.pickButton : styles.dropZone}>
+                      {!file && !classroom?.logo_file && (
+                        <span className={styles.dropIcon} aria-hidden="true">
+                          <IconImage width={26} height={26} />
+                        </span>
+                      )}
+                      <span className={styles.dropTitle}>
+                        {file || classroom?.logo_file ? "Elegir otra imagen" : "Elegir una imagen"}
+                      </span>
+                      {!file && !classroom?.logo_file && (
+                        <span className={styles.dropHint}>PNG, JPEG, WEBP o GIF, hasta 5 MB.</span>
+                      )}
+                      <input
+                        id="classroom-image"
+                        type="file"
+                        accept={IMAGE_TYPES.join(",")}
+                        className={styles.fileInput}
+                        onChange={pickImage}
+                      />
+                    </label>
+                    {errors.image && (
+                      <p role="alert" className={styles.error}>
+                        {errors.image}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </fieldset>
           </div>
         </div>

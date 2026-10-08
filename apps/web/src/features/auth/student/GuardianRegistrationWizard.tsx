@@ -241,7 +241,7 @@ export default function GuardianRegistrationWizard() {
             setSupportConditionError(
                 "Marca al menos una condición correspondiente a tu hijo o hija.",
             )
-            focusAndScrollToField("estudiante-condicion")
+            focusAndScrollToField("student-support-condition")
             return false
         }
         setSupportConditionError(null)
@@ -250,7 +250,7 @@ export default function GuardianRegistrationWizard() {
             setSupportConditionOtherError(
                 "Especifica la condición de tu hijo o hija.",
             )
-            focusAndScrollToField("estudiante-condicion-otra")
+            focusAndScrollToField("student-support-condition-other")
             return false
         }
         setSupportConditionOtherError(null)
@@ -283,7 +283,7 @@ export default function GuardianRegistrationWizard() {
         const firstNameProblem = nameError(guardianFirstName, "Ingresa tus nombres.")
         if (firstNameProblem) {
             setGuardianFirstNameError(firstNameProblem)
-            focusAndScrollToField("tutor-nombres")
+            focusAndScrollToField("guardian-first-name")
             return
         }
         setGuardianFirstNameError(null)
@@ -291,40 +291,40 @@ export default function GuardianRegistrationWizard() {
         const lastNameProblem = nameError(guardianLastName, "Ingresa tus apellidos.")
         if (lastNameProblem) {
             setGuardianLastNameError(lastNameProblem)
-            focusAndScrollToField("tutor-apellidos")
+            focusAndScrollToField("guardian-last-name")
             return
         }
         setGuardianLastNameError(null)
 
         if (!guardianBirthDate) {
             setGuardianBirthDateError("Ingresa tu fecha de nacimiento.")
-            focusAndScrollToField("tutor-fecha-nacimiento")
+            focusAndScrollToField("guardian-date-of-birth")
             return
         }
         if (calculateAge(guardianBirthDate) < MIN_GUARDIAN_AGE) {
             setGuardianBirthDateError(
                 `Debes ser mayor de edad (${MIN_GUARDIAN_AGE} años o más) para registrarte como tutor.`,
             )
-            focusAndScrollToField("tutor-fecha-nacimiento")
+            focusAndScrollToField("guardian-date-of-birth")
             return
         }
         if (calculateAge(guardianBirthDate) > MAX_AGE) {
             setGuardianBirthDateError("Revisa el año de la fecha de nacimiento.")
-            focusAndScrollToField("tutor-fecha-nacimiento")
+            focusAndScrollToField("guardian-date-of-birth")
             return
         }
         setGuardianBirthDateError(null)
 
         if (!documentType) {
             setDocumentTypeError("Selecciona un tipo de documento.")
-            focusAndScrollToField("tutor-tipo-documento")
+            focusAndScrollToField("guardian-document-type")
             return
         }
         setDocumentTypeError(null)
 
         if (!documentNumber.trim()) {
             setDocumentNumberError("Ingresa tu número de documento.")
-            focusAndScrollToField("tutor-numero-documento")
+            focusAndScrollToField("guardian-document-number")
             return
         }
         const documentNumberValidationError = documentNumberFormatError(
@@ -333,7 +333,7 @@ export default function GuardianRegistrationWizard() {
         )
         if (documentNumberValidationError) {
             setDocumentNumberError(documentNumberValidationError)
-            focusAndScrollToField("tutor-numero-documento")
+            focusAndScrollToField("guardian-document-number")
             return
         }
         setDocumentNumberError(null)
@@ -342,7 +342,7 @@ export default function GuardianRegistrationWizard() {
             setDocumentIssuedAtError(
                 "Ingresa la fecha de expedición del documento de identificación.",
             )
-            focusAndScrollToField("tutor-fecha-expedicion-documento")
+            focusAndScrollToField("guardian-document-issued-at")
             return
         }
         const documentIssuedAtValidationError = validateDocumentIssuedAt(
@@ -352,28 +352,28 @@ export default function GuardianRegistrationWizard() {
         )
         if (documentIssuedAtValidationError) {
             setDocumentIssuedAtError(documentIssuedAtValidationError)
-            focusAndScrollToField("tutor-fecha-expedicion-documento")
+            focusAndScrollToField("guardian-document-issued-at")
             return
         }
         setDocumentIssuedAtError(null)
 
         if (!EMAIL_PATTERN.test(email.trim())) {
             setEmailError("Ingresa un correo electrónico válido.")
-            focusAndScrollToField("tutor-correo")
+            focusAndScrollToField("guardian-email")
             return
         }
         setEmailError(null)
 
         if (!phone || !isValidPhoneNumber(phone)) {
             setPhoneError("Ingresa un número telefónico válido.")
-            focusAndScrollToField("tutor-telefono")
+            focusAndScrollToField("guardian-phone")
             return
         }
         setPhoneError(null)
 
         if (!relationship) {
             setRelationshipError("Selecciona tu relación con el estudiante.")
-            focusAndScrollToField("tutor-relacion")
+            focusAndScrollToField("guardian-relationship")
             return
         }
         setRelationshipError(null)
@@ -382,7 +382,7 @@ export default function GuardianRegistrationWizard() {
             setPasswordError(
                 "Ingresa una contraseña que cumpla con todos los requisitos indicados abajo.",
             )
-            focusAndScrollToField("tutor-password")
+            focusAndScrollToField("guardian-password")
             return
         }
         setPasswordError(null)
@@ -391,12 +391,12 @@ export default function GuardianRegistrationWizard() {
             setPasswordConfirmationError(
                 "Ingresa la confirmación de la contraseña.",
             )
-            focusAndScrollToField("tutor-password-confirmacion")
+            focusAndScrollToField("guardian-password-confirmation")
             return
         }
         if (password !== passwordConfirmation) {
             setPasswordConfirmationError("Las contraseñas no coinciden.")
-            focusAndScrollToField("tutor-password-confirmacion")
+            focusAndScrollToField("guardian-password-confirmation")
             return
         }
         setPasswordConfirmationError(null)
@@ -446,7 +446,7 @@ export default function GuardianRegistrationWizard() {
         const studentFirstNameProblem = nameError(studentFirstName, "Ingresa los nombres de tu hijo o hija.")
         if (studentFirstNameProblem) {
             setStudentFirstNameError(studentFirstNameProblem)
-            focusAndScrollToField("estudiante-nombres")
+            focusAndScrollToField("student-first-name")
             return
         }
         setStudentFirstNameError(null)
@@ -454,7 +454,7 @@ export default function GuardianRegistrationWizard() {
         const studentLastNameProblem = nameError(studentLastName, "Ingresa los apellidos de tu hijo o hija.")
         if (studentLastNameProblem) {
             setStudentLastNameError(studentLastNameProblem)
-            focusAndScrollToField("estudiante-apellidos")
+            focusAndScrollToField("student-last-name")
             return
         }
         setStudentLastNameError(null)
@@ -463,14 +463,14 @@ export default function GuardianRegistrationWizard() {
             setStudentBirthDateError(
                 "Ingresa la fecha de nacimiento de tu hijo o hija.",
             )
-            focusAndScrollToField("estudiante-fecha-nacimiento")
+            focusAndScrollToField("student-date-of-birth")
             return
         }
         if (birthDate > TODAY_ISO) {
             setStudentBirthDateError(
                 "La fecha de nacimiento no puede ser una fecha futura.",
             )
-            focusAndScrollToField("estudiante-fecha-nacimiento")
+            focusAndScrollToField("student-date-of-birth")
             return
         }
         setStudentBirthDateError(null)
@@ -481,7 +481,7 @@ export default function GuardianRegistrationWizard() {
             setAuthorizesSupportConditionError(
                 "La autorización para compartir una condición o necesidad de apoyo es obligatoria.",
             )
-            focusAndScrollToField("estudiante-condicion-consentimiento")
+            focusAndScrollToField("student-support-condition-consent")
             return
         }
         setAuthorizesSupportConditionError(null)
@@ -490,14 +490,14 @@ export default function GuardianRegistrationWizard() {
             setAcceptsDataProcessingError(
                 "El consentimiento de tratamiento de datos es obligatorio.",
             )
-            focusAndScrollToField("estudiante-consentimiento")
+            focusAndScrollToField("student-consent")
             return
         }
         setAcceptsDataProcessingError(null)
 
         if (pinSubstep !== "listo") {
             setPinError("Define y confirma el PIN antes de continuar.")
-            focusAndScrollToField("estudiante-pin-seccion")
+            focusAndScrollToField("student-pin-section")
             return
         }
 
@@ -783,7 +783,7 @@ export default function GuardianRegistrationWizard() {
                             (Tutor, papá o mamá).
                         </p>
                         <TextField
-                            id="tutor-nombres"
+                            id="guardian-first-name"
                             label="Nombres"
                             value={guardianFirstName}
                             onChange={(value) => {
@@ -795,7 +795,7 @@ export default function GuardianRegistrationWizard() {
                             autoComplete="given-name"
                         />
                         <TextField
-                            id="tutor-apellidos"
+                            id="guardian-last-name"
                             label="Apellidos"
                             value={guardianLastName}
                             onChange={(value) => {
@@ -807,7 +807,7 @@ export default function GuardianRegistrationWizard() {
                             autoComplete="family-name"
                         />
                         <TextField
-                            id="tutor-fecha-nacimiento"
+                            id="guardian-date-of-birth"
                             label="Fecha de nacimiento"
                             type="date"
                             value={guardianBirthDate}
@@ -831,7 +831,7 @@ export default function GuardianRegistrationWizard() {
                             max={TODAY_ISO}
                         />
                         <SelectField
-                            id="tutor-tipo-documento"
+                            id="guardian-document-type"
                             label="Tipo de documento"
                             value={documentType}
                             onChange={(value) => {
@@ -864,7 +864,7 @@ export default function GuardianRegistrationWizard() {
                             disabled={documentTypesQuery.isLoading}
                         />
                         <TextField
-                            id="tutor-numero-documento"
+                            id="guardian-document-number"
                             label="Número de documento"
                             value={documentNumber}
                             onChange={(value) => {
@@ -890,7 +890,7 @@ export default function GuardianRegistrationWizard() {
                             }
                         />
                         <TextField
-                            id="tutor-fecha-expedicion-documento"
+                            id="guardian-document-issued-at"
                             label="Fecha de expedición del documento"
                             type="date"
                             value={documentIssuedAt}
@@ -913,7 +913,7 @@ export default function GuardianRegistrationWizard() {
                             max={TODAY_ISO}
                         />
                         <TextField
-                            id="tutor-correo"
+                            id="guardian-email"
                             label="Correo electrónico"
                             type="email"
                             value={email}
@@ -926,7 +926,7 @@ export default function GuardianRegistrationWizard() {
                             autoComplete="email"
                         />
                         <PhoneField
-                            id="tutor-telefono"
+                            id="guardian-phone"
                             label="Teléfono"
                             value={phone}
                             onChange={(value) => {
@@ -937,7 +937,7 @@ export default function GuardianRegistrationWizard() {
                             required
                         />
                         <SelectField
-                            id="tutor-relacion"
+                            id="guardian-relationship"
                             label="Relación con el estudiante"
                             value={relationship}
                             onChange={(value) => {
@@ -955,7 +955,7 @@ export default function GuardianRegistrationWizard() {
                             disabled={relationshipTypesQuery.isLoading}
                         />
                         <TextField
-                            id="tutor-password"
+                            id="guardian-password"
                             label="Contraseña"
                             type="password"
                             value={password}
@@ -972,7 +972,7 @@ export default function GuardianRegistrationWizard() {
                         />
                         <PasswordRequirements password={password} />
                         <TextField
-                            id="tutor-password-confirmacion"
+                            id="guardian-password-confirmation"
                             label="Confirmar contraseña"
                             type="password"
                             value={passwordConfirmation}
@@ -1061,7 +1061,7 @@ export default function GuardianRegistrationWizard() {
                             Paso 2 de 4 — Perfil de estudiante.
                         </p>
                         <TextField
-                            id="estudiante-nombres"
+                            id="student-first-name"
                             label="Nombres"
                             value={studentFirstName}
                             onChange={(value) => {
@@ -1073,7 +1073,7 @@ export default function GuardianRegistrationWizard() {
                             autoComplete="off"
                         />
                         <TextField
-                            id="estudiante-apellidos"
+                            id="student-last-name"
                             label="Apellidos"
                             value={studentLastName}
                             onChange={(value) => {
@@ -1085,7 +1085,7 @@ export default function GuardianRegistrationWizard() {
                             autoComplete="off"
                         />
                         <TextField
-                            id="estudiante-fecha-nacimiento"
+                            id="student-date-of-birth"
                             label="Fecha de nacimiento"
                             type="date"
                             value={birthDate}
@@ -1100,14 +1100,14 @@ export default function GuardianRegistrationWizard() {
                         <div className={fieldStyles.field}>
                             <label
                                 className={fieldStyles.label}
-                                id="estudiante-avatar-label"
+                                id="student-avatar-label"
                             >
                                 Avatar de tu hijo o hija
                             </label>
                             <div
                                 className={styles.avatarGrid}
                                 role="radiogroup"
-                                aria-labelledby="estudiante-avatar-label"
+                                aria-labelledby="student-avatar-label"
                             >
                                 {(avatarsQuery.data ?? []).map((option) => {
                                     const isSelected =
@@ -1144,7 +1144,7 @@ export default function GuardianRegistrationWizard() {
                             )}
                         </div>
                         <SupportConditionsField
-                            id="estudiante-condicion"
+                            id="student-support-condition"
                             label="Condición o condiciones"
                             options={supportConditions}
                             value={supportConditionIds}
@@ -1155,7 +1155,7 @@ export default function GuardianRegistrationWizard() {
                         />
                         {isOtherConditionSelected && (
                             <TextField
-                                id="estudiante-condicion-otra"
+                                id="student-support-condition-other"
                                 label="Especifica la condición"
                                 value={supportConditionOther}
                                 onChange={(value) => {
@@ -1168,7 +1168,7 @@ export default function GuardianRegistrationWizard() {
                             />
                         )}
                         <TextField
-                            id="estudiante-necesidad-apoyo-adicional"
+                            id="student-additional-support-need"
                             label="Necesidad de apoyo adicional (opcional)"
                             value={additionalSupportNeed}
                             onChange={setAdditionalSupportNeed}
@@ -1176,7 +1176,7 @@ export default function GuardianRegistrationWizard() {
                             placeholder="Ej.: le cuesta sostener el mouse, necesita más tiempo para las actividades…"
                         />
                         <CheckboxField
-                            id="estudiante-condicion-consentimiento"
+                            id="student-support-condition-consent"
                             checked={authorizesSupportCondition}
                             onChange={(checked) => {
                                 setAuthorizesSupportCondition(checked)
@@ -1206,7 +1206,7 @@ export default function GuardianRegistrationWizard() {
                             .
                         </CheckboxField>
                         <CheckboxField
-                            id="estudiante-consentimiento"
+                            id="student-consent"
                             checked={acceptsDataProcessing}
                             onChange={(checked) => {
                                 setAcceptsDataProcessing(checked)
@@ -1236,7 +1236,7 @@ export default function GuardianRegistrationWizard() {
                         </CheckboxField>
 
                         <p
-                            id="estudiante-pin-seccion"
+                            id="student-pin-section"
                             className={styles.notice}
                         >
                             <IconInfo className={styles.noticeIcon} />

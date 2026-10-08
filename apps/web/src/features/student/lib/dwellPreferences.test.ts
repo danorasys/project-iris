@@ -27,7 +27,7 @@ describe("calculateAverageDwellMs", () => {
 });
 
 describe("preferencias en localStorage", () => {
-  const subjectId = "estudiante-1";
+  const subjectId = "student-1";
 
   beforeEach(() => {
     window.localStorage.clear();

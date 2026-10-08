@@ -55,7 +55,8 @@ jobs:
       DATABASE_URL: postgresql+asyncpg://iris_ci:iris_ci@localhost:5432/${{ inputs.database }}
       # Settings the services refuse to start without. Not used by the
       # migrations, so any value works.
-      JWT_SECRET: ci-only
+      # identity-service wants at least 32 bytes here, even if unused.
+      JWT_SECRET: ci-only-ci-only-ci-only-ci-only-ci-only
       TOTP_ENCRYPTION_KEY: ci-only
       INTERNAL_SERVICE_KEY: ci-only
       S3_ACCESS_KEY: ci-only

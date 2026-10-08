@@ -44,9 +44,10 @@ const OPTIONS: Option[] = [
   { view: "estadisticas", title: "Estadísticas", hint: "El avance de la clase", Icon: IconChart },
 ];
 
-/** The space of one classroom (HU-74): its avatar, name, description and
- * code on top, with "Editar" (HU-90) and "Eliminar" (HU-85), and its
- * options as cards: members, lessons, messages, statistics and back. */
+/** The space of one classroom (HU-74): a header with a band of its color,
+ * its avatar, name, code and students, "Editar" (HU-90) and "Eliminar"
+ * (HU-85), and its options as cards like a kid's space in the Portal de
+ * Padres (members, lessons, messages and statistics). */
 export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, onToast }: ClassroomSpaceProps) {
   const detail = useClassroomDetail(classroomId);
   // The pending count comes with the list, already cached.
@@ -87,56 +88,57 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
   const classroom = detail.data;
   const students = classroom.students.length;
   const pending = listed?.pending_requests ?? 0;
+  const audience = classroomAudience(classroom.area, classroom.grade, classroom.area_other);
+  const current = OPTIONS.find((option) => option.view === view) ?? null;
 
   return (
     <div className={styles.section}>
-      <button
-        type="button"
-        className={styles.backButton}
-        onClick={view === "inicio" ? onBack : () => setView("inicio")}
-      >
+      <button type="button" className={styles.backButton} onClick={current ? () => setView("inicio") : onBack}>
         <IconArrowLeft width={18} height={18} />
-        {view === "inicio" ? "Regresar a mis clases" : "Regresar a la clase"}
+        {current ? "Regresar a la clase" : "Regresar a mis clases"}
       </button>
 
-      <header className={styles.hero}>
-        <span className={`${styles.avatarRing} ${styles.squareRing}`}>
-          <ClassroomAvatar classroom={classroom} size={76} />
-        </span>
-        <div className={styles.heroBody}>
-          <p className={styles.eyebrow}>Clase</p>
-          <h1 className={styles.heroTitle}>{classroom.name}</h1>
-          <p className={styles.heroMeta}>
-            {classroomAudience(classroom.area, classroom.grade, classroom.area_other) && (
-              <span className={styles.chip}>{classroomAudience(classroom.area, classroom.grade, classroom.area_other)}</span>
-            )}
-            <span className={styles.chip}>Código de ingreso: {classroom.enrollment_code}</span>
-            <span className={styles.chip}>{students === 1 ? "1 estudiante" : `${students} estudiantes`}</span>
-            {pending > 0 && (
-              <span className={styles.chip}>
-                {pending === 1 ? "1 solicitud pendiente" : `${pending} solicitudes pendientes`}
-              </span>
-            )}
-          </p>
-          <p className={styles.heroDescription}>{classroom.description}</p>
-        </div>
-        {view === "inicio" && (
-          <div className={styles.heroActions}>
-            <button type="button" className={styles.heroButton} onClick={() => setEditing(true)}>
-              <IconPencil width={16} height={16} />
-              Editar
-            </button>
-            <button
-              type="button"
-              className={`${styles.heroButton} ${styles.heroButtonDanger}`}
-              onClick={() => setConfirmingDelete(true)}
-              disabled={deleteClassroom.isPending}
-            >
-              <IconTrash width={16} height={16} />
-              {deleteClassroom.isPending ? "Eliminando…" : "Eliminar"}
-            </button>
+      {/* The classroom's header: a band of its color with the avatar hanging
+          from it, the name, the chips and, on the space itself, its actions. */}
+      <header className={styles.spaceHeader} data-color={classroom.color}>
+        <span className={styles.spaceBanner} aria-hidden="true" />
+        <div className={styles.spaceRow}>
+          <span className={styles.spaceAvatar}>
+            <ClassroomAvatar classroom={classroom} size={84} />
+          </span>
+          <div className={styles.spaceBody}>
+            <p className={styles.eyebrow}>{current ? current.title : "Clase"}</p>
+            <h1 className={styles.heroTitle}>{classroom.name}</h1>
+            <p className={styles.heroMeta}>
+              {audience && <span className={styles.chip}>{audience}</span>}
+              <span className={styles.chip}>Código de ingreso: {classroom.enrollment_code}</span>
+              <span className={styles.chip}>{students === 1 ? "1 estudiante" : `${students} estudiantes`}</span>
+              {pending > 0 && (
+                <span className={styles.pendingChip}>
+                  {pending === 1 ? "1 solicitud pendiente" : `${pending} solicitudes pendientes`}
+                </span>
+              )}
+            </p>
+            {!current && classroom.description && <p className={styles.heroDescription}>{classroom.description}</p>}
           </div>
-        )}
+          {!current && (
+            <div className={styles.heroActions}>
+              <button type="button" className={styles.secondaryButton} onClick={() => setEditing(true)}>
+                <IconPencil width={16} height={16} />
+                Editar
+              </button>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={() => setConfirmingDelete(true)}
+                disabled={deleteClassroom.isPending}
+              >
+                <IconTrash width={16} height={16} />
+                {deleteClassroom.isPending ? "Eliminando…" : "Eliminar"}
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       {error && (
@@ -145,29 +147,19 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
         </p>
       )}
 
-      {view === "inicio" && (
+      {!current && (
         <div className={styles.options}>
           {OPTIONS.map(({ view: target, title, hint, Icon }) => (
             <button key={target} type="button" className={styles.optionCard} onClick={() => setView(target)}>
               <span className={styles.optionIcon} aria-hidden="true">
-                <Icon width={22} height={22} />
+                <Icon width={20} height={20} />
               </span>
               <span className={styles.optionText}>
-                <span className={styles.optionTitle}>{title}</span>{" "}
-                <span className={styles.optionHint}>{hint}</span>
+                <span className={styles.optionTitle}>{title}</span> <span className={styles.optionHint}>{hint}</span>
               </span>
               <IconArrowRight width={18} height={18} className={styles.optionArrow} />
             </button>
           ))}
-          <button type="button" className={styles.optionCard} onClick={onBack}>
-            <span className={styles.optionIcon} aria-hidden="true">
-              <IconArrowLeft width={22} height={22} />
-            </span>
-            <span className={styles.optionText}>
-              <span className={styles.optionTitle}>Regresar</span>{" "}
-              <span className={styles.optionHint}>Volver a mis clases</span>
-            </span>
-          </button>
         </div>
       )}
 
@@ -176,10 +168,10 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
       {(view === "mensajes" || view === "estadisticas") && (
         <div className={styles.comingSoon}>
           <span className={styles.optionIcon} aria-hidden="true">
-            {view === "mensajes" ? <IconMessage width={22} height={22} /> : <IconChart width={22} height={22} />}
+            {view === "mensajes" ? <IconMessage width={20} height={20} /> : <IconChart width={20} height={20} />}
           </span>
           <div>
-            <p className={styles.comingSoonTitle}>{view === "mensajes" ? "Mensajes" : "Estadísticas"}</p>
+            <p className={styles.comingSoonTitle}>Estamos construyendo esta sección</p>
             <p className={styles.comingSoonText}>
               {view === "mensajes"
                 ? "Pronto podrás escribirle a un estudiante o a su tutor desde aquí."

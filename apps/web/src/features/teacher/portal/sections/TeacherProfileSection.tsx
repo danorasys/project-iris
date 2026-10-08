@@ -47,7 +47,7 @@ import {
 } from "../../profile/teacherProfileDraft";
 import own from "./TeacherProfileSection.module.css";
 
-const ID_PREFIX = "mi-perfil-docente";
+const ID_PREFIX = "my-teacher-profile";
 const INSTITUTION_MAX = 200;
 
 // A type and not an interface: useProfileForm asks for a plain record of
@@ -291,9 +291,9 @@ function AccountEditor({ account, onDirtyChange }: AccountEditorProps) {
       {/* The header shows the saved data, not what is being typed. */}
       <ProfileHero firstName={original.firstName} lastName={original.lastName} role="Docente" email={account.email} />
 
-      <form id="perfil-datos-form" className={form.form} onSubmit={handleConfirm}>
+      <form id="profile-data-form" className={form.form} onSubmit={handleConfirm}>
         <Card
-          id="perfil-datos-personales"
+          id="profile-personal-data"
           icon={<IconUserCircle width={22} height={22} />}
           title="Datos personales"
           hint={`Estos son tus datos personales, los que nos diste al crear tu cuenta. ${EDIT_HINT}`}
@@ -301,7 +301,7 @@ function AccountEditor({ account, onDirtyChange }: AccountEditorProps) {
           <div className={form.fieldGrid}>
             <EditableRow label="Nombres" displayValue={values.firstName} {...rowProps("firstName")}>
               <TextField
-                id="perfil-first-name"
+                id="profile-first-name"
                 label="Nombres"
                 value={values.firstName}
                 onChange={(v) => fields.setField("firstName", v)}
@@ -313,7 +313,7 @@ function AccountEditor({ account, onDirtyChange }: AccountEditorProps) {
 
             <EditableRow label="Apellidos" displayValue={values.lastName} {...rowProps("lastName")}>
               <TextField
-                id="perfil-last-name"
+                id="profile-last-name"
                 label="Apellidos"
                 value={values.lastName}
                 onChange={(v) => fields.setField("lastName", v)}
@@ -329,7 +329,7 @@ function AccountEditor({ account, onDirtyChange }: AccountEditorProps) {
               {...rowProps("dateOfBirth")}
             >
               <TextField
-                id="perfil-date-of-birth"
+                id="profile-date-of-birth"
                 label="Fecha de nacimiento"
                 type="date"
                 min={earliestBirthDate}
@@ -347,7 +347,7 @@ function AccountEditor({ account, onDirtyChange }: AccountEditorProps) {
               {...rowProps("phone")}
             >
               <PhoneField
-                id="perfil-phone"
+                id="profile-phone"
                 label="Teléfono"
                 value={values.phone}
                 onChange={(v) => fields.setField("phone", v)}
@@ -361,7 +361,7 @@ function AccountEditor({ account, onDirtyChange }: AccountEditorProps) {
               {...rowProps("institution")}
             >
               <TextField
-                id="perfil-institution"
+                id="profile-institution"
                 label="Institución (opcional)"
                 value={values.institution}
                 onChange={(v) => fields.setField("institution", v)}
@@ -373,7 +373,7 @@ function AccountEditor({ account, onDirtyChange }: AccountEditorProps) {
         </Card>
 
         <Card
-          id="perfil-identificacion"
+          id="profile-identification"
           icon={<IconLock width={20} height={20} />}
           title="Identificación de la cuenta"
           hint="Tu documento de identidad y tu correo electrónico son los datos con los que IRIS te reconoce como titular de esta cuenta y con los que inicias sesión. Para proteger tu cuenta y la información de tus estudiantes, no se pueden cambiar directamente desde aquí."
@@ -409,7 +409,7 @@ function AccountEditor({ account, onDirtyChange }: AccountEditorProps) {
       {/* Out of the form and last, so it floats over every card while
           scrolling. It saves the form above through formId. */}
       <SaveBar
-        formId="perfil-datos-form"
+        formId="profile-data-form"
         shown={fields.saveBarShown}
         leaving={fields.saveBarLeaving}
         confirmed={fields.confirmed}
@@ -462,7 +462,7 @@ function TeachingProfileCard({
 
   return (
     <Card
-      id="perfil-docente"
+      id="profile-teacher"
       icon={<IconBriefcase width={20} height={20} />}
       title="Perfil docente"
       hint='Tu presentación, tus estudios y tu experiencia: lo que ven las familias de tus estudiantes. Para cambiarlos, pulsa Editar perfil docente. Para que tus cambios queden guardados, pulsa "Guardar cambios" en la barra que aparecerá en la parte inferior.'

@@ -6,7 +6,7 @@ import { PhoneField } from "./PhoneField";
 
 function Controlled({ initial = "" }: { initial?: string }) {
   const [value, setValue] = useState(initial);
-  return <PhoneField id="tutor-telefono" label="Teléfono" value={value} onChange={setValue} required />;
+  return <PhoneField id="guardian-phone" label="Teléfono" value={value} onChange={setValue} required />;
 }
 
 function getNumberInput() {

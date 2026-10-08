@@ -36,11 +36,7 @@ export function SuccessNotice({ title, message, onClose }: SuccessNoticeProps) {
   }, [leaving, onClose]);
 
   return (
-    <div
-      className={leaving ? `${styles.notice} ${styles.leaving}` : styles.notice}
-      role="status"
-      aria-live="polite"
-    >
+    <div className={leaving ? `${styles.notice} ${styles.leaving}` : styles.notice} role="status" aria-live="polite">
       <span className={styles.icon} aria-hidden="true">
         <IconCheck width={20} height={20} />
       </span>

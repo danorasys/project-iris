@@ -222,6 +222,19 @@ class ExtraResponse(BaseModel):
     missing: list[str]
 
 
+# What the teacher has built in one classroom (units and lessons).
+class ClassroomContentSummaryResponse(BaseModel):
+    classroom_id: UUID
+    units: int
+    published_lessons: int
+    draft_lessons: int
+
+
+class PublishedLessonsResponse(BaseModel):
+    classroom_id: UUID
+    published_lessons: int
+
+
 class UnitResponse(BaseModel):
     id: UUID
     classroom_id: UUID

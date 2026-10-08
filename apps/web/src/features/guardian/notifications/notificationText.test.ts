@@ -52,7 +52,9 @@ describe("notification texts", () => {
     expect(notificationMessage(n)).toBe(
       "El docente aceptó la solicitud de tu peque para unirse a la clase. Desde ahora tu peque ya puede entrar a la clase y ver sus lecciones.",
     );
-    expect(notificationMessage({ ...n, event: "request.created" })).toMatch(/^Tu peque pidió unirse a la clase con el código/);
+    expect(notificationMessage({ ...n, event: "request.created" })).toMatch(
+      /^Tu peque pidió unirse a la clase con el código/,
+    );
     expect(studentOf(n)).toBe("tu peque");
     expect(senderOf(n)).toBe("IRIS");
   });

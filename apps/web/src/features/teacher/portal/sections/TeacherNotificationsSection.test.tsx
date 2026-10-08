@@ -40,6 +40,7 @@ vi.mock("@/shared/api/hooks/useNotifications", () => ({
   }),
   useMarkNotificationRead: () => ({ mutateAsync: markRead }),
   useDeleteNotification: () => ({ mutateAsync: vi.fn() }),
+  useDeleteNotifications: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
@@ -63,13 +64,12 @@ afterEach(() => {
 
 describe("Notificaciones del docente", { timeout: 20_000 }, () => {
   it("lists each one with its subject, classroom, sender and arrival, unread ones apart", () => {
-    render(<TeacherNotificationsSection onBack={vi.fn()} />);
+    render(<TeacherNotificationsSection />);
 
     expect(screen.getByText("1 sin leer")).toBeTruthy();
     expect(screen.getByText("Nueva solicitud de ingreso")).toBeTruthy();
-    expect(screen.getByText("No leída:")).toBeTruthy();
-    expect(screen.getAllByText("Matemáticas Básicas")).toHaveLength(2);
-    expect(screen.getByText("Ana Pérez")).toBeTruthy();
+    // Who it's from comes first, and the unread one says so, not only with color.
+    expect(screen.getByRole("button", { name: /^No leída:\s*Ana Pérez\s*Nueva solicitud de ingreso/ })).toBeTruthy();
     expect(screen.getByText(/Ana Pérez pidió que Sofía se una a la clase "Matemáticas Básicas"/)).toBeTruthy();
   });
 
@@ -87,9 +87,9 @@ describe("Notificaciones del docente", { timeout: 20_000 }, () => {
     ];
     resolveRequest.mockResolvedValue({ enrollment_id: "e1", status: "aceptada" });
     const user = userEvent.setup({ delay: null });
-    render(<TeacherNotificationsSection onBack={vi.fn()} />);
+    render(<TeacherNotificationsSection />);
 
-    await user.click(screen.getByRole("button", { name: /^No leída: Nueva solicitud de ingreso/ }));
+    await user.click(screen.getByRole("button", { name: /^No leída:\s*Ana Pérez\s*Nueva solicitud de ingreso/ }));
 
     expect(markRead).toHaveBeenCalledWith("n1");
     expect(screen.getByText("ana@example.com · 3001234567")).toBeTruthy();
@@ -100,9 +100,9 @@ describe("Notificaciones del docente", { timeout: 20_000 }, () => {
 
   it("says when a request was already answered, without the buttons", async () => {
     const user = userEvent.setup({ delay: null });
-    render(<TeacherNotificationsSection onBack={vi.fn()} />);
+    render(<TeacherNotificationsSection />);
 
-    await user.click(screen.getByRole("button", { name: /^No leída: Nueva solicitud de ingreso/ }));
+    await user.click(screen.getByRole("button", { name: /^No leída:\s*Ana Pérez\s*Nueva solicitud de ingreso/ }));
 
     expect(screen.getByText("Esta solicitud ya fue respondida.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Aceptar" })).toBeNull();

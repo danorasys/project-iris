@@ -78,7 +78,7 @@ def _support_condition_to_entity(m: SupportConditionModel) -> SupportCondition:
 
 
 def _avatar_to_entity(m: AvatarModel) -> Avatar:
-    return Avatar(id=m.id, name=m.name, image_key=m.image_key)
+    return Avatar(id=m.id, name=m.name, image_key=m.image_key, accent_color=m.accent_color)
 
 
 def _teacher_to_entity(m: TeacherModel) -> Teacher:

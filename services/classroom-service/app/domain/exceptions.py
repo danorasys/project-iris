@@ -95,6 +95,14 @@ class UnauthorizedInternalAccess(DomainError):
     message = "Esta operación solo puede ser invocada por otros servicios de IRIS."
 
 
+# A guardian whose session doesn't have the parents' portal open: the
+# classes of their kids need the portal's 2FA code. Same code in every
+# service, so the web app asks for it and tries again.
+class PortalAccessRequired(DomainError):
+    code = "acceso_portal_requerido"
+    message = "Confirma tu código de verificación para entrar al portal de padres."
+
+
 # A teacher whose session hasn't passed the 2FA code yet (identity-service
 # marks the access token with mfa once it has). Same code in every service,
 # so the web app knows to ask for it.

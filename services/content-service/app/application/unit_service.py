@@ -8,7 +8,7 @@ import uuid
 from typing import Callable
 from uuid import UUID
 
-from app.domain.entities import Lesson, Unit, ValidatedUser
+from app.domain.entities import STATUS_DRAFT, STATUS_PUBLISHED, ClassroomContentSummary, Lesson, Unit, ValidatedUser
 from app.domain.exceptions import InvalidOrder, PermissionDenied, ResourceNotFound, UnitNotEmpty
 from app.domain.ports import ClassroomClient, UnitOfWork
 
@@ -35,6 +35,26 @@ class UnitService:
         if user.role != "teacher" or unit.teacher_id != user.subject_id:
             raise PermissionDenied("No eres el docente de esta unidad.")
         return unit
+
+    # Units and lessons of every classroom of the teacher, for the Inicio of
+    # the portal. It only reads their own rows (by teacher_id), so it doesn't
+    # need to ask classroom-service who owns each classroom. A classroom with
+    # nothing built yet isn't in the result.
+    async def content_summary(self, user: ValidatedUser) -> list[ClassroomContentSummary]:
+        if user.role != "teacher":
+            raise PermissionDenied("Tu tipo de cuenta no tiene acceso a esta operación.")
+        async with self._uow_factory() as uow:
+            units = await uow.units.count_by_teacher(user.subject_id)
+            lessons = await uow.lessons.count_by_teacher(user.subject_id)
+        return [
+            ClassroomContentSummary(
+                classroom_id=classroom_id,
+                units=units.get(classroom_id, 0),
+                published_lessons=lessons.get(classroom_id, {}).get(STATUS_PUBLISHED, 0),
+                draft_lessons=lessons.get(classroom_id, {}).get(STATUS_DRAFT, 0),
+            )
+            for classroom_id in sorted(units.keys() | lessons.keys(), key=str)
+        ]
 
     # The units of a classroom with their lessons. The teacher sees them
     # all; a kid only the lessons already published, and only the units

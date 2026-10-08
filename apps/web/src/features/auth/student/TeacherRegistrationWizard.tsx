@@ -52,7 +52,7 @@ import styles from "./GuardianRegistrationWizard.module.css"
 const MINIMUM_TEACHER_AGE = 18
 const TODAY_ISO = new Date().toISOString().slice(0, 10)
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PROFILE_ID_PREFIX = "docente-perfil"
+const PROFILE_ID_PREFIX = "teacher-profile"
 
 // After "cargando" the account exists: the teacher sets up their 2FA
 // ("totp") and sees it done ("totp-listo") before going to the panel.
@@ -163,48 +163,48 @@ export default function TeacherRegistrationWizard() {
                 ? "Revisa el año de la fecha de nacimiento."
                 : null
         const checks: [Field, string, string | null][] = [
-            ["firstName", "docente-nombres", nameError(firstName, "Ingresa tus nombres.")],
-            ["lastName", "docente-apellidos", nameError(lastName, "Ingresa tus apellidos.")],
-            ["dateOfBirth", "docente-fecha-nacimiento", ageProblem],
+            ["firstName", "teacher-first-name", nameError(firstName, "Ingresa tus nombres.")],
+            ["lastName", "teacher-last-name", nameError(lastName, "Ingresa tus apellidos.")],
+            ["dateOfBirth", "teacher-date-of-birth", ageProblem],
             [
                 "documentType",
-                "docente-tipo-documento",
+                "teacher-document-type",
                 documentType ? null : "Selecciona un tipo de documento.",
             ],
             [
                 "documentNumber",
-                "docente-numero-documento",
+                "teacher-document-number",
                 !documentNumber.trim()
                     ? "Ingresa tu número de documento."
                     : documentNumberFormatError(selectedDocumentType?.name, documentNumber),
             ],
             [
                 "documentIssuedAt",
-                "docente-fecha-expedicion-documento",
+                "teacher-document-issued-at",
                 !documentIssuedAt
                     ? "Ingresa la fecha de expedición del documento de identificación."
                     : validateDocumentIssuedAt(documentIssuedAt, dateOfBirth, TODAY_ISO),
             ],
             [
                 "email",
-                "docente-correo",
+                "teacher-email",
                 EMAIL_PATTERN.test(email.trim()) ? null : "Ingresa un correo electrónico válido.",
             ],
             [
                 "phone",
-                "docente-telefono",
+                "teacher-phone",
                 phone && isValidPhoneNumber(phone) ? null : "Ingresa un número telefónico válido.",
             ],
             [
                 "password",
-                "docente-password",
+                "teacher-password",
                 passwordMeetsRequirements(password)
                     ? null
                     : "Ingresa una contraseña que cumpla con todos los requisitos indicados abajo.",
             ],
             [
                 "passwordConfirmation",
-                "docente-password-confirmacion",
+                "teacher-password-confirmation",
                 !passwordConfirmation
                     ? "Ingresa la confirmación de la contraseña."
                     : password === passwordConfirmation
@@ -254,7 +254,7 @@ export default function TeacherRegistrationWizard() {
         // The consent goes last, once all the data is in.
         if (!acceptsDataProcessing) {
             setError("acceptsDataProcessing", "El consentimiento de tratamiento de datos es obligatorio.")
-            focusAndScrollToField("docente-consentimiento")
+            focusAndScrollToField("teacher-consent")
             return
         }
         setIncludeProfile(!isDraftEmpty(profileDraft))
@@ -495,7 +495,7 @@ export default function TeacherRegistrationWizard() {
                             Paso 1 de 3 — Datos de tu cuenta de docente.
                         </p>
                         <TextField
-                            id="docente-nombres"
+                            id="teacher-first-name"
                             label="Nombres"
                             value={firstName}
                             onChange={(value) => {
@@ -507,7 +507,7 @@ export default function TeacherRegistrationWizard() {
                             autoComplete="given-name"
                         />
                         <TextField
-                            id="docente-apellidos"
+                            id="teacher-last-name"
                             label="Apellidos"
                             value={lastName}
                             onChange={(value) => {
@@ -519,7 +519,7 @@ export default function TeacherRegistrationWizard() {
                             autoComplete="family-name"
                         />
                         <TextField
-                            id="docente-fecha-nacimiento"
+                            id="teacher-date-of-birth"
                             label="Fecha de nacimiento"
                             type="date"
                             value={dateOfBirth}
@@ -538,7 +538,7 @@ export default function TeacherRegistrationWizard() {
                             max={TODAY_ISO}
                         />
                         <SelectField
-                            id="docente-tipo-documento"
+                            id="teacher-document-type"
                             label="Tipo de documento"
                             value={documentType}
                             onChange={(value) => {
@@ -565,7 +565,7 @@ export default function TeacherRegistrationWizard() {
                             disabled={documentTypesQuery.isLoading}
                         />
                         <TextField
-                            id="docente-numero-documento"
+                            id="teacher-document-number"
                             label="Número de documento"
                             value={documentNumber}
                             onChange={(value) => {
@@ -589,7 +589,7 @@ export default function TeacherRegistrationWizard() {
                             }
                         />
                         <TextField
-                            id="docente-fecha-expedicion-documento"
+                            id="teacher-document-issued-at"
                             label="Fecha de expedición del documento"
                             type="date"
                             value={documentIssuedAt}
@@ -608,7 +608,7 @@ export default function TeacherRegistrationWizard() {
                             max={TODAY_ISO}
                         />
                         <TextField
-                            id="docente-correo"
+                            id="teacher-email"
                             label="Correo electrónico"
                             type="email"
                             value={email}
@@ -621,7 +621,7 @@ export default function TeacherRegistrationWizard() {
                             autoComplete="email"
                         />
                         <PhoneField
-                            id="docente-telefono"
+                            id="teacher-phone"
                             label="Teléfono"
                             value={phone}
                             onChange={(value) => {
@@ -632,7 +632,7 @@ export default function TeacherRegistrationWizard() {
                             required
                         />
                         <TextField
-                            id="docente-institucion"
+                            id="teacher-institution"
                             label="Institución (opcional)"
                             value={institution}
                             onChange={setInstitution}
@@ -641,7 +641,7 @@ export default function TeacherRegistrationWizard() {
                             placeholder="El colegio o instituto donde enseñas. Si das clases particulares, déjalo vacío."
                         />
                         <TextField
-                            id="docente-password"
+                            id="teacher-password"
                             label="Contraseña"
                             type="password"
                             value={password}
@@ -657,7 +657,7 @@ export default function TeacherRegistrationWizard() {
                         />
                         <PasswordRequirements password={password} />
                         <TextField
-                            id="docente-password-confirmacion"
+                            id="teacher-password-confirmation"
                             label="Confirmar contraseña"
                             type="password"
                             value={passwordConfirmation}
@@ -708,7 +708,7 @@ export default function TeacherRegistrationWizard() {
                             errors={profileErrors}
                         />
                         <CheckboxField
-                            id="docente-consentimiento"
+                            id="teacher-consent"
                             checked={acceptsDataProcessing}
                             onChange={(checked) => {
                                 setAcceptsDataProcessing(checked)

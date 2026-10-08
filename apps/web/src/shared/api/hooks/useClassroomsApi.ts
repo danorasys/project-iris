@@ -10,6 +10,7 @@ import type {
   ClassroomColor,
   ClassroomWithStudents,
   EnrollmentRequest,
+  FamilyClassroom,
   TeacherClassroom,
 } from "@iris/shared-types";
 import { apiFetch, apiUpload } from "@/shared/api/httpClient";
@@ -21,6 +22,7 @@ export const classroomKeys = {
   mias: ["aulas", "mias"] as const,
   detail: (classroomId: string) => ["aulas", classroomId] as const,
   requests: (classroomId: string) => ["aulas", classroomId, "solicitudes"] as const,
+  family: ["aulas", "familia"] as const,
 };
 
 // The list also brings each classroom's pending requests, so asking for it
@@ -43,6 +45,23 @@ export function useStudentClassrooms() {
   return useQuery({
     queryKey: classroomKeys.mias,
     queryFn: () => apiFetch<Classroom[]>("/classrooms/mine"),
+  });
+}
+
+// A teacher's answer reaches the family as a notification too, so a slow
+// refresh is enough here.
+const FAMILY_CLASSROOMS_REFRESH_MS = 60_000;
+
+/** `GET /classrooms/family`. The classes of the guardian's kids, the ones
+ * they're in and the requests still waiting, newest first. Like the rest of
+ * the parents' portal it needs the portal's 2FA access open; a closed one
+ * comes back as `acceso_portal_requerido`. */
+export function useFamilyClassrooms() {
+  return useQuery({
+    queryKey: classroomKeys.family,
+    queryFn: () => apiFetch<FamilyClassroom[]>("/classrooms/family", { background: true }),
+    refetchInterval: FAMILY_CLASSROOMS_REFRESH_MS,
+    retry: false,
   });
 }
 
@@ -193,7 +212,7 @@ export function useResolveRequest() {
     mutationFn: ({ classroomId, enrollmentId, decision }: ResolveRequestVariables) =>
       apiFetch<{ enrollment_id: string; status: string }>(
         `/classrooms/${classroomId}/requests/${enrollmentId}/resolve`,
-        { method: "POST", body: { decision } }
+        { method: "POST", body: { decision } },
       ),
     onSuccess: (_resultado, variables) => {
       void queryClient.invalidateQueries({ queryKey: classroomKeys.requests(variables.classroomId) });

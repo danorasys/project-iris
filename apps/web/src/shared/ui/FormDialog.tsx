@@ -62,7 +62,11 @@ export function FormDialog({
     const app = document.getElementById("root");
     const wasInert = app?.inert ?? false;
     if (app) app.inert = true;
-    document.querySelector<HTMLElement>(`[data-form-dialog="${titleId}"] input, [data-form-dialog="${titleId}"] textarea, [data-form-dialog="${titleId}"] select`)?.focus();
+    document
+      .querySelector<HTMLElement>(
+        `[data-form-dialog="${titleId}"] input, [data-form-dialog="${titleId}"] textarea, [data-form-dialog="${titleId}"] select`,
+      )
+      ?.focus();
     return () => {
       if (app) app.inert = wasInert;
       if (before?.isConnected) before.focus();

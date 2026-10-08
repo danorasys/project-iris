@@ -1,0 +1,165 @@
+/* "Sus clases" of a kid: a white panel like the one of the kids' profiles,
+   one row per class with its avatar, who teaches it, what it's about and
+   how it's going. */
+.status {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.error {
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each class on a soft lavender row. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--color-canvas);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.meta {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--portal-muted);
+}
+
+/* What the class is about, two lines at most. */
+.description {
+  display: -webkit-box;
+  margin: 4px 0 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--color-ink-soft);
+}
+
+.state {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.lessonsPill,
+.waitingPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lessonsPill {
+  background: var(--color-surface);
+  color: var(--color-iris-medium);
+}
+
+/* Still waiting for the teacher: the warm color of what's pending. */
+.waitingPill {
+  background: color-mix(in srgb, var(--color-amber) 18%, var(--color-surface));
+  color: var(--color-amber-dark);
+}
+
+.since {
+  font-size: 0.78rem;
+  color: var(--portal-muted);
+}
+
+/* No classes yet: how a kid joins one. */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-5) var(--space-3);
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.emptyText {
+  max-width: 52ch;
+  margin: 0;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+/* On a phone the state goes under the class, lined up with its name. */
+@media (max-width: 640px) {
+  .row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .text {
+    flex-basis: calc(100% - 68px);
+  }
+
+  .state {
+    align-items: flex-start;
+    margin-left: 68px;
+  }
+}

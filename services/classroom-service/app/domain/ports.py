@@ -8,7 +8,15 @@ from types import TracebackType
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.entities import Classroom, Enrollment, SignedDownload, StudentInfo, UserClaims
+from app.domain.entities import (
+    Classroom,
+    Enrollment,
+    EnrollmentCounts,
+    GuardianStudent,
+    SignedDownload,
+    StudentInfo,
+    UserClaims,
+)
 
 
 class ClassroomRepository(Protocol):
@@ -28,9 +36,11 @@ class EnrollmentRepository(Protocol):
     async def list_pending_by_classroom(self, classroom_id: UUID) -> list[Enrollment]: ...
     async def list_accepted_by_classroom(self, classroom_id: UUID) -> list[Enrollment]: ...
     async def list_accepted_by_student(self, student_id: UUID) -> list[Enrollment]: ...
-    # How many pending requests each of these classrooms has, in one query.
-    # A classroom with none isn't in the result.
-    async def count_pending_by_classrooms(self, classroom_ids: list[UUID]) -> dict[UUID, int]: ...
+    # The accepted and pending enrollments of these kids (not the rejected).
+    async def list_active_by_students(self, student_ids: list[UUID]) -> list[Enrollment]: ...
+    # Pending requests and students of each of these classrooms, in one query.
+    # A classroom with neither isn't in the result.
+    async def count_by_classrooms(self, classroom_ids: list[UUID]) -> dict[UUID, EnrollmentCounts]: ...
     async def add(self, enrollment: Enrollment) -> None: ...
     async def update(self, enrollment: Enrollment) -> None: ...
     async def delete(self, enrollment_id: UUID) -> None: ...
@@ -80,6 +90,9 @@ class ContentGateway(Protocol):
     # Deletes every lesson of the classroom, with its blocks and images.
     async def delete_classroom_lessons(self, classroom_id: UUID) -> None: ...
 
+    # Published lessons of each classroom, 0 when it has none.
+    async def published_lessons(self, classroom_ids: list[UUID]) -> dict[UUID, int]: ...
+
 
 # Client for identity-service. The production implementation
 # (infrastructure/http_clients/identity_client.py) wraps calls with a 2s
@@ -90,3 +103,10 @@ class IdentityGateway(Protocol):
     async def obtener_estudiante(self, student_id: UUID) -> StudentInfo: ...
     # "Nombres Apellidos" of a teacher, for the notifications.
     async def obtener_nombre_docente(self, teacher_id: UUID) -> str: ...
+
+    # The kids of a guardian, by the id the guardian signs in with.
+    async def list_guardian_students(self, guardian_id: UUID) -> list[GuardianStudent]: ...
+
+    # Raises PortalAccessRequired if that session of the guardian doesn't
+    # have the parents' portal open (its 2FA code).
+    async def check_portal_access(self, person_id: UUID, session_id: str, renew: bool) -> None: ...

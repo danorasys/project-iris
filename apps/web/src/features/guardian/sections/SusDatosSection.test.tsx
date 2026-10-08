@@ -33,8 +33,8 @@ vi.mock("@/shared/api/hooks/useAuthApi", () => ({
   useComprobarPinDeEstudiante: () => ({ mutateAsync: checkPin, isPending: false }),
   useAvatars: () => ({
     data: [
-      { id: 1, name: "Violeta" },
-      { id: 2, name: "Coral" },
+      { id: 1, name: "Violeta", accent_color: "#804890" },
+      { id: 2, name: "Coral", accent_color: "#c06048" },
     ],
   }),
   useSupportConditions: () => ({

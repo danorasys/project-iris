@@ -158,7 +158,9 @@
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
 }
 
 .cancelEditingButton:hover {
@@ -182,7 +184,9 @@
   background: var(--color-canvas);
   color: var(--color-iris-medium);
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .editButton:hover,
@@ -207,9 +211,7 @@
   /* Blue border and the sky-blue halo of a selected field, so it reads as
      "this is where you are working". */
   border: 2px solid var(--color-iris-medium);
-  box-shadow:
-    var(--shadow-card),
-    var(--focus-halo);
+  box-shadow: var(--shadow-card), var(--focus-halo);
   /* Comes up from below when the first change is made, with the same
      smooth stop as the 2FA dialog. Then the halo opens with a small
      bounce, like a field when it's selected. */
@@ -225,9 +227,7 @@
       0 0 0 0 var(--color-focus-halo);
   }
   to {
-    box-shadow:
-      var(--shadow-card),
-      var(--focus-halo);
+    box-shadow: var(--shadow-card), var(--focus-halo);
   }
 }
 
@@ -362,7 +362,9 @@
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
 }
 
 .secondaryButton:hover {

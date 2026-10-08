@@ -57,7 +57,7 @@ describe("AuthImage", () => {
       <>
         <AuthImage path="/classrooms/a/logo/x.png" alt="uno" />
         <AuthImage path="/classrooms/a/logo/x.png" alt="dos" />
-      </>
+      </>,
     );
 
     await screen.findByAltText("uno");

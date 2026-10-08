@@ -103,9 +103,33 @@ class ClassroomResponse(BaseModel):
     created_at: datetime
 
 
-# A classroom in the teacher's own list, with its waiting requests (HU-69).
+# A classroom in the teacher's own list, with its waiting requests (HU-69)
+# and how many students it has.
 class TeacherClassroomResponse(ClassroomResponse):
     pending_requests: int
+    student_count: int
+
+
+# One classroom of a guardian's kid (parents' portal). No enrollment code
+# and no logo: the logo is private to the classroom, so the portal shows
+# the initials on the classroom's color.
+class FamilyClassroomResponse(BaseModel):
+    enrollment_id: UUID
+    student_id: UUID
+    student_first_name: str
+    # "pendiente" while the teacher hasn't answered, "aceptada" once in.
+    status: Literal["pendiente", "aceptada"]
+    requested_at: datetime
+    classroom_id: UUID
+    name: str
+    description: str
+    color: ClassroomColor
+    area: ClassroomArea | None = None
+    area_other: str | None = None
+    grade: int | None = None
+    # None when identity-service or content-service didn't answer.
+    teacher_name: str | None
+    published_lessons: int | None
 
 
 class EnrolledStudentResponse(BaseModel):

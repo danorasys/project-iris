@@ -132,7 +132,7 @@ export function useProfileForm<T extends Record<string, string>>(
 }
 
 export function editButtonId(field: string): string {
-  return `perfil-editar-${field}`;
+  return `profile-edit-${field}`;
 }
 
 // After closing a field, the focus goes back to its pencil so keyboard

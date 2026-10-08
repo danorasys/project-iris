@@ -1,6 +1,7 @@
-# Client for content-service's internal routes, only to delete a
-# classroom's lessons before the classroom (HU-85). Short timeout, circuit
-# breaker and fail-closed: if it can't, the classroom isn't deleted.
+# Client for content-service's internal routes: delete a classroom's
+# lessons before the classroom (HU-85) and count the published lessons of
+# the kids' classrooms (parents' portal). Circuit breaker and fail-closed:
+# if it can't, the classroom isn't deleted and the counts aren't made up.
 
 from __future__ import annotations
 
@@ -48,6 +49,28 @@ class ContentHttpClient:
             raise ContentServiceUnavailable() from exc
         if response.status_code != 204:
             raise ContentServiceUnavailable()
+
+    # Short timeout: it only reads a count, and the portal shows the
+    # classes without it if content-service is slow.
+    async def published_lessons(self, classroom_ids: list[UUID]) -> dict[UUID, int]:
+        async def _get() -> httpx.Response:
+            response = await self._client.get(
+                f"{self._base_url}/internal/classrooms/published-lessons",
+                params=[("classroom_id", str(c)) for c in classroom_ids],
+                headers=self._headers(),
+                timeout=httpx.Timeout(2.0),
+            )
+            if response.status_code >= 500:
+                response.raise_for_status()
+            return response
+
+        try:
+            response = await self._breaker.llamar(_get)
+        except (httpx.HTTPError, CircuitAbiertoError) as exc:
+            raise ContentServiceUnavailable() from exc
+        if response.status_code != 200:
+            raise ContentServiceUnavailable()
+        return {UUID(str(item["classroom_id"])): int(item["published_lessons"]) for item in response.json()}
 
     async def aclose(self) -> None:
         await self._client.aclose()

@@ -177,7 +177,7 @@ function ExtraCard({ lessonId, extra, students, onError }: ExtraCardProps) {
           <label className={styles.pill}>
             <input
               type="radio"
-              name={`audiencia-${extra.id}`}
+              name={`audience-${extra.id}`}
               checked={meta.for_everyone}
               onChange={() => setMeta((current) => ({ ...current, for_everyone: true }))}
             />
@@ -186,7 +186,7 @@ function ExtraCard({ lessonId, extra, students, onError }: ExtraCardProps) {
           <label className={styles.pill}>
             <input
               type="radio"
-              name={`audiencia-${extra.id}`}
+              name={`audience-${extra.id}`}
               checked={!meta.for_everyone}
               onChange={() => setMeta((current) => ({ ...current, for_everyone: false }))}
             />

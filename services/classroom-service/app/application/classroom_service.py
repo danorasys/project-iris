@@ -17,6 +17,7 @@ from app.application.dtos import (
     ClassroomWithStudents,
     EnrolledStudent,
     EnrichedRequest,
+    FamilyClassroom,
     TeacherClassroom,
     UpdateClassroomData,
 )
@@ -29,6 +30,7 @@ from app.domain.entities import (
     STATUS_REJECTED,
     Classroom,
     Enrollment,
+    EnrollmentCounts,
     SignedDownload,
     StudentInfo,
 )
@@ -36,6 +38,7 @@ from app.domain.exceptions import (
     AlreadyEnrolledOrPending,
     AttemptLimitExceeded,
     ClassroomNotFound,
+    ContentServiceUnavailable,
     EnrollmentNotFound,
     IdentityServiceUnavailable,
     IncompleteClassroom,
@@ -134,13 +137,79 @@ class ClassroomService:
             await uow.commit()
         return classroom
 
-    # The teacher's classrooms, each with its pending requests: the panel
-    # adds them up for the notice of HU-69 with this one call.
+    # The teacher's classrooms, each with its pending requests and students:
+    # the panel adds them up (the notice of HU-69 and the Inicio) with this
+    # one call.
     async def list_teacher_classrooms(self, teacher_id: UUID) -> list[TeacherClassroom]:
         async with self._uow_factory() as uow:
             classrooms = await uow.classrooms.list_by_teacher(teacher_id)
-            pending = await uow.enrollments.count_pending_by_classrooms([c.id for c in classrooms])
-        return [TeacherClassroom(classroom=c, pending_requests=pending.get(c.id, 0)) for c in classrooms]
+            counts = await uow.enrollments.count_by_classrooms([c.id for c in classrooms])
+        empty = EnrollmentCounts()
+        return [
+            TeacherClassroom(
+                classroom=c,
+                pending_requests=counts.get(c.id, empty).pending,
+                student_count=counts.get(c.id, empty).accepted,
+            )
+            for c in classrooms
+        ]
+
+    # The classes of a guardian's kids (parents' portal): the ones they're
+    # in and the requests still waiting, newest first. The kids come from
+    # identity-service, so a guardian only ever sees their own. The
+    # teacher's name and the lessons are extras: if identity or
+    # content-service don't answer, they come back empty and the list shows.
+    async def list_family_classrooms(self, guardian_id: UUID) -> list[FamilyClassroom]:
+        kids = {k.student_id: k.first_name for k in await self._identity.list_guardian_students(guardian_id)}
+        if not kids:
+            return []
+        async with self._uow_factory() as uow:
+            enrollments = await uow.enrollments.list_active_by_students(list(kids))
+            classroom_ids = list({e.classroom_id for e in enrollments})
+            classrooms = {c.id: c for c in await uow.classrooms.list_by_ids(classroom_ids)}
+        enrollments = [e for e in enrollments if e.classroom_id in classrooms]
+        if not enrollments:
+            return []
+
+        teacher_names, lessons = await asyncio.gather(
+            self._teacher_names(list({c.teacher_id for c in classrooms.values()})),
+            self._published_lessons(list(classrooms)),
+        )
+        enrollments.sort(key=lambda e: e.requested_at, reverse=True)
+        return [
+            FamilyClassroom(
+                student_id=e.student_id,
+                student_first_name=kids[e.student_id],
+                enrollment_id=e.id,
+                status=e.status,
+                requested_at=e.requested_at,
+                classroom=classrooms[e.classroom_id],
+                teacher_name=teacher_names.get(classrooms[e.classroom_id].teacher_id),
+                published_lessons=None if lessons is None else lessons.get(e.classroom_id, 0),
+            )
+            for e in enrollments
+        ]
+
+    # The name of each teacher, asked all at once. One that fails is just
+    # left out.
+    async def _teacher_names(self, teacher_ids: list[UUID]) -> dict[UUID, str]:
+        results = await asyncio.gather(
+            *(self._identity.obtener_nombre_docente(t) for t in teacher_ids), return_exceptions=True
+        )
+        names: dict[UUID, str] = {}
+        for teacher_id, result in zip(teacher_ids, results):
+            if isinstance(result, str):
+                names[teacher_id] = result
+            else:
+                logger.warning("No se pudo obtener el nombre del docente %s: %s", teacher_id, result)
+        return names
+
+    async def _published_lessons(self, classroom_ids: list[UUID]) -> dict[UUID, int] | None:
+        try:
+            return await self._content.published_lessons(classroom_ids)
+        except ContentServiceUnavailable:
+            logger.warning("content-service no respondió: las clases de la familia van sin lecciones.")
+            return None
 
     async def _get_own_classroom(self, uow: UnitOfWork, classroom_id: UUID, teacher_id: UUID) -> Classroom:
         classroom = await uow.classrooms.get_by_id(classroom_id)

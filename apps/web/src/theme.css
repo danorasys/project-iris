@@ -116,6 +116,43 @@
   --space-7: 64px;
 }
 
+/* --- The portals (docente and padres) ---
+   They take the landing's palette and Poppins for the headings, so going
+   from the landing to a portal feels like the same product. The rest of the
+   app (sign in, sign up, the student's side) keeps the colors above.
+   usePortalTheme puts data-theme="portal" on <html> while a portal is open,
+   so dialogs and toasts (drawn in <body>) get the same colors. */
+:root[data-theme="portal"] {
+  --color-iris-deep: var(--landing-navy);
+  --color-iris-medium: var(--landing-blue);
+  --color-iris-pale: var(--landing-sky-pale);
+  /* A soft blue-lavender page, so the white cards float on it. */
+  --color-canvas: #f4f7fe;
+  --color-ink: var(--landing-ink);
+  --color-ink-soft: var(--landing-ink-soft);
+  --color-amber: var(--landing-orange);
+  /* Orange text needs the darker brick to read well on white (5:1). */
+  --color-amber-dark: var(--landing-brick);
+  --color-gold: var(--landing-sun);
+  --color-mint: var(--landing-mint-dark);
+  --color-action: var(--landing-blue);
+  --color-action-hover: var(--landing-blue-hover);
+  --color-focus: var(--landing-blue);
+  --font-display: var(--font-landing);
+
+  /* Lines and quiet text of the portal: a blue-gray that sits well on the
+     light blue canvas. */
+  --portal-line: #e1eaf5;
+  --portal-muted: #66788f;
+
+  /* Three levels of elevation, tinted with blue instead of black. The cards
+     don't have a border: a wide, very soft shadow lifts them off the page. */
+  --shadow-soft: 0 4px 12px rgba(80, 112, 170, 0.08);
+  --shadow-card: 14px 17px 40px 4px rgba(80, 112, 170, 0.09);
+  --shadow-lift: 14px 22px 48px 6px rgba(80, 112, 170, 0.16);
+  --portal-radius: 20px;
+}
+
 @keyframes iris-breathe {
   0%,
   100% {

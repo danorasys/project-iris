@@ -66,6 +66,17 @@ export function IconBell(props: IconProps) {
   );
 }
 
+/** A clock: something waiting for an answer, like a join request. Not
+ * the bell, which is only for notifications. */
+export function IconClock(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </svg>
+  );
+}
+
 /** A board on its easel with something written on it: a classroom. */
 export function IconClassroom(props: IconProps) {
   return (
@@ -365,6 +376,24 @@ export function IconQuestion(props: IconProps) {
       <circle cx="12" cy="12" r="8.5" />
       <path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4" />
       <path d="M12 16.8v.2" />
+    </svg>
+  );
+}
+
+export function IconMenu(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 7h16M4 12h16M4 17h10" />
+    </svg>
+  );
+}
+
+export function IconHome(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 10.5 12 4l8 6.5" />
+      <path d="M6 9v10.5h12V9" />
+      <path d="M10 19.5v-5h4v5" />
     </svg>
   );
 }

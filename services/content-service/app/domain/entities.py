@@ -138,3 +138,13 @@ class ValidatedUser:
     subject_id: UUID
     role: str  # "guardian", "teacher" or "student". content-service only operates on teacher/student.
     extra: dict[str, object] = field(default_factory=dict)
+
+
+# What a teacher has built in one of their classrooms, for the Inicio of the
+# portal: how many units and how many lessons, published and still drafts.
+@dataclass(frozen=True)
+class ClassroomContentSummary:
+    classroom_id: UUID
+    units: int = 0
+    published_lessons: int = 0
+    draft_lessons: int = 0

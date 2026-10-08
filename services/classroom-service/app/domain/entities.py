@@ -77,6 +77,23 @@ class Enrollment:
     resolved_at: datetime | None = None
 
 
+# How many students a classroom has (accepted) and how many requests wait
+# for the teacher's answer (pending).
+@dataclass(frozen=True)
+class EnrollmentCounts:
+    pending: int = 0
+    accepted: int = 0
+
+
+# One kid of a guardian, as identity-service knows them. Used to show the
+# parents' portal the classes of each kid.
+@dataclass(frozen=True)
+class GuardianStudent:
+    student_id: UUID
+    first_name: str
+    avatar_id: int
+
+
 # Where Caddy has to fetch a file from in Garage, with a signature that is
 # only valid for that one GET. The service never reads the file itself.
 @dataclass(frozen=True)

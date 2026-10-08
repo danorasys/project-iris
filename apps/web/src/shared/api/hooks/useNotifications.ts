@@ -63,9 +63,21 @@ export function useDeleteNotification(role: TrayRole) {
   });
 }
 
+/** Several at once, the ones picked in the tray (`POST /notifications/me/delete`).
+ * Only your own go; says how many. */
+export function useDeleteNotifications(role: TrayRole) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      apiFetch<{ deleted: number }>("/notifications/me/delete", { method: "POST", body: { ids } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: trayKeys.all(role) }),
+  });
+}
+
 // The guardian's portal uses these names.
 export const useBandejaNotificaciones = (page: number, pageSize: number) =>
   useNotificationTray("guardian", page, pageSize);
 export const useNotificacionesSinLeer = () => useUnreadNotifications("guardian");
 export const useMarcarNotificacionLeida = () => useMarkNotificationRead("guardian");
 export const useEliminarNotificacion = () => useDeleteNotification("guardian");
+export const useEliminarNotificaciones = () => useDeleteNotifications("guardian");

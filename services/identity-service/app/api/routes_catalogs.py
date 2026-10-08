@@ -43,7 +43,7 @@ async def list_support_conditions(catalogs: CatalogServiceDep) -> list[SupportCo
 @router.get("/avatars", response_model=list[AvatarResponse])
 async def list_avatars(catalogs: CatalogServiceDep) -> list[AvatarResponse]:
     avatars = await catalogs.list_avatars()
-    return [AvatarResponse(id=a.id, name=a.name) for a in avatars]
+    return [AvatarResponse(id=a.id, name=a.name, accent_color=a.accent_color) for a in avatars]
 
 
 # Public on purpose: the registration form shows the avatars before the family

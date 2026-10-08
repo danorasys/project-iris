@@ -11,7 +11,13 @@ from redis.asyncio import Redis, from_url
 
 from app.application.classroom_service import ClassroomService
 from app.config import Settings, get_settings
-from app.domain.exceptions import InvalidToken, PermissionDenied, TwoFactorRequired, UnauthorizedInternalAccess
+from app.domain.exceptions import (
+    InvalidToken,
+    PermissionDenied,
+    PortalAccessRequired,
+    TwoFactorRequired,
+    UnauthorizedInternalAccess,
+)
 from app.domain.ports import ContentGateway, IdentityGateway
 from app.infrastructure.http_clients.content_client import ContentHttpClient
 from app.infrastructure.http_clients.identity_client import IdentityHttpClient
@@ -120,6 +126,21 @@ def require_role(*allowed_roles: str):
         return user
 
     return _dep
+
+
+# A guardian with the parents' portal open in this session: the classes
+# of their kids need the same 2FA code as the rest of the portal. The
+# page's own refreshes (background) only read it, they don't keep it open.
+async def require_portal_guardian(
+    user: Annotated[CurrentUser, Depends(require_role("guardian"))],
+    identity: Annotated[IdentityGateway, Depends(get_identity_gateway)],
+    x_iris_activity: Annotated[str | None, Header()] = None,
+) -> CurrentUser:
+    session_id = user.extra.get("sid")
+    if not session_id:
+        raise PortalAccessRequired()
+    await identity.check_portal_access(user.subject_id, session_id, renew=x_iris_activity != BACKGROUND_ACTIVITY)
+    return user
 
 
 async def verify_internal_key(x_internal_key: Annotated[str | None, Header()] = None) -> None:

@@ -1,0 +1,121 @@
+/* --- The button: same box as the other fields, the value on the left and
+   the arrow in a small lavender circle on the right --- */
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding-block: 8px;
+  padding-right: 10px;
+  text-align: left;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.trigger[aria-expanded="true"] {
+  border-color: var(--color-iris-medium);
+}
+
+.value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder {
+  color: var(--portal-muted, var(--color-ink-soft));
+}
+
+.chevron {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+  transition: transform 200ms ease;
+}
+
+.chevron[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+/* --- The list: a white card with the wide soft shadow of the panel. It
+   sits over the dialogs (30) and under the toasts (40). --- */
+.list {
+  position: fixed;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--portal-line, var(--color-iris-pale));
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lift);
+  font-family: var(--font-body);
+  scrollbar-width: thin;
+  scrollbar-color: var(--portal-line, var(--color-iris-pale)) transparent;
+  animation: list-in 160ms ease both;
+}
+
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+}
+
+/* Under the mouse or the arrows. */
+.option[data-active="true"] {
+  background: var(--color-canvas);
+  color: var(--color-iris-deep);
+}
+
+/* The one that's picked: blue with a check. */
+.option[aria-selected="true"] {
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  background: color-mix(in srgb, var(--color-iris-medium) 7%, transparent);
+}
+
+.check {
+  flex: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+
+  .list {
+    animation: none;
+  }
+}

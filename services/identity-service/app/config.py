@@ -1,10 +1,18 @@
 from functools import lru_cache
+from typing import Literal
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# The HMAC key has to be at least as long as the hash it signs with (RFC 7518,
+# section 3.2). A shorter one can be brute forced much faster.
+JWT_SECRET_MIN_BYTES = {"HS256": 32, "HS384": 48, "HS512": 64}
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # hide_input_in_errors: if a setting is wrong, the error says which one
+    # but never prints its value, so a secret doesn't end up in the logs.
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
 
     service_name: str = "identity-service"
     environment: str = "development"
@@ -17,8 +25,10 @@ class Settings(BaseSettings):
     # and someone forgets to set the real one, that fake secret would still
     # work to sign tokens, and anyone who reads the code could forge one.
     # It is safer to make the app fail to start than to run with a weak key.
+    # Same with a short one: see _check_jwt_secret_length below.
     jwt_secret: str
-    jwt_algorithm: str = "HS256"
+    # Only HMAC: the service signs and checks with this one shared secret.
+    jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     jwt_access_ttl_min: int = 15
     jwt_refresh_ttl_days: int = 7
     # The refresh token goes in this cookie, never in the JSON. Path is the one
@@ -78,6 +88,17 @@ class Settings(BaseSettings):
     # and never the same key as jwt_secret. No default, same reason as above.
     totp_encryption_key: str
     totp_issuer_name: str = "IRIS"
+
+    # Counted in bytes, not characters, because that's what HMAC gets.
+    @model_validator(mode="after")
+    def _check_jwt_secret_length(self) -> "Settings":
+        minimum = JWT_SECRET_MIN_BYTES[self.jwt_algorithm]
+        if len(self.jwt_secret.encode()) < minimum:
+            raise ValueError(
+                f"JWT_SECRET is too short for {self.jwt_algorithm}: it needs at least {minimum} bytes. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            )
+        return self
 
 
 @lru_cache

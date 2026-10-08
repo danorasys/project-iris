@@ -75,10 +75,11 @@ export function UnitsPanel({ classroomId, onToast }: UnitsPanelProps) {
   }
 
   return (
-    <section aria-labelledby="unidades-titulo" className={styles.section}>
+    <section aria-labelledby="units-title" className={styles.section}>
       <div className={styles.top}>
         <div>
-          <h2 id="unidades-titulo" className={styles.title}>
+          {/* The tab above already says it, so it's only for screen readers. */}
+          <h2 id="units-title" className={styles.visuallyHidden}>
             Unidades y lecciones
           </h2>
           <p className={styles.lead}>

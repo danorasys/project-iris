@@ -82,6 +82,8 @@ class Avatar:
     # Place in identity-service's bucket, e.g. "avatars/avatar-1.png". The
     # image is served by GET /catalogs/avatars/{id}/image.
     image_key: str
+    # Its main color, "#rrggbb", for the kid's banner in the parents' portal.
+    accent_color: str = "#1f62bf"
 
 
 # The one catalog entry that means "the family will type their own condition

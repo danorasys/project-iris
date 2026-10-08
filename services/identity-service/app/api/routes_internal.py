@@ -13,6 +13,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.api.deps import get_auth_service, get_internal_query_service, get_portal_access_store, verify_internal_key
 from app.api.schemas import (
+    GuardianStudentResponse,
     PortalAccessCheckRequest,
     StudentWithGuardianResponse,
     TeacherNameResponse,
@@ -56,6 +57,21 @@ async def get_student_with_guardian(
     enrollment request, who the student is and how to reach their guardian."""
     data = await queries.get_student_with_guardian(student_id)
     return StudentWithGuardianResponse(**data.__dict__)
+
+
+@router.get(
+    "/guardians/{person_id}/students",
+    response_model=list[GuardianStudentResponse],
+    dependencies=[Depends(verify_internal_key)],
+)
+async def list_guardian_students(
+    person_id: UUID,
+    queries: Annotated[InternalQueryService, Depends(get_internal_query_service)],
+) -> list[GuardianStudentResponse]:
+    """The kids of a guardian, so classroom-service can show the parents'
+    portal the classes of each one. 404 if that person isn't a guardian."""
+    students = await queries.list_guardian_students(person_id)
+    return [GuardianStudentResponse(**s.__dict__) for s in students]
 
 
 @router.get(

@@ -12,7 +12,7 @@ import styles from "./ProfileForm.module.css";
 /** How to edit, shown under the title of the first card of each profile.
  * One text for both, so they always say the same. */
 export const EDIT_HINT =
-  "Toca el lápiz o haz doble clic sobre un dato para cambiarlo. Al terminar, haz clic fuera de la casilla o pulsa Cancelar si cambias de decisión. Para que tus cambios queden guardados, pulsa \"Guardar cambios\" en la barra que aparecerá en la parte inferior.";
+  'Toca el lápiz o haz doble clic sobre un dato para cambiarlo. Al terminar, haz clic fuera de la casilla o pulsa Cancelar si cambias de decisión. Para que tus cambios queden guardados, pulsa "Guardar cambios" en la barra que aparecerá en la parte inferior.';
 
 interface CardProps {
   id: string;
@@ -229,7 +229,7 @@ export function SaveBar({
         <p className={styles.saveBarTitle}>Tienes cambios sin guardar</p>
         {/* If this sentence changes, also change PROFILE_DECLARATION_VERSION
             in identity-service, so each saved change keeps which one was accepted. */}
-        <CheckboxField id="perfil-declaro-veraz" checked={confirmed} onChange={onConfirmedChange}>
+        <CheckboxField id="profile-truthful-statement" checked={confirmed} onChange={onConfirmedChange}>
           Declaro que la información que modifiqué es correcta y veraz.
         </CheckboxField>
         {hasErrors && (

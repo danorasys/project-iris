@@ -157,9 +157,9 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
         email={profile.email}
       />
 
-      <form id="perfil-datos-form" className={form.form} onSubmit={handleConfirmProfile}>
+      <form id="profile-data-form" className={form.form} onSubmit={handleConfirmProfile}>
         <Card
-          id="perfil-datos-personales"
+          id="profile-personal-data"
           icon={<IconUserCircle width={22} height={22} />}
           title="Datos personales"
           hint={`Estos son tus datos personales, los que nos diste al crear tu cuenta. ${EDIT_HINT}`}
@@ -167,7 +167,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
           <div className={form.fieldGrid}>
             <EditableRow label="Nombres" displayValue={values.firstName} {...rowProps("firstName")}>
               <TextField
-                id="perfil-first-name"
+                id="profile-first-name"
                 label="Nombres"
                 value={values.firstName}
                 onChange={(v) => fields.setField("firstName", v)}
@@ -179,7 +179,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
 
             <EditableRow label="Apellidos" displayValue={values.lastName} {...rowProps("lastName")}>
               <TextField
-                id="perfil-last-name"
+                id="profile-last-name"
                 label="Apellidos"
                 value={values.lastName}
                 onChange={(v) => fields.setField("lastName", v)}
@@ -195,7 +195,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
               {...rowProps("dateOfBirth")}
             >
               <TextField
-                id="perfil-date-of-birth"
+                id="profile-date-of-birth"
                 label="Fecha de nacimiento"
                 type="date"
                 min={earliestBirthDate}
@@ -213,7 +213,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
               {...rowProps("phone")}
             >
               <PhoneField
-                id="perfil-phone"
+                id="profile-phone"
                 label="Teléfono"
                 value={values.phone}
                 onChange={(v) => fields.setField("phone", v)}
@@ -227,7 +227,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
               {...rowProps("relationshipTypeId")}
             >
               <SelectField
-                id="perfil-relationship"
+                id="profile-relationship"
                 label="Relación con el estudiante"
                 value={values.relationshipTypeId}
                 onChange={(v) => fields.setField("relationshipTypeId", v)}
@@ -238,7 +238,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
         </Card>
 
         <Card
-          id="perfil-identificacion"
+          id="profile-identification"
           icon={<IconLock width={20} height={20} />}
           title="Identificación de la cuenta"
           hint="Tu documento de identidad y tu correo electrónico son los datos con los que IRIS te reconoce como titular de esta cuenta y con los que inicias sesión. Para proteger tu cuenta y la información de tus peques, no se pueden cambiar directamente desde aquí."
@@ -260,7 +260,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
       {/* Out of the form and last, so it floats over every card while
           scrolling. It saves the form above through formId. */}
       <SaveBar
-        formId="perfil-datos-form"
+        formId="profile-data-form"
         shown={fields.saveBarShown}
         leaving={fields.saveBarLeaving}
         confirmed={fields.confirmed}

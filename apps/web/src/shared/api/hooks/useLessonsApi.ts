@@ -5,6 +5,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Activity,
+  ClassroomContentSummary,
   ContentBlockInput,
   Extra,
   ExtraKind,
@@ -16,10 +17,20 @@ import type {
 import { apiFetch, apiUpload } from "@/shared/api/httpClient";
 
 export const lessonKeys = {
+  summary: ["content", "summary"] as const,
   units: (classroomId: string) => ["units", "classroom", classroomId] as const,
   byClassroom: (classroomId: string) => ["lessons", "classroom", classroomId] as const,
   detail: (lessonId: string) => ["lessons", lessonId] as const,
 };
+
+/** `GET /content/teachers/me/content-summary`: units and lessons (published
+ * and drafts) of each classroom of the teacher, for the Inicio. */
+export function useContentSummary() {
+  return useQuery({
+    queryKey: lessonKeys.summary,
+    queryFn: () => apiFetch<ClassroomContentSummary[]>("/content/teachers/me/content-summary"),
+  });
+}
 
 /** `GET /content/classrooms/{classroom_id}/units`: the units with their lessons. */
 export function useClassroomUnits(classroomId: string | undefined) {
@@ -48,12 +59,14 @@ export function useLessonDetail(lessonId: string | undefined) {
   });
 }
 
-// After a change, the units list and the flat list of the classroom are refreshed.
+// After a change, the units list and the flat list of the classroom are
+// refreshed, and the counts of the Inicio too.
 function useRefreshClassroom() {
   const queryClient = useQueryClient();
   return (classroomId: string) => {
     void queryClient.invalidateQueries({ queryKey: lessonKeys.units(classroomId) });
     void queryClient.invalidateQueries({ queryKey: lessonKeys.byClassroom(classroomId) });
+    void queryClient.invalidateQueries({ queryKey: lessonKeys.summary });
   };
 }
 

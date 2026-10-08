@@ -13,60 +13,118 @@
   color: var(--color-ink-soft);
 }
 
-/* --- Header: who the account belongs to --- */
+/* Header: who the account belongs to, like the profile banner of Horizon
+   UI: a light sky band inside the card and the initials hanging from it. */
 .hero {
-  /* Dark blue behind: the focus ring is white here. */
-  --color-focus: var(--color-surface);
   display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  border-radius: var(--radius-large);
-  /* The same radial light as the landing, instead of a flat diagonal. */
-  background: radial-gradient(130% 180% at 0% 0%, var(--color-iris-medium) 0%, var(--color-iris-deep) 62%);
-  color: var(--color-surface);
-  box-shadow:
-    var(--shadow-card),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  flex-direction: column;
+  padding: 16px;
+  border-radius: var(--portal-radius, var(--radius-large));
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  box-shadow: var(--shadow-card);
+}
+
+.heroBanner {
+  height: 120px;
+  border-radius: 16px;
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      color-mix(in srgb, var(--color-surface) 45%, transparent) 0 60px,
+      transparent 61px
+    ),
+    radial-gradient(
+      circle at 72% 140%,
+      color-mix(in srgb, var(--color-surface) 35%, transparent) 0 80px,
+      transparent 81px
+    ),
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--color-iris-medium) 55%, var(--color-surface)),
+      color-mix(in srgb, var(--landing-sky) 40%, var(--color-surface))
+    );
+}
+
+/* With a color of its own (a kid's avatar), the band and the ring of the
+   avatar take it, in the same soft mix as the blue one. */
+.hero[data-colored="true"] .heroBanner {
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      color-mix(in srgb, var(--color-surface) 45%, transparent) 0 60px,
+      transparent 61px
+    ),
+    radial-gradient(
+      circle at 72% 140%,
+      color-mix(in srgb, var(--color-surface) 35%, transparent) 0 80px,
+      transparent 81px
+    ),
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--banner-color) 70%, var(--color-surface)),
+      color-mix(in srgb, var(--banner-color) 30%, var(--color-surface))
+    );
+}
+
+.hero[data-colored="true"] .avatar {
+  background: var(--banner-color);
+  box-shadow: 0 12px 24px -14px color-mix(in srgb, var(--banner-color) 85%, transparent);
+}
+
+.heroRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 0 12px 8px;
 }
 
 .avatar {
   flex: none;
   display: grid;
   place-items: center;
-  position: relative;
-  width: 76px;
-  height: 76px;
+  width: 92px;
+  height: 92px;
+  margin-top: -46px;
+  border: 5px solid var(--color-surface);
   border-radius: 50%;
-  background: var(--color-surface);
-  color: var(--color-iris-deep);
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 1.7rem;
   font-weight: 700;
-  /* A soft ring, then a thin outer one, like the rings of an iris. */
-  box-shadow:
-    0 0 0 5px rgba(255, 255, 255, 0.14),
-    0 0 0 6px rgba(255, 255, 255, 0.35);
+  box-shadow: 0 12px 24px -14px color-mix(in srgb, var(--color-iris-medium) 85%, transparent);
+}
+
+/* A kid's avatar (an image) fills the circle instead of the initials. */
+.avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .heroText {
   min-width: 0;
+  padding-top: 12px;
 }
 
 .eyebrow {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-iris-pale);
+  color: var(--color-iris-medium);
 }
 
 .name {
-  margin: var(--space-1) 0 var(--space-2) 0;
+  margin: 4px 0 10px;
   font-family: var(--font-display);
-  font-size: 1.75rem;
+  font-size: 1.7rem;
+  font-weight: 700;
   line-height: 1.2;
+  color: var(--color-iris-deep);
   overflow-wrap: anywhere;
 }
 
@@ -79,27 +137,33 @@
   font-size: 0.95rem;
 }
 
-/* A quiet see-through pill instead of a loud orange one. */
 .chip {
-  padding: 3px 12px;
+  padding: 4px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
-  color: var(--color-surface);
+  background: var(--color-canvas);
+  color: var(--color-iris-deep);
   font-size: 0.8rem;
   font-weight: 700;
 }
 
 .heroEmail {
-  color: var(--color-iris-pale);
+  color: var(--portal-muted, var(--color-ink-soft));
   overflow-wrap: anywhere;
 }
 
 /* --- Small screens: one column --- */
 @media (max-width: 720px) {
   .hero {
+    padding: 12px;
+  }
+
+  .heroBanner {
+    height: 96px;
+  }
+
+  /* The initials on top and the name under them. */
+  .heroRow {
     flex-direction: column;
-    align-items: flex-start;
-    padding: var(--space-4);
+    gap: 0;
   }
 }

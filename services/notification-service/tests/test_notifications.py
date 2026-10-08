@@ -225,6 +225,59 @@ async def test_reading_and_deleting_count_as_using_the_portal(
     assert fake_identity_client.portal_checks == [False, True, True, False]
 
 
+async def test_deletes_several_at_once_only_the_own_ones(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    guardian_id, token = _guardian(fake_identity_client)
+    other_id, other_token = str(uuid.uuid4()), "token-otro-tutor"
+    fake_identity_client.register(other_token, sub=other_id, role="guardian", session_id="sesion-2")
+    fake_identity_client.open_portals.add((other_id, "sesion-2"))
+    for _ in range(3):
+        await _record(guardian_id=guardian_id)
+    await _record(guardian_id=other_id)
+    mine = [item["id"] for item in (await client.get("/notifications/me", headers=_auth(token))).json()["items"]]
+    theirs = (await client.get("/notifications/me", headers=_auth(other_token))).json()["items"][0]["id"]
+
+    response = await client.post(
+        "/notifications/me/delete",
+        json={"ids": [mine[0], mine[1], mine[1], theirs, str(uuid.uuid4())]},
+        headers=_auth(token),
+    )
+
+    assert response.status_code == 200
+    # Two of mine; the repeated one counts once, the other's and the unknown are left out.
+    assert response.json() == {"deleted": 2}
+    left = (await client.get("/notifications/me", headers=_auth(token))).json()
+    assert [item["id"] for item in left["items"]] == [mine[2]]
+    assert (await client.get("/notifications/me", headers=_auth(other_token))).json()["total"] == 1
+
+
+async def test_deleting_several_needs_some_ids_and_not_too_many(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    _guardian_id, token = _guardian(fake_identity_client)
+
+    empty = await client.post("/notifications/me/delete", json={"ids": []}, headers=_auth(token))
+    too_many = await client.post(
+        "/notifications/me/delete", json={"ids": [str(uuid.uuid4()) for _ in range(51)]}, headers=_auth(token)
+    )
+
+    assert empty.status_code == 422
+    assert too_many.status_code == 422
+
+
+async def test_deleting_several_needs_the_portal_open(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    guardian_id, token = _guardian(fake_identity_client, portal_open=False)
+    await _record(guardian_id=guardian_id)
+
+    response = await client.post("/notifications/me/delete", json={"ids": [str(uuid.uuid4())]}, headers=_auth(token))
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "acceso_portal_requerido"
+
+
 async def test_a_guardian_cannot_touch_the_teacher_copy_of_the_same_event(
     client: AsyncClient, fake_identity_client: FakeIdentityClient
 ) -> None:

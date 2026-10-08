@@ -496,8 +496,9 @@ async def test_avatars_catalog_is_public_and_has_no_storage_urls(client: AsyncCl
     assert response.status_code == 200
     avatars = response.json()
     assert [a["name"] for a in avatars] == ["Violeta", "Coral", "Bosque", "Cielo"]
-    # Only id and name: where the image is stored never reaches the browser.
-    assert set(avatars[0]) == {"id", "name"}
+    # Id, name and color: where the image is stored never reaches the browser.
+    assert set(avatars[0]) == {"id", "name", "accent_color"}
+    assert [a["accent_color"] for a in avatars] == ["#804890", "#c06048", "#68a868", "#70b8f0"]
 
 
 async def test_avatar_image_is_served_without_a_session(client: AsyncClient) -> None:

@@ -42,7 +42,7 @@ interface EyeGesturesInstance {
 
 type EyeGesturesClass = new (
   videoId: string,
-  onGaze: (point: [number, number], calibrated: boolean) => void
+  onGaze: (point: [number, number], calibrated: boolean) => void,
 ) => EyeGesturesInstance;
 
 declare global {

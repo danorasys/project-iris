@@ -177,6 +177,15 @@ class SqlAlchemyUnitRepository:
         )
         return int(result.scalar_one())
 
+    # ix_units_teacher_classroom serves it.
+    async def count_by_teacher(self, teacher_id: UUID) -> dict[UUID, int]:
+        result = await self._session.execute(
+            select(UnitModel.classroom_id, func.count())
+            .where(UnitModel.teacher_id == teacher_id)
+            .group_by(UnitModel.classroom_id)
+        )
+        return {classroom_id: int(count) for classroom_id, count in result.all()}
+
     async def add(self, unit: Unit) -> None:
         self._session.add(
             UnitModel(
@@ -238,6 +247,29 @@ class SqlAlchemyLessonRepository:
             select(func.count()).select_from(LessonModel).where(LessonModel.unit_id == unit_id)
         )
         return int(result.scalar_one())
+
+    # ix_lessons_teacher_classroom_status serves it.
+    async def count_by_teacher(self, teacher_id: UUID) -> dict[UUID, dict[str, int]]:
+        result = await self._session.execute(
+            select(LessonModel.classroom_id, LessonModel.status, func.count())
+            .where(LessonModel.teacher_id == teacher_id)
+            .group_by(LessonModel.classroom_id, LessonModel.status)
+        )
+        counts: dict[UUID, dict[str, int]] = {}
+        for classroom_id, status, count in result.all():
+            counts.setdefault(classroom_id, {})[status] = int(count)
+        return counts
+
+    # ix_lessons_classroom_status serves it: classroom_id + status.
+    async def count_published_by_classrooms(self, classroom_ids: list[UUID]) -> dict[UUID, int]:
+        if not classroom_ids:
+            return {}
+        result = await self._session.execute(
+            select(LessonModel.classroom_id, func.count())
+            .where(LessonModel.classroom_id.in_(classroom_ids), LessonModel.status == STATUS_PUBLISHED)
+            .group_by(LessonModel.classroom_id)
+        )
+        return {classroom_id: int(count) for classroom_id, count in result.all()}
 
     async def list_ids_by_classroom(self, classroom_id: UUID) -> list[UUID]:
         result = await self._session.execute(select(LessonModel.id).where(LessonModel.classroom_id == classroom_id))

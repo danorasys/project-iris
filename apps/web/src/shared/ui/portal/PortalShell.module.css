@@ -1,184 +1,182 @@
-/* The frame both portals share (Portal de Padres and Portal Docente): the
-   blue sidebar with IRIS, the menu and who is signed in, and the content
-   on the right. Moved here from GuardianPortalPage, it looks the same. */
+/* The frame both portals share (Portal Docente and Portal de Padres), after
+   the look of Horizon UI: a clean white menu with the brand centered on top
+   and a bar on the edge of the option you're in, a top bar with the trail
+   and a big title, and a white pill with the bell. No borders anywhere: the
+   white pieces float on the soft blue page with a wide, light shadow. The
+   colors come from :root[data-theme="portal"] in theme.css. */
 
 .page {
   display: flex;
-  /* Fixed height, not min-height: the sidebar and the content pane each
-     scroll independently inside this fixed frame (.content has its own
-     overflow-y below). A min-height here would let .page itself grow past
-     the viewport and scroll too, fighting .content's own scroll and
-     leaving the sidebar looking like it scrolled out of view. */
+  /* Fixed height: the menu and the content each scroll on their own inside
+     it, so the menu never scrolls out of view with the page. */
   height: 100vh;
   height: 100dvh;
   background: var(--color-canvas);
 }
 
-/* Same radial blue as the landing's brand slide, so the portal feels like
-   the rest of IRIS. */
+/* --- The menu --- */
 .sidebar {
-  /* Dark blue behind: the focus ring is white here. */
-  --color-focus: var(--color-surface);
-  position: relative;
   flex: none;
-  width: 272px;
-  overflow-x: hidden;
+  width: 280px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-3);
-  background: radial-gradient(140% 90% at 20% 0%, var(--color-iris-medium) 0%, var(--color-iris-deep) 58%);
-  color: var(--color-surface);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  z-index: 2;
 }
 
+/* IRIS centered, with a thin line under it, like a heading of the menu. */
 .brand {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-2) 0;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 24px;
+  padding: 30px 0 26px;
+  border-bottom: 1px solid var(--portal-line);
 }
 
-/* The same IRIS logo as the landing header. */
 .brandLogo {
   flex: none;
-  width: 58px;
-  height: 58px;
+  width: 42px;
+  height: 42px;
 }
 
 .brandText {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 3px;
 }
 
-/* A bigger, spaced out wordmark, like a brand heading. */
 .brandName {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 2.1rem;
+  font-weight: 700;
+  font-size: 1.5rem;
   line-height: 1;
-  letter-spacing: 0.18em;
-}
-
-/* The bar under the name, as wide as the portal's name below it, so it
-   goes a bit past "IRIS". */
-.brandName::after {
-  content: "";
-  display: block;
-  width: 100%;
-  height: 3px;
-  margin-top: 10px;
-  border-radius: 2px;
-  background: var(--color-iris-pale);
+  letter-spacing: 0.14em;
+  color: var(--color-iris-deep);
 }
 
 .brandLabel {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-iris-pale);
+  color: var(--color-iris-medium);
+}
+
+/* The close button of the drawer, on a small screen only. */
+.brand .iconButton {
+  position: absolute;
+  right: -8px;
+}
+
+.nav,
+.footerNav {
+  display: flex;
+  flex-direction: column;
 }
 
 .nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  padding: 22px 0 0;
 }
 
 .navGroupLabel {
-  padding: 0 var(--space-2) var(--space-1);
-  font-size: 0.72rem;
+  padding: 0 32px 10px;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-iris-pale);
-  opacity: 0.7;
+  color: var(--portal-muted);
 }
 
+/* An option: icon and name, no box around them. */
 .navItem {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 16px;
+  min-height: 48px;
+  padding: 0 32px;
   border: none;
-  border-radius: var(--radius-medium);
   background: transparent;
-  color: var(--color-surface);
-  padding: 7px var(--space-2);
+  color: var(--portal-muted);
   font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.98rem;
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
-  transition:
-    background 150ms ease,
-    transform 150ms ease;
+  transition: color 160ms ease;
 }
 
 .navIcon {
   flex: none;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-small);
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--color-iris-pale);
-  transition:
-    background 150ms ease,
-    color 150ms ease;
+  color: var(--portal-muted);
+  transition: color 160ms ease;
 }
 
 .navLabel {
-  opacity: 0.9;
+  flex: 1;
 }
 
-.navItem:hover {
-  background: rgba(255, 255, 255, 0.08);
-  transform: translateX(2px);
-}
-
+.navItem:hover,
 .navItem:hover .navIcon {
-  color: var(--color-surface);
+  color: var(--color-iris-deep);
+}
+
+/* The section you are in: bold navy name, blue icon and a rounded bar on
+   the right edge of the menu. */
+.navItemActive,
+.navItemActive:hover {
+  color: var(--color-iris-deep);
+  font-weight: 700;
+}
+
+.navItemActive .navIcon {
+  color: var(--color-iris-medium);
+}
+
+.navItem::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 0;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 5px 0 0 5px;
+  background: var(--color-iris-medium);
+  transform: scaleY(0);
+  transition: transform 220ms var(--ease-out);
+}
+
+.navItemActive::after {
+  transform: scaleY(1);
 }
 
 .navItem:focus-visible {
-  outline: 2px solid var(--color-iris-pale);
-  outline-offset: 2px;
+  outline-offset: -3px;
 }
 
-/* The selected option: a soft see-through white with a thin edge, and a
-   solid white box behind the icon, so it stands out without glaring. */
-.navItemActive,
-.navItemActive:hover {
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
-  transform: none;
-}
-
-.navItemActive .navIcon,
-.navItemActive:hover .navIcon {
-  background: var(--color-surface);
-  color: var(--color-iris-deep);
-}
-
-.navItemActive .navLabel {
-  opacity: 1;
-}
-
-/* How many notifications are unread, at the end of its option. */
+/* How many notifications are unread, at the end of its option, in the
+   IRIS blue with a white number. */
 .navBadge {
-  margin-left: auto;
   min-width: 24px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--color-amber);
-  color: var(--color-iris-deep);
-  font-size: 0.78rem;
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+  font-size: 0.75rem;
   font-weight: 800;
   text-align: center;
+}
+
+.navItemDanger:hover,
+.navItemDanger:hover .navIcon {
+  color: var(--color-error);
 }
 
 .visuallyHidden {
@@ -190,46 +188,62 @@
   white-space: nowrap;
 }
 
-.navItemDanger:hover {
-  background: rgba(194, 68, 68, 0.3);
-}
-
-.navItemDanger:hover .navIcon {
-  background: rgba(194, 68, 68, 0.55);
-}
-
-/* Who is signed in, at the bottom, a thin line apart from the menu. */
+/* Cerrar sesión and who is signed in, at the bottom. */
 .account {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding-top: var(--space-3);
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  gap: 12px;
+  padding: 0 0 24px;
 }
 
 .accountCard {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border-radius: var(--radius-medium);
-  background: rgba(255, 255, 255, 0.08);
+  gap: 12px;
+  margin: 0 20px;
+  padding: 14px;
+  border-radius: var(--portal-radius);
+  background: var(--color-canvas);
+  color: var(--color-iris-deep);
+}
+
+/* As a button to "Mi perfil": a bit lighter under the mouse, and the
+   initials get a soft sky ring. */
+.accountLink {
+  width: calc(100% - 40px);
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.accountLink:hover {
+  background: var(--landing-mist-1);
+}
+
+.accountLink:hover .accountInitials {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--landing-sky) 35%, transparent);
+}
+
+.accountLink:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
 }
 
 .accountInitials {
   flex: none;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: var(--color-surface);
-  color: var(--color-iris-deep);
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 0.9rem;
-  box-shadow: 0 0 0 2px var(--color-iris-medium);
+  font-weight: 700;
+  font-size: 0.85rem;
 }
 
 .accountText {
@@ -247,31 +261,245 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.8rem;
-  color: var(--color-iris-pale);
+  font-size: 0.78rem;
+  color: var(--portal-muted);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .navItem,
-  .navIcon {
-    transition: none;
-  }
-
-  .navItem:hover {
-    transform: none;
-  }
-}
-
-.content {
+/* --- The right side: top bar and content --- */
+/* The only part that scrolls. position: relative keeps the hidden texts
+   for screen readers (position: absolute) inside it; without it they are
+   placed against the whole page and make it taller, so a second
+   scrollbar shows up. */
+.main {
+  position: relative;
   flex: 1;
   min-width: 0;
-  padding: var(--space-6) var(--space-5);
   overflow-y: auto;
 }
 
-/* The section that was just picked comes up a little while it fades in, the
-   same move as the save bar and the 2FA dialog. It ends with no transform
-   left, so the dialogs and the toast inside keep their place on screen. */
+/* Floats over the content with a light blur while it scrolls. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 22px 32px 16px;
+  background: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--portal-muted);
+}
+
+.crumbSeparator {
+  opacity: 0.7;
+}
+
+.crumbCurrent {
+  color: var(--color-iris-deep);
+}
+
+/* The big title of the page. */
+.title {
+  margin: 2px 0 0;
+  font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--color-iris-deep);
+}
+
+.description {
+  margin: 4px 0 0;
+  font-size: 0.92rem;
+  color: var(--portal-muted);
+}
+
+.topActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 30px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.bell,
+.iconButton {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--portal-muted);
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.bell:hover,
+.iconButton:hover {
+  background: var(--color-canvas);
+  color: var(--color-iris-deep);
+}
+
+/* The menu button of a small screen sits alone, so it gets its own card. */
+.topbar > .iconButton {
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-iris-deep);
+}
+
+.bellDot {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+  font-size: 0.64rem;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+}
+
+.pillAvatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-iris-deep);
+  color: var(--color-surface);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* The initials of the top bar as a button to "Mi perfil". Under the mouse
+   (or the keyboard's focus) it opens to the left into a soft lavender pill:
+   the name and "Ver mi perfil" slide in next to the initials, the bell moves
+   aside to make room, and the initials turn IRIS blue with a sky ring. */
+.pillProfile {
+  --open-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+  transition:
+    background-color 260ms ease,
+    padding 380ms var(--open-ease),
+    gap 380ms var(--open-ease);
+}
+
+.pillProfileText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  white-space: nowrap;
+  transform: translateX(10px);
+  transition:
+    max-width 420ms var(--open-ease),
+    opacity 240ms ease 60ms,
+    transform 420ms var(--open-ease);
+}
+
+.pillProfileName {
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-iris-deep);
+}
+
+.pillProfileHint {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--color-iris-medium);
+}
+
+.pillProfile .pillAvatar {
+  transition:
+    background-color 260ms ease,
+    box-shadow 260ms ease,
+    transform 380ms var(--open-ease);
+}
+
+.pillProfile:hover,
+.pillProfile:focus-visible {
+  gap: 10px;
+  padding-left: 14px;
+  background: var(--color-canvas);
+}
+
+.pillProfile:hover .pillProfileText,
+.pillProfile:focus-visible .pillProfileText {
+  max-width: 180px;
+  opacity: 1;
+  transform: none;
+}
+
+.pillProfile:hover .pillAvatar,
+.pillProfile:focus-visible .pillAvatar {
+  background: var(--color-iris-medium);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--landing-sky) 35%, transparent);
+  transform: scale(1.04);
+}
+
+.pillProfile:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+.content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 8px 32px 40px;
+}
+
+/* The section that was just picked comes up a little while it fades in. It
+   ends with no transform left, so the dialogs and the toast inside keep
+   their place on screen. */
 .sectionEnter {
   animation: section-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -279,7 +507,7 @@
 @keyframes section-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -287,72 +515,82 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .sectionEnter {
-    animation: none;
-  }
+/* --- Small screens: the menu becomes a drawer from the left --- */
+.scrim {
+  display: none;
 }
 
-@media (max-width: 720px) {
-  .page {
-    flex-direction: column;
-  }
-
+@media (max-width: 960px) {
   .sidebar {
-    width: 100%;
-    flex-direction: row;
-    align-items: center;
-    overflow-x: auto;
-    overflow-y: hidden;
-    gap: var(--space-3);
-    padding: var(--space-2) var(--space-3);
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 30;
+    width: min(300px, 86vw);
+    box-shadow: var(--shadow-lift);
+    transform: translateX(-102%);
+    visibility: hidden;
+    transition:
+      transform 280ms var(--ease-out),
+      visibility 0s linear 280ms;
   }
 
-  .brandLabel,
-  .navGroupLabel,
-  .navLabel,
-  .accountCard {
-    display: none;
-  }
-
-  .brand {
-    flex: none;
-    padding: 0;
-  }
-
-  .brandName {
-    font-size: 1.2rem;
-    letter-spacing: 0.1em;
-  }
-
-  .brandName::after {
-    display: none;
-  }
-
-  .brandLogo {
-    width: 34px;
-    height: 34px;
-  }
-
-  .nav {
-    flex-direction: row;
-    gap: var(--space-1);
-  }
-
-  .navItem {
-    padding: var(--space-1);
-  }
-
-  .navItem:hover {
+  .sidebarOpen {
     transform: none;
+    visibility: visible;
+    transition: transform 280ms var(--ease-out);
   }
 
-  /* The card of who is signed in doesn't fit in the row. */
-  .account {
-    display: none;
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    border: none;
+    background: color-mix(in srgb, var(--color-iris-deep) 38%, transparent);
+    animation: scrim-in 200ms ease;
+  }
+
+  .topbar {
+    padding: 14px 16px 12px;
   }
 
   .content {
-    padding: var(--space-4);
+    padding: 4px 16px 32px;
+  }
+}
+
+/* On a phone the pill keeps only the bell: who is signed in is in the menu. */
+@media (max-width: 640px) {
+  .pillAvatar {
+    display: none;
+  }
+
+  .pill {
+    padding: 4px;
+  }
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navItem,
+  .navIcon,
+  .navItem::after,
+  .sidebar,
+  .sidebarOpen,
+  .accountLink,
+  .pillProfile,
+  .pillProfileText,
+  .pillProfile .pillAvatar {
+    transition: none;
+  }
+
+  .sectionEnter,
+  .scrim {
+    animation: none;
   }
 }

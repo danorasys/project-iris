@@ -14,8 +14,8 @@ import httpx
 from cachetools import TTLCache
 
 from app.correlation import get_correlation_id
-from app.domain.entities import StudentInfo, UserClaims
-from app.domain.exceptions import IdentityServiceUnavailable, ResourceNotFound, InvalidToken
+from app.domain.entities import GuardianStudent, StudentInfo, UserClaims
+from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken, PortalAccessRequired, ResourceNotFound
 from app.infrastructure.http_clients.circuit_breaker import CircuitAbiertoError, CircuitBreaker
 
 
@@ -118,6 +118,53 @@ class IdentityHttpClient:
 
         body = response.json()
         return f"{body['first_name']} {body['last_name']}"
+
+    async def list_guardian_students(self, guardian_id: UUID) -> list[GuardianStudent]:
+        headers = self._headers()
+        try:
+            response = await self._breaker.llamar(
+                lambda: self._get(f"/internal/guardians/{guardian_id}/students", headers)
+            )
+        except (httpx.HTTPError, CircuitAbiertoError) as exc:
+            raise IdentityServiceUnavailable() from exc
+
+        # Not a guardian (or gone): no kids to show.
+        if response.status_code == 404:
+            return []
+        if response.status_code != 200:
+            raise IdentityServiceUnavailable()
+        return [
+            GuardianStudent(
+                student_id=UUID(str(item["student_id"])),
+                first_name=str(item["first_name"]),
+                avatar_id=int(item["avatar_id"]),
+            )
+            for item in response.json()
+        ]
+
+    # No cache here: the portal closes after a while without use, and a
+    # cached "open" would keep it open longer than identity-service says.
+    async def check_portal_access(self, person_id: UUID, session_id: str, renew: bool) -> None:
+        async def _post() -> httpx.Response:
+            response = await self._client.post(
+                f"{self._base_url}/internal/portal-access/check",
+                json={"person_id": str(person_id), "session_id": session_id, "renew": renew},
+                headers=self._headers(),
+            )
+            if response.status_code >= 500:
+                response.raise_for_status()
+            return response
+
+        try:
+            response = await self._breaker.llamar(_post)
+        except (httpx.HTTPError, CircuitAbiertoError) as exc:
+            raise IdentityServiceUnavailable() from exc
+
+        # A clean "closed" is an answer, not a failure of identity-service.
+        if response.status_code == 403:
+            raise PortalAccessRequired()
+        if response.status_code != 204:
+            raise IdentityServiceUnavailable()
 
     async def aclose(self) -> None:
         await self._client.aclose()

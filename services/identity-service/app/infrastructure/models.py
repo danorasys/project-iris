@@ -162,6 +162,9 @@ class AvatarModel(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
     image_key: Mapped[str] = mapped_column(Text)
+    # Its main color, "#rrggbb": the parents' portal paints the kid's banner
+    # with it (migration 0019).
+    accent_color: Mapped[str] = mapped_column(String(7))
 
 
 # Which conditions each kid has: one row per kid and condition. The pair is

@@ -11,7 +11,13 @@ describe("ConfirmDialog", () => {
     const onAccept = vi.fn();
     const user = userEvent.setup({ delay: null });
     render(
-      <ConfirmDialog message="¿Seguro?" acceptLabel="Sí" cancelLabel="Cancelar" onAccept={onAccept} onCancel={onCancel} />,
+      <ConfirmDialog
+        message="¿Seguro?"
+        acceptLabel="Sí"
+        cancelLabel="Cancelar"
+        onAccept={onAccept}
+        onCancel={onCancel}
+      />,
     );
 
     expect(screen.getByRole("dialog", { name: "¿Seguro?" })).toBeTruthy();

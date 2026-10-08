@@ -6,11 +6,12 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from app.domain.entities import SignedDownload, StudentInfo, UserClaims
+from app.domain.entities import GuardianStudent, SignedDownload, StudentInfo, UserClaims
 from app.domain.exceptions import (
     ContentServiceUnavailable,
     IdentityServiceUnavailable,
     InvalidToken,
+    PortalAccessRequired,
     ResourceNotFound,
     StorageFull,
 )
@@ -26,6 +27,12 @@ class FakeIdentityGateway:
         self.renews: list[bool] = []
         # The guardian of every student registered here.
         self.guardian_person_id = uuid4()
+        # The kids of each guardian registered with registrar_tutor_con_peques.
+        self._guardian_students: dict[UUID, list[GuardianStudent]] = {}
+        # Whether the guardians have the parents' portal open, and the
+        # renew of each check, in order.
+        self.portal_open = True
+        self.portal_renews: list[bool] = []
 
     # The teacher comes from a session that already passed the 2FA code,
     # unless verificado=False.
@@ -60,6 +67,31 @@ class FakeIdentityGateway:
         token = f"token-tutor-{uuid4().hex}"
         self._tokens[token] = UserClaims(sub=uuid4(), role="guardian", extra={})
         return token
+
+    # A guardian signed in from a session ("sid"), with these kids.
+    def registrar_tutor_con_peques(self, *student_ids: UUID, sid: str | None = "sesion-tutor") -> tuple[str, UUID]:
+        guardian_id = uuid4()
+        token = f"token-tutor-{uuid4().hex}"
+        self._tokens[token] = UserClaims(sub=guardian_id, role="guardian", extra={"sid": sid} if sid else {})
+        self._guardian_students[guardian_id] = [
+            GuardianStudent(
+                student_id=s,
+                first_name=self._students[s].first_name if s in self._students else "Peque",
+                avatar_id=1,
+            )
+            for s in student_ids
+        ]
+        return token, guardian_id
+
+    async def list_guardian_students(self, guardian_id: UUID) -> list[GuardianStudent]:
+        if self.fallar_con_no_disponible:
+            raise IdentityServiceUnavailable()
+        return self._guardian_students.get(guardian_id, [])
+
+    async def check_portal_access(self, person_id: UUID, session_id: str, renew: bool) -> None:
+        self.portal_renews.append(renew)
+        if not self.portal_open:
+            raise PortalAccessRequired()
 
     async def validar_token(self, access_token: str, renew: bool = True) -> UserClaims:
         self.renews.append(renew)
@@ -112,8 +144,15 @@ class FakeContentGateway:
         # Classrooms whose lessons were deleted, in order.
         self.deleted: list[UUID] = []
         self.unavailable = False
+        # Published lessons of each classroom, for the parents' portal.
+        self.published: dict[UUID, int] = {}
 
     async def delete_classroom_lessons(self, classroom_id: UUID) -> None:
         if self.unavailable:
             raise ContentServiceUnavailable()
         self.deleted.append(classroom_id)
+
+    async def published_lessons(self, classroom_ids: list[UUID]) -> dict[UUID, int]:
+        if self.unavailable:
+            raise ContentServiceUnavailable()
+        return {c: self.published.get(c, 0) for c in classroom_ids}

@@ -22,7 +22,7 @@ import heroTeacher from "@/assets/landing/hero-teacher.jpg";
 import badgeFamily from "@/assets/landing/badge-family.png";
 import badgeStudents from "@/assets/landing/badge-students.png";
 import badgeTeachers from "@/assets/landing/badge-teachers.png";
-import { IrisRings } from "./IrisRings";
+import { IrisRings } from "@/shared/ui/IrisRings";
 import { REGISTER_LINK } from "./landingLinks";
 import { useReveal } from "./useReveal";
 import { turn } from "./turn";

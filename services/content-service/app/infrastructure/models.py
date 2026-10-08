@@ -35,7 +35,11 @@ def _utcnow() -> datetime:
 
 class UnitModel(Base):
     __tablename__ = "units"
-    __table_args__ = (Index("ix_units_classroom_order", "classroom_id", "order_index"),)
+    __table_args__ = (
+        Index("ix_units_classroom_order", "classroom_id", "order_index"),
+        # the units of one teacher by classroom, for the Inicio (migration 0005)
+        Index("ix_units_teacher_classroom", "teacher_id", "classroom_id"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=_uuid4)
     classroom_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True))
@@ -54,12 +58,14 @@ class LessonModel(Base):
         Index("ix_lessons_classroom_status", "classroom_id", "status"),
         # the lessons of a unit, in their order
         Index("ix_lessons_unit_order", "unit_id", "order_index"),
+        # the lessons of one teacher by classroom and status, for the Inicio (0005)
+        Index("ix_lessons_teacher_classroom_status", "teacher_id", "classroom_id", "status"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=_uuid4)
     # No index=True here: ix_lessons_classroom_teacher already covers lookups by
-    # classroom_id alone (leftmost column of the composite), and teacher_id is
-    # never filtered on its own.
+    # classroom_id alone (leftmost column of the composite), and the counts by
+    # teacher use ix_lessons_teacher_classroom_status.
     classroom_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True))
     teacher_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True))
     # RESTRICT: a unit with lessons can't be deleted (UnitNotEmpty).

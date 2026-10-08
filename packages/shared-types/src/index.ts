@@ -56,6 +56,8 @@ export interface Avatar {
   /** The image is at `avatarImageUrl(id)`, see mediaPaths.ts. */
   id: number;
   name: string;
+  /** Its main color, "#rrggbb": the kid's banner is painted with it. */
+  accent_color: string;
 }
 
 export interface GuardianRegistrationRequest {
@@ -321,6 +323,30 @@ export interface Classroom {
 export interface TeacherClassroom extends Classroom {
   /** Join requests waiting for the teacher's answer. */
   pending_requests: number;
+  /** Students already in the classroom (accepted requests). */
+  student_count: number;
+}
+
+/** One classroom of a guardian's kid, for the Inicio of the parents' portal
+ * (`GET /classrooms/family`). No code to join and no logo: the avatar is the
+ * initials on the classroom's color. */
+export interface FamilyClassroom {
+  enrollment_id: string;
+  student_id: string;
+  student_first_name: string;
+  /** "pendiente" while the teacher hasn't answered, "aceptada" once in. */
+  status: "pendiente" | "aceptada";
+  requested_at: string;
+  classroom_id: string;
+  name: string;
+  description: string;
+  color: ClassroomColor;
+  area: ClassroomArea | null;
+  area_other: string | null;
+  grade: number | null;
+  /** null when the service that knows it didn't answer. */
+  teacher_name: string | null;
+  published_lessons: number | null;
 }
 
 export interface ClassroomMember {
@@ -356,6 +382,15 @@ export interface Unit {
   title: string;
   guiding_question: string;
   order_index: number;
+}
+
+/** `GET /content/teachers/me/content-summary`: what the teacher has built in
+ * one classroom. Classrooms with nothing yet don't come in the list. */
+export interface ClassroomContentSummary {
+  classroom_id: string;
+  units: number;
+  published_lessons: number;
+  draft_lessons: number;
 }
 
 /** `GET /content/classrooms/{id}/units`: each unit with its lessons, in order. */

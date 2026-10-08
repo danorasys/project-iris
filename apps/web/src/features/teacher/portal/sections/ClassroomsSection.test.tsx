@@ -23,6 +23,7 @@ const math: TeacherClassroom = {
   enrollment_code: "1234567",
   created_at: "2026-10-04T10:00:00Z",
   pending_requests: 2,
+  student_count: 0,
 };
 
 const detail: ClassroomWithStudents = {
@@ -69,6 +70,10 @@ vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
 }));
 
 vi.mock("@/shared/api/hooks/useLessonsApi", () => ({
+  useContentSummary: () => ({
+    data: [{ classroom_id: "c1", units: 1, published_lessons: 3, draft_lessons: 1 }],
+    isLoading: false,
+  }),
   useClassroomUnits: () => ({ data: [], isLoading: false, isError: false }),
   useReorderUnits: () => ({ mutate: vi.fn(), isPending: false }),
   useReorderLessons: () => ({ mutate: vi.fn(), isPending: false }),
@@ -89,7 +94,8 @@ function renderSection() {
 afterEach(() => {
   cleanup();
   classrooms = [math];
-  for (const mock of [createClassroom, updateClassroom, deleteClassroom, removeStudent, resolveRequest]) mock.mockReset();
+  for (const mock of [createClassroom, updateClassroom, deleteClassroom, removeStudent, resolveRequest])
+    mock.mockReset();
 });
 
 describe("Mis clases", { timeout: 20_000 }, () => {
@@ -101,6 +107,8 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     expect(within(card).getByText("2")).toBeTruthy();
     expect(within(card).getByText("Matemáticas · 2.°")).toBeTruthy();
     expect(screen.getByText("2 solicitudes pendientes")).toBeTruthy();
+    expect(within(card).getByText("3")).toBeTruthy();
+    expect(within(card).getByText("Lecciones")).toBeTruthy();
   });
 
   it("asks for the name and description before creating a classroom", async () => {
@@ -126,7 +134,8 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     expect(document.activeElement).toBe(screen.getByLabelText(/^Nombre de la clase/));
     await user.type(screen.getByLabelText(/^Nombre de la clase/), "  Ciencias  ");
     await user.type(screen.getByLabelText(/^Descripción/), "Plantas y animales");
-    await user.selectOptions(screen.getByLabelText(/^Área/), "natural_sciences");
+    await user.click(screen.getByRole("combobox", { name: /^Área/ }));
+    await user.click(screen.getByRole("option", { name: "Ciencias naturales y educación ambiental" }));
     await user.click(screen.getByRole("radio", { name: "3.°" }));
     await user.click(screen.getByRole("radio", { name: "Amarillo" }));
     await user.click(screen.getByRole("button", { name: "Crear clase" }));
@@ -142,6 +151,22 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     expect(await screen.findByText("La clase se creó.")).toBeTruthy();
     // It opens the new classroom's space.
     expect(screen.getByRole("button", { name: "Regresar a mis clases" })).toBeTruthy();
+  });
+
+  it("keeps the color of the class apart from the avatar, also with an own image", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderSection();
+
+    await user.click(screen.getByRole("button", { name: "Nueva clase" }));
+    const colors = screen.getByRole("radiogroup", { name: "Color de la clase" });
+    await user.click(screen.getByRole("radio", { name: "Imagen propia" }));
+
+    // The band of the card still takes the color, so it can still be picked.
+    expect(within(colors).getByRole("radio", { name: "Verde" })).toBeTruthy();
+    await user.click(within(colors).getByRole("radio", { name: "Verde" }));
+    expect(within(colors).getByRole("radio", { name: "Verde" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByText("Pinta la franja de arriba de la tarjeta de la clase.")).toBeTruthy();
+    expect(screen.getByRole("radiogroup", { name: "Avatar" })).toBeTruthy();
   });
 
   it("shows the card of the new class while it's filled in, and the X closes it", async () => {
@@ -173,7 +198,8 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     await user.click(screen.getByRole("button", { name: "Nueva clase" }));
     await user.type(screen.getByLabelText(/^Nombre de la clase/), "Coro");
     await user.type(screen.getByLabelText(/^Descripción/), "Canciones");
-    await user.selectOptions(screen.getByLabelText(/^Área/), "other");
+    await user.click(screen.getByRole("combobox", { name: /^Área/ }));
+    await user.click(screen.getByRole("option", { name: "Otra" }));
     await user.click(screen.getByRole("radio", { name: "2.°" }));
     await user.click(screen.getByRole("button", { name: "Crear clase" }));
 
@@ -190,7 +216,7 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     );
   });
 
-  it("opens a classroom with its options and goes back", async () => {
+  it("opens a classroom with its options, like a kid's space, and goes back", async () => {
     const user = userEvent.setup({ delay: null });
     renderSection();
 
@@ -199,8 +225,10 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     for (const option of ["Miembros", "Unidades y lecciones", "Mensajes", "Estadísticas"]) {
       expect(screen.getByRole("button", { name: new RegExp(`^${option}`) })).toBeTruthy();
     }
-    expect(screen.getByRole("button", { name: "Regresar Volver a mis clases" })).toBeTruthy();
     expect(screen.getByText("Código de ingreso: 1234567")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /^Mensajes/ }));
+    expect(screen.getByText(/Pronto podrás escribirle a un estudiante/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Regresar a la clase" }));
     await user.click(screen.getByRole("button", { name: "Regresar a mis clases" }));
     expect(screen.getByRole("button", { name: "Nueva clase" })).toBeTruthy();
   });

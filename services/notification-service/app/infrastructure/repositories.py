@@ -83,3 +83,13 @@ class SqlAlchemyNotificationRepository:
 
     async def delete(self, notification_id: UUID) -> None:
         await self._session.execute(delete(NotificationModel).where(NotificationModel.id == notification_id))
+
+    async def delete_owned(self, notification_ids: list[UUID], recipient_id: UUID, recipient_role: str) -> int:
+        result = await self._session.execute(
+            delete(NotificationModel).where(
+                NotificationModel.id.in_(notification_ids),
+                NotificationModel.recipient_id == recipient_id,
+                NotificationModel.recipient_role == recipient_role,
+            )
+        )
+        return int(getattr(result, "rowcount", 0) or 0)

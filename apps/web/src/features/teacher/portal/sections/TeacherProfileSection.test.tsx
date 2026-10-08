@@ -11,7 +11,9 @@ const changePassword = vi.fn();
 
 const saved: TeacherProfile = {
   about: "Docente de primaria hace 8 años.",
-  studies: [{ level: "professional", title: "Licenciatura", institution: "UPB", end_month: "2015-11", in_progress: false }],
+  studies: [
+    { level: "professional", title: "Licenciatura", institution: "UPB", end_month: "2015-11", in_progress: false },
+  ],
   experiences: [],
 };
 
@@ -309,7 +311,13 @@ describe("TeacherProfileSection", { timeout: 20_000 }, () => {
     expect(saveProfile).toHaveBeenCalledWith({
       ...saved,
       experiences: [
-        { role: "Docente de matemáticas", place: "Colegio San José", start_month: "2016-02", end_month: null, description: null },
+        {
+          role: "Docente de matemáticas",
+          place: "Colegio San José",
+          start_month: "2016-02",
+          end_month: null,
+          description: null,
+        },
       ],
     });
     expect(await screen.findByText("Tus datos se guardaron correctamente.")).toBeTruthy();
@@ -322,7 +330,11 @@ describe("TeacherProfileSection", { timeout: 20_000 }, () => {
 
     await user.click(screen.getByRole("button", { name: "Agregar una experiencia" }));
     const job = screen.getByText("Experiencia 1").closest("li") as HTMLElement;
-    expect(within(job).getByLabelText(/^Cargo/).getAttribute("placeholder")).toBeNull();
+    expect(
+      within(job)
+        .getByLabelText(/^Cargo/)
+        .getAttribute("placeholder"),
+    ).toBeNull();
     expect(within(job).getByLabelText(/^Descripción/)).toBeTruthy();
     await user.selectOptions(within(job).getByLabelText("Desde: mes"), "5");
     await user.type(within(job).getByLabelText("Desde: año"), "2020");

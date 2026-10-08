@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, status
 from app.api.deps import get_lesson_service, get_unit_service, require_role
 from app.api.mappers import lesson_detail_response, lesson_response, unit_response, unit_with_lessons_response
 from app.api.schemas import (
+    ClassroomContentSummaryResponse,
     CreateLessonRequest,
     CreateUnitRequest,
     LessonDetailResponse,
@@ -30,6 +31,23 @@ TeacherUser = Annotated[ValidatedUser, Depends(require_role("teacher"))]
 ReaderUser = Annotated[ValidatedUser, Depends(require_role("teacher", "student"))]
 Units = Annotated[UnitService, Depends(get_unit_service)]
 Lessons = Annotated[LessonService, Depends(get_lesson_service)]
+
+
+@router.get("/teachers/me/content-summary", response_model=list[ClassroomContentSummaryResponse])
+async def content_summary(user: TeacherUser, units: Units) -> list[ClassroomContentSummaryResponse]:
+    """How many units and lessons (published and drafts) the teacher has in
+    each of their classrooms, for the Inicio of the portal. Classrooms with
+    nothing built yet aren't listed."""
+    result = await units.content_summary(user)
+    return [
+        ClassroomContentSummaryResponse(
+            classroom_id=item.classroom_id,
+            units=item.units,
+            published_lessons=item.published_lessons,
+            draft_lessons=item.draft_lessons,
+        )
+        for item in result
+    ]
 
 
 @router.get("/classrooms/{classroom_id}/units", response_model=list[UnitWithLessonsResponse])

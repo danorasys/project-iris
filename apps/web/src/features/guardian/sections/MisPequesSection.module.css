@@ -15,85 +15,12 @@
   color: var(--color-error);
 }
 
-/* --- Header, the same blue band as Mi perfil --- */
-.hero {
-  /* Dark blue behind: the focus ring is white here. */
-  --color-focus: var(--color-surface);
-  display: flex;
+/* In a kid's banner, the pill of the requests still waiting, in blue. */
+.waitingChip {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  border-radius: var(--radius-large);
-  background: radial-gradient(130% 180% at 0% 0%, var(--color-iris-medium) 0%, var(--color-iris-deep) 62%);
-  color: var(--color-surface);
-  box-shadow:
-    var(--shadow-card),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-/* White circle with two soft rings around it, like the rings of an iris.
-   It holds an icon in the list and the kid's avatar in their own space. */
-.heroBadge {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--color-surface);
-  color: var(--color-iris-deep);
-  box-shadow:
-    0 0 0 5px rgba(255, 255, 255, 0.14),
-    0 0 0 6px rgba(255, 255, 255, 0.35);
-}
-
-.heroBadge img {
-  width: 100%;
-  height: 100%;
-}
-
-/* Around the kid's avatar the border is solid white. The see-through rings
-   looked grey next to the colors of the avatar. */
-.heroAvatar {
-  box-shadow: 0 0 0 4px var(--color-surface);
-}
-
-.heroText {
-  min-width: 0;
-}
-
-.eyebrow {
-  margin: 0;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-iris-pale);
-}
-
-.heroTitle {
-  margin: var(--space-1) 0 var(--space-2) 0;
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
-.heroMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: 0;
-}
-
-.chip {
-  padding: 3px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
-  font-size: 0.8rem;
-  font-weight: 700;
+  gap: 5px;
+  color: var(--color-iris-medium);
 }
 
 /* The profiles go on a white card, the same as the cards of Mi perfil, so
@@ -109,159 +36,169 @@
   box-shadow: var(--shadow-soft);
 }
 
-/* --- One card per kid --- */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--space-4);
+/* --- The kids as an organized list, like a table: gray headings on top,
+   a row per kid split by thin lines, lavender under the mouse --- */
+.kidList {
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.studentCard {
-  display: flex;
-  flex-direction: column;
+/* The same columns for the headings and every row. The last one holds the
+   arrow of each row and, on the headings, the button to add a kid. */
+.kidHead,
+.kidRow {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 190px;
   align-items: center;
-  gap: var(--space-1);
+  gap: 16px;
+}
+
+.kidHead {
+  padding: 0 14px 12px;
+  border-bottom: 1px solid var(--color-iris-pale);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.kidList li + li .kidRow {
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.kidHead + li .kidRow {
+  border-top: none;
+}
+
+.kidRow {
   width: 100%;
-  padding: var(--space-5) var(--space-4) var(--space-4);
-  /* A firmer border and a raised shadow, so each kid's card stands out on
-     the white panel. */
-  border: 1px solid color-mix(in srgb, var(--color-iris-medium) 35%, var(--color-surface));
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  min-height: 72px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
   font: inherit;
+  text-align: left;
   cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
+  transition: background-color 160ms ease;
 }
 
-.studentCard:hover {
-  border-color: var(--color-iris-medium);
-  box-shadow: var(--shadow-lift);
-  transform: translateY(-3px);
+.kidRow:hover {
+  background: var(--color-canvas);
 }
 
-.studentCard:focus-visible,
+.kidRow:focus-visible,
 .optionCard:focus-visible,
 .backButton:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 
-/* Each card fills its cell, so they all end up the same height. */
-.grid li {
+.kidName {
+  min-width: 0;
   display: flex;
-}
-
-/* The card to add a kid: same size as the others, but dashed and without
-   a white fill, so it reads as an empty spot. */
-.addCard {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  width: 100%;
-  padding: var(--space-5) var(--space-4) var(--space-4);
-  border: 2px dashed var(--color-iris-medium);
-  border-radius: var(--radius-large);
-  background: transparent;
-  font: inherit;
-  cursor: pointer;
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
+  gap: 14px;
 }
 
-/* It lifts like the other cards, fills in white and the plus turns a bit. */
-.addCard:hover {
-  background: var(--color-surface);
-  border-color: var(--color-iris-deep);
-  box-shadow: var(--shadow-card);
-  transform: translateY(-3px);
-}
-
-.addCard:hover .addIcon {
-  background: var(--color-iris-deep);
-  color: var(--color-surface);
-  transform: rotate(90deg) scale(1.06);
-}
-
-.addCard:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 3px;
-}
-
-/* Same size as an avatar with its rings. */
-.addIcon {
-  display: grid;
-  place-items: center;
-  width: 88px;
-  height: 88px;
-  margin-bottom: var(--space-3);
-  border-radius: 50%;
-  background: var(--color-iris-pale);
-  color: var(--color-iris-deep);
-  transition:
-    background 160ms ease,
-    color 160ms ease,
-    transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.addTitle {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-iris-deep);
-}
-
-/* The same two rings as the header, in the pale blue of the cards. */
+/* The avatar with a white ring and a soft shadow, like the kids in Inicio. */
 .avatarRing {
+  flex: none;
   display: grid;
   place-items: center;
-  margin-bottom: var(--space-3);
   border-radius: 50%;
   box-shadow:
-    0 0 0 5px var(--color-iris-pale),
-    0 0 0 6px var(--color-iris-medium);
+    0 0 0 3px var(--color-surface),
+    var(--shadow-soft);
+}
+
+.kidNameText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .studentName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--color-iris-deep);
-  overflow-wrap: anywhere;
 }
 
-.studentAge {
-  font-size: 0.9rem;
+.kidMobileMeta,
+.kidMobileMeta.studentWaiting {
+  display: none;
+  font-size: 0.84rem;
   color: var(--color-ink-soft);
 }
 
-.studentAction {
+.kidCell {
+  font-size: 0.92rem;
+  color: var(--color-ink);
+}
+
+.kidNone {
+  color: var(--color-ink-soft);
+}
+
+.studentWaiting {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  align-self: stretch;
-  justify-content: center;
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-iris-pale);
-  font-size: 0.9rem;
+  gap: 5px;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--color-iris-medium);
 }
 
-.studentCard:hover .studentAction {
-  color: var(--color-iris-deep);
+.studentChevron {
+  justify-self: end;
+  color: var(--color-ink-soft);
+  transition:
+    transform 160ms ease,
+    color 160ms ease;
+}
+
+.kidRow:hover .studentChevron {
+  color: var(--color-iris-medium);
+  transform: translateX(3px);
+}
+
+/* "Agregar estudiante", on the right of the headings: a soft lavender
+   button like "Ver todos" of the panels, lighter under the mouse. */
+.addButton {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  cursor: default;
+  transition: background-color 160ms ease;
+}
+
+.addButton:hover {
+  background: var(--landing-mist-1);
+}
+
+.addButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 /* --- No kids yet --- */
@@ -289,8 +226,7 @@
   color: var(--color-iris-deep);
 }
 
-.emptyTitle,
-.comingSoonTitle {
+.emptyTitle {
   margin: 0;
   font-family: var(--font-display);
   font-size: 1.1rem;
@@ -298,8 +234,7 @@
   color: var(--color-iris-deep);
 }
 
-.emptyText,
-.comingSoonText {
+.emptyText {
   margin: 0;
   color: var(--color-ink-soft);
   line-height: 1.5;
@@ -386,21 +321,36 @@
   transform: translateX(3px);
 }
 
-/* A section that isn't built yet, said plainly. */
-.comingSoon {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-large);
-  background: var(--color-canvas);
-}
-
 @media (max-width: 720px) {
-  .hero {
-    flex-direction: column;
-    align-items: flex-start;
+  /* On a phone: no headings or columns, the details go under the name.
+     The button to add a kid stays, on the right. */
+  .kidHead {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .kidHead > span {
+    display: none;
+  }
+
+  .kidRow {
+    grid-template-columns: minmax(0, 1fr) 24px;
+  }
+
+  .kidRow > .kidCell {
+    display: none;
+  }
+
+  .kidMobileMeta {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .kidMobileMeta.studentWaiting {
+    display: inline-flex;
+    font-size: 0.8rem;
   }
 
   .options {
@@ -409,17 +359,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .studentCard,
-  .addCard,
-  .addIcon,
+  .kidRow,
+  .studentChevron,
+  .addButton,
   .optionCard,
   .optionArrow {
     transition: none;
   }
 
-  .studentCard:hover,
-  .addCard:hover,
-  .addCard:hover .addIcon,
+  .kidRow:hover .studentChevron,
   .optionCard:hover .optionArrow {
     transform: none;
   }

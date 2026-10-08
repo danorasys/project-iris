@@ -7,7 +7,7 @@ from pathlib import Path
 
 os.environ.setdefault("DATABASE_URL", f"sqlite+aiosqlite:///{Path(__file__).parent}/test_{uuid.uuid4().hex}.db")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
-os.environ.setdefault("JWT_SECRET", "test-secret")
+os.environ.setdefault("JWT_SECRET", "test-secret-test-secret-test-secret-32b")
 os.environ.setdefault("INTERNAL_SERVICE_KEY", "test-internal-key")
 os.environ.setdefault("WEB_ORIGIN", "http://localhost:5173")
 # The tests call this service directly, without the gateway's /api/identity.
@@ -90,10 +90,10 @@ async def _prepare_database() -> AsyncIterator[None]:
         await conn.execute(
             AvatarModel.__table__.insert(),
             [
-                {"name": "Violeta", "image_key": "avatars/avatar-1.png"},
-                {"name": "Coral", "image_key": "avatars/avatar-2.png"},
-                {"name": "Bosque", "image_key": "avatars/avatar-3.png"},
-                {"name": "Cielo", "image_key": "avatars/avatar-4.png"},
+                {"name": "Violeta", "image_key": "avatars/avatar-1.png", "accent_color": "#804890"},
+                {"name": "Coral", "image_key": "avatars/avatar-2.png", "accent_color": "#c06048"},
+                {"name": "Bosque", "image_key": "avatars/avatar-3.png", "accent_color": "#68a868"},
+                {"name": "Cielo", "image_key": "avatars/avatar-4.png", "accent_color": "#70b8f0"},
             ],
         )
     yield

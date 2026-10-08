@@ -177,7 +177,7 @@ function LoginForm({
                 </p>
             )}
             <TextField
-                id="adulto-login-correo"
+                id="adult-login-email"
                 label="Correo electrónico"
                 type="email"
                 value={email}
@@ -193,7 +193,7 @@ function LoginForm({
             />
             <div className={styles.fieldWithLink}>
                 <TextField
-                    id="adulto-login-password"
+                    id="adult-login-password"
                     label="Contraseña"
                     type="password"
                     value={password}

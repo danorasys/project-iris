@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./IrisRings.module.css";
 
 // The rings of an iris, like the ones in the logo, drawn very faint behind
-// the dark parts of the page. Three of them turn slowly, each at its own
+// the dark parts of the landing and the welcome of the portals. Three of
+// them turn slowly, each at its own
 // pace; the dotted ones stay still (turning them wouldn't show anyway).
 const RINGS = [
   { r: 120, dash: "2 10", width: 2, speed: "" },
@@ -22,7 +23,8 @@ export function IrisRings({ className }: { className?: string }) {
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    // Without the observer (an old browser, the tests) they just stay still.
+    if (!el || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(([entry]) => setOnScreen(entry.isIntersecting));
     observer.observe(el);
     return () => observer.disconnect();

@@ -34,7 +34,7 @@ def test_un_token_emitido_se_puede_leer(issuer: JwtTokenIssuer) -> None:
 
 def test_un_token_firmado_con_otra_clave_se_rechaza(issuer: JwtTokenIssuer) -> None:
     now = datetime.now(timezone.utc)
-    token = _sign({"sub": "x", "iat": now, "exp": now + timedelta(minutes=5)}, key="otra-clave-distinta-de-la-real")
+    token = _sign({"sub": "x", "iat": now, "exp": now + timedelta(minutes=5)}, key="another-key-that-is-not-the-real-one")
 
     with pytest.raises(InvalidToken):
         issuer.decodificar(token)

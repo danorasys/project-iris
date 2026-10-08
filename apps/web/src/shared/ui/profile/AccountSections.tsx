@@ -134,7 +134,7 @@ export function SecurityCard({ changePassword }: { changePassword: PasswordChang
 
   return (
     <Card
-      id="perfil-seguridad"
+      id="profile-security"
       icon={<IconKey width={20} height={20} />}
       title="Seguridad"
       hint="Aquí gestionas la seguridad de tu cuenta: puedes cambiar la contraseña con la que inicias sesión en IRIS y cerrar tus sesiones abiertas en todos los dispositivos si notas algo extraño. Para cambiar la contraseña te pediremos la actual y un código de tu aplicación autenticadora. Al hacerlo, cerraremos tus sesiones y tendrás que iniciar sesión de nuevo."
@@ -156,7 +156,7 @@ export function SecurityCard({ changePassword }: { changePassword: PasswordChang
           {/* The current one first, so an open session alone can't change it. */}
           <div className={styles.passwordGrid}>
             <TextField
-              id="perfil-password-actual"
+              id="profile-current-password"
               label="Contraseña actual"
               type="password"
               value={currentPassword}
@@ -172,7 +172,7 @@ export function SecurityCard({ changePassword }: { changePassword: PasswordChang
           </div>
           <div className={styles.passwordGrid}>
             <TextField
-              id="perfil-nueva-password"
+              id="profile-new-password"
               label="Nueva contraseña"
               type="password"
               value={password}
@@ -184,12 +184,12 @@ export function SecurityCard({ changePassword }: { changePassword: PasswordChang
               required
               error={
                 sameAsCurrent
-                  ? "La nueva contraseña no puede ser igual a la que escribiste en \"Contraseña actual\"."
+                  ? 'La nueva contraseña no puede ser igual a la que escribiste en "Contraseña actual".'
                   : (newPasswordError ?? undefined)
               }
             />
             <TextField
-              id="perfil-confirmar-password"
+              id="profile-confirm-password"
               label="Confirmar nueva contraseña"
               type="password"
               value={passwordConfirmation}

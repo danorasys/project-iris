@@ -632,6 +632,12 @@ class StudentWithGuardianResponse(BaseModel):
     guardian_person_id: UUID
 
 
+class GuardianStudentResponse(BaseModel):
+    student_id: UUID
+    first_name: str
+    avatar_id: int
+
+
 class TeacherNameResponse(BaseModel):
     first_name: str
     last_name: str
@@ -688,6 +694,8 @@ class AvatarResponse(BaseModel):
     # The image is at GET /catalogs/avatars/{id}/image.
     id: int
     name: str
+    # Its main color, "#rrggbb", to paint the kid's banner with it.
+    accent_color: str
 
 
 class GuardianProfileResponse(BaseModel):

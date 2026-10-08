@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.domain.entities import Notification, NotificationPage
 
@@ -37,6 +37,16 @@ class NotificationOut(BaseModel):
             read=notification.read,
             created_at=notification.created_at,
         )
+
+
+# Several notifications picked in the tray, to delete them at once. At
+# most a few pages of them; repeated ids count once.
+class DeleteNotificationsIn(BaseModel):
+    ids: list[UUID] = Field(min_length=1, max_length=50)
+
+
+class DeleteNotificationsOut(BaseModel):
+    deleted: int
 
 
 class NotificationPageOut(BaseModel):

@@ -26,7 +26,11 @@ export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
     setError(null);
     try {
       await resolve.mutateAsync({ classroomId: classroom.id, enrollmentId, decision });
-      onToast(decision === "aceptar" ? `${studentName} ya es parte de la clase.` : `Rechazaste la solicitud de ${studentName}.`);
+      onToast(
+        decision === "aceptar"
+          ? `${studentName} ya es parte de la clase.`
+          : `Rechazaste la solicitud de ${studentName}.`,
+      );
     } catch (failure) {
       setError(getAuthErrorMessage(failure));
     }
@@ -56,8 +60,8 @@ export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
       )}
 
       {pending.length > 0 && (
-        <section aria-labelledby="solicitudes-titulo" className={styles.section}>
-          <h2 id="solicitudes-titulo" className={styles.subTitle}>
+        <section aria-labelledby="requests-title" className={styles.section}>
+          <h2 id="requests-title" className={styles.subTitle}>
             Solicitudes de ingreso
           </h2>
           <ul className={styles.list}>
@@ -67,7 +71,8 @@ export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
                 <div className={styles.rowMain}>
                   <span className={styles.rowTitle}>{request.student_first_name}</span>
                   <span className={styles.rowMeta}>
-                    <span className={styles.metaLabel}>Tutor:</span> {request.guardian_name} · {request.guardian_contact}
+                    <span className={styles.metaLabel}>Tutor:</span> {request.guardian_name} ·{" "}
+                    {request.guardian_contact}
                   </span>
                 </div>
                 <div className={styles.rowActions}>
@@ -94,8 +99,8 @@ export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
         </section>
       )}
 
-      <section aria-labelledby="miembros-titulo" className={styles.section}>
-        <h2 id="miembros-titulo" className={styles.subTitle}>
+      <section aria-labelledby="members-title" className={styles.section}>
+        <h2 id="members-title" className={styles.subTitle}>
           Estudiantes de la clase
         </h2>
         {classroom.students.length === 0 ? (
@@ -105,8 +110,8 @@ export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
             </span>
             <p className={styles.emptyTitle}>Aún no hay estudiantes en esta clase</p>
             <p className={styles.emptyText}>
-              Comparte el código de ingreso {classroom.enrollment_code} con las familias. Cuando un tutor lo use,
-              verás aquí su solicitud.
+              Comparte el código de ingreso {classroom.enrollment_code} con las familias. Cuando un tutor lo use, verás
+              aquí su solicitud.
             </p>
           </div>
         ) : (

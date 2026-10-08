@@ -28,6 +28,14 @@ class StudentWithGuardian:
     guardian_person_id: UUID
 
 
+# One kid of a guardian, for the classes of the family (parents' portal).
+@dataclass
+class GuardianStudent:
+    student_id: UUID
+    first_name: str
+    avatar_id: int
+
+
 @dataclass
 class TeacherName:
     first_name: str
@@ -60,6 +68,16 @@ class InternalQueryService:
                 guardian_phone=person.phone_e164(),
                 guardian_person_id=person.id,
             )
+
+    # The kids of a guardian, by the id the guardian signs in with. Not a
+    # guardian: ResourceNotFound, so nobody else gets a list of kids.
+    async def list_guardian_students(self, person_id: UUID) -> list[GuardianStudent]:
+        async with self._uow_factory() as uow:
+            guardian = await uow.guardians.get_by_person_id(person_id)
+            if guardian is None:
+                raise ResourceNotFound("Tutor no encontrado.")
+            students = await uow.students.list_by_guardian(guardian.id)
+            return [GuardianStudent(student_id=s.id, first_name=s.first_name, avatar_id=s.avatar_id) for s in students]
 
     # The name of a teacher, by the id they sign in with.
     async def get_teacher_name(self, person_id: UUID) -> TeacherName:

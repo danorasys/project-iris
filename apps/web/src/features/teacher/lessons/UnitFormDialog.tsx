@@ -39,7 +39,7 @@ export function UnitFormDialog({ classroomId, unit, onClose, onSaved }: UnitForm
     };
     setErrors(found);
     if (found.title || found.question) {
-      document.getElementById(found.title ? "unidad-titulo" : "unidad-pregunta")?.focus();
+      document.getElementById(found.title ? "unit-title" : "unit-question")?.focus();
       return false;
     }
     const body = { title: title.trim(), guiding_question: question.trim() };
@@ -67,7 +67,7 @@ export function UnitFormDialog({ classroomId, unit, onClose, onSaved }: UnitForm
       onClose={onClose}
     >
       <CountedTextField
-        id="unidad-titulo"
+        id="unit-title"
         label="Título de la unidad"
         value={title}
         onChange={(value) => {
@@ -80,7 +80,7 @@ export function UnitFormDialog({ classroomId, unit, onClose, onSaved }: UnitForm
         disabled={saving}
       />
       <CountedTextField
-        id="unidad-pregunta"
+        id="unit-question"
         label="Pregunta guía"
         value={question}
         onChange={(value) => {

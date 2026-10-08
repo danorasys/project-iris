@@ -139,6 +139,26 @@ async def test_cada_clase_trae_sus_solicitudes_pendientes(
     assert pending == {"Con solicitudes": 2, "Sin solicitudes": 0}
 
 
+async def test_cada_clase_trae_cuantos_estudiantes_tiene(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway
+) -> None:
+    token, _ = identity_gateway.registrar_docente()
+    with_students = await _create(client, token, name="Con estudiantes")
+    await _create(client, token, name="Vacía")
+    token_a, _ = identity_gateway.registrar_estudiante_token(nombres="Ana")
+    token_b, _ = identity_gateway.registrar_estudiante_token(nombres="Beto")
+    token_c, _ = identity_gateway.registrar_estudiante_token(nombres="Caro")
+    await _member(client, with_students, token, token_a)
+    await _member(client, with_students, token, token_b)
+    # A request that is still waiting is not a student yet.
+    await _ask_to_join(client, with_students, token_c)
+
+    response = await client.get("/classrooms", headers=_auth(token))
+
+    students = {c["name"]: c["student_count"] for c in response.json()}
+    assert students == {"Con estudiantes": 2, "Vacía": 0}
+
+
 # --- members (HU-75) ------------------------------------------------------
 
 

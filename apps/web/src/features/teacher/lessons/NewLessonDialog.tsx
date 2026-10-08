@@ -46,7 +46,7 @@ export function NewLessonDialog({ units, unitId, onClose, onCreated }: NewLesson
     setErrors(found);
     const first = (["title", "purpose", "goal"] as const).find((field) => found[field]);
     if (first) {
-      document.getElementById(`leccion-${first}`)?.focus();
+      document.getElementById(`new-lesson-${first}`)?.focus();
       return false;
     }
     try {
@@ -75,7 +75,7 @@ export function NewLessonDialog({ units, unitId, onClose, onCreated }: NewLesson
       onClose={onClose}
     >
       <SelectField
-        id="leccion-unidad"
+        id="new-lesson-unit"
         label="Unidad"
         value={unit}
         onChange={setUnit}
@@ -84,7 +84,7 @@ export function NewLessonDialog({ units, unitId, onClose, onCreated }: NewLesson
         disabled={create.isPending}
       />
       <CountedTextField
-        id="leccion-title"
+        id="new-lesson-title"
         label="Título de la lección"
         value={title}
         onChange={(value) => {
@@ -97,7 +97,7 @@ export function NewLessonDialog({ units, unitId, onClose, onCreated }: NewLesson
         disabled={create.isPending}
       />
       <CountedTextField
-        id="leccion-purpose"
+        id="new-lesson-purpose"
         label="Propósito"
         value={purpose}
         onChange={(value) => {
@@ -111,7 +111,7 @@ export function NewLessonDialog({ units, unitId, onClose, onCreated }: NewLesson
         hint="Una frase para el peque, la dice la mascota al abrir la lección. Por ejemplo: Hoy vas a aprender a diferenciar animales terrestres y acuáticos."
       />
       <CountedTextField
-        id="leccion-goal"
+        id="new-lesson-goal"
         label="Desempeño esperado"
         value={goal}
         onChange={(value) => {

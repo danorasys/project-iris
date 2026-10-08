@@ -1,34 +1,56 @@
-import { useCallback, useState, type ReactNode } from "react";
-import type { StudentProfile } from "@iris/shared-types";
-import { useEstudianteDeTutor, useEstudiantesDeTutor } from "@/shared/api/hooks/useAuthApi";
-import { calculateAge } from "@/features/utils/calculateAge";
+import { useCallback, useState } from "react";
+import type { FamilyClassroom, StudentProfile } from "@iris/shared-types";
+import { useAvatars, useEstudianteDeTutor, useEstudiantesDeTutor } from "@/shared/api/hooks/useAuthApi";
+import { useFamilyClassrooms } from "@/shared/api/hooks/useClassroomsApi";
+import { ageLabel } from "@/features/utils/calculateAge";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
+import { Highlight, PortalBanner } from "@/shared/ui/portal/PortalBanner";
+import { ProfileBanner } from "@/shared/ui/profile/ProfileHero";
+import profile from "@/shared/ui/profile/ProfileSection.module.css";
 import {
   IconArrowLeft,
   IconArrowRight,
   IconChild,
-  IconInfo,
+  IconClock,
   IconPlus,
   IconGraduationCap,
   IconUserCircle,
 } from "@/shared/ui/icons";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { SusClasesSection } from "./SusClasesSection";
 import { SusDatosSection } from "./SusDatosSection";
 import styles from "./MisPequesSection.module.css";
 
-type StudentOption = "datos" | "clases";
+export type StudentOption = "datos" | "clases";
 
 const OPTIONS: { id: StudentOption; title: string; hint: string; Icon: typeof IconGraduationCap }[] = [
   { id: "datos", title: "Sus datos", hint: "Consulta y actualiza su perfil.", Icon: IconUserCircle },
-  { id: "clases", title: "Sus clases", hint: "Acompaña a tu peque en sus clases.", Icon: IconGraduationCap },
+  { id: "clases", title: "Sus clases", hint: "En cuáles está y cuáles esperan respuesta.", Icon: IconGraduationCap },
 ];
 
-function ageLabel(dateOfBirth: string): string {
-  const age = calculateAge(dateOfBirth);
-  return age === 1 ? "1 año" : `${age} años`;
+// A kid's row: the age, how many classes ("sin clases", "1 clase", "2
+// clases") and how many requests wait. Without the classes (still loading,
+// or the portal asked for its code) only the age is known.
+function kidDetails(student: StudentProfile, classes: FamilyClassroom[] | null) {
+  const age = ageLabel(student.date_of_birth);
+  if (!classes) return { age, classes: null, line: age, label: age, waiting: 0 };
+  const own = classes.filter((c) => c.student_id === student.id);
+  const inside = own.filter((c) => c.status === "aceptada").length;
+  const classesText = inside === 0 ? "sin clases" : inside === 1 ? "1 clase" : `${inside} clases`;
+  return {
+    age,
+    classes: classesText,
+    line: `${age} · ${classesText}`,
+    label: `${age}, ${classesText}`,
+    waiting: own.length - inside,
+  };
 }
 
 interface MisPequesSectionProps {
+  /** Opens this kid's space right away, like from "Ver su espacio" in Inicio. */
+  initialStudentId?: string | null;
+  /** And inside it this option, like "clases" from "3 clases" in Inicio. */
+  initialOption?: StudentOption | null;
   /** Tells the portal there are unsaved changes in a kid's data, so it can
    * warn before switching section, going back or closing the session. */
   onDirtyChange: (dirty: boolean) => void;
@@ -38,9 +60,17 @@ interface MisPequesSectionProps {
  * cards. Opening one shows a small space for that child with two options:
  * "sus datos" (see SusDatosSection) and "sus clases", which is not built
  * yet and says so instead of pretending to be finished. */
-export function MisPequesSection({ onDirtyChange }: MisPequesSectionProps) {
+export function MisPequesSection({
+  initialStudentId = null,
+  initialOption = null,
+  onDirtyChange,
+}: MisPequesSectionProps) {
   const students = useEstudiantesDeTutor(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The classes of the family, for "2 clases · 1 en espera" on each card.
+  // Without them (still loading, or the portal asked for its code) the cards
+  // just show the age.
+  const classes = useFamilyClassrooms().data ?? null;
+  const [selectedId, setSelectedId] = useState<string | null>(initialStudentId);
   const selected = students.data?.find((s) => s.id === selectedId) ?? null;
 
   if (students.isLoading) return <p className={styles.status}>Cargando tus peques…</p>;
@@ -53,17 +83,29 @@ export function MisPequesSection({ onDirtyChange }: MisPequesSectionProps) {
   }
 
   if (selected) {
-    return <StudentSpace student={selected} onBack={() => setSelectedId(null)} onDirtyChange={onDirtyChange} />;
+    return (
+      <StudentSpace
+        student={selected}
+        initialOption={selected.id === initialStudentId ? initialOption : null}
+        onBack={() => setSelectedId(null)}
+        onDirtyChange={onDirtyChange}
+      />
+    );
   }
 
   const list = students.data ?? [];
   return (
     <div className={styles.section}>
-      <Hero
+      <PortalBanner
+        label="Mis peques"
         eyebrow="Mis peques"
-        title="Los perfiles de tus peques"
-        badge={<IconChild width={34} height={34} />}
-        meta={<span className={styles.chip}>{list.length === 1 ? "1 perfil" : `${list.length} perfiles`}</span>}
+        title={
+          <>
+            Los perfiles de tus <Highlight>peques</Highlight>
+          </>
+        }
+        chips={[list.length === 1 ? "1 perfil" : `${list.length} perfiles`]}
+        icon={<IconChild width={40} height={40} />}
       />
 
       {/* The profiles go on their own soft panel, apart from the page. */}
@@ -78,81 +120,89 @@ export function MisPequesSection({ onDirtyChange }: MisPequesSectionProps) {
           </div>
         )}
 
-        <ul className={styles.grid}>
-          {list.map((student) => (
-            <li key={student.id}>
-              {/* The label reads the card as one sentence, the pieces alone
-                  come out glued together in a screen reader. */}
-              <button
-                type="button"
-                className={styles.studentCard}
-                aria-label={`${student.first_name}, ${ageLabel(student.date_of_birth)}. Ver su espacio`}
-                onClick={() => setSelectedId(student.id)}
-              >
-                <span className={styles.avatarRing}>
-                  <StudentAvatarImage avatarId={student.avatar_id} size="medium" label="" />
-                </span>
-                <span className={styles.studentName}>{student.first_name}</span>
-                <span className={styles.studentAge}>{ageLabel(student.date_of_birth)}</span>
-                <span className={styles.studentAction}>
-                  Ver su espacio
-                  <IconArrowRight width={16} height={16} />
-                </span>
-              </button>
-            </li>
-          ))}
-          {/* Adding a kid from here isn't built yet, so the card is only shown.
-              aria-disabled tells screen readers it does nothing for now. */}
-          <li>
-            <button type="button" className={styles.addCard} aria-disabled="true">
-              <span className={styles.addIcon} aria-hidden="true">
-                <IconPlus width={34} height={34} />
-              </span>
-              <span className={styles.addTitle}>Agregar estudiante</span>
+        {/* An organized list, like a table: the headings on top, then one row
+            per kid with the age, how many classes and the requests waiting.
+            The whole row opens the kid's space. */}
+        <ul className={styles.kidList}>
+          {/* The headings, and on their right the button to add a kid. Adding
+              isn't built yet, aria-disabled tells screen readers so. */}
+          <li className={styles.kidHead}>
+            <span aria-hidden="true">Peque</span>
+            <span aria-hidden="true">Edad</span>
+            <span aria-hidden="true">Clases</span>
+            <span aria-hidden="true">En espera</span>
+            <button type="button" className={styles.addButton} aria-disabled="true">
+              <IconPlus width={16} height={16} />
+              Agregar estudiante
             </button>
           </li>
+          {list.map((student) => {
+            const details = kidDetails(student, classes);
+            return (
+              <li key={student.id}>
+                {/* The label reads the row as one sentence, the pieces alone
+                    come out glued together in a screen reader. */}
+                <button
+                  type="button"
+                  className={styles.kidRow}
+                  aria-label={`${student.first_name}, ${details.label}. Ver su espacio`}
+                  onClick={() => setSelectedId(student.id)}
+                >
+                  <span className={styles.kidName}>
+                    <span className={styles.avatarRing}>
+                      <StudentAvatarImage avatarId={student.avatar_id} size="small" label="" />
+                    </span>
+                    <span className={styles.kidNameText}>
+                      <span className={styles.studentName}>{student.first_name}</span>
+                      {/* On a phone the columns go, so the details go under the name. */}
+                      <span className={styles.kidMobileMeta}>{details.line}</span>
+                      {details.waiting > 0 && (
+                        <span className={`${styles.studentWaiting} ${styles.kidMobileMeta}`}>
+                          <IconClock width={13} height={13} aria-hidden="true" />
+                          {details.waiting === 1 ? "1 solicitud en espera" : `${details.waiting} solicitudes en espera`}
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                  <span className={styles.kidCell}>{details.age}</span>
+                  <span className={styles.kidCell}>{details.classes ?? "—"}</span>
+                  <span className={styles.kidCell}>
+                    {details.waiting > 0 ? (
+                      <span className={styles.studentWaiting}>
+                        <IconClock width={14} height={14} aria-hidden="true" />
+                        {details.waiting === 1 ? "1 solicitud" : `${details.waiting} solicitudes`}
+                      </span>
+                    ) : (
+                      <span className={styles.kidNone}>—</span>
+                    )}
+                  </span>
+                  <IconArrowRight width={18} height={18} className={styles.studentChevron} />
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </section>
     </div>
   );
 }
 
-interface HeroProps {
-  eyebrow: string;
-  title: string;
-  badge: ReactNode;
-  meta: ReactNode;
-  /** The badge is the kid's avatar, so it gets a solid white border. */
-  avatar?: boolean;
-}
-
-/** The blue band at the top, the same look as the one in Mi perfil. */
-function Hero({ eyebrow, title, badge, meta, avatar = false }: HeroProps) {
-  return (
-    <header className={styles.hero}>
-      <span className={avatar ? `${styles.heroBadge} ${styles.heroAvatar}` : styles.heroBadge} aria-hidden="true">
-        {badge}
-      </span>
-      <div className={styles.heroText}>
-        <p className={styles.eyebrow}>{eyebrow}</p>
-        <h1 className={styles.heroTitle}>{title}</h1>
-        <p className={styles.heroMeta}>{meta}</p>
-      </div>
-    </header>
-  );
-}
-
 interface StudentSpaceProps {
   student: StudentProfile;
+  initialOption: StudentOption | null;
   onBack: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }
 
-function StudentSpace({ student, onBack, onDirtyChange }: StudentSpaceProps) {
-  const [option, setOption] = useState<StudentOption | null>(null);
+function StudentSpace({ student, initialOption, onBack, onDirtyChange }: StudentSpaceProps) {
+  const [option, setOption] = useState<StudentOption | null>(initialOption);
   const current = OPTIONS.find((o) => o.id === option) ?? null;
   // The full name comes with the kid's data, the list only has the first name.
   const detail = useEstudianteDeTutor(student.id).data;
+  // Same query as the list, so it comes from the cache.
+  const details = kidDetails(student, useFamilyClassrooms().data ?? null);
+  // The banner takes the color of the kid's avatar, from the catalog.
+  const avatarColor = useAvatars().data?.find((a) => a.id === student.avatar_id)?.accent_color;
   const fullName = detail ? `${detail.first_name} ${detail.last_name}` : student.first_name;
 
   // Unsaved changes in "sus datos": the portal has to know, and going back
@@ -180,27 +230,28 @@ function StudentSpace({ student, onBack, onDirtyChange }: StudentSpaceProps) {
         {current ? `Regresar al espacio de ${student.first_name}` : "Regresar a mis peques"}
       </button>
 
-      <Hero
+      {/* Like the banner of Mi perfil: the avatar hanging from a sky band, the
+          full name, and pills with the age, the classes and the requests
+          still waiting. */}
+      <ProfileBanner
         eyebrow={current ? current.title : "El espacio de tu peque"}
-        title={fullName}
-        badge={<StudentAvatarImage avatarId={student.avatar_id} size="medium" label="" />}
-        meta={<span className={styles.chip}>{ageLabel(student.date_of_birth)}</span>}
-        avatar
-      />
+        name={fullName}
+        avatar={<StudentAvatarImage avatarId={student.avatar_id} size="medium" label="" />}
+        color={avatarColor}
+      >
+        <span className={profile.chip}>{details.age}</span>
+        {details.classes && <span className={profile.chip}>{details.classes}</span>}
+        {details.waiting > 0 && (
+          <span className={`${profile.chip} ${styles.waitingChip}`}>
+            <IconClock width={13} height={13} aria-hidden="true" />
+            {details.waiting === 1 ? "1 solicitud en espera" : `${details.waiting} solicitudes en espera`}
+          </span>
+        )}
+      </ProfileBanner>
 
       {option === "datos" && <SusDatosSection studentId={student.id} onDirtyChange={handleDirtyChange} />}
 
-      {option === "clases" && (
-        <div className={styles.comingSoon}>
-          <span className={styles.optionIcon} aria-hidden="true">
-            <IconInfo width={20} height={20} />
-          </span>
-          <div>
-            <p className={styles.comingSoonTitle}>Estamos construyendo esta sección</p>
-            <p className={styles.comingSoonText}>Muy pronto vas a poder ver y gestionar sus clases aquí.</p>
-          </div>
-        </div>
-      )}
+      {option === "clases" && <SusClasesSection studentId={student.id} firstName={student.first_name} />}
 
       {!current && (
         <div className={styles.options}>

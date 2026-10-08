@@ -15,6 +15,7 @@ import {
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { CountedTextField } from "@/shared/ui/CountedTextField";
 import { IconArrowLeft, IconBook, IconCheck, IconInfo, IconTrash } from "@/shared/ui/icons";
+import { usePortalTheme } from "@/shared/ui/portal/usePortalTheme";
 import { Toast } from "@/shared/ui/Toast";
 import type { TeacherPortalState } from "../portal/TeacherPortalPage";
 import { ActivityEditor } from "./editor/ActivityEditor";
@@ -33,7 +34,7 @@ import { combineSaveStates, useAutosave } from "./editor/useAutosave";
 import { LIMITS } from "./lessonLimits";
 import styles from "./LessonEditorPage.module.css";
 
-type Tab = "datos" | "contenido" | "actividad" | "extra";
+type Tab = "details" | "content" | "activity" | "extra";
 
 interface Details {
   unit_id: string;
@@ -46,6 +47,8 @@ interface Details {
  * in one place (HU-78 to HU-84, HU-102, HU-103). The editor keeps its own copy
  * and saves it by itself, so a refetch never undoes what's being typed. */
 export default function LessonEditorPage() {
+  // The same colors as the Portal Docente it comes from.
+  usePortalTheme();
   const { classroomId = "", lessonId = "" } = useParams<{ classroomId: string; lessonId: string }>();
   const lesson = useLessonDetail(lessonId);
   const units = useClassroomUnits(classroomId);
@@ -90,7 +93,7 @@ function Editor({ lesson, units, students, classroomId }: EditorProps) {
   const saveActivity = useSetActivity();
   const publish = usePublishLesson();
   const remove = useDeleteLesson(classroomId);
-  const [tab, setTab] = useState<Tab>("datos");
+  const [tab, setTab] = useState<Tab>("details");
   const [toast, setToast] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
@@ -162,10 +165,10 @@ function Editor({ lesson, units, students, classroomId }: EditorProps) {
   }
 
   const tabs: { id: Tab; label: string; count?: string }[] = [
-    { id: "datos", label: "Datos" },
-    { id: "contenido", label: "Contenido", count: `${pages.length} ${pages.length === 1 ? "página" : "páginas"}` },
+    { id: "details", label: "Datos" },
+    { id: "content", label: "Contenido", count: `${pages.length} ${pages.length === 1 ? "página" : "páginas"}` },
     {
-      id: "actividad",
+      id: "activity",
       label: "Actividad",
       count: `${activity.questions.length} ${activity.questions.length === 1 ? "pregunta" : "preguntas"}`,
     },
@@ -256,10 +259,10 @@ function Editor({ lesson, units, students, classroomId }: EditorProps) {
       </div>
 
       <section id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} className={styles.panel}>
-        {tab === "datos" && (
+        {tab === "details" && (
           <div className={styles.form}>
             <SelectField
-              id="leccion-unidad"
+              id="lesson-unit"
               label="Unidad"
               value={details.unit_id}
               onChange={(value) => setDetails((current) => ({ ...current, unit_id: value }))}
@@ -267,7 +270,7 @@ function Editor({ lesson, units, students, classroomId }: EditorProps) {
               required
             />
             <CountedTextField
-              id="leccion-titulo"
+              id="lesson-title"
               label="Título de la lección"
               value={details.title}
               onChange={(value) => setDetails((current) => ({ ...current, title: value }))}
@@ -276,7 +279,7 @@ function Editor({ lesson, units, students, classroomId }: EditorProps) {
               required
             />
             <CountedTextField
-              id="leccion-proposito"
+              id="lesson-purpose"
               label="Propósito"
               value={details.purpose}
               onChange={(value) => setDetails((current) => ({ ...current, purpose: value }))}
@@ -286,7 +289,7 @@ function Editor({ lesson, units, students, classroomId }: EditorProps) {
               hint="Una frase para el peque, la dice la mascota al abrir la lección."
             />
             <CountedTextField
-              id="leccion-desempeno"
+              id="lesson-goal"
               label="Desempeño esperado"
               value={details.learning_goal}
               onChange={(value) => setDetails((current) => ({ ...current, learning_goal: value }))}
@@ -299,10 +302,10 @@ function Editor({ lesson, units, students, classroomId }: EditorProps) {
             />
           </div>
         )}
-        {tab === "contenido" && (
+        {tab === "content" && (
           <PagesEditor lessonId={lesson.id} pages={pages} onChange={setPages} onError={setToast} owner="la lección" />
         )}
-        {tab === "actividad" && <ActivityEditor activity={activity} onChange={setActivity} name="leccion" />}
+        {tab === "activity" && <ActivityEditor activity={activity} onChange={setActivity} name="lesson" />}
         {tab === "extra" && (
           <ExtrasEditor lessonId={lesson.id} extras={lesson.extras} students={students} onError={setToast} />
         )}

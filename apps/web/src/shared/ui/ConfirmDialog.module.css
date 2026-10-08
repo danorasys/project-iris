@@ -27,7 +27,11 @@
   padding: var(--space-5);
   border-radius: 24px;
   background:
-    radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--color-iris-pale) 70%, transparent) 0%, transparent 60%),
+    radial-gradient(
+      120% 70% at 50% 0%,
+      color-mix(in srgb, var(--color-iris-pale) 70%, transparent) 0%,
+      transparent 60%
+    ),
     var(--color-surface);
   box-shadow:
     0 24px 60px rgba(30, 58, 82, 0.28),
