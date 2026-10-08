@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { ApiError } from "@/shared/api/httpClient";
 import { useAuth } from "@/shared/auth/useAuth";
@@ -6,6 +7,7 @@ import { useCountdown } from "@/shared/hooks/useCountdown";
 import { formatClock, getAuthErrorMessage, getRetryAfterSeconds } from "@/features/auth/errors";
 import { OtpCodeInput } from "@/features/auth/ui/OtpCodeInput";
 import { IconLock } from "@/shared/ui/icons";
+import { useModalDialog } from "@/shared/ui/useModalDialog";
 import { IconAuthyLogo } from "@/shared/ui/authAppLogos";
 import googleAuthenticatorIcon from "@/assets/auth/authenticator-apps/google-authenticator.jpg";
 import microsoftAuthenticatorIcon from "@/assets/auth/authenticator-apps/microsoft-authenticator.jpg";
@@ -24,7 +26,8 @@ interface TwoFactorCodeDialogProps {
 
 /** A floating dialog that asks for the 6 digit code of the authenticator
  * app. It takes care of what is the same everywhere: a wrong code, the wait
- * after too many tries, and the session the server closed for security. */
+ * after too many tries, and the session the server closed for security.
+ * Like ConfirmDialog it's drawn on <body> and the page behind is inert. */
 export function TwoFactorCodeDialog({ title, text, onSubmit, onCancel, onOtherError }: TwoFactorCodeDialogProps) {
   const navigate = useNavigate();
   const { discardSession } = useAuth();
@@ -36,15 +39,16 @@ export function TwoFactorCodeDialog({ title, text, onSubmit, onCancel, onOtherEr
   const [attempt, setAttempt] = useState(0);
   const { remaining: waitSeconds, start: startWait } = useCountdown();
   const blocked = waitSeconds > 0;
+  const { ref, leaving, close } = useModalDialog<HTMLDivElement>();
 
   // Esc closes the dialog, like any other dialog.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onCancel();
+      if (event.key === "Escape") close(onCancel);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onCancel]);
+  });
 
   async function submitCode(candidate: string) {
     if (candidate.length !== 6 || sending || blocked) return;
@@ -78,8 +82,8 @@ export function TwoFactorCodeDialog({ title, text, onSubmit, onCancel, onOtherEr
     }
   }
 
-  return (
-    <div className={styles.backdrop}>
+  return createPortal(
+    <div ref={ref} className={leaving ? `${styles.backdrop} ${styles.leaving}` : styles.backdrop}>
       <div className={styles.card} role="dialog" aria-modal="true" aria-labelledby="two-factor-dialog-title">
         <span className={styles.iconBadge}>
           <IconLock width={26} height={26} />
@@ -120,11 +124,12 @@ export function TwoFactorCodeDialog({ title, text, onSubmit, onCancel, onOtherEr
           </p>
         )}
         <div className={styles.buttons}>
-          <button type="button" className={styles.cancelButton} onClick={onCancel}>
+          <button type="button" className={styles.cancelButton} onClick={() => close(onCancel)}>
             Cancelar
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

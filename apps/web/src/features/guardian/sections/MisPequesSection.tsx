@@ -26,7 +26,12 @@ export type StudentOption = "datos" | "clases";
 
 const OPTIONS: { id: StudentOption; title: string; hint: string; Icon: typeof IconGraduationCap }[] = [
   { id: "datos", title: "Sus datos", hint: "Consulta y actualiza su perfil.", Icon: IconUserCircle },
-  { id: "clases", title: "Sus clases", hint: "En cuáles está y cuáles esperan respuesta.", Icon: IconGraduationCap },
+  {
+    id: "clases",
+    title: "Sus clases",
+    hint: "Revisa sus clases, quién las enseña y sus lecciones.",
+    Icon: IconGraduationCap,
+  },
 ];
 
 // A kid's row: the age, how many classes ("sin clases", "1 clase", "2

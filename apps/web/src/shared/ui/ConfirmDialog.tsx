@@ -1,10 +1,8 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { IconAlert, IconInfo } from "@/shared/ui/icons";
+import { useModalDialog } from "./useModalDialog";
 import styles from "./ConfirmDialog.module.css";
-
-// How long the closing animation takes. Same as dialog-out in the CSS.
-const LEAVE_MS = 180;
 
 interface ConfirmDialogProps {
   /** A short title on top, like "Cambios sin guardar". */
@@ -18,12 +16,6 @@ interface ConfirmDialogProps {
    * leaving without saving, closing the session): a red warning sign and
    * a red accept button, instead of the blue ones. */
   danger?: boolean;
-}
-
-// Animations only where the browser can do them and the person didn't ask
-// for less motion. Elsewhere (and in the tests) it closes at once.
-function canAnimate(): boolean {
-  return typeof window.matchMedia === "function" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /** The confirm/cancel dialog of both portals (leaving without saving,
@@ -46,31 +38,7 @@ export function ConfirmDialog({
   const titleId = useId();
   const messageId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const [leaving, setLeaving] = useState(false);
-
-  // Plays the closing animation, then does what was chosen.
-  function close(then: () => void) {
-    if (leaving) return;
-    if (!canAnimate()) {
-      then();
-      return;
-    }
-    setLeaving(true);
-    window.setTimeout(then, LEAVE_MS);
-  }
-
-  // Freezes the app behind the dialog while it's open. When it closes, the
-  // focus goes back to what had it before (the button that opened it).
-  useEffect(() => {
-    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const app = document.getElementById("root");
-    const wasInert = app?.inert ?? false;
-    if (app) app.inert = true;
-    return () => {
-      if (app) app.inert = wasInert;
-      if (before?.isConnected) before.focus();
-    };
-  }, []);
+  const { ref, leaving, close } = useModalDialog<HTMLDivElement>();
 
   useEffect(() => {
     cancelRef.current?.focus();
@@ -88,6 +56,7 @@ export function ConfirmDialog({
 
   return createPortal(
     <div
+      ref={ref}
       className={leaving ? `${styles.backdrop} ${styles.leaving}` : styles.backdrop}
       role="dialog"
       aria-modal="true"

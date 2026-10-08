@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { NumericKeypad } from "@/shared/ui/NumericKeypad";
 import { IconKey } from "@/shared/ui/icons";
+import { useModalDialog } from "@/shared/ui/useModalDialog";
 import styles from "./ChangePinDialog.module.css";
 
 export const PIN_LENGTH = 4;
@@ -31,7 +33,8 @@ interface ChangePinDialogProps {
 
 /** A floating dialog to change a kid's PIN with the number pad: the current
  * PIN, the new one, and the new one again. It only collects the PINs, the
- * 2FA code is asked right after by its own dialog. */
+ * 2FA code is asked right after by its own dialog. Like ConfirmDialog it's
+ * drawn on <body> and the page behind is inert. */
 export function ChangePinDialog({
   firstName,
   initialError = null,
@@ -46,6 +49,11 @@ export function ChangePinDialog({
   const [error, setError] = useState<string | null>(initialError);
   const [checking, setChecking] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const { ref, leaving, close } = useModalDialog<HTMLDivElement>();
+
+  function cancel() {
+    close(onCancel);
+  }
 
   function typeDigits(value: string) {
     if (checking) return;
@@ -107,8 +115,10 @@ export function ChangePinDialog({
   const keyHandler = useRef<(event: KeyboardEvent) => void>(() => {});
   useEffect(() => {
     keyHandler.current = (event: KeyboardEvent) => {
+      // With the 2FA code asked on top, the keys are for that window.
+      if (ref.current?.inert) return;
       if (event.key === "Escape") {
-        onCancel();
+        cancel();
       } else if (/^\d$/.test(event.key)) {
         if (draft.length < PIN_LENGTH) typeDigits(draft + event.key);
       } else if (event.key === "Backspace") {
@@ -130,8 +140,8 @@ export function ChangePinDialog({
 
   const stepNumber = STEPS.indexOf(step) + 1;
 
-  return (
-    <div className={styles.backdrop}>
+  return createPortal(
+    <div ref={ref} className={leaving ? `${styles.backdrop} ${styles.leaving}` : styles.backdrop}>
       <div
         ref={cardRef}
         className={styles.card}
@@ -177,11 +187,12 @@ export function ChangePinDialog({
               Atrás
             </button>
           )}
-          <button type="button" className={styles.cancelButton} onClick={onCancel} data-keeps-enter>
+          <button type="button" className={styles.cancelButton} onClick={cancel} data-keeps-enter>
             Cancelar
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

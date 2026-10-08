@@ -20,6 +20,7 @@ import {
   IconText,
 } from "@/shared/ui/icons";
 import { PortalSelect } from "@/shared/ui/portal/PortalSelect";
+import { useModalDialog } from "@/shared/ui/useModalDialog";
 import { ClassroomAvatar } from "./ClassroomAvatar";
 import { AREA_OTHER_MAX, CLASSROOM_AREAS, CLASSROOM_GRADES, classroomAudience } from "./classroomDetails";
 import { CLASSROOM_COLORS, classroomInitials } from "./classroomInitials";
@@ -31,8 +32,6 @@ const DESCRIPTION_MAX = 2000;
 // Same rules as the server's upload (POST /classrooms/{id}/logo).
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-// How long the closing animation takes. Same as dialog-out in the CSS.
-const LEAVE_MS = 180;
 const PREVIEW_SIZE = 68;
 
 type AvatarMode = "initials" | "image";
@@ -54,12 +53,6 @@ interface ClassroomFormDialogProps {
   onSaved: (classroom: Classroom, message: string) => void;
 }
 
-// Same check as ConfirmDialog: no animation when the person asked for less
-// motion, or where the browser can't tell (the tests).
-function canAnimate(): boolean {
-  return typeof window.matchMedia === "function" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 /** The window to create (HU-73) or edit (HU-90) a class: name, description,
  * area and grade (HU-100) and avatar, with a live preview of its card in
  * "Mis clases" on the left. Drawn on <body>, the app behind stays inert. */
@@ -79,7 +72,6 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
   const [cropUrl, setCropUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [leaving, setLeaving] = useState(false);
 
   const create = useCreateClassroom();
   const update = useUpdateClassroom();
@@ -87,30 +79,12 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
   const removeLogo = useRemoveClassroomLogo();
   const saving = create.isPending || update.isPending || upload.isPending || removeLogo.isPending;
 
-  // Plays the closing animation, then does what was chosen.
-  function close(then: () => void) {
-    if (leaving) return;
-    if (!canAnimate()) {
-      then();
-      return;
-    }
-    setLeaving(true);
-    window.setTimeout(then, LEAVE_MS);
-  }
+  // The app behind stays inert while it's open (see useModalDialog).
+  const { ref, leaving, close } = useModalDialog<HTMLDivElement>();
 
-  // Freezes the app behind while it's open, and gives the focus back to
-  // the button that opened it when it closes. The name is the first thing
-  // to fill in.
+  // The name is the first thing to fill in.
   useEffect(() => {
-    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const app = document.getElementById("root");
-    const wasInert = app?.inert ?? false;
-    if (app) app.inert = true;
     document.getElementById("classroom-name")?.focus();
-    return () => {
-      if (app) app.inert = wasInert;
-      if (before?.isConnected) before.focus();
-    };
   }, []);
 
   // Escape closes it, unless it's in the middle of saving.
@@ -250,6 +224,7 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
 
   return createPortal(
     <div
+      ref={ref}
       className={leaving ? `${styles.backdrop} ${styles.leaving}` : styles.backdrop}
       role="dialog"
       aria-modal="true"
