@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react"
+import { lazy, Suspense, useEffect, useLayoutEffect } from "react"
 import {
     BrowserRouter,
     Navigate,
@@ -14,6 +14,7 @@ import { TeacherAccessProvider } from "@/features/teacher/twoFactor/TeacherAcces
 import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext"
 import { GazeCursor } from "@/shared/ui/GazeCursor"
 import { LoadingScreen } from "@/shared/ui/LoadingScreen"
+import { playEnter } from "@/shared/ui/enterAnimation"
 
 // We split the code by role, so the /student/* pages, and the gaze
 // engine that comes with them, only get downloaded if the user goes there.
@@ -97,11 +98,27 @@ function ScrollToTop() {
     return null
 }
 
+/** Every new page fades in. Only the opacity of #root, so no extra box
+ * wraps the pages and fixed things (the gaze cursor, dialogs) stay put.
+ * Inside the Suspense, so a page that shows up after the LoadingScreen
+ * also fades in. */
+function PageEnter() {
+    const { pathname } = useLocation()
+
+    useLayoutEffect(() => {
+        const animation = playEnter(document.getElementById("root"), "fade")
+        return () => animation?.cancel()
+    }, [pathname])
+
+    return null
+}
+
 export function AppRouter() {
     return (
         <BrowserRouter>
             <ScrollToTop />
             <Suspense fallback={<LoadingScreen />}>
+                <PageEnter />
                 <Routes>
                     <Route
                         path="/"

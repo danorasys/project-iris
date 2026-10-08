@@ -17,6 +17,7 @@ import { CountedTextField } from "@/shared/ui/CountedTextField";
 import { IconArrowLeft, IconBook, IconCheck, IconInfo, IconTrash } from "@/shared/ui/icons";
 import { usePortalTheme } from "@/shared/ui/portal/usePortalTheme";
 import { Toast } from "@/shared/ui/Toast";
+import { useEnterAnimation } from "@/shared/ui/enterAnimation";
 import type { TeacherPortalState } from "../portal/TeacherPortalPage";
 import { ActivityEditor } from "./editor/ActivityEditor";
 import {
@@ -35,6 +36,8 @@ import { LIMITS } from "./lessonLimits";
 import styles from "./LessonEditorPage.module.css";
 
 type Tab = "details" | "content" | "activity" | "extra";
+// Left to right, so the next tab comes in from the right.
+const TAB_ORDER: Tab[] = ["details", "content", "activity", "extra"];
 
 interface Details {
   unit_id: string;
@@ -94,6 +97,8 @@ function Editor({ lesson, units, students, classroomId }: EditorProps) {
   const publish = usePublishLesson();
   const remove = useDeleteLesson(classroomId);
   const [tab, setTab] = useState<Tab>("details");
+  // Each tab comes in with the same entrance as the rest of the portal.
+  const panelRef = useEnterAnimation<HTMLElement>(tab, { level: TAB_ORDER.indexOf(tab) });
   const [toast, setToast] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
@@ -258,7 +263,13 @@ function Editor({ lesson, units, students, classroomId }: EditorProps) {
         ))}
       </div>
 
-      <section id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} className={styles.panel}>
+      <section
+        ref={panelRef}
+        id={`panel-${tab}`}
+        role="tabpanel"
+        aria-labelledby={`tab-${tab}`}
+        className={styles.panel}
+      >
         {tab === "details" && (
           <div className={styles.form}>
             <SelectField

@@ -3,6 +3,7 @@ import type { Classroom } from "@iris/shared-types";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { useClassroomDetail, useDeleteClassroom, useTeacherClassrooms } from "@/shared/api/hooks/useClassroomsApi";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { ViewEnter } from "@/shared/ui/ViewEnter";
 import {
   IconArrowLeft,
   IconArrowRight,
@@ -147,39 +148,43 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
         </p>
       )}
 
-      {!current && (
-        <div className={styles.options}>
-          {OPTIONS.map(({ view: target, title, hint, Icon }) => (
-            <button key={target} type="button" className={styles.optionCard} onClick={() => setView(target)}>
-              <span className={styles.optionIcon} aria-hidden="true">
-                <Icon width={20} height={20} />
-              </span>
-              <span className={styles.optionText}>
-                <span className={styles.optionTitle}>{title}</span> <span className={styles.optionHint}>{hint}</span>
-              </span>
-              <IconArrowRight width={18} height={18} className={styles.optionArrow} />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {view === "miembros" && <MembersPanel classroom={classroom} onToast={onToast} />}
-      {view === "lecciones" && <UnitsPanel classroomId={classroom.id} onToast={onToast} />}
-      {(view === "mensajes" || view === "estadisticas") && (
-        <div className={styles.comingSoon}>
-          <span className={styles.optionIcon} aria-hidden="true">
-            {view === "mensajes" ? <IconMessage width={20} height={20} /> : <IconChart width={20} height={20} />}
-          </span>
-          <div>
-            <p className={styles.comingSoonTitle}>Estamos construyendo esta sección</p>
-            <p className={styles.comingSoonText}>
-              {view === "mensajes"
-                ? "Pronto podrás escribirle a un estudiante o a su tutor desde aquí."
-                : "Pronto verás aquí el avance de tus estudiantes en esta clase, con gráficos."}
-            </p>
+      {/* Under the header, the option or the menu of options, with the
+          entrance every time one is opened or closed. */}
+      <ViewEnter view={view} level={current ? 1 : 0} className={styles.section}>
+        {!current && (
+          <div className={styles.options}>
+            {OPTIONS.map(({ view: target, title, hint, Icon }) => (
+              <button key={target} type="button" className={styles.optionCard} onClick={() => setView(target)}>
+                <span className={styles.optionIcon} aria-hidden="true">
+                  <Icon width={20} height={20} />
+                </span>
+                <span className={styles.optionText}>
+                  <span className={styles.optionTitle}>{title}</span> <span className={styles.optionHint}>{hint}</span>
+                </span>
+                <IconArrowRight width={18} height={18} className={styles.optionArrow} />
+              </button>
+            ))}
           </div>
-        </div>
-      )}
+        )}
+
+        {view === "miembros" && <MembersPanel classroom={classroom} onToast={onToast} />}
+        {view === "lecciones" && <UnitsPanel classroomId={classroom.id} onToast={onToast} />}
+        {(view === "mensajes" || view === "estadisticas") && (
+          <div className={styles.comingSoon}>
+            <span className={styles.optionIcon} aria-hidden="true">
+              {view === "mensajes" ? <IconMessage width={20} height={20} /> : <IconChart width={20} height={20} />}
+            </span>
+            <div>
+              <p className={styles.comingSoonTitle}>Estamos construyendo esta sección</p>
+              <p className={styles.comingSoonText}>
+                {view === "mensajes"
+                  ? "Pronto podrás escribirle a un estudiante o a su tutor desde aquí."
+                  : "Pronto verás aquí el avance de tus estudiantes en esta clase, con gráficos."}
+              </p>
+            </div>
+          </div>
+        )}
+      </ViewEnter>
 
       {editing && (
         <ClassroomFormDialog

@@ -92,7 +92,7 @@
 }
 
 .kidRow:focus-visible,
-.optionCard:focus-visible,
+.optionRow:focus-visible,
 .backButton:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
@@ -263,32 +263,61 @@
   background: var(--color-iris-pale);
 }
 
-.options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-
-.optionCard {
+/* --- A kid's options: a white panel with a row per option, one under
+   the other, split by thin lines and lavender under the mouse --- */
+.optionsPanel {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  flex-direction: column;
   padding: var(--space-4);
   border: 1px solid var(--color-iris-pale);
   border-radius: var(--radius-large);
   background: var(--color-surface);
   box-shadow: var(--shadow-soft);
+}
+
+/* Gray and small, like the headings of the kids' list. */
+.optionsTitle {
+  margin: 0;
+  padding: 0 14px 12px;
+  border-bottom: 1px solid var(--color-iris-pale);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.optionList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.optionList li + li .optionRow {
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
+  transition: background-color 160ms ease;
 }
 
-.optionCard:hover {
-  border-color: var(--color-iris-medium);
-  box-shadow: var(--shadow-card);
+.optionRow:hover {
+  background: var(--color-canvas);
 }
 
 .optionText {
@@ -317,7 +346,7 @@
   transition: transform 160ms ease;
 }
 
-.optionCard:hover .optionArrow {
+.optionRow:hover .optionArrow {
   transform: translateX(3px);
 }
 
@@ -352,23 +381,19 @@
     display: inline-flex;
     font-size: 0.8rem;
   }
-
-  .options {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .kidRow,
   .studentChevron,
   .addButton,
-  .optionCard,
+  .optionRow,
   .optionArrow {
     transition: none;
   }
 
   .kidRow:hover .studentChevron,
-  .optionCard:hover .optionArrow {
+  .optionRow:hover .optionArrow {
     transform: none;
   }
 }

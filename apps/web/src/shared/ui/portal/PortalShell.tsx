@@ -9,6 +9,7 @@ import {
 } from "react";
 import logoIris from "@/assets/landing/logo-iris.png";
 import { IconBell, IconClose, IconMenu } from "@/shared/ui/icons";
+import { ViewEnter } from "@/shared/ui/ViewEnter";
 import styles from "./PortalShell.module.css";
 import { usePortalTheme } from "./usePortalTheme";
 
@@ -305,9 +306,13 @@ export function PortalShell({
 }
 
 /** Wraps the section on screen. Give it a key that changes with the
- * section, so it comes up again with a small animation on every change. */
+ * section, so it comes up again with the entrance of ViewEnter on every change. */
 export function PortalSection({ children }: { children: ReactNode }) {
-  return <div className={styles.sectionEnter}>{children}</div>;
+  return (
+    <ViewEnter view="section" onMount>
+      {children}
+    </ViewEnter>
+  );
 }
 
 // The initials, the name and the email of the account card.

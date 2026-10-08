@@ -17,6 +17,7 @@ import {
   IconUserCircle,
 } from "@/shared/ui/icons";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { ViewEnter } from "@/shared/ui/ViewEnter";
 import { SusClasesSection } from "./SusClasesSection";
 import { SusDatosSection } from "./SusDatosSection";
 import styles from "./MisPequesSection.module.css";
@@ -82,108 +83,116 @@ export function MisPequesSection({
     );
   }
 
+  // The list and a kid's space are in the same ViewEnter, so going from one
+  // to the other plays the entrance.
   if (selected) {
     return (
-      <StudentSpace
-        student={selected}
-        initialOption={selected.id === initialStudentId ? initialOption : null}
-        onBack={() => setSelectedId(null)}
-        onDirtyChange={onDirtyChange}
-      />
+      <ViewEnter view={selected.id} level={1}>
+        <StudentSpace
+          student={selected}
+          initialOption={selected.id === initialStudentId ? initialOption : null}
+          onBack={() => setSelectedId(null)}
+          onDirtyChange={onDirtyChange}
+        />
+      </ViewEnter>
     );
   }
 
   const list = students.data ?? [];
   return (
-    <div className={styles.section}>
-      <PortalBanner
-        label="Mis peques"
-        eyebrow="Mis peques"
-        title={
-          <>
-            Los perfiles de tus <Highlight>peques</Highlight>
-          </>
-        }
-        chips={[list.length === 1 ? "1 perfil" : `${list.length} perfiles`]}
-        icon={<IconChild width={40} height={40} />}
-      />
+    <ViewEnter view="list">
+      <div className={styles.section}>
+        <PortalBanner
+          label="Mis peques"
+          eyebrow="Mis peques"
+          title={
+            <>
+              Los perfiles de tus <Highlight>peques</Highlight>
+            </>
+          }
+          chips={[list.length === 1 ? "1 perfil" : `${list.length} perfiles`]}
+          icon={<IconChild width={40} height={40} />}
+        />
 
-      {/* The profiles go on their own soft panel, apart from the page. */}
-      <section className={styles.profilesPanel} aria-label="Perfiles de tus peques">
-        {list.length === 0 && (
-          <div className={styles.empty}>
-            <span className={styles.emptyIcon} aria-hidden="true">
-              <IconChild width={26} height={26} />
-            </span>
-            <p className={styles.emptyTitle}>Todavía no tienes ningún perfil de estudiante</p>
-            <p className={styles.emptyText}>Cuando registres a tu peque, su perfil va a aparecer aquí.</p>
-          </div>
-        )}
+        {/* The profiles go on their own soft panel, apart from the page. */}
+        <section className={styles.profilesPanel} aria-label="Perfiles de tus peques">
+          {list.length === 0 && (
+            <div className={styles.empty}>
+              <span className={styles.emptyIcon} aria-hidden="true">
+                <IconChild width={26} height={26} />
+              </span>
+              <p className={styles.emptyTitle}>Todavía no tienes ningún perfil de estudiante</p>
+              <p className={styles.emptyText}>Cuando registres a tu peque, su perfil va a aparecer aquí.</p>
+            </div>
+          )}
 
-        {/* An organized list, like a table: the headings on top, then one row
+          {/* An organized list, like a table: the headings on top, then one row
             per kid with the age, how many classes and the requests waiting.
             The whole row opens the kid's space. */}
-        <ul className={styles.kidList}>
-          {/* The headings, and on their right the button to add a kid. Adding
+          <ul className={styles.kidList}>
+            {/* The headings, and on their right the button to add a kid. Adding
               isn't built yet, aria-disabled tells screen readers so. */}
-          <li className={styles.kidHead}>
-            <span aria-hidden="true">Peque</span>
-            <span aria-hidden="true">Edad</span>
-            <span aria-hidden="true">Clases</span>
-            <span aria-hidden="true">En espera</span>
-            <button type="button" className={styles.addButton} aria-disabled="true">
-              <IconPlus width={16} height={16} />
-              Agregar estudiante
-            </button>
-          </li>
-          {list.map((student) => {
-            const details = kidDetails(student, classes);
-            return (
-              <li key={student.id}>
-                {/* The label reads the row as one sentence, the pieces alone
+            <li className={styles.kidHead}>
+              <span aria-hidden="true">Peque</span>
+              <span aria-hidden="true">Edad</span>
+              <span aria-hidden="true">Clases</span>
+              <span aria-hidden="true">En espera</span>
+              <button type="button" className={styles.addButton} aria-disabled="true">
+                <IconPlus width={16} height={16} />
+                Agregar estudiante
+              </button>
+            </li>
+            {list.map((student) => {
+              const details = kidDetails(student, classes);
+              return (
+                <li key={student.id}>
+                  {/* The label reads the row as one sentence, the pieces alone
                     come out glued together in a screen reader. */}
-                <button
-                  type="button"
-                  className={styles.kidRow}
-                  aria-label={`${student.first_name}, ${details.label}. Ver su espacio`}
-                  onClick={() => setSelectedId(student.id)}
-                >
-                  <span className={styles.kidName}>
-                    <span className={styles.avatarRing}>
-                      <StudentAvatarImage avatarId={student.avatar_id} size="small" label="" />
+                  <button
+                    type="button"
+                    className={styles.kidRow}
+                    aria-label={`${student.first_name}, ${details.label}. Ver su espacio`}
+                    onClick={() => setSelectedId(student.id)}
+                  >
+                    <span className={styles.kidName}>
+                      <span className={styles.avatarRing}>
+                        <StudentAvatarImage avatarId={student.avatar_id} size="small" label="" />
+                      </span>
+                      <span className={styles.kidNameText}>
+                        <span className={styles.studentName}>{student.first_name}</span>
+                        {/* On a phone the columns go, so the details go under the name. */}
+                        <span className={styles.kidMobileMeta}>{details.line}</span>
+                        {details.waiting > 0 && (
+                          <span className={`${styles.studentWaiting} ${styles.kidMobileMeta}`}>
+                            <IconClock width={13} height={13} aria-hidden="true" />
+                            {details.waiting === 1
+                              ? "1 solicitud en espera"
+                              : `${details.waiting} solicitudes en espera`}
+                          </span>
+                        )}
+                      </span>
                     </span>
-                    <span className={styles.kidNameText}>
-                      <span className={styles.studentName}>{student.first_name}</span>
-                      {/* On a phone the columns go, so the details go under the name. */}
-                      <span className={styles.kidMobileMeta}>{details.line}</span>
-                      {details.waiting > 0 && (
-                        <span className={`${styles.studentWaiting} ${styles.kidMobileMeta}`}>
-                          <IconClock width={13} height={13} aria-hidden="true" />
-                          {details.waiting === 1 ? "1 solicitud en espera" : `${details.waiting} solicitudes en espera`}
+                    <span className={styles.kidCell}>{details.age}</span>
+                    <span className={styles.kidCell}>{details.classes ?? "—"}</span>
+                    <span className={styles.kidCell}>
+                      {details.waiting > 0 ? (
+                        <span className={styles.studentWaiting}>
+                          <IconClock width={14} height={14} aria-hidden="true" />
+                          {details.waiting === 1 ? "1 solicitud" : `${details.waiting} solicitudes`}
                         </span>
+                      ) : (
+                        <span className={styles.kidNone}>—</span>
                       )}
                     </span>
-                  </span>
-                  <span className={styles.kidCell}>{details.age}</span>
-                  <span className={styles.kidCell}>{details.classes ?? "—"}</span>
-                  <span className={styles.kidCell}>
-                    {details.waiting > 0 ? (
-                      <span className={styles.studentWaiting}>
-                        <IconClock width={14} height={14} aria-hidden="true" />
-                        {details.waiting === 1 ? "1 solicitud" : `${details.waiting} solicitudes`}
-                      </span>
-                    ) : (
-                      <span className={styles.kidNone}>—</span>
-                    )}
-                  </span>
-                  <IconArrowRight width={18} height={18} className={styles.studentChevron} />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    </div>
+                    <IconArrowRight width={18} height={18} className={styles.studentChevron} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      </div>
+    </ViewEnter>
   );
 }
 
@@ -249,32 +258,44 @@ function StudentSpace({ student, initialOption, onBack, onDirtyChange }: Student
         )}
       </ProfileBanner>
 
-      {option === "datos" && <SusDatosSection studentId={student.id} onDirtyChange={handleDirtyChange} />}
+      {/* Under the banner, the option or the menu of options, with the
+          entrance every time one is opened or closed. */}
+      <ViewEnter view={option ?? "menu"} level={option ? 1 : 0} className={styles.section}>
+        {option === "datos" && <SusDatosSection studentId={student.id} onDirtyChange={handleDirtyChange} />}
 
-      {option === "clases" && <SusClasesSection studentId={student.id} firstName={student.first_name} />}
+        {option === "clases" && <SusClasesSection studentId={student.id} firstName={student.first_name} />}
 
-      {!current && (
-        <div className={styles.options}>
-          {OPTIONS.map(({ id, title, hint, Icon }) => (
-            <button
-              key={id}
-              type="button"
-              className={styles.optionCard}
-              aria-label={`${title}. ${hint}`}
-              onClick={() => setOption(id)}
-            >
-              <span className={styles.optionIcon} aria-hidden="true">
-                <Icon width={20} height={20} />
-              </span>
-              <span className={styles.optionText}>
-                <span className={styles.optionTitle}>{title}</span>
-                <span className={styles.optionHint}>{hint}</span>
-              </span>
-              <IconArrowRight width={18} height={18} className={styles.optionArrow} />
-            </button>
-          ))}
-        </div>
-      )}
+        {/* The options one under the other on a white panel, split by thin
+            lines like the list of Mis peques. */}
+        {!current && (
+          <nav className={styles.optionsPanel} aria-labelledby="kid-options-title">
+            <h2 id="kid-options-title" className={styles.optionsTitle}>
+              Opciones
+            </h2>
+            <ul className={styles.optionList}>
+              {OPTIONS.map(({ id, title, hint, Icon }) => (
+                <li key={id}>
+                  <button
+                    type="button"
+                    className={styles.optionRow}
+                    aria-label={`${title}. ${hint}`}
+                    onClick={() => setOption(id)}
+                  >
+                    <span className={styles.optionIcon} aria-hidden="true">
+                      <Icon width={20} height={20} />
+                    </span>
+                    <span className={styles.optionText}>
+                      <span className={styles.optionTitle}>{title}</span>
+                      <span className={styles.optionHint}>{hint}</span>
+                    </span>
+                    <IconArrowRight width={18} height={18} className={styles.optionArrow} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
+      </ViewEnter>
 
       {confirmingBack && (
         <ConfirmDialog

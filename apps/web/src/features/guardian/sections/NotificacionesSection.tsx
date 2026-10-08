@@ -19,6 +19,7 @@ import {
 } from "../notifications/notificationText";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { Toast } from "@/shared/ui/Toast";
+import { ViewEnter } from "@/shared/ui/ViewEnter";
 import { NotificationMail, type MailPosition } from "@/shared/ui/portal/NotificationMail";
 import { Highlight, PortalBanner } from "@/shared/ui/portal/PortalBanner";
 import { TrayPager } from "@/shared/ui/portal/TrayPager";
@@ -159,71 +160,76 @@ export function NotificacionesSection({
 
   return (
     <div className={styles.section}>
-      {opened ? (
-        <NotificationDetail
-          notification={opened}
-          position={position}
-          onBack={() => setOpened(null)}
-          onDelete={() => setToDelete(opened)}
-        />
-      ) : (
-        <>
-          <PortalBanner
-            label="Notificaciones"
-            eyebrow="Notificaciones"
-            title={
-              <>
-                Tus <Highlight>notificaciones</Highlight>
-              </>
-            }
-            chips={[
-              total === 1 ? "1 notificación" : `${total} notificaciones`,
-              unread === 1 ? "1 sin leer" : `${unread} sin leer`,
-            ]}
-            icon={<IconBell width={40} height={40} />}
+      {/* The tray and an opened notification swap with the entrance, also
+          when the arrows go to the one before or after: its place in the
+          tray is the level, so "next" comes from the right. */}
+      <ViewEnter view={opened?.id ?? "tray"} level={opened ? (position?.current ?? 1) : 0} className={styles.section}>
+        {opened ? (
+          <NotificationDetail
+            notification={opened}
+            position={position}
+            onBack={() => setOpened(null)}
+            onDelete={() => setToDelete(opened)}
           />
+        ) : (
+          <>
+            <PortalBanner
+              label="Notificaciones"
+              eyebrow="Notificaciones"
+              title={
+                <>
+                  Tus <Highlight>notificaciones</Highlight>
+                </>
+              }
+              chips={[
+                total === 1 ? "1 notificación" : `${total} notificaciones`,
+                unread === 1 ? "1 sin leer" : `${unread} sin leer`,
+              ]}
+              icon={<IconBell width={40} height={40} />}
+            />
 
-          {items.length === 0 ? (
-            <div className={styles.empty}>
-              <span className={styles.emptyIcon} aria-hidden="true">
-                <IconBell width={26} height={26} />
-              </span>
-              <p className={styles.emptyTitle}>No tienes notificaciones por ahora</p>
-            </div>
-          ) : (
-            <div ref={inbox} className={styles.inbox}>
-              <TrayToolbar
-                selectedCount={selection.selected.length}
-                allSelected={selection.allSelected}
-                onToggleAll={selection.toggleAll}
-                onDelete={() => setConfirmingMany(true)}
-                busy={removeMany.isPending}
-                range={{
-                  from: (page - 1) * PAGE_SIZE + 1,
-                  to: (page - 1) * PAGE_SIZE + items.length,
-                  total,
-                  onPrev: page > 1 ? () => changePage(page - 1) : undefined,
-                  onNext: page < totalPages ? () => changePage(page + 1) : undefined,
-                }}
-              />
-              <ul className={styles.list} aria-label="Lista de notificaciones">
-                {items.map((n) => (
-                  <NotificationRow
-                    key={n.id}
-                    notification={n}
-                    selected={selection.isSelected(n.id)}
-                    onToggle={() => selection.toggle(n.id)}
-                    onOpen={() => open(n)}
-                    onDelete={() => setToDelete(n)}
-                  />
-                ))}
-              </ul>
-            </div>
-          )}
+            {items.length === 0 ? (
+              <div className={styles.empty}>
+                <span className={styles.emptyIcon} aria-hidden="true">
+                  <IconBell width={26} height={26} />
+                </span>
+                <p className={styles.emptyTitle}>No tienes notificaciones por ahora</p>
+              </div>
+            ) : (
+              <div ref={inbox} className={styles.inbox}>
+                <TrayToolbar
+                  selectedCount={selection.selected.length}
+                  allSelected={selection.allSelected}
+                  onToggleAll={selection.toggleAll}
+                  onDelete={() => setConfirmingMany(true)}
+                  busy={removeMany.isPending}
+                  range={{
+                    from: (page - 1) * PAGE_SIZE + 1,
+                    to: (page - 1) * PAGE_SIZE + items.length,
+                    total,
+                    onPrev: page > 1 ? () => changePage(page - 1) : undefined,
+                    onNext: page < totalPages ? () => changePage(page + 1) : undefined,
+                  }}
+                />
+                <ul className={styles.list} aria-label="Lista de notificaciones">
+                  {items.map((n) => (
+                    <NotificationRow
+                      key={n.id}
+                      notification={n}
+                      selected={selection.isSelected(n.id)}
+                      onToggle={() => selection.toggle(n.id)}
+                      onOpen={() => open(n)}
+                      onDelete={() => setToDelete(n)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            )}
 
-          <TrayPager page={page} totalPages={totalPages} onChange={changePage} />
-        </>
-      )}
+            <TrayPager page={page} totalPages={totalPages} onChange={changePage} />
+          </>
+        )}
+      </ViewEnter>
 
       {actionError && (
         <p role="alert" className={`${styles.status} ${styles.error}`}>
