@@ -272,7 +272,7 @@ async def test_eliminar_la_cuenta_borra_el_registro_de_cambios_de_sus_peques(cli
     await client.patch(f"/guardians/me/students/{student_id}", json=_datos(last_name="Gómez"), headers=_headers(token))
     assert len(await _cambios_registrados()) == 1
 
-    respuesta = await client.delete("/guardians/me", headers=_headers(token))
+    respuesta = await client.request("DELETE", "/guardians/me", json={"password": "Clave-Segura-123"}, headers=_headers(token))
 
     assert respuesta.status_code == 204
     assert await _cambios_registrados() == []
@@ -297,12 +297,12 @@ async def test_cambiar_el_pin_cierra_las_sesiones_abiertas_del_peque(client: Asy
     token, student_id, secret = await _tutor_con_peque_y_secreto(client, "peque-pin-sesion@example.com", "8000000015")
     sesion = await _entrar_con_pin(client, token, student_id, "1234")
     token_peque = sesion.json()["access_token"]
-    avatar = {"avatar_id": 2}
-    assert (await client.patch("/students/me/avatar", json=avatar, headers=_headers(token_peque))).status_code == 200
+    # A kid has no account data, so an open session answers 404 here, not 401.
+    assert (await client.get("/users/me", headers=_headers(token_peque))).status_code == 404
 
     await client.put(f"/guardians/me/students/{student_id}/pin", json=_pin(secret), headers=_headers(token))
 
-    assert (await client.patch("/students/me/avatar", json=avatar, headers=_headers(token_peque))).status_code == 401
+    assert (await client.get("/users/me", headers=_headers(token_peque))).status_code == 401
     # The guardian's own session stays open.
     assert (await client.get("/guardians/me/students", headers=_headers(token))).status_code == 200
 

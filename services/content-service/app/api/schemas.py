@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -233,6 +234,8 @@ class ClassroomContentSummaryResponse(BaseModel):
 class PublishedLessonsResponse(BaseModel):
     classroom_id: UUID
     published_lessons: int
+    # Units with at least one published lesson.
+    published_units: int
 
 
 class UnitResponse(BaseModel):
@@ -270,3 +273,176 @@ class LessonDetailResponse(LessonResponse):
 
 class ImageUploadResponse(BaseModel):
     image_file: str
+
+
+# --- a kid playing a lesson (HU-46, HU-47) ---------------------------------------
+# Questions and options carry their ids so the kid can answer, and never
+# whether an option is the right one: the server grades.
+
+
+class PlayOptionResponse(BaseModel):
+    id: UUID
+    text: str
+
+
+class PlayQuestionResponse(BaseModel):
+    id: UUID
+    prompt: str
+    options: list[PlayOptionResponse]
+
+
+class PlayActivityResponse(BaseModel):
+    pass_threshold: int
+    questions: list[PlayQuestionResponse]
+
+
+class PlayExtraResponse(BaseModel):
+    id: UUID
+    kind: str
+    title: str
+    blocks: list[BlockResponse]
+    activity: PlayActivityResponse | None
+    # The furthest page the kid already reached in it, the page where they
+    # left, and whether they already did its activity once.
+    pages_seen: int
+    last_page: int
+    activity_done: bool
+
+
+class PlayLessonResponse(LessonResponse):
+    blocks: list[BlockResponse]
+    activity: PlayActivityResponse | None
+    extras: list[PlayExtraResponse]
+    pages_seen: int
+    last_page: int
+    activity_done: bool
+
+
+class ReachPageRequest(_Strict):
+    # The page reached, counting from 1, of the lesson or of an extra.
+    page: int = Field(ge=1, le=rules.PAGES_MAX)
+    extra_id: UUID | None = None
+
+
+class PageProgressResponse(BaseModel):
+    extra_id: UUID | None
+    pages_seen: int
+    last_page: int
+
+
+class AnswerInput(_Strict):
+    question_id: UUID
+    option_id: UUID
+
+
+class AnswerCheckRequest(_Strict):
+    extra_id: UUID | None = None
+    question_id: UUID
+    option_id: UUID
+
+
+class AnswerCheckResponse(BaseModel):
+    correct: bool
+
+
+class AttemptRequest(_Strict):
+    extra_id: UUID | None = None
+    answers: list[AnswerInput] = Field(min_length=1, max_length=rules.QUESTIONS_MAX)
+
+    @model_validator(mode="after")
+    def _one_answer_per_question(self) -> AttemptRequest:
+        if len({a.question_id for a in self.answers}) != len(self.answers):
+            raise ValueError("Cada pregunta se responde una sola vez.")
+        return self
+
+
+class AttemptResponse(BaseModel):
+    id: UUID
+    correct: int
+    total: int
+    passed: bool
+    created_at: datetime
+    # Right or wrong, per question in their order.
+    results: list[bool]
+
+
+# --- erasing a guardian's kids, for identity-service (HU-91) -----------------------
+
+
+class EraseStudentsRequest(BaseModel):
+    student_ids: list[UUID] = Field(max_length=100)
+
+
+class EraseStudentsResponse(BaseModel):
+    rows_deleted: int
+
+
+# --- the statistics of a class, for classroom-service (HU-86, HU-87) -------------
+
+
+class KidInLessonOut(BaseModel):
+    student_id: UUID
+    percent: int
+    tries: int
+    best_correct: int | None
+    best_total: int | None
+    passed: bool
+
+
+class LessonStatisticsOut(BaseModel):
+    lesson_id: UUID
+    title: str
+    unit_title: str
+    has_activity: bool
+    average_percent: int
+    completed: int
+    in_progress: int
+    not_started: int
+    passed: int
+    tried_not_passed: int
+    # Best performance first; the ones who haven't tried go last.
+    kids: list[KidInLessonOut]
+
+
+class KidInClassOut(BaseModel):
+    student_id: UUID
+    average_percent: int
+    completed_lessons: int
+
+
+class ClassStatisticsOut(BaseModel):
+    kids: int
+    lessons: list[LessonStatisticsOut]
+    completed_percent: int
+    average_percent: int
+    by_kid: list[KidInClassOut]
+
+
+# --- a kid's progress in a class, for classroom-service ---------------------------
+
+
+class AttemptOut(BaseModel):
+    correct: int
+    total: int
+    passed: bool
+    created_at: datetime
+
+
+class PartProgressResponse(BaseModel):
+    extra_id: UUID | None
+    title: str
+    # "leccion", or the kind of the extra: "contenido" or "actividad".
+    kind: str
+    total_pages: int
+    pages_seen: int
+    has_activity: bool
+    attempts: list[AttemptOut]
+    percent: int
+
+
+class LessonProgressResponse(BaseModel):
+    lesson_id: UUID
+    title: str
+    unit_title: str
+    main: PartProgressResponse
+    extras: list[PartProgressResponse]

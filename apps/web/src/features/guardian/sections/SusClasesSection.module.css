@@ -1,6 +1,12 @@
-/* "Sus clases" of a kid: a white panel like the one of the kids' profiles,
-   one row per class with its avatar, who teaches it, what it's about and
-   how it's going. */
+/* "Sus clases" of a kid: a white panel with the classes as square tiles
+   ("Agregar clase" first), and another with the requests sent. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
 .status {
   margin: 0;
   color: var(--color-ink-soft);
@@ -14,6 +20,7 @@
 .panel {
   display: flex;
   flex-direction: column;
+  gap: var(--space-3);
   padding: var(--space-4);
   border: 1px solid var(--color-iris-pale);
   border-radius: var(--radius-large);
@@ -21,26 +28,193 @@
   box-shadow: var(--shadow-soft);
 }
 
-.list {
+/* Gray and small, like the headings of the kids' list. */
+.panelTitle {
+  margin: 0;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.toolbar {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-iris-pale);
+}
+
+/* The search box, a soft pill that turns blue while typing. */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(320px, 100%);
+  padding: 0 14px;
+  border: 1.5px solid var(--color-iris-pale);
+  border-radius: 999px;
+  background: var(--color-canvas);
+  color: var(--color-ink-soft);
+  transition:
+    border-color 120ms ease,
+    box-shadow 160ms ease;
+}
+
+.search:focus-within {
+  border-color: var(--color-focus);
+  box-shadow: var(--focus-halo);
+  color: var(--color-iris-medium);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.search input:focus {
+  outline: none;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* Each class on a soft lavender row. */
-.row {
+/* Square tiles: the class on lavender, rising a little under the mouse. */
+.tile,
+.addTile {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: var(--color-canvas);
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: var(--space-3);
+  border-radius: 20px;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
 }
 
-.text {
+/* White at rest with a pale border, and the light tone on hover. */
+.tile {
+  justify-content: flex-start;
+  padding: 8px 8px var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  background: var(--color-surface);
+}
+
+/* The avatar hangs from the band, with a ring of the tile's background. */
+.tileAvatar {
+  margin-top: -34px;
+  padding: 4px;
+  border-radius: 26%;
+  background: inherit;
+  transition: background 160ms ease;
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+  background: var(--color-canvas);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Adding is set apart: a dashed blue border and a round plus. */
+.addTile {
+  border: 2px dashed var(--color-iris-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  font-weight: 700;
+}
+
+.addTile:hover {
+  transform: translateY(-2px);
+  background: var(--color-iris-pale);
+}
+
+.addIcon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
+.tile:focus-visible,
+.addTile:focus-visible,
+.linkButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* The name in two lines at most. */
+.tileName {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.tileMeta {
+  font-size: 0.8rem;
+  color: var(--portal-muted);
+}
+
+.emptyText {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+/* --- The requests sent (HU-41) --- */
+.requests {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.request {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 12px 6px;
+}
+
+.request + .request {
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.requestText {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -48,43 +222,21 @@
   gap: 2px;
 }
 
-.name {
+.requestName {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
   font-weight: 700;
   color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
 }
 
-.meta {
+.requestMeta {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: 0.85rem;
   color: var(--portal-muted);
 }
 
-/* What the class is about, two lines at most. */
-.description {
-  display: -webkit-box;
-  margin: 4px 0 0;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  font-size: 0.9rem;
-  line-height: 1.45;
-  color: var(--color-ink-soft);
-}
-
-.state {
+.statusPill {
   flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.lessonsPill,
-.waitingPill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -95,71 +247,98 @@
   white-space: nowrap;
 }
 
-.lessonsPill {
-  background: var(--color-surface);
-  color: var(--color-iris-medium);
-}
-
-/* Still waiting for the teacher: the warm color of what's pending. */
-.waitingPill {
+/* Waiting: the warm color of what's pending. In: green. Not accepted: a
+   soft red, never alarming. */
+.pendiente {
   background: color-mix(in srgb, var(--color-amber) 18%, var(--color-surface));
   color: var(--color-amber-dark);
 }
 
-.since {
-  font-size: 0.78rem;
-  color: var(--portal-muted);
+.aceptada {
+  background: color-mix(in srgb, var(--color-leaf) 14%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-leaf) 70%, var(--color-ink));
 }
 
-/* No classes yet: how a kid joins one. */
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: var(--space-5) var(--space-3);
-  text-align: center;
+.rechazada {
+  background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+  color: var(--color-error);
 }
 
-.emptyIcon {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 4px;
-  border-radius: 50%;
-  background: var(--color-canvas);
+.requestAction {
+  flex: none;
+  width: 84px;
+  text-align: right;
+}
+
+.linkButton {
+  padding: 4px 6px;
+  border: none;
+  border-radius: var(--radius-small);
+  background: none;
   color: var(--color-iris-medium);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-.emptyTitle {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
+.linkButton:hover:not(:disabled) {
+  background: var(--color-iris-pale);
   color: var(--color-iris-deep);
 }
 
-.emptyText {
-  max-width: 52ch;
-  margin: 0;
-  line-height: 1.5;
-  color: var(--color-ink-soft);
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-/* On a phone the state goes under the class, lined up with its name. */
+/* On a phone: the search goes under the count, two tiles per row, and the
+   state of a request under its name. */
 @media (max-width: 640px) {
-  .row {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search {
+    width: 100%;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .request {
     flex-wrap: wrap;
-    align-items: flex-start;
   }
 
-  .text {
-    flex-basis: calc(100% - 68px);
+  .requestText {
+    flex-basis: calc(100% - 60px);
   }
 
-  .state {
-    align-items: flex-start;
-    margin-left: 68px;
+  .statusPill {
+    margin-left: 60px;
+  }
+
+  .requestAction {
+    width: auto;
+    margin-left: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .addTile,
+  .search {
+    transition: none;
+  }
+
+  .tile:hover,
+  .addTile:hover {
+    transform: none;
   }
 }

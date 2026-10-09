@@ -15,6 +15,11 @@ class DomainError(Exception):
         self.details = details or None
 
 
+class UnauthorizedInternalAccess(DomainError):
+    code = "acceso_interno_denegado"
+    message = "Esta ruta es solo para otros servicios de IRIS."
+
+
 class InvalidToken(DomainError):
     code = "token_invalido"
     message = "El token es inválido o expiró."

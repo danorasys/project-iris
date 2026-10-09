@@ -50,7 +50,7 @@ class ClassroomModel(Base):
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str] = mapped_column(String(2000))
     logo_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    enrollment_code: Mapped[str] = mapped_column(String(7), unique=True, index=True)
+    enrollment_code: Mapped[str] = mapped_column(String(12), unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     # The avatar's color, see CLASSROOM_COLORS.
     color: Mapped[str] = mapped_column(String(10), default=DEFAULT_CLASSROOM_COLOR, server_default=DEFAULT_CLASSROOM_COLOR)
@@ -60,6 +60,8 @@ class ClassroomModel(Base):
     area: Mapped[str | None] = mapped_column(String(30), nullable=True)
     area_other: Mapped[str | None] = mapped_column(String(AREA_OTHER_MAX_LENGTH), nullable=True)
     grade: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    # When its teacher left IRIS (HU-92), see migration 0008.
+    teacher_left_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     enrollments: Mapped[list["EnrollmentModel"]] = relationship(
         back_populates="classroom", cascade="all, delete-orphan"

@@ -42,6 +42,14 @@ AREA_OTHER_MAX_LENGTH = 60
 # is made for. Only one, like the DBA, which go grade by grade.
 CLASSROOM_GRADES = (1, 2, 3, 4, 5)
 
+# The code a family types to ask to join (HU-40): 8 characters with at least
+# one letter, one number and one symbol. Without the ones that look alike
+# (I, L, O, 0, 1), since it's read out loud or copied by hand.
+ENROLLMENT_CODE_LENGTH = 8
+CODE_LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ"
+CODE_DIGITS = "23456789"
+CODE_SYMBOLS = "#$%&*+?@"
+
 
 @dataclass
 class Classroom:
@@ -60,6 +68,13 @@ class Classroom:
     # Only with area "other": the area written by the teacher.
     area_other: str | None = None
     grade: int | None = None
+    # When its teacher deleted their account (HU-92). The class stays for
+    # its kids, but takes no new requests and nobody can change it.
+    teacher_left_at: datetime | None = None
+
+    @property
+    def has_teacher(self) -> bool:
+        return self.teacher_left_at is None
 
     @property
     def logo_file(self) -> str | None:
@@ -102,6 +117,49 @@ class SignedDownload:
     authorization: str
     amz_date: str
     content_sha256: str
+
+
+# What a family can already see of a classroom, from content-service: its
+# published lessons and the units with at least one of them.
+@dataclass(frozen=True)
+class PublishedContent:
+    lessons: int = 0
+    units: int = 0
+
+
+# A teacher as a family sees them before and after joining a class (HU-97),
+# from identity-service. Never their contact or document.
+@dataclass(frozen=True)
+class TeacherStudy:
+    level: str
+    title: str
+    institution: str
+    end_month: str | None
+    in_progress: bool
+
+
+@dataclass(frozen=True)
+class TeacherExperience:
+    role: str
+    place: str
+    start_month: str
+    end_month: str | None
+    description: str | None
+
+
+@dataclass(frozen=True)
+class TeacherPublicProfile:
+    first_name: str
+    last_name: str
+    about: str | None
+    # The school they said they work for, if any.
+    institution: str | None = None
+    studies: tuple[TeacherStudy, ...] = ()
+    experiences: tuple[TeacherExperience, ...] = ()
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}"
 
 
 # Result of validating an access token against

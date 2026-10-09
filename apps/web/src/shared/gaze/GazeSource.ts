@@ -1,4 +1,5 @@
 import { EyeGesturesGazeSource } from "./EyeGesturesGazeSource";
+import { getInputMode } from "./inputMode";
 
 export interface GazePosition {
   x: number;
@@ -67,30 +68,22 @@ export class MouseGazeSource implements GazeSource {
   }
 }
 
-const MANUAL_FALLBACK_KEY = "iris_gaze_manual_fallback";
-
-/** The student can choose to keep going with the mouse if the camera fails,
- * see `CalibrationPage`. The choice is remembered on this device. */
-export function activateManualFallback(): void {
-  try {
-    localStorage.setItem(MANUAL_FALLBACK_KEY, "1");
-  } catch {
-    /* storage unavailable, not critical, it'll just be asked again */
+/** Keyboard mode (HU-88): nothing points anywhere, so no button fills up by
+ * itself. The kid moves with Tab and chooses with Enter, like any button. */
+export class KeyboardGazeSource implements GazeSource {
+  start(): void {}
+  stop(): void {}
+  subscribe(): () => void {
+    return () => undefined;
   }
 }
 
-function isManualFallbackActive(): boolean {
-  try {
-    return localStorage.getItem(MANUAL_FALLBACK_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
+/** The source for /student/*, from how the kid moves on this device (see
+ * inputMode.ts). VITE_GAZE_SOURCE=mouse forces the mouse, handy in dev. */
 export function createGazeSource(): GazeSource {
-  // Dev override, handy on machines without a camera or in CI.
-  // VITE_GAZE_SOURCE=mouse in the local .env.
   const forceMouse = (import.meta.env.VITE_GAZE_SOURCE as string | undefined) === "mouse";
-  if (forceMouse || isManualFallbackActive()) return new MouseGazeSource();
+  const mode = forceMouse ? "mouse" : getInputMode();
+  if (mode === "mouse") return new MouseGazeSource();
+  if (mode === "keyboard") return new KeyboardGazeSource();
   return new EyeGesturesGazeSource();
 }

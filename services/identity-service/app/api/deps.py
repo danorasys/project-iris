@@ -5,17 +5,18 @@ from functools import lru_cache
 from typing import Annotated
 from uuid import UUID
 
+import httpx
 from fastapi import Depends, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis, from_url
 
+from app.application.account_erasure import AccountErasureService
 from app.application.auth_service import AuthService
 from app.application.catalog_service import CatalogQueryService
 from app.application.guardian_service import GuardianService
 from app.application.internal_service import InternalQueryService
 from app.application.password_change import PasswordChangeService
 from app.application.session_service import SessionService
-from app.application.student_service import StudentService
 from app.application.totp_service import TotpService
 from app.application.teacher_profile import TeacherProfileService
 from app.application.user_service import UserQueryService
@@ -36,6 +37,7 @@ from app.infrastructure.redis_gateway import (
     RedisSessionRegistry,
     RedisTokenBlacklist,
 )
+from app.infrastructure.erasure_client import HttpAccountErasure
 from app.infrastructure.security import BcryptPasswordHasher, FernetTotpEncryptor, JwtTokenIssuer, PyotpTotpProvider
 from app.infrastructure.storage import S3ObjectStorage
 from app.infrastructure.uow import SqlAlchemyUnitOfWork
@@ -238,10 +240,6 @@ def get_catalog_query_service(
     return CatalogQueryService(uow_factory=SqlAlchemyUnitOfWork, storage=storage)
 
 
-def get_student_service() -> StudentService:
-    return StudentService(uow_factory=SqlAlchemyUnitOfWork)
-
-
 def get_user_query_service() -> UserQueryService:
     return UserQueryService(uow_factory=SqlAlchemyUnitOfWork)
 
@@ -258,6 +256,32 @@ def get_password_change_service(
         sessions=sessions,
         password_lockout=password_lockout,
         account_lockout=account_lockout,
+    )
+
+
+# One HTTP client for the whole app, reused by every erasure.
+@lru_cache
+def _erasure_http_client() -> httpx.AsyncClient:
+    return httpx.AsyncClient()
+
+
+def get_account_erasure_gateway(settings: Annotated[Settings, Depends(get_settings)]) -> HttpAccountErasure:
+    return HttpAccountErasure(
+        _erasure_http_client(),
+        internal_key=settings.internal_service_key,
+        classroom_url=settings.classroom_service_url,
+        content_url=settings.content_service_url,
+        notification_url=settings.notification_service_url,
+    )
+
+
+def get_account_erasure_service(
+    passwords: Annotated[PasswordChangeService, Depends(get_password_change_service)],
+    sessions: Annotated[SessionService, Depends(get_session_service)],
+    erasure: Annotated[HttpAccountErasure, Depends(get_account_erasure_gateway)],
+) -> AccountErasureService:
+    return AccountErasureService(
+        uow_factory=SqlAlchemyUnitOfWork, passwords=passwords, sessions=sessions, erasure=erasure
     )
 
 

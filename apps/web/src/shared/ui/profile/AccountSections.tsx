@@ -9,8 +9,10 @@ import { useCerrarTodasMisSesiones } from "@/shared/api/hooks/useAuthApi";
 import { ApiError } from "@/shared/api/httpClient";
 import { useAuth } from "@/shared/auth/useAuth";
 import { SUPPORT_EMAIL, supportMailto } from "@/shared/supportContact";
+import { CheckboxField } from "@/features/auth/ui/CheckboxField";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { IconInfo, IconKey } from "@/shared/ui/icons";
+import { FormDialog } from "@/shared/ui/FormDialog";
+import { IconInfo, IconKey, IconTrash } from "@/shared/ui/icons";
 import { leaveLoginNotice } from "@/shared/ui/loginNotice";
 import { Card } from "./ProfileForm";
 import form from "./ProfileForm.module.css";
@@ -291,5 +293,106 @@ function CloseAllSessions() {
         />
       )}
     </div>
+  );
+}
+
+/** What deletes each kind of account (the guardian's and the teacher's go
+ * to different routes; the guardian's also needs the portal open). */
+export interface AccountDeleter {
+  mutateAsync: (password: string) => Promise<unknown>;
+  isPending: boolean;
+}
+
+interface DeleteAccountCardProps {
+  deleteAccount: AccountDeleter;
+  /** What goes and what stays, said before anything else. */
+  warning: string;
+}
+
+/** HU-91, HU-92: deleting the account for good. It says first what goes
+ * and what stays, then asks for the password and an "entiendo" in a
+ * window. After it, the session closes and the login says it's done. */
+export function DeleteAccountCard({ deleteAccount, warning }: DeleteAccountCardProps) {
+  const navigate = useNavigate();
+  const { discardSession } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [understood, setUnderstood] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function close() {
+    setOpen(false);
+    setPassword("");
+    setUnderstood(false);
+    setError(null);
+  }
+
+  async function submit(): Promise<boolean> {
+    setError(null);
+    if (!understood) {
+      setError("Marca la casilla para confirmar que entiendes que no se puede deshacer.");
+      return false;
+    }
+    if (!password) {
+      setError("Escribe tu contraseña para confirmar.");
+      return false;
+    }
+    try {
+      await deleteAccount.mutateAsync(password);
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+      return false;
+    }
+    // The account and its sessions are gone on the server, only the local copy is left.
+    discardSession();
+    leaveLoginNotice({
+      title: "Tu cuenta se eliminó",
+      message: "Borramos tu cuenta y tus datos de IRIS. Gracias por haber estado aquí.",
+    });
+    navigate("/login/adult", { replace: true });
+    return true;
+  }
+
+  return (
+    <Card
+      id="delete-account"
+      icon={<IconTrash width={20} height={20} />}
+      title="Eliminar mi cuenta"
+      hint="Tu derecho a que borremos tus datos."
+    >
+      <div className={styles.sessionsRow}>
+        <span className={styles.sessionsText}>{warning}</span>
+        <button type="button" className={styles.dangerButton} onClick={() => setOpen(true)}>
+          Eliminar mi cuenta
+        </button>
+      </div>
+      {open && (
+        <FormDialog
+          eyebrow="Mi cuenta"
+          title="Eliminar mi cuenta"
+          intro={`${warning} No se puede deshacer.`}
+          icon={<IconTrash width={24} height={24} />}
+          submitLabel="Eliminar mi cuenta para siempre"
+          saving={deleteAccount.isPending}
+          error={error}
+          onSubmit={submit}
+          onClose={close}
+        >
+          <TextField
+            id="delete-account-password"
+            label="Tu contraseña"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={setPassword}
+            required
+            disabled={deleteAccount.isPending}
+          />
+          <CheckboxField id="delete-account-understood" checked={understood} onChange={setUnderstood} required>
+            Entiendo que mi cuenta se elimina para siempre y que no se puede deshacer.
+          </CheckboxField>
+        </FormDialog>
+      )}
+    </Card>
   );
 }

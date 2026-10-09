@@ -613,6 +613,9 @@
   font-size: 1.02rem;
   line-height: 1.75;
   color: var(--color-ink);
+  /* A family's message keeps its line breaks. */
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 @media (prefers-reduced-motion: reduce) {

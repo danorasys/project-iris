@@ -1,46 +1,4 @@
-.viewer {
-  min-height: 100%;
-  display: flex;
-  align-items: stretch;
-}
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-6) var(--space-5);
-  text-align: center;
-  overflow-y: auto;
-}
-
-.progress {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 700;
-  color: var(--color-ink-soft);
-}
-
-.lessonTitle {
-  margin: 0;
-}
-
-.text {
-  font-size: 1.5rem;
-  line-height: 1.6;
-  max-width: 700px;
-  white-space: pre-wrap;
-}
-
-.image {
-  max-width: 100%;
-  max-height: 55vh;
-  border-radius: var(--radius-medium);
-  box-shadow: var(--shadow-card);
-}
-
+/* While the lesson loads, or if it can't be opened. */
 .centered {
   min-height: 100%;
   display: flex;

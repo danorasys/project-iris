@@ -55,6 +55,14 @@ export function useUpdateMyTeacherAccount() {
   });
 }
 
+/** `DELETE /teachers/me` (HU-92): the teacher's personal data goes, their
+ * classes stay for their kids. Asks for the password again. */
+export function useDeleteTeacherAccount() {
+  return useMutation({
+    mutationFn: (password: string) => apiFetch<void>("/identity/teachers/me", { method: "DELETE", body: { password } }),
+  });
+}
+
 /** `POST /teachers/me/password` (HU-72): the current password and a fresh
  * 2FA code together. The server closes every session after it. */
 export function useChangeMyTeacherPassword() {

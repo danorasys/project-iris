@@ -1,0 +1,236 @@
+/* The kid's progress in a class: a summary on top, then a white panel per
+   unit with each lesson's bar, its extras a bit to the right, and the tries. */
+.status {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.error {
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.summaryNumber {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+/* Gray and small, like the other headings of the portal's panels. */
+.unitTitle {
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-iris-pale);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.lessons,
+.extras {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lesson + .lesson {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+/* The extras hang a little to the right of their lesson. */
+.extras {
+  margin-top: var(--space-3);
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--color-iris-pale);
+}
+
+.part {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.partHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.partIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.extraPart .partIcon {
+  background: color-mix(in srgb, var(--color-amber) 16%, var(--color-surface));
+  color: var(--color-amber-dark);
+}
+
+.partText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kind {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--portal-muted);
+}
+
+.partTitle {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.percent {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+.done {
+  color: color-mix(in srgb, var(--color-leaf) 70%, var(--color-ink));
+}
+
+/* The bar: blue while going, green once complete. */
+.bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-canvas);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-iris-medium);
+  transition: width 400ms var(--ease-out, ease);
+}
+
+.fillDone {
+  background: var(--color-leaf);
+}
+
+.facts {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-ink-soft);
+}
+
+/* The record of tries, a small clear table. */
+.attempts {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.attempts th {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-iris-pale);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: left;
+  color: var(--portal-muted);
+}
+
+.attempts td {
+  padding: 8px;
+  color: var(--color-ink);
+}
+
+.attempts tr + tr td {
+  border-top: 1px solid var(--color-canvas);
+}
+
+.pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.passed {
+  background: color-mix(in srgb, var(--color-leaf) 14%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-leaf) 70%, var(--color-ink));
+}
+
+.review {
+  background: color-mix(in srgb, var(--color-amber) 16%, var(--color-surface));
+  color: var(--color-amber-dark);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .extras {
+    padding-left: var(--space-2);
+  }
+
+  .attempts th:nth-child(2),
+  .attempts td:nth-child(2) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}

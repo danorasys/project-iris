@@ -5,12 +5,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Activity,
+  AnswerCheck,
+  AttemptResult,
   ClassroomContentSummary,
   ContentBlockInput,
   Extra,
   ExtraKind,
   Lesson,
   LessonDetail,
+  LessonProgress,
+  PageProgress,
+  PlayLesson,
   Unit,
   UnitWithLessons,
 } from "@iris/shared-types";
@@ -19,8 +24,11 @@ import { apiFetch, apiUpload } from "@/shared/api/httpClient";
 export const lessonKeys = {
   summary: ["content", "summary"] as const,
   units: (classroomId: string) => ["units", "classroom", classroomId] as const,
-  byClassroom: (classroomId: string) => ["lessons", "classroom", classroomId] as const,
   detail: (lessonId: string) => ["lessons", lessonId] as const,
+  play: (lessonId: string) => ["lessons", lessonId, "play"] as const,
+  // The kid's own progress in each class (notes on their list of lessons).
+  myProgress: (classroomId: string) => ["progress", "me", classroomId] as const,
+  myProgressAll: ["progress", "me"] as const,
 };
 
 /** `GET /content/teachers/me/content-summary`: units and lessons (published
@@ -41,15 +49,6 @@ export function useClassroomUnits(classroomId: string | undefined) {
   });
 }
 
-/** `GET /content/classrooms/{classroom_id}/lessons`: every lesson, without units. */
-export function useClassroomLessons(classroomId: string | undefined) {
-  return useQuery({
-    queryKey: lessonKeys.byClassroom(classroomId ?? ""),
-    queryFn: () => apiFetch<Lesson[]>(`/content/classrooms/${classroomId}/lessons`),
-    enabled: Boolean(classroomId),
-  });
-}
-
 /** `GET /content/lessons/{lesson_id}` */
 export function useLessonDetail(lessonId: string | undefined) {
   return useQuery({
@@ -59,13 +58,92 @@ export function useLessonDetail(lessonId: string | undefined) {
   });
 }
 
-// After a change, the units list and the flat list of the classroom are
-// refreshed, and the counts of the Inicio too.
+// --- a kid playing a lesson (HU-46, HU-47) ---------------------------------------
+
+/** `GET /content/lessons/{id}/play`: the pages, the questions without their
+ * answers, the extras for this kid and how far they already got. */
+export function useLessonPlay(lessonId: string | undefined) {
+  return useQuery({
+    queryKey: lessonKeys.play(lessonId ?? ""),
+    queryFn: () => apiFetch<PlayLesson>(`/content/lessons/${lessonId}/play`),
+    enabled: Boolean(lessonId),
+    // Fresh every time it opens: where the kid left it may have changed.
+    gcTime: 0,
+  });
+}
+
+interface ReachPageVariables {
+  lessonId: string;
+  /** From 1. */
+  page: number;
+  extraId?: string | null;
+}
+
+/** `PUT /content/lessons/{id}/progress`: the kid is on this page, the one
+ * they come back to. Their progress (the furthest page) never goes back. */
+export function useReachPage() {
+  return useMutation({
+    mutationFn: ({ lessonId, page, extraId }: ReachPageVariables) =>
+      apiFetch<PageProgress>(`/content/lessons/${lessonId}/progress`, {
+        method: "PUT",
+        body: { page, extra_id: extraId ?? null },
+      }),
+  });
+}
+
+interface CheckAnswerVariables {
+  lessonId: string;
+  extraId?: string | null;
+  questionId: string;
+  optionId: string;
+}
+
+/** `POST /content/lessons/{id}/answer-checks`: whether one answer is right,
+ * to show it right away (HU-63). Keeps nothing on the server. */
+export function useCheckAnswer() {
+  return useMutation({
+    mutationFn: ({ lessonId, extraId, questionId, optionId }: CheckAnswerVariables) =>
+      apiFetch<AnswerCheck>(`/content/lessons/${lessonId}/answer-checks`, {
+        method: "POST",
+        body: { extra_id: extraId ?? null, question_id: questionId, option_id: optionId },
+      }),
+  });
+}
+
+/** `GET /content/classrooms/{id}/progress`: the kid's own progress in one
+ * of their classes, the same their family sees. */
+export function useMyClassProgress(classroomId: string | undefined) {
+  return useQuery({
+    queryKey: lessonKeys.myProgress(classroomId ?? ""),
+    queryFn: () => apiFetch<LessonProgress[]>(`/content/classrooms/${classroomId}/progress`),
+    enabled: Boolean(classroomId),
+  });
+}
+
+interface SubmitAttemptVariables {
+  lessonId: string;
+  extraId?: string | null;
+  answers: { question_id: string; option_id: string }[];
+}
+
+/** `POST /content/lessons/{id}/attempts`: the server grades the try and
+ * keeps it. 409 `actividad_cambio` if the teacher changed the activity. */
+export function useSubmitAttempt() {
+  return useMutation({
+    mutationFn: ({ lessonId, extraId, answers }: SubmitAttemptVariables) =>
+      apiFetch<AttemptResult>(`/content/lessons/${lessonId}/attempts`, {
+        method: "POST",
+        body: { extra_id: extraId ?? null, answers },
+      }),
+  });
+}
+
+// After a change, the units list of the classroom and the counts of the
+// Inicio are refreshed.
 function useRefreshClassroom() {
   const queryClient = useQueryClient();
   return (classroomId: string) => {
     void queryClient.invalidateQueries({ queryKey: lessonKeys.units(classroomId) });
-    void queryClient.invalidateQueries({ queryKey: lessonKeys.byClassroom(classroomId) });
     void queryClient.invalidateQueries({ queryKey: lessonKeys.summary });
   };
 }

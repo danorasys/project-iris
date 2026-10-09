@@ -27,12 +27,12 @@ export function IconChild(props: IconProps) {
   );
 }
 
+/** A person (head and shoulders), for the teacher. */
 export function IconTeacher(props: IconProps) {
   return (
     <svg {...base} {...props}>
-      <circle cx="12" cy="7.5" r="3.2" />
+      <circle cx="12" cy="7.5" r="3.6" />
       <path d="M4.8 20.5c0.9-3.9 3.7-6 7.2-6s6.3 2.1 7.2 6" />
-      <path d="M8.5 4.2 12 2l3.5 2.2" />
     </svg>
   );
 }
@@ -86,6 +86,21 @@ export function IconClassroom(props: IconProps) {
       <path d="M7 11.3h9" />
       <path d="M9.5 15.5 7.5 20.5" />
       <path d="M14.5 15.5 16.5 20.5" />
+    </svg>
+  );
+}
+
+/** A school building with a roof and columns, for an institution. */
+export function IconSchool(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 9.5 12 4.5l9 5Z" />
+      <path d="M6 12.5v4.5" />
+      <path d="M10 12.5v4.5" />
+      <path d="M14 12.5v4.5" />
+      <path d="M18 12.5v4.5" />
+      <path d="M4 17h16" />
+      <path d="M3 20h18" />
     </svg>
   );
 }
@@ -394,6 +409,34 @@ export function IconHome(props: IconProps) {
       <path d="M4 10.5 12 4l8 6.5" />
       <path d="M6 9v10.5h12V9" />
       <path d="M10 19.5v-5h4v5" />
+    </svg>
+  );
+}
+
+export function IconSearch(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="m15 15 5 5" />
+    </svg>
+  );
+}
+
+export function IconSliders(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+      <circle cx="15" cy="7" r="2" />
+      <circle cx="9" cy="17" r="2" />
+    </svg>
+  );
+}
+
+export function IconMouse(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="6" y="3" width="12" height="18" rx="6" />
+      <path d="M12 7v4" />
     </svg>
   );
 }

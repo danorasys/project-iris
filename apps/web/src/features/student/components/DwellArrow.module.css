@@ -3,7 +3,9 @@
   min-width: var(--dwell-target-min);
   width: 15vw;
   max-width: 180px;
-  height: 100%;
+  /* As tall as the row it's in: a percent height has nothing to measure
+     against when the row only has a min-height. */
+  align-self: stretch;
   border: none;
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
@@ -27,8 +29,15 @@
 }
 
 .arrow:hover,
-.arrow.focused {
+.arrow.focused,
+.arrow:focus-visible {
   background: #fdf1e9;
+}
+
+/* Inside the strip, so it isn't cut at the edge of the screen. */
+.arrow:focus-visible {
+  outline: 5px solid var(--color-focus);
+  outline-offset: -8px;
 }
 
 .arrow:disabled {

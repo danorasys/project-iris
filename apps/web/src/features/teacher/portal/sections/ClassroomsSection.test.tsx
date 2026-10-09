@@ -82,6 +82,10 @@ vi.mock("@/shared/api/hooks/useLessonsApi", () => ({
 
 // The kids' avatars come from a catalog, not needed here.
 vi.mock("@/shared/ui/StudentAvatarImage", () => ({ StudentAvatarImage: () => null }));
+vi.mock("@/shared/api/hooks/useNotifications", () => ({
+  useClassMessages: () => ({ data: { items: [], total: 0 }, isLoading: false, isError: false }),
+  useMarkNotificationRead: () => ({ mutate: vi.fn() }),
+}));
 
 function renderSection() {
   return render(
@@ -227,7 +231,7 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     }
     expect(screen.getByText("Código de ingreso: 1234567")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: /^Mensajes/ }));
-    expect(screen.getByText(/Pronto podrás escribirle a un estudiante/)).toBeTruthy();
+    expect(screen.getByText("Mensajes de la clase")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Regresar a la clase" }));
     await user.click(screen.getByRole("button", { name: "Regresar a mis clases" }));
     expect(screen.getByRole("button", { name: "Nueva clase" })).toBeTruthy();

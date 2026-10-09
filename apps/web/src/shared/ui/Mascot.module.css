@@ -35,6 +35,46 @@
   max-width: 320px;
 }
 
+/* Wide: the bubble takes the rest of the row, so the pair looks centered,
+   and it has a clear outline and tail, like a comic speech bubble. */
+.wide {
+  align-items: center;
+}
+
+.wide .bubble {
+  flex: 1;
+  max-width: none;
+  margin-left: 6px;
+  border: 2px solid color-mix(in srgb, var(--color-iris-medium) 45%, var(--color-surface));
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-iris-pale) 35%, var(--color-surface));
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--color-iris-deep) 10%, transparent);
+}
+
+/* The tail: an outlined triangle behind and a filled one on top. */
+.wide .bubble::before,
+.wide .bubble::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  border-style: solid;
+  transform: translateY(-50%);
+}
+
+.wide .bubble::before {
+  left: -14px;
+  bottom: auto;
+  border-width: 11px 14px 11px 0;
+  border-color: transparent color-mix(in srgb, var(--color-iris-medium) 45%, var(--color-surface)) transparent
+    transparent;
+}
+
+.wide .bubble::after {
+  left: -10px;
+  border-width: 9px 11px 9px 0;
+  border-color: transparent color-mix(in srgb, var(--color-iris-pale) 35%, var(--color-surface)) transparent transparent;
+}
+
 .bubble p {
   margin: 0;
   font-family: var(--font-body);

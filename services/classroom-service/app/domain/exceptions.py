@@ -32,12 +32,46 @@ class EnrollmentNotFound(DomainError):
 
 class InvalidEnrollmentCode(DomainError):
     code = "codigo_ingreso_invalido"
-    message = "El código de ingreso no corresponde a ningún aula."
+    message = "Ese código no corresponde a ninguna clase de IRIS. Revísalo con el docente."
 
 
 class AlreadyEnrolledOrPending(DomainError):
     code = "ya_inscrito_o_pendiente"
     message = "Ya existe una inscripción pendiente o aceptada para esta aula."
+
+
+# The kid isn't one of the guardian's. Same 404 as a kid that doesn't exist.
+class KidNotInFamily(DomainError):
+    code = "peque_no_encontrado"
+    message = "Ese peque no está en tu cuenta."
+
+
+# Only a kid already in the class can write to its teacher (HU-48).
+class NotInClassroomYet(DomainError):
+    code = "aun_no_esta_en_la_clase"
+    message = "Tu peque todavía no está en esta clase."
+
+
+# content-service didn't answer with the kid's progress.
+class ClassroomWithoutTeacher(DomainError):
+    code = "clase_sin_docente"
+    message = "Esta clase ya no tiene un docente a cargo, así que no recibe solicitudes ni cambios."
+
+
+class StatisticsUnavailable(DomainError):
+    code = "estadisticas_no_disponibles"
+    message = "No pudimos cargar las estadísticas en este momento. Intenta de nuevo."
+
+
+class ProgressUnavailable(DomainError):
+    code = "progreso_no_disponible"
+    message = "No pudimos cargar el progreso en este momento. Intenta de nuevo."
+
+
+# The message to the teacher couldn't leave (Redis didn't answer).
+class MessageNotSent(DomainError):
+    code = "mensaje_no_enviado"
+    message = "No pudimos enviar tu mensaje en este momento. Intenta de nuevo."
 
 
 class RequestAlreadyResolved(DomainError):

@@ -7,23 +7,30 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import random
+import secrets
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable
 from uuid import UUID
 
 from app.application.dtos import (
+    ClassroomPreview,
     ClassroomWithStudents,
     EnrolledStudent,
     EnrichedRequest,
     FamilyClassroom,
+    FamilyClassroomDetail,
     TeacherClassroom,
     UpdateClassroomData,
 )
 from app.application.image_rules import EXTENSION_BY_CONTENT_TYPE, matches_declared_type
 from app.domain.entities import (
+    CODE_DIGITS,
+    CODE_LETTERS,
+    CODE_SYMBOLS,
     DEFAULT_CLASSROOM_COLOR,
+    ENROLLMENT_CODE_LENGTH,
     OTHER_AREA,
     STATUS_ACCEPTED,
     STATUS_PENDING,
@@ -31,20 +38,26 @@ from app.domain.entities import (
     Classroom,
     Enrollment,
     EnrollmentCounts,
+    PublishedContent,
     SignedDownload,
     StudentInfo,
+    TeacherPublicProfile,
 )
 from app.domain.exceptions import (
     AlreadyEnrolledOrPending,
     AttemptLimitExceeded,
     ClassroomNotFound,
+    ClassroomWithoutTeacher,
     ContentServiceUnavailable,
     EnrollmentNotFound,
     IdentityServiceUnavailable,
     IncompleteClassroom,
     InvalidEnrollmentCode,
     InvalidFile,
+    KidNotInFamily,
+    MessageNotSent,
     MissingOtherArea,
+    NotInClassroomYet,
     PermissionDenied,
     RequestAlreadyResolved,
     ResourceNotFound,
@@ -53,6 +66,9 @@ from app.domain.ports import ContentGateway, EventPublisher, IdentityGateway, Ob
 
 logger = logging.getLogger(__name__)
 
+# A classroom content-service didn't list has nothing published yet.
+NOTHING = PublishedContent()
+
 UowFactory = Callable[[], "UnitOfWork"]
 
 REQUESTS_CHANNEL = "classroom.requests"
@@ -60,8 +76,29 @@ _MAX_CODE_ATTEMPTS = 25
 _MAX_LOGO_SIZE_BYTES = 5 * 1024 * 1024
 
 
+# One letter, one number and one symbol for sure, the rest from all of
+# them, then shuffled. secrets, not random: the code is what lets a family in.
 def _generate_enrollment_code() -> str:
-    return f"{random.randint(0, 9_999_999):07d}"
+    every = CODE_LETTERS + CODE_DIGITS + CODE_SYMBOLS
+    chars = [secrets.choice(CODE_LETTERS), secrets.choice(CODE_DIGITS), secrets.choice(CODE_SYMBOLS)]
+    chars += [secrets.choice(every) for _ in range(ENROLLMENT_CODE_LENGTH - len(chars))]
+    secrets.SystemRandom().shuffle(chars)
+    return "".join(chars)
+
+
+# What a family types can come with spaces or in lowercase.
+def normalize_code(code: str) -> str:
+    return code.strip().upper()
+
+
+# How many times a guardian can do each thing in a while, from the settings.
+@dataclass(frozen=True)
+class RateLimits:
+    lookup_max: int
+    enrollment_max: int
+    enrollment_window_sec: int
+    message_max: int
+    message_window_sec: int
 
 
 # The area written by the teacher is needed with "other" and dropped with
@@ -74,6 +111,14 @@ def _written_area(area: str, area_other: str | None) -> str | None:
     return area_other
 
 
+# The conversation of a message (HU-51): a new one gets a fresh id; an answer
+# says which one it answers, and notification-service checks it may.
+def _thread(thread_id: UUID | None) -> dict[str, object]:
+    if thread_id is None:
+        return {"thread_id": str(uuid.uuid4())}
+    return {"thread_id": str(thread_id), "reply": True}
+
+
 class ClassroomService:
     def __init__(
         self,
@@ -82,8 +127,7 @@ class ClassroomService:
         storage: ObjectStorage,
         event_publisher: EventPublisher,
         rate_limiter: RateLimiter,
-        rate_limit_enrollment_max: int,
-        rate_limit_enrollment_window_sec: int,
+        limits: RateLimits,
         content_gateway: ContentGateway,
     ) -> None:
         self._uow_factory = uow_factory
@@ -92,8 +136,7 @@ class ClassroomService:
         self._storage = storage
         self._events = event_publisher
         self._rate_limiter = rate_limiter
-        self._rate_limit_enrollment_max = rate_limit_enrollment_max
-        self._rate_limit_enrollment_window_sec = rate_limit_enrollment_window_sec
+        self._limits = limits
 
     # ------------------------------------------------------------------
     # Teacher
@@ -155,25 +198,25 @@ class ClassroomService:
         ]
 
     # The classes of a guardian's kids (parents' portal): the ones they're
-    # in and the requests still waiting, newest first. The kids come from
-    # identity-service, so a guardian only ever sees their own. The
-    # teacher's name and the lessons are extras: if identity or
+    # in and every request with how it went (HU-41), newest first. The kids
+    # come from identity-service, so a guardian only ever sees their own.
+    # The teacher's name and the lessons are extras: if identity or
     # content-service don't answer, they come back empty and the list shows.
     async def list_family_classrooms(self, guardian_id: UUID) -> list[FamilyClassroom]:
-        kids = {k.student_id: k.first_name for k in await self._identity.list_guardian_students(guardian_id)}
+        kids = await self._family_kids(guardian_id)
         if not kids:
             return []
         async with self._uow_factory() as uow:
-            enrollments = await uow.enrollments.list_active_by_students(list(kids))
+            enrollments = await uow.enrollments.list_by_students(list(kids))
             classroom_ids = list({e.classroom_id for e in enrollments})
             classrooms = {c.id: c for c in await uow.classrooms.list_by_ids(classroom_ids)}
         enrollments = [e for e in enrollments if e.classroom_id in classrooms]
         if not enrollments:
             return []
 
-        teacher_names, lessons = await asyncio.gather(
+        teacher_names, content = await asyncio.gather(
             self._teacher_names(list({c.teacher_id for c in classrooms.values()})),
-            self._published_lessons(list(classrooms)),
+            self._published_content(list(classrooms)),
         )
         enrollments.sort(key=lambda e: e.requested_at, reverse=True)
         return [
@@ -185,7 +228,9 @@ class ClassroomService:
                 requested_at=e.requested_at,
                 classroom=classrooms[e.classroom_id],
                 teacher_name=teacher_names.get(classrooms[e.classroom_id].teacher_id),
-                published_lessons=None if lessons is None else lessons.get(e.classroom_id, 0),
+                published_lessons=None if content is None else content.get(e.classroom_id, NOTHING).lessons,
+                published_units=None if content is None else content.get(e.classroom_id, NOTHING).units,
+                resolved_at=e.resolved_at,
             )
             for e in enrollments
         ]
@@ -204,9 +249,9 @@ class ClassroomService:
                 logger.warning("No se pudo obtener el nombre del docente %s: %s", teacher_id, result)
         return names
 
-    async def _published_lessons(self, classroom_ids: list[UUID]) -> dict[UUID, int] | None:
+    async def _published_content(self, classroom_ids: list[UUID]) -> dict[UUID, PublishedContent] | None:
         try:
-            return await self._content.published_lessons(classroom_ids)
+            return await self._content.published_content(classroom_ids)
         except ContentServiceUnavailable:
             logger.warning("content-service no respondió: las clases de la familia van sin lecciones.")
             return None
@@ -217,6 +262,8 @@ class ClassroomService:
             raise ClassroomNotFound()
         if classroom.teacher_id != teacher_id:
             raise PermissionDenied("No eres el docente dueño de esta aula.")
+        if not classroom.has_teacher:
+            raise ClassroomWithoutTeacher()
         return classroom
 
     async def get_classroom_with_students(self, classroom_id: UUID, teacher_id: UUID) -> ClassroomWithStudents:
@@ -374,7 +421,9 @@ class ClassroomService:
 
     async def get_logo(self, classroom_id: UUID, file_name: str, subject_id: UUID, role: str) -> SignedDownload:
         # Same rule as the classroom: its teacher and its accepted students.
-        # Any "no" is the same 404, so it doesn't reveal what exists.
+        # A guardian with the portal open too (the route checks it): the id
+        # and the file name are random, they only reach a family through the
+        # code or an enrollment (ADR 0016). Any "no" is the same 404.
         async with self._uow_factory() as uow:
             classroom = await uow.classrooms.get_by_id(classroom_id)
             if classroom is None or classroom.logo_key is None or classroom.logo_file != file_name:
@@ -385,6 +434,8 @@ class ClassroomService:
             elif role == "student":
                 enrollment = await uow.enrollments.get_by_student_and_classroom(subject_id, classroom_id)
                 allowed = enrollment is not None and enrollment.status == STATUS_ACCEPTED
+            elif role == "guardian":
+                allowed = True
             if not allowed:
                 raise ResourceNotFound("La imagen solicitada no existe.")
             key = classroom.logo_key
@@ -445,20 +496,62 @@ class ClassroomService:
         return enrollment
 
     # ------------------------------------------------------------------
-    # Student
+    # Guardian (parents' portal, EP-07). Only the guardian types the code,
+    # the kid never does (ADR 0016).
     # ------------------------------------------------------------------
 
-    async def enroll_in_classroom(self, student_id: UUID, enrollment_code: str) -> Enrollment:
-        limit_key = f"enroll:{student_id}"
-        if not await self._rate_limiter.permitir(
-            limit_key, self._rate_limit_enrollment_max, self._rate_limit_enrollment_window_sec
-        ):
+    async def _family_kids(self, guardian_id: UUID) -> dict[UUID, str]:
+        return {k.student_id: k.first_name for k in await self._identity.list_guardian_students(guardian_id)}
+
+    async def _check_rate(self, key: str, maximum: int, window_sec: int) -> None:
+        if not await self._rate_limiter.permitir(key, maximum, window_sec):
             raise AttemptLimitExceeded()
 
+    # The teacher's profile is an extra: without identity-service the class
+    # still shows, only without who teaches it.
+    async def _teacher_profile(self, teacher_id: UUID) -> TeacherPublicProfile | None:
+        try:
+            return await self._identity.get_teacher_profile(teacher_id)
+        except (IdentityServiceUnavailable, ResourceNotFound):
+            logger.warning("No fue posible obtener el perfil del docente %s.", teacher_id)
+            return None
+
+    # HU-40: the class behind a code, with its teacher (HU-97), before
+    # asking to join. Counted per guardian, so codes can't be guessed.
+    async def preview_classroom(self, guardian_id: UUID, enrollment_code: str) -> ClassroomPreview:
+        await self._check_rate(f"lookup:{guardian_id}", self._limits.lookup_max, self._limits.enrollment_window_sec)
         async with self._uow_factory() as uow:
-            classroom = await uow.classrooms.get_by_code(enrollment_code)
+            classroom = await uow.classrooms.get_by_code(normalize_code(enrollment_code))
+        if classroom is None:
+            raise InvalidEnrollmentCode()
+        if not classroom.has_teacher:
+            raise ClassroomWithoutTeacher()
+        teacher, content = await asyncio.gather(
+            self._teacher_profile(classroom.teacher_id), self._published_content([classroom.id])
+        )
+        return ClassroomPreview(
+            classroom=classroom,
+            teacher=teacher,
+            published_lessons=None if content is None else content.get(classroom.id, NOTHING).lessons,
+            published_units=None if content is None else content.get(classroom.id, NOTHING).units,
+        )
+
+    # HU-40: the guardian asks for one of their own kids. A pending or
+    # accepted request blocks a new one, a rejected one goes back to pending.
+    async def request_enrollment(self, guardian_id: UUID, student_id: UUID, enrollment_code: str) -> Enrollment:
+        await self._check_rate(
+            f"enroll:{guardian_id}", self._limits.enrollment_max, self._limits.enrollment_window_sec
+        )
+        kids = await self._family_kids(guardian_id)
+        if student_id not in kids:
+            raise KidNotInFamily()
+
+        async with self._uow_factory() as uow:
+            classroom = await uow.classrooms.get_by_code(normalize_code(enrollment_code))
             if classroom is None:
                 raise InvalidEnrollmentCode()
+            if not classroom.has_teacher:
+                raise ClassroomWithoutTeacher()
 
             existing = await uow.enrollments.get_by_student_and_classroom(student_id, classroom.id)
             if existing is not None and existing.status in (STATUS_PENDING, STATUS_ACCEPTED):
@@ -483,17 +576,180 @@ class ClassroomService:
                 await uow.enrollments.add(enrollment)
             await uow.commit()
 
-        event: dict[str, object] = {
-            "event": "request.created",
-            "classroom_id": str(classroom.id),
-            "classroom_name": classroom.name,
-            "enrollment_id": str(enrollment.id),
-            "student_name": "Un estudiante",
-            "teacher_id": str(classroom.teacher_id),
-        }
+        event = self._family_event("request.created", classroom, enrollment, kids[student_id])
         event |= await self._guardian_fields(student_id)
         await self._publish_event_safely(REQUESTS_CHANNEL, event)
         return enrollment
+
+    # One enrollment of the guardian's kids, with its classroom and the kid's
+    # name. Someone else's answers the same as one that doesn't exist.
+    async def _family_enrollment(self, guardian_id: UUID, enrollment_id: UUID) -> tuple[Enrollment, Classroom, str]:
+        kids = await self._family_kids(guardian_id)
+        async with self._uow_factory() as uow:
+            enrollment = await uow.enrollments.get_by_id(enrollment_id)
+            classroom = await uow.classrooms.get_by_id(enrollment.classroom_id) if enrollment else None
+        if enrollment is None or classroom is None or enrollment.student_id not in kids:
+            raise EnrollmentNotFound()
+        return enrollment, classroom, kids[enrollment.student_id]
+
+    # HU-42: the space of a class the kid is already in, with its teacher.
+    async def get_family_classroom(self, guardian_id: UUID, enrollment_id: UUID) -> FamilyClassroomDetail:
+        enrollment, classroom, first_name = await self._family_enrollment(guardian_id, enrollment_id)
+        if enrollment.status != STATUS_ACCEPTED:
+            raise NotInClassroomYet()
+        teacher, content = await asyncio.gather(
+            self._teacher_profile(classroom.teacher_id), self._published_content([classroom.id])
+        )
+        family = FamilyClassroom(
+            student_id=enrollment.student_id,
+            student_first_name=first_name,
+            enrollment_id=enrollment.id,
+            status=enrollment.status,
+            requested_at=enrollment.requested_at,
+            classroom=classroom,
+            teacher_name=teacher.full_name if teacher else None,
+            published_lessons=None if content is None else content.get(classroom.id, NOTHING).lessons,
+            published_units=None if content is None else content.get(classroom.id, NOTHING).units,
+            resolved_at=enrollment.resolved_at,
+        )
+        return FamilyClassroomDetail(family=family, teacher=teacher)
+
+    # HU-49: a kid in the class leaves it, a request still waiting is
+    # cancelled, and a rejected one is just taken off the list. The teacher
+    # hears about the first two, with the guardian's and the kid's names.
+    async def leave_classroom(self, guardian_id: UUID, enrollment_id: UUID) -> None:
+        enrollment, classroom, first_name = await self._family_enrollment(guardian_id, enrollment_id)
+        async with self._uow_factory() as uow:
+            await uow.enrollments.delete(enrollment.id)
+            await uow.commit()
+        if enrollment.status == STATUS_REJECTED:
+            return
+
+        kind = "enrollment.withdrawn" if enrollment.status == STATUS_ACCEPTED else "request.cancelled"
+        event = self._family_event(kind, classroom, enrollment, first_name)
+        event |= await self._guardian_fields(enrollment.student_id)
+        await self._publish_event_safely(REQUESTS_CHANNEL, event)
+
+    # HU-48: a message to the teacher of a class the kid is in, kept in their
+    # tray as a notification. Unlike the other events, losing it would lose
+    # what the guardian wrote, so a failure is reported instead of skipped.
+    async def send_message(
+        self, guardian_id: UUID, enrollment_id: UUID, subject: str, body: str, thread_id: UUID | None = None
+    ) -> None:
+        await self._check_rate(f"message:{guardian_id}", self._limits.message_max, self._limits.message_window_sec)
+        enrollment, classroom, first_name = await self._family_enrollment(guardian_id, enrollment_id)
+        if enrollment.status != STATUS_ACCEPTED:
+            raise NotInClassroomYet()
+        if not classroom.has_teacher:
+            raise ClassroomWithoutTeacher()
+
+        event = self._family_event("message.sent", classroom, enrollment, first_name)
+        event |= await self._guardian_fields(enrollment.student_id)
+        event |= {"subject": subject, "body": body} | _thread(thread_id)
+        try:
+            await self._events.publicar(REQUESTS_CHANNEL, event)
+        except Exception as exc:  # noqa: BLE001, any infra failure means it wasn't sent
+            logger.warning("No fue posible enviar el mensaje del tutor al docente de %s.", classroom.id)
+            raise MessageNotSent() from exc
+
+    # HU-77: the teacher writes to a kid of the class or to their guardian.
+    # It's kept in that person's tray, and a copy (already read) in the
+    # teacher's. Like a family's message, a failure is reported: losing it
+    # would lose what the teacher wrote.
+    async def send_family_message(
+        self,
+        classroom_id: UUID,
+        enrollment_id: UUID,
+        teacher_id: UUID,
+        recipient: str,
+        subject: str,
+        body: str,
+        thread_id: UUID | None = None,
+    ) -> None:
+        await self._check_rate(
+            f"teacher-message:{teacher_id}", self._limits.message_max, self._limits.message_window_sec
+        )
+        async with self._uow_factory() as uow:
+            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            enrollment = await uow.enrollments.get_by_id(enrollment_id)
+        if enrollment is None or enrollment.classroom_id != classroom_id or enrollment.status != STATUS_ACCEPTED:
+            raise EnrollmentNotFound("Ese estudiante no está inscrito en esta clase.")
+
+        family = await self._guardian_fields(enrollment.student_id)
+        # Without knowing who the guardian is, their message has nowhere to go.
+        if recipient == "guardian" and "guardian_id" not in family:
+            raise MessageNotSent()
+        event = self._family_event("teacher.message", classroom, enrollment, "")
+        event |= family | {"recipient": recipient, "subject": subject, "body": body} | _thread(thread_id)
+        if not event["student_name"]:
+            event.pop("student_name")
+        teacher_name = await self._teacher_name(classroom.teacher_id)
+        if teacher_name:
+            event["teacher_name"] = teacher_name
+        try:
+            await self._events.publicar(REQUESTS_CHANNEL, event)
+        except Exception as exc:  # noqa: BLE001, any infra failure means it wasn't sent
+            logger.warning("No fue posible enviar el mensaje del docente de %s.", classroom.id)
+            raise MessageNotSent() from exc
+
+    # HU-46 and HU-47: how far the kid got in each lesson of the class and
+    # their tries, only once they're in it.
+    async def get_family_progress(self, guardian_id: UUID, enrollment_id: UUID) -> list[dict[str, object]]:
+        enrollment, classroom, _first_name = await self._family_enrollment(guardian_id, enrollment_id)
+        if enrollment.status != STATUS_ACCEPTED:
+            raise NotInClassroomYet()
+        return await self._content.student_progress(classroom.id, enrollment.student_id)
+
+    # HU-86, HU-87: the statistics of the teacher's class, with the name and
+    # avatar of each kid next to their numbers. content-service counts,
+    # classroom-service says who is in the class and who they are.
+    async def get_statistics(self, classroom_id: UUID, teacher_id: UUID) -> dict[str, object]:
+        async with self._uow_factory() as uow:
+            await self._get_own_classroom(uow, classroom_id, teacher_id)
+            accepted = await uow.enrollments.list_accepted_by_classroom(classroom_id)
+        student_ids = [e.student_id for e in accepted]
+        statistics, infos = await asyncio.gather(
+            self._content.classroom_statistics(classroom_id, student_ids),
+            asyncio.gather(*(self._identity.obtener_estudiante(s) for s in student_ids), return_exceptions=True),
+        )
+        # Without identity-service a kid still counts, only without a name.
+        who: dict[str, dict[str, object]] = {}
+        for student_id, info in zip(student_ids, infos):
+            if isinstance(info, StudentInfo):
+                who[str(student_id)] = {"first_name": info.first_name, "avatar_id": info.avatar_id}
+            else:
+                who[str(student_id)] = {"first_name": "Estudiante sin datos", "avatar_id": 1}
+
+        def named(kids: object) -> list[dict[str, object]]:
+            items = kids if isinstance(kids, list) else []
+            return [kid | who.get(str(kid.get("student_id")), {}) for kid in items if isinstance(kid, dict)]
+
+        lessons = statistics.get("lessons")
+        return statistics | {
+            "lessons": [
+                lesson | {"kids": named(lesson.get("kids"))}
+                for lesson in (lessons if isinstance(lessons, list) else [])
+                if isinstance(lesson, dict)
+            ],
+            "by_kid": named(statistics.get("by_kid")),
+        }
+
+    # What every event about a family's enrollment carries.
+    @staticmethod
+    def _family_event(kind: str, classroom: Classroom, enrollment: Enrollment, first_name: str) -> dict[str, object]:
+        return {
+            "event": kind,
+            "classroom_id": str(classroom.id),
+            "classroom_name": classroom.name,
+            "enrollment_id": str(enrollment.id),
+            "teacher_id": str(classroom.teacher_id),
+            "student_id": str(enrollment.student_id),
+            "student_name": first_name,
+        }
+
+    # ------------------------------------------------------------------
+    # Student
+    # ------------------------------------------------------------------
 
     async def list_my_classrooms(self, student_id: UUID) -> list[Classroom]:
         async with self._uow_factory() as uow:
@@ -517,6 +773,128 @@ class ClassroomService:
                 enrollment = await uow.enrollments.get_by_student_and_classroom(subject_id, classroom_id)
                 return enrollment is not None and enrollment.status == STATUS_ACCEPTED
             return False
+
+    # HU-83, asked by content-service: a new lesson (or a new extra of a
+    # published one) goes out as one event with every kid it's for and
+    # their guardian. A kid whose guardian isn't known still gets theirs.
+    async def announce(
+        self,
+        classroom_id: UUID,
+        kind: str,
+        lesson_id: UUID,
+        lesson_title: str,
+        extra_title: str | None,
+        student_ids: list[UUID] | None,
+    ) -> None:
+        async with self._uow_factory() as uow:
+            classroom = await uow.classrooms.get_by_id(classroom_id)
+            if classroom is None:
+                raise ClassroomNotFound()
+            accepted = await uow.enrollments.list_accepted_by_classroom(classroom_id)
+        if student_ids is not None:
+            wanted = set(student_ids)
+            accepted = [e for e in accepted if e.student_id in wanted]
+        if not accepted:
+            return
+
+        families, teacher_name = await asyncio.gather(
+            asyncio.gather(*(self._guardian_fields(e.student_id) for e in accepted)),
+            self._teacher_name(classroom.teacher_id),
+        )
+        members = [
+            {
+                "enrollment_id": str(e.id),
+                "student_id": str(e.student_id),
+                **{k: v for k, v in family.items() if k in ("student_name", "guardian_id")},
+            }
+            for e, family in zip(accepted, families)
+        ]
+        event: dict[str, object] = {
+            "event": kind,
+            "classroom_id": str(classroom.id),
+            "classroom_name": classroom.name,
+            "teacher_id": str(classroom.teacher_id),
+            "lesson_id": str(lesson_id),
+            "lesson_title": lesson_title,
+            "members": members,
+        }
+        if extra_title:
+            event["extra_title"] = extra_title
+        if teacher_name:
+            event["teacher_name"] = teacher_name
+        await self._publish_event_safely(REQUESTS_CHANNEL, event)
+
+    # HU-69, asked by content-service: a kid of the class finished the
+    # reading or the activity of a lesson, for their teacher. A kid who
+    # isn't in the class anymore is a 404.
+    async def report_student(
+        self,
+        classroom_id: UUID,
+        student_id: UUID,
+        kind: str,
+        lesson_id: UUID,
+        lesson_title: str,
+        correct: int | None,
+        total: int | None,
+    ) -> None:
+        async with self._uow_factory() as uow:
+            classroom = await uow.classrooms.get_by_id(classroom_id)
+            enrollment = await uow.enrollments.get_by_student_and_classroom(student_id, classroom_id)
+        if classroom is None:
+            raise ClassroomNotFound()
+        if enrollment is None or enrollment.status != STATUS_ACCEPTED:
+            raise EnrollmentNotFound("Ese estudiante no está inscrito en esta clase.")
+
+        event = self._family_event(kind, classroom, enrollment, "")
+        event |= {"lesson_id": str(lesson_id), "lesson_title": lesson_title}
+        event |= {k: v for k, v in (await self._guardian_fields(student_id)).items() if k == "student_name"}
+        if not event["student_name"]:
+            event.pop("student_name")
+        if correct is not None and total is not None:
+            event |= {"correct": correct, "total": total}
+        await self._publish_event_safely(REQUESTS_CHANNEL, event)
+
+    # HU-91, asked by identity-service before deleting a guardian: every
+    # enrollment of their kids goes, in any class and any state. Nothing is
+    # told to anybody: the kid's name would stay in the teacher's tray.
+    # Says how many went; asking again finds none.
+    async def erase_students(self, student_ids: list[UUID]) -> int:
+        async with self._uow_factory() as uow:
+            deleted = await uow.enrollments.delete_by_students(student_ids)
+            await uow.commit()
+        return deleted
+
+    # HU-92, asked by identity-service before deleting a teacher: their
+    # classes stay for the kids already in them, but they're marked as
+    # without a teacher, and every request still waiting is closed, telling
+    # its family why. Asking again changes nothing.
+    async def teacher_left(self, teacher_id: UUID) -> None:
+        now = datetime.now(timezone.utc)
+        closed: list[tuple[Classroom, Enrollment]] = []
+        async with self._uow_factory() as uow:
+            for classroom in await uow.classrooms.list_by_teacher(teacher_id):
+                if classroom.has_teacher:
+                    classroom.teacher_left_at = now
+                    await uow.classrooms.update(classroom)
+                for enrollment in await uow.enrollments.list_pending_by_classroom(classroom.id):
+                    await uow.enrollments.delete(enrollment.id)
+                    closed.append((classroom, enrollment))
+            await uow.commit()
+
+        for classroom, enrollment in closed:
+            event = self._family_event("request.closed", classroom, enrollment, "")
+            event |= await self._guardian_fields(enrollment.student_id)
+            if not event["student_name"]:
+                event.pop("student_name")
+            await self._publish_event_safely(REQUESTS_CHANNEL, event)
+
+    # The teacher's name for an event, or None without identity-service.
+    async def _teacher_name(self, teacher_id: UUID) -> str | None:
+        try:
+            return await self._identity.obtener_nombre_docente(teacher_id)
+        except (IdentityServiceUnavailable, ResourceNotFound):
+            logger.warning("No fue posible resolver el nombre del docente para un evento.")
+            return None
 
     async def _delete_quietly(self, key: str) -> None:
         try:

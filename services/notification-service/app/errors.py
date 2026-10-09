@@ -14,6 +14,7 @@ from app.domain.exceptions import (
     DomainError,
     IdentityServiceUnavailable,
     InvalidToken,
+    UnauthorizedInternalAccess,
     NotificationNotFound,
     PermissionDenied,
     TwoFactorRequired,
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 _STATUS_BY_ERROR: dict[type[DomainError], int] = {
     InvalidToken: status.HTTP_401_UNAUTHORIZED,
+    UnauthorizedInternalAccess: status.HTTP_401_UNAUTHORIZED,
     IdentityServiceUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
     NotificationNotFound: status.HTTP_404_NOT_FOUND,
     PermissionDenied: status.HTTP_403_FORBIDDEN,

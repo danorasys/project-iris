@@ -1,0 +1,134 @@
+/* The charts of the teacher's statistics: a donut with its legend, and a
+   list of bars. Colors come from the theme, so they follow the portal. */
+.chartTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+/* --- donut --- */
+.donut {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.donutGraphic {
+  position: relative;
+  flex: none;
+}
+
+.donutCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--color-iris-deep);
+}
+
+.donutCenter strong {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+
+.donutCenter span {
+  max-width: 90px;
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+}
+
+.legend {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 0.92rem;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  flex: none;
+}
+
+/* --- bars --- */
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.barRows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: minmax(90px, 160px) 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.barLabel {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.barTrack {
+  height: 12px;
+  border-radius: 999px;
+  background: var(--color-iris-pale);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-iris-medium);
+}
+
+.barValue {
+  font-family: var(--font-display);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.barNote {
+  font-family: var(--font-body);
+  font-weight: 500;
+  color: var(--color-ink-soft);
+}
+
+@media (max-width: 560px) {
+  .barRow {
+    grid-template-columns: 1fr auto;
+  }
+
+  .barTrack {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

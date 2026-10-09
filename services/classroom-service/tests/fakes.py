@@ -6,9 +6,20 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from app.domain.entities import GuardianStudent, SignedDownload, StudentInfo, UserClaims
+from app.domain.entities import (
+    GuardianStudent,
+    PublishedContent,
+    SignedDownload,
+    StudentInfo,
+    TeacherExperience,
+    TeacherPublicProfile,
+    TeacherStudy,
+    UserClaims,
+)
 from app.domain.exceptions import (
     ContentServiceUnavailable,
+    ProgressUnavailable,
+    StatisticsUnavailable,
     IdentityServiceUnavailable,
     InvalidToken,
     PortalAccessRequired,
@@ -18,7 +29,12 @@ from app.domain.exceptions import (
 
 
 class FakeIdentityGateway:
+    # The one the running test uses (each test makes a new one), so helpers
+    # can find it without passing it around.
+    current: "FakeIdentityGateway | None" = None
+
     def __init__(self) -> None:
+        FakeIdentityGateway.current = self
         self._tokens: dict[str, UserClaims] = {}
         self._students: dict[UUID, StudentInfo] = {}
         self._teacher_names: dict[UUID, str] = {}
@@ -33,6 +49,8 @@ class FakeIdentityGateway:
         # renew of each check, in order.
         self.portal_open = True
         self.portal_renews: list[bool] = []
+        # The guardian token of each kid, made the first time it's asked.
+        self._guardian_of_kid: dict[UUID, str] = {}
 
     # The teacher comes from a session that already passed the 2FA code,
     # unless verificado=False.
@@ -82,6 +100,34 @@ class FakeIdentityGateway:
             for s in student_ids
         ]
         return token, guardian_id
+
+    # A guardian (with the portal open) for the kid behind a student token,
+    # always the same one, so tests ask to join the way a family does.
+    def tutor_de(self, student_token: str) -> str:
+        student_id = self.sub_de(student_token)
+        if student_id not in self._guardian_of_kid:
+            self._guardian_of_kid[student_id] = self.registrar_tutor_con_peques(student_id)[0]
+        return self._guardian_of_kid[student_id]
+
+    # Who a token belongs to, without counting as a validation.
+    def sub_de(self, token: str) -> UUID:
+        return self._tokens[token].sub
+
+    async def get_teacher_profile(self, teacher_id: UUID) -> TeacherPublicProfile:
+        if self.fallar_con_no_disponible:
+            raise IdentityServiceUnavailable()
+        name = self._teacher_names.get(teacher_id)
+        if name is None:
+            raise ResourceNotFound("Docente no encontrado.")
+        first_name, _, last_name = name.partition(" ")
+        return TeacherPublicProfile(
+            first_name=first_name,
+            last_name=last_name,
+            about="Docente de primaria.",
+            institution="Colegio Nacional",
+            studies=(TeacherStudy("professional", "Licenciatura", "UPB", "2015-11", False),),
+            experiences=(TeacherExperience("Docente", "Colegio San José", "2016-02", None, None),),
+        )
 
     async def list_guardian_students(self, guardian_id: UUID) -> list[GuardianStudent]:
         if self.fallar_con_no_disponible:
@@ -144,15 +190,55 @@ class FakeContentGateway:
         # Classrooms whose lessons were deleted, in order.
         self.deleted: list[UUID] = []
         self.unavailable = False
-        # Published lessons of each classroom, for the parents' portal.
+        # Published lessons of each classroom and the units they're in, for
+        # the parents' portal.
         self.published: dict[UUID, int] = {}
+        self.published_units: dict[UUID, int] = {}
+        # The progress of each kid in each classroom, as content-service sends it.
+        self.progress: dict[tuple[UUID, UUID], list[dict[str, object]]] = {}
+        # The kids each request for statistics was made with.
+        self.statistics_asked: list[tuple[UUID, list[UUID]]] = []
 
     async def delete_classroom_lessons(self, classroom_id: UUID) -> None:
         if self.unavailable:
             raise ContentServiceUnavailable()
         self.deleted.append(classroom_id)
 
-    async def published_lessons(self, classroom_ids: list[UUID]) -> dict[UUID, int]:
+    async def published_content(self, classroom_ids: list[UUID]) -> dict[UUID, PublishedContent]:
         if self.unavailable:
             raise ContentServiceUnavailable()
-        return {c: self.published.get(c, 0) for c in classroom_ids}
+        return {
+            c: PublishedContent(lessons=self.published.get(c, 0), units=self.published_units.get(c, 0))
+            for c in classroom_ids
+        }
+
+    async def classroom_statistics(self, classroom_id: UUID, student_ids: list[UUID]) -> dict[str, object]:
+        if self.unavailable:
+            raise StatisticsUnavailable()
+        self.statistics_asked.append((classroom_id, list(student_ids)))
+        kid = {"percent": 100, "tries": 1, "best_correct": 2, "best_total": 2, "passed": True}
+        lesson = {
+            "lesson_id": str(uuid4()),
+            "title": "Animales",
+            "unit_title": "Unidad 1",
+            "has_activity": True,
+            "average_percent": 100,
+            "completed": len(student_ids),
+            "in_progress": 0,
+            "not_started": 0,
+            "passed": len(student_ids),
+            "tried_not_passed": 0,
+            "kids": [{"student_id": str(s), **kid} for s in student_ids],
+        }
+        return {
+            "kids": len(student_ids),
+            "lessons": [lesson],
+            "completed_percent": 100,
+            "average_percent": 100,
+            "by_kid": [{"student_id": str(s), "average_percent": 100, "completed_lessons": 1} for s in student_ids],
+        }
+
+    async def student_progress(self, classroom_id: UUID, student_id: UUID) -> list[dict[str, object]]:
+        if self.unavailable:
+            raise ProgressUnavailable()
+        return self.progress.get((classroom_id, student_id), [])

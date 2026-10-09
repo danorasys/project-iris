@@ -56,6 +56,72 @@
   font-family: var(--font-display);
 }
 
+/* HU-30: the group of profiles between two big round arrows. */
+.groupRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 780px;
+}
+
+.groupRow > .profiles {
+  grid-column: 2;
+}
+
+.groupArrow {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-iris-deep);
+  color: var(--color-white);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease;
+}
+
+.groupArrow:hover:not(:disabled) {
+  transform: scale(1.06);
+}
+
+.groupArrow:focus-visible {
+  outline: 4px solid var(--color-focus);
+  outline-offset: 4px;
+}
+
+/* At the first or the last group, its arrow fades and does nothing. */
+.groupArrow:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.groupCount {
+  grid-column: 1 / -1;
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+
+@media (max-width: 720px) {
+  .groupArrow {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .groupArrow {
+    transition: none;
+  }
+}
+
 .pinWrapper {
   display: flex;
   flex-direction: column;

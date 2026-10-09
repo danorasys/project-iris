@@ -16,12 +16,38 @@ const sofia = { id: "s1", first_name: "Sofía", avatar_id: 1, date_of_birth: bor
 const mateo = { id: "s2", first_name: "Mateo", avatar_id: 2, date_of_birth: bornYearsAgo(1) };
 
 const studentsQuery = vi.fn();
+const addStudent = vi.fn();
 // The family's classes; undefined while they haven't arrived.
 let familyClasses: FamilyClassroom[] | undefined;
 
-// "Sus datos" has its own tests, here it only matters that it opens.
+// "Sus clases" and "Sus datos" have their own tests, here it only matters
+// that they open, and that a class and its options can be opened inside.
 vi.mock("./SusClasesSection", () => ({
-  SusClasesSection: ({ firstName }: { firstName: string }) => <p>Sus clases de {firstName}</p>,
+  SusClasesSection: ({
+    firstName,
+    openId,
+    option,
+    onOpen,
+    onOption,
+  }: {
+    firstName: string;
+    openId: string | null;
+    option: string | null;
+    onOpen: (id: string) => void;
+    onOption: (option: string) => void;
+  }) => (
+    <div>
+      <p>Sus clases de {firstName}</p>
+      {openId && <p>clase {openId}</p>}
+      {option && <p>opción {option}</p>}
+      <button type="button" onClick={() => onOpen("Matemáticas")}>
+        abrir la clase
+      </button>
+      <button type="button" onClick={() => onOption("contacto")}>
+        abrir contacto
+      </button>
+    </div>
+  ),
 }));
 vi.mock("./SusDatosSection", () => ({
   SusDatosSection: ({ studentId }: { studentId: string }) => <p>datos de {studentId}</p>,
@@ -40,11 +66,14 @@ vi.mock("@/shared/api/hooks/useAuthApi", () => ({
       { id: 2, name: "Coral", accent_color: "#c06048" },
     ],
   }),
+  useSupportConditions: () => ({ data: [{ id: 7, name: "Prefiero no especificar" }] }),
+  useAddStudent: () => ({ mutateAsync: addStudent, isPending: false }),
 }));
 
 afterEach(() => {
   cleanup();
   studentsQuery.mockReset();
+  addStudent.mockReset();
   familyClasses = undefined;
 });
 
@@ -73,6 +102,39 @@ describe("MisPequesSection", () => {
     expect(screen.getByRole("button", { name: "Mateo, 1 año, sin clases. Ver su espacio" })).toBeTruthy();
   });
 
+  it("doesn't count a rejected request as waiting", () => {
+    studentsQuery.mockReturnValue({ data: [sofia], isLoading: false, isError: false });
+    familyClasses = [{ student_id: "s1", status: "rechazada", name: "Arte", enrollment_id: "a" } as FamilyClassroom];
+
+    render(<MisPequesSection onDirtyChange={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: "Sofía, 7 años, sin clases. Ver su espacio" })).toBeTruthy();
+    expect(screen.queryByText("1 solicitud")).toBeNull();
+  });
+
+  it("the back button walks out of a class one step at a time", async () => {
+    studentsQuery.mockReturnValue({ data: [sofia], isLoading: false, isError: false });
+    familyClasses = [
+      { student_id: "s1", status: "aceptada", name: "Matemáticas", enrollment_id: "Matemáticas" } as FamilyClassroom,
+    ];
+    const user = userEvent.setup();
+    render(<MisPequesSection onDirtyChange={vi.fn()} initialStudentId="s1" initialOption="clases" />);
+
+    await user.click(screen.getByRole("button", { name: "abrir la clase" }));
+    await user.click(screen.getByRole("button", { name: "abrir contacto" }));
+    expect(screen.getByText("opción contacto")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Regresar a Matemáticas" }));
+    expect(screen.queryByText("opción contacto")).toBeNull();
+    expect(screen.getByText("clase Matemáticas")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Regresar a sus clases" }));
+    expect(screen.queryByText("clase Matemáticas")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Regresar al espacio de Sofía" }));
+    expect(screen.queryByText("Sus clases de Sofía")).toBeNull();
+  });
+
   it("puts the button to add a kid on top, with the headings", () => {
     studentsQuery.mockReturnValue({ data: [sofia], isLoading: false, isError: false });
 
@@ -82,8 +144,42 @@ describe("MisPequesSection", () => {
     const add = screen.getByRole("button", { name: "Agregar estudiante" });
     // In the first row, the one of the headings.
     expect(rows[0].contains(add)).toBe(true);
-    expect(add.getAttribute("aria-disabled")).toBe("true");
-    expect(screen.queryByText("Muy pronto")).toBeNull();
+    expect(add.getAttribute("aria-disabled")).toBeNull();
+  });
+
+  it("adds a kid with only their data and opens their space (HU-50)", async () => {
+    studentsQuery.mockReturnValue({ data: [sofia, mateo], isLoading: false, isError: false });
+    addStudent.mockResolvedValue(mateo);
+    const user = userEvent.setup();
+    render(<MisPequesSection onDirtyChange={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Agregar estudiante" }));
+    expect(screen.getByRole("heading", { name: "Agregar un peque" })).toBeTruthy();
+    // Nothing of the guardian is asked again.
+    expect(screen.queryByLabelText(/correo/i)).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Agregar peque" }));
+    expect(addStudent).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText(/^Nombres/), "Mateo");
+    await user.type(screen.getByLabelText(/^Apellidos/), "Pérez");
+    await user.type(screen.getByLabelText(/Fecha de nacimiento/), "2019-05-04");
+    await user.click(screen.getByLabelText("Prefiero no especificar"));
+    await user.click(screen.getByRole("radio", { name: "Coral" }));
+    await user.type(screen.getByLabelText(/^PIN/), "2468");
+    await user.type(screen.getByLabelText(/Escribe el PIN otra vez/), "2468");
+    await user.click(screen.getByRole("button", { name: "Agregar peque" }));
+
+    expect(addStudent).toHaveBeenCalledWith({
+      first_name: "Mateo",
+      last_name: "Pérez",
+      date_of_birth: "2019-05-04",
+      avatar_id: 2,
+      pin: "2468",
+      support_condition_ids: [7],
+      support_condition_other: null,
+      additional_support_need: null,
+    });
+    expect(screen.queryByRole("heading", { name: "Agregar un peque" })).toBeNull();
   });
 
   it("opens the kid's space, shows their classes and comes back", async () => {

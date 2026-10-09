@@ -1,0 +1,113 @@
+/* The conversation under a message (HU-51): each message as a bubble, the
+   ones the person sent on the right in IRIS blue, and the answer below. */
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--color-iris-deep);
+}
+
+.messages {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.message {
+  max-width: min(560px, 90%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-iris-pale);
+}
+
+.message[data-own="true"] {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--color-iris-pale) 60%, var(--color-surface));
+}
+
+/* The one being read stands out a little. */
+.message[aria-current="true"] {
+  border-color: var(--color-iris-medium);
+}
+
+.who {
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}
+
+.subject {
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.body {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.reply {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.send {
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-action);
+  color: var(--color-surface);
+  padding: var(--space-3) var(--space-5);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.send:hover:not(:disabled) {
+  background: var(--color-action-hover);
+}
+
+.send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.send:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.error {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.sent {
+  margin: 0;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--color-leaf) 70%, var(--color-ink));
+}

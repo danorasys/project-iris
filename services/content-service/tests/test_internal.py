@@ -74,9 +74,13 @@ async def test_cuenta_solo_las_lecciones_publicadas_de_cada_clase(
     empty_classroom = uuid4()
     who = teacher(identity_client, classroom_client, classroom_id)
     unit_id = (await unit(client, who))["id"]
+    other_unit = (await unit(client, who, "Las plantas"))["id"]
+    empty_unit = (await unit(client, who, "El agua"))["id"]
     await published_lesson(client, who, unit_id)
     await published_lesson(client, who, unit_id)
+    await published_lesson(client, who, other_unit)
     await lesson(client, who, unit_id)  # a draft doesn't count
+    await lesson(client, who, empty_unit)  # nor a unit with only drafts
 
     response = await client.get(
         "/internal/classrooms/published-lessons",
@@ -86,8 +90,8 @@ async def test_cuenta_solo_las_lecciones_publicadas_de_cada_clase(
 
     assert response.status_code == 200
     assert response.json() == [
-        {"classroom_id": str(classroom_id), "published_lessons": 2},
-        {"classroom_id": str(empty_classroom), "published_lessons": 0},
+        {"classroom_id": str(classroom_id), "published_lessons": 3, "published_units": 2},
+        {"classroom_id": str(empty_classroom), "published_lessons": 0, "published_units": 0},
     ]
 
 

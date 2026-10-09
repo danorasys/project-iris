@@ -188,7 +188,7 @@
   letter-spacing: normal;
   text-transform: none;
   white-space: nowrap;
-  cursor: default;
+  cursor: pointer;
   transition: background-color 160ms ease;
 }
 
@@ -396,4 +396,64 @@
   .optionRow:hover .optionArrow {
     transform: none;
   }
+}
+
+/* --- Adding a kid (HU-50) --- */
+.addTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--color-iris-deep);
+}
+
+.addIntro {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--color-ink-soft);
+  line-height: 1.5;
+}
+
+.addActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+/* The main action in the medium blue of IRIS, like the rest of the portal. */
+.primaryAction,
+.secondaryAction {
+  border-radius: var(--radius-medium);
+  padding: var(--space-3) var(--space-5);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.primaryAction {
+  border: none;
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
+.primaryAction:hover:not(:disabled) {
+  background: var(--color-action-hover);
+}
+
+.secondaryAction {
+  border: 1px solid var(--color-iris-pale);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+}
+
+.primaryAction:disabled,
+.secondaryAction:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primaryAction:focus-visible,
+.secondaryAction:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }

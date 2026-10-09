@@ -5,12 +5,20 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 
-from app.api.deps import CurrentUser, get_guardian_service, get_totp_service, require_portal_access, require_role
+from app.api.deps import (
+    CurrentUser,
+    get_account_erasure_service,
+    get_guardian_service,
+    get_totp_service,
+    require_portal_access,
+    require_role,
+)
 from app.api.schemas import (
     ChangePasswordRequest,
     ChangeStudentPinRequest,
     CheckStudentPinRequest,
     CreateAdditionalStudentRequest,
+    DeleteAccountRequest,
     GuardianProfileResponse,
     PortalChallengeResponse,
     StudentDetailResponse,
@@ -20,6 +28,7 @@ from app.api.schemas import (
     UpdateGuardianProfileRequest,
     UpdateStudentRequest,
 )
+from app.application.account_erasure import AccountErasureService
 from app.application.dtos import FirstStudentData, UpdateGuardianProfileData, UpdateStudentData
 from app.application.guardian_service import GuardianService
 from app.application.totp_service import TotpService
@@ -180,9 +189,16 @@ async def change_my_student_pin(
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, response_model=None, dependencies=[PortalAccessDep])
-async def delete_my_account(user: CurrentGuardianDep, guardians: GuardianServiceDep) -> None:
-    """Right to erasure."""
-    await guardians.delete_account(user.subject_id)
+async def delete_my_account(
+    payload: DeleteAccountRequest,
+    user: CurrentGuardianDep,
+    erasure: Annotated[AccountErasureService, Depends(get_account_erasure_service)],
+) -> None:
+    """Right to erasure (HU-91): the guardian, their kids and consents. The
+    kids leave every class and their progress and notifications go too.
+    Asks for the password again. 503 borrado_no_disponible if another
+    service didn't answer: then nothing is deleted here."""
+    await erasure.delete_guardian(user.subject_id, payload.password)
 
 
 @router.get("/me", response_model=GuardianProfileResponse, dependencies=[PortalAccessDep])

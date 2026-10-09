@@ -17,6 +17,8 @@ from app.api.schemas import (
     PortalAccessCheckRequest,
     StudentWithGuardianResponse,
     TeacherNameResponse,
+    TeacherProfileResponse,
+    TeacherPublicProfileResponse,
     TokenClaimsResponse,
 )
 from app.application.auth_service import AuthService
@@ -87,6 +89,28 @@ async def get_teacher_name(
     request in the notification it sends to the guardian."""
     data = await queries.get_teacher_name(person_id)
     return TeacherNameResponse(first_name=data.first_name, last_name=data.last_name)
+
+
+@router.get(
+    "/teachers/{person_id}/profile",
+    response_model=TeacherPublicProfileResponse,
+    dependencies=[Depends(verify_internal_key)],
+)
+async def get_teacher_public_profile(
+    person_id: UUID,
+    queries: Annotated[InternalQueryService, Depends(get_internal_query_service)],
+) -> TeacherPublicProfileResponse:
+    """The name, institution and profile of a teacher (about, studies,
+    experience), so classroom-service can show a family who teaches a class
+    (HU-97). Never their contact or document."""
+    data = await queries.get_teacher_public_profile(person_id)
+    profile = TeacherProfileResponse.from_entity(data.profile)
+    return TeacherPublicProfileResponse(
+        first_name=data.first_name,
+        last_name=data.last_name,
+        institution=data.institution,
+        **profile.model_dump(),
+    )
 
 
 @router.post(

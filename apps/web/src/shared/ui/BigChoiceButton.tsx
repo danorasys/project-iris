@@ -10,6 +10,11 @@ interface BigChoiceButtonProps {
   variant?: Variant;
   icon?: ReactNode;
   note?: string;
+  /** A small count in the top right corner, like unread notifications.
+   * Hidden when it's 0. */
+  badge?: number;
+  /** What the badge means, for screen readers ("sin leer"). */
+  badgeLabel?: string;
   disabled?: boolean;
   /** Dwell duration in ms. Defaults to the profile's configured value. */
   dwellDurationMs?: number;
@@ -24,6 +29,8 @@ export function BigChoiceButton({
   variant = "coral",
   icon,
   note,
+  badge = 0,
+  badgeLabel = "",
   disabled = false,
   dwellDurationMs,
 }: BigChoiceButtonProps) {
@@ -47,6 +54,13 @@ export function BigChoiceButton({
           {icon && <span className={styles.icon}>{icon}</span>}
           <span className={styles.text}>{children}</span>
         </span>
+        {/* After the text, so it's read as "Notificaciones, 3 sin leer". */}
+        {badge > 0 && (
+          <span className={styles.badge}>
+            <span aria-hidden="true">{badge > 99 ? "99+" : badge}</span>
+            <span className={styles.srOnly}>{`, ${badge} ${badgeLabel}`}</span>
+          </span>
+        )}
       </button>
       {note && <p className={styles.note}>{note}</p>}
     </div>

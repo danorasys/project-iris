@@ -257,18 +257,6 @@ class GuardianService:
     async def change_password(self, person_id: UUID, current_password: str, new_password: str) -> None:
         await self._password_change.change_password(person_id, current_password, new_password)
 
-    # Right to erasure. Deletes the guardian and cascades to their students and
-    # consents in this service's own database. It doesn't reach into
-    # classroom-service or content-service, so enrollments and lessons tied
-    # to the deleted students stay there and need to be cleaned up by hand.
-    async def delete_account(self, person_id: UUID) -> None:
-        async with self._uow_factory() as uow:
-            guardian = await uow.guardians.get_by_person_id(person_id)
-            if guardian is None:
-                raise ResourceNotFound("No existe un tutor asociado a esta cuenta.")
-            await uow.guardians.delete(guardian.id)
-            await uow.commit()
-
 
 # The kid, only if they belong to this guardian.
 async def _own_student(uow: UnitOfWork, person_id: UUID, student_id: UUID) -> Student:

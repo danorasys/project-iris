@@ -1,7 +1,7 @@
-# The classes of a guardian's kids, for the Inicio of the parents' portal:
-# only their own kids, the accepted and the pending ones (not the rejected),
-# with the teacher's name and the published lessons, and behind the
-# portal's 2FA code like the rest of the portal.
+# The classes of a guardian's kids, for the parents' portal: only their own
+# kids, with every request and how it went (HU-41), the teacher's name and
+# the published lessons, and behind the portal's 2FA code like the rest of
+# the portal.
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from uuid import UUID
 import pytest
 from httpx import AsyncClient
 
+from tests.helpers import pedir_ingreso
 from tests.fakes import FakeContentGateway, FakeIdentityGateway
 
 pytestmark = pytest.mark.asyncio
@@ -28,9 +29,7 @@ async def _create(client: AsyncClient, token: str, name: str) -> dict:
 
 
 async def _ask(client: AsyncClient, classroom: dict, student_token: str) -> str:
-    response = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": classroom["enrollment_code"]}, headers=_auth(student_token)
-    )
+    response = await pedir_ingreso(client, classroom["enrollment_code"], student_token)
     assert response.status_code == 201, response.text
     enrollment_id: str = response.json()["enrollment_id"]
     return enrollment_id
@@ -53,6 +52,7 @@ async def test_trae_las_clases_de_sus_peques_con_docente_y_lecciones(
     science = await _create(client, teacher_token, "Ciencias")
     art = await _create(client, teacher_token, "Arte")
     content_gateway.published[UUID(math["id"])] = 3
+    content_gateway.published_units[UUID(math["id"])] = 2
 
     sofia_token, sofia = identity_gateway.registrar_estudiante_token(nombres="Sofía")
     tomas_token, tomas = identity_gateway.registrar_estudiante_token(nombres="Tomás")
@@ -68,17 +68,21 @@ async def test_trae_las_clases_de_sus_peques_con_docente_y_lecciones(
 
     assert response.status_code == 200, response.text
     body = response.json()
-    # Newest first, and the rejected one isn't there.
+    # Newest first, the rejected one too (with when it was answered), and
+    # never the kid of another family.
     assert [(c["student_first_name"], c["name"], c["status"]) for c in body] == [
+        ("Tomás", "Arte", "rechazada"),
         ("Tomás", "Ciencias", "pendiente"),
         ("Sofía", "Matemáticas", "aceptada"),
     ]
-    assert body[1]["teacher_name"] == "Laura Gómez"
-    assert body[1]["published_lessons"] == 3
-    assert body[0]["published_lessons"] == 0
-    assert body[1]["grade"] == 2 and body[1]["area"] == "mathematics"
-    # Nothing the family shouldn't get: no code to join, no logo.
-    assert "enrollment_code" not in body[0] and "logo_file" not in body[0]
+    assert body[0]["resolved_at"] is not None and body[1]["resolved_at"] is None
+    assert body[2]["teacher_name"] == "Laura Gómez"
+    assert (body[2]["published_lessons"], body[2]["published_units"]) == (3, 2)
+    assert (body[1]["published_lessons"], body[1]["published_units"]) == (0, 0)
+    assert body[2]["grade"] == 2 and body[2]["area"] == "mathematics"
+    # The family already typed the code, it never comes back.
+    assert "enrollment_code" not in body[0]
+    assert body[0]["logo_file"] is None
 
 
 async def test_sin_peques_ni_clases_es_una_lista_vacia(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
@@ -140,5 +144,5 @@ async def test_sin_content_service_las_clases_igual_se_ven(
 
     assert response.status_code == 200
     [classroom] = response.json()
-    assert classroom["published_lessons"] is None
+    assert classroom["published_lessons"] is None and classroom["published_units"] is None
     assert classroom["teacher_name"] == "Carlos Ruiz"

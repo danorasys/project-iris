@@ -52,6 +52,9 @@ class FakeClassroomClient:
     def __init__(self) -> None:
         self._authorizations: dict[tuple[UUID, UUID, str], bool] = {}
         self.available = True
+        # What would have gone to classroom-service, in order.
+        self.announcements: list[dict[str, object]] = []
+        self.reports: list[dict[str, object]] = []
 
     def authorize(self, classroom_id: UUID, subject_id: UUID, role: str, authorized: bool = True) -> None:
         self._authorizations[(classroom_id, subject_id, role)] = authorized
@@ -60,6 +63,41 @@ class FakeClassroomClient:
         if not self.available:
             return False
         return self._authorizations.get((classroom_id, subject_id, role), False)
+
+    async def announce(
+        self,
+        classroom_id: UUID,
+        kind: str,
+        lesson_id: UUID,
+        lesson_title: str,
+        extra_title: str | None,
+        student_ids: list[UUID] | None,
+        correlation_id: str | None,
+    ) -> None:
+        self.announcements.append(
+            {
+                "classroom_id": classroom_id,
+                "kind": kind,
+                "lesson_id": lesson_id,
+                "lesson_title": lesson_title,
+                "extra_title": extra_title,
+                "student_ids": student_ids,
+            }
+        )
+
+    async def report_student(
+        self,
+        classroom_id: UUID,
+        student_id: UUID,
+        kind: str,
+        lesson_id: UUID,
+        lesson_title: str,
+        score: tuple[int, int] | None,
+        correlation_id: str | None,
+    ) -> None:
+        self.reports.append(
+            {"classroom_id": classroom_id, "student_id": student_id, "kind": kind, "lesson_id": lesson_id, "score": score}
+        )
 
 
 class FakeObjectStorage:

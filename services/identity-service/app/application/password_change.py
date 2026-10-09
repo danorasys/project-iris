@@ -9,6 +9,7 @@ from uuid import UUID
 
 from app.application.auth_service import login_account_key
 from app.application.session_service import SessionService
+from app.domain.entities import Person
 from app.domain.exceptions import AttemptLimitExceeded, PasswordSameAsCurrent, ResourceNotFound, WrongCurrentPassword
 from app.domain.ports import AttemptLockout, PasswordHasher, UnitOfWork
 from app.security_log import log_security_event
@@ -32,6 +33,19 @@ class PasswordChangeService:
         self._account_lockout = account_lockout
 
     async def change_password(self, person_id: UUID, current_password: str, new_password: str) -> None:
+        person = await self.verify_current_password(person_id, current_password)
+        # The schema already refuses the same text, but bcrypt only reads 72
+        # bytes, so a long one changed after that would still match the hash.
+        if self._hasher.verificar(new_password, person.hash_password):
+            raise PasswordSameAsCurrent()
+        async with self._uow_factory() as uow:
+            await uow.people.update_password(person_id, self._hasher.hash(new_password))
+            await uow.commit()
+        await self._sessions.revoke_all(person_id, "password_changed")
+
+    # The person's current password, with the same locks as the login. Also
+    # asked before deleting the account (HU-91, HU-92).
+    async def verify_current_password(self, person_id: UUID, current_password: str) -> Person:
         async with self._uow_factory() as uow:
             person = await uow.people.get_by_id(person_id)
             if person is None:
@@ -59,11 +73,4 @@ class PasswordChangeService:
             raise WrongCurrentPassword()
 
         await self._password_lockout.registrar_exito(form_key)
-        # The schema already refuses the same text, but bcrypt only reads 72
-        # bytes, so a long one changed after that would still match the hash.
-        if self._hasher.verificar(new_password, person.hash_password):
-            raise PasswordSameAsCurrent()
-        async with self._uow_factory() as uow:
-            await uow.people.update_password(person_id, self._hasher.hash(new_password))
-            await uow.commit()
-        await self._sessions.revoke_all(person_id, "password_changed")
+        return person

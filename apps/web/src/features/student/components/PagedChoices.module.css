@@ -1,0 +1,32 @@
+/* The arrows are strips on the sides, the choices in the middle. */
+.layout {
+  min-height: 100%;
+  display: flex;
+  align-items: stretch;
+}
+
+.middle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-5);
+  max-width: 980px;
+}
+
+.count {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}

@@ -18,7 +18,9 @@ import { ClassroomAvatar } from "../../classrooms/ClassroomAvatar";
 import { classroomAudience } from "../../classrooms/classroomDetails";
 import { ClassroomFormDialog } from "../../classrooms/ClassroomFormDialog";
 import { UnitsPanel } from "../../lessons/UnitsPanel";
+import { StatisticsPanel } from "../../statistics/StatisticsPanel";
 import { MembersPanel } from "./MembersPanel";
+import { MessagesPanel } from "./MessagesPanel";
 import styles from "../portalSection.module.css";
 
 export type ClassroomView = "inicio" | "miembros" | "lecciones" | "mensajes" | "estadisticas";
@@ -169,21 +171,8 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
 
         {view === "miembros" && <MembersPanel classroom={classroom} onToast={onToast} />}
         {view === "lecciones" && <UnitsPanel classroomId={classroom.id} onToast={onToast} />}
-        {(view === "mensajes" || view === "estadisticas") && (
-          <div className={styles.comingSoon}>
-            <span className={styles.optionIcon} aria-hidden="true">
-              {view === "mensajes" ? <IconMessage width={20} height={20} /> : <IconChart width={20} height={20} />}
-            </span>
-            <div>
-              <p className={styles.comingSoonTitle}>Estamos construyendo esta sección</p>
-              <p className={styles.comingSoonText}>
-                {view === "mensajes"
-                  ? "Pronto podrás escribirle a un estudiante o a su tutor desde aquí."
-                  : "Pronto verás aquí el avance de tus estudiantes en esta clase, con gráficos."}
-              </p>
-            </div>
-          </div>
-        )}
+        {view === "mensajes" && <MessagesPanel classroom={classroom} onToast={onToast} />}
+        {view === "estadisticas" && <StatisticsPanel classroomId={classroom.id} />}
       </ViewEnter>
 
       {editing && (

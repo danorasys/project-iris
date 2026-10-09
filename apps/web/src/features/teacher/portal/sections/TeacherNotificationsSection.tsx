@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { NotificationItem } from "@iris/shared-types";
+import type { MessageRecipient, NotificationItem } from "@iris/shared-types";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { formatArrival, formatShortArrival } from "@/features/utils/formatArrival";
-import { useClassroomRequests, useResolveRequest } from "@/shared/api/hooks/useClassroomsApi";
+import { useClassroomRequests, useResolveRequest, useSendFamilyMessage } from "@/shared/api/hooks/useClassroomsApi";
 import {
   useDeleteNotification,
   useDeleteNotifications,
@@ -15,6 +15,7 @@ import styles from "@/shared/ui/portal/NotificationTray.module.css";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
 import { Toast } from "@/shared/ui/Toast";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
+import { MessageThread } from "@/shared/ui/portal/MessageThread";
 import { NotificationMail, type MailPosition } from "@/shared/ui/portal/NotificationMail";
 import { Highlight, PortalBanner } from "@/shared/ui/portal/PortalBanner";
 import { TrayPager } from "@/shared/ui/portal/TrayPager";
@@ -335,7 +336,46 @@ function NotificationDetail({ notification: n, position, onBack, onDelete, onToa
       position={position}
     >
       {n.event === "request.created" && <RequestDecision notification={n} onToast={onToast} />}
+      {(n.event === "message.sent" || n.event === "teacher.message") && n.thread_id && (
+        <TeacherReply message={n} onToast={onToast} />
+      )}
     </NotificationMail>
+  );
+}
+
+// HU-51: a family's message, or the copy of one the teacher sent, answered
+// in its conversation. A family's answer goes to that family; the copy's,
+// to whoever it went to.
+function TeacherReply({
+  message,
+  onToast,
+}: {
+  message: Extract<NotificationItem, { event: "message.sent" | "teacher.message" }>;
+  onToast: (message: string) => void;
+}) {
+  const send = useSendFamilyMessage();
+  const recipient: MessageRecipient =
+    message.event === "teacher.message" && message.addressee === "student" ? "student" : "guardian";
+  const kid = studentOf(message);
+  const otherName =
+    recipient === "student" ? kid : message.event === "message.sent" ? senderOf(message) : `la familia de ${kid}`;
+  return (
+    <MessageThread
+      role="teacher"
+      message={message}
+      otherName={otherName}
+      onReply={async (subject, body) => {
+        await send.mutateAsync({
+          classroomId: message.classroom_id,
+          enrollmentId: message.enrollment_id,
+          recipient,
+          subject,
+          body,
+          threadId: message.thread_id,
+        });
+        onToast(`Le respondiste a ${otherName}.`);
+      }}
+    />
   );
 }
 

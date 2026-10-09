@@ -279,12 +279,13 @@ function buildTasks(
       Icon: IconClock,
       onOpen: () => onOpenStudent(c.student_id, "clases"),
     }));
+  // A rejected request doesn't count, the kid is still without a class.
   const withoutClass: Task[] = kids
-    .filter((kid) => !classes.some((c) => c.student_id === kid.id))
+    .filter((kid) => !classes.some((c) => c.student_id === kid.id && c.status !== "rechazada"))
     .map((kid) => ({
       key: `no-class-${kid.id}`,
       text: `${kid.first_name} aún no está en una clase`,
-      hint: "Pide al docente el código de ingreso",
+      hint: "Pide al docente el código y agrégala en Sus clases",
       Icon: IconGraduationCap,
       onOpen: () => onOpenStudent(kid.id, "clases"),
     }));
@@ -309,7 +310,7 @@ function KidRow({
   onOpenClasses: () => void;
 }) {
   const inClasses = classes.filter((c) => c.status === "aceptada").length;
-  const waiting = classes.length - inClasses;
+  const waiting = classes.filter((c) => c.status === "pendiente").length;
 
   return (
     <li className={styles.kid}>

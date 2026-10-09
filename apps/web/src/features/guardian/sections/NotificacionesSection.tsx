@@ -20,6 +20,8 @@ import {
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { Toast } from "@/shared/ui/Toast";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
+import { useSendTeacherMessage } from "@/shared/api/hooks/useClassroomsApi";
+import { MessageThread } from "@/shared/ui/portal/MessageThread";
 import { NotificationMail, type MailPosition } from "@/shared/ui/portal/NotificationMail";
 import { Highlight, PortalBanner } from "@/shared/ui/portal/PortalBanner";
 import { TrayPager } from "@/shared/ui/portal/TrayPager";
@@ -333,6 +335,32 @@ function NotificationDetail({ notification: n, position, onBack, onDelete }: Det
       onBack={onBack}
       onDelete={onDelete}
       position={position}
+    >
+      {(n.event === "teacher.message" || n.event === "message.sent") && n.thread_id && <GuardianReply message={n} />}
+    </NotificationMail>
+  );
+}
+
+// HU-51: the teacher's message, or the copy of one the guardian wrote,
+// answered in its conversation. It always goes to the teacher of the class.
+function GuardianReply({
+  message,
+}: {
+  message: Extract<NotificationItem, { event: "teacher.message" | "message.sent" }>;
+}) {
+  const send = useSendTeacherMessage();
+  const withPortalAccess = useWithPortalAccess();
+  const otherName = message.event === "teacher.message" ? senderOf(message) : "el docente";
+  return (
+    <MessageThread
+      role="guardian"
+      message={message}
+      otherName={otherName}
+      onReply={(subject, body) =>
+        withPortalAccess(() =>
+          send.mutateAsync({ enrollmentId: message.enrollment_id, subject, body, threadId: message.thread_id }),
+        )
+      }
     />
   );
 }

@@ -52,18 +52,27 @@ const CameraPermissionPage = lazy(
 const CalibrationPage = lazy(
     () => import("@/features/student/pages/CalibrationPage"),
 )
-const AvatarSelectionPage = lazy(
-    () => import("@/features/student/pages/AvatarSelectionPage"),
-)
 const StudentHomePage = lazy(() => import("@/features/student/pages/HomePage"))
-const EnterCodePage = lazy(
-    () => import("@/features/student/pages/EnterCodePage"),
+const StudentSettingsPage = lazy(
+    () => import("@/features/student/pages/SettingsPage"),
 )
-const StudentClassroomsPage = lazy(
-    () => import("@/features/student/pages/ClassroomsPage"),
+const StudentNotificationsPage = lazy(
+    () => import("@/features/student/pages/NotificationsPage"),
 )
-const LessonListPage = lazy(
-    () => import("@/features/student/pages/LessonListPage"),
+const StudentClassSpacePage = lazy(
+    () => import("@/features/student/pages/ClassSpacePage"),
+)
+const StudentClassNotificationsPage = lazy(
+    () => import("@/features/student/pages/ClassNotificationsPage"),
+)
+const StudentProgressPage = lazy(
+    () => import("@/features/student/pages/ProgressPage"),
+)
+const StudentUnitsPage = lazy(
+    () => import("@/features/student/pages/UnitsPage"),
+)
+const StudentUnitLessonsPage = lazy(
+    () => import("@/features/student/pages/UnitLessonsPage"),
 )
 const LessonViewerPage = lazy(
     () => import("@/features/student/pages/LessonViewerPage"),
@@ -198,24 +207,41 @@ export function AppRouter() {
                             element={<CalibrationPage />}
                         />
                         <Route
-                            path="avatar"
-                            element={<AvatarSelectionPage />}
-                        />
-                        <Route
                             path="home"
                             element={<StudentHomePage />}
                         />
                         <Route
-                            path="enter-code"
-                            element={<EnterCodePage />}
+                            path="settings"
+                            element={<StudentSettingsPage />}
                         />
+                        <Route
+                            path="notifications"
+                            element={<StudentNotificationsPage />}
+                        />
+                        {/* The classes are on the kid's home now (HU-53). */}
                         <Route
                             path="classrooms"
-                            element={<StudentClassroomsPage />}
+                            element={<Navigate to="/student/home" replace />}
                         />
                         <Route
-                            path="classrooms/:classroomId/lessons"
-                            element={<LessonListPage />}
+                            path="classrooms/:classroomId"
+                            element={<StudentClassSpacePage />}
+                        />
+                        <Route
+                            path="classrooms/:classroomId/notifications"
+                            element={<StudentClassNotificationsPage />}
+                        />
+                        <Route
+                            path="classrooms/:classroomId/progress"
+                            element={<StudentProgressPage />}
+                        />
+                        <Route
+                            path="classrooms/:classroomId/units"
+                            element={<StudentUnitsPage />}
+                        />
+                        <Route
+                            path="classrooms/:classroomId/units/:unitId"
+                            element={<StudentUnitLessonsPage />}
                         />
                         <Route
                             path="lessons/:lessonId"

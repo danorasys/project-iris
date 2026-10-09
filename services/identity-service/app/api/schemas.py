@@ -643,6 +643,14 @@ class TeacherNameResponse(BaseModel):
     last_name: str
 
 
+# A teacher as families see them (HU-97): the name and the profile, the same
+# shape as their own /teachers/me/profile. No email, phone or document.
+class TeacherPublicProfileResponse(TeacherProfileResponse):
+    first_name: str
+    last_name: str
+    institution: str | None
+
+
 # Asked by notification-service before showing a guardian their tray: the
 # notifications talk about their kids, so they need the portal's 2FA too.
 class PortalAccessCheckRequest(BaseModel):
@@ -658,8 +666,9 @@ class DocumentTypeResponse(BaseModel):
     name: str
 
 
-class UpdateStudentAvatarRequest(BaseModel):
-    avatar_id: int = Field(gt=0)
+# Deleting the account (HU-91, HU-92) asks for the password again.
+class DeleteAccountRequest(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
 
 
 class TotpSetupResponse(BaseModel):

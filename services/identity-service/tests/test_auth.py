@@ -11,7 +11,6 @@ from tests.conftest import (
     refrescar_con,
     refresh_cookie,
     activar_2fa_y_abrir_portal,
-    AVATAR_ID_CORAL,
     AVATAR_ID_VIOLETA,
     DOCUMENT_TYPE_ID_CEDULA,
     DOCUMENT_TYPE_ID_PASAPORTE,
@@ -637,51 +636,6 @@ async def _login_como_estudiante(client: AsyncClient, correo_tutor: str) -> str:
     return login.json()["access_token"]
 
 
-async def test_estudiante_puede_elegir_su_avatar(client: AsyncClient) -> None:
-    student_token = await _login_como_estudiante(client, "avatar-ok@example.com")
-
-    response = await client.patch(
-        "/students/me/avatar",
-        json={"avatar_id": AVATAR_ID_CORAL},
-        headers={"Authorization": f"Bearer {student_token}"},
-    )
-
-    assert response.status_code == 200
-    assert response.json()["avatar_id"] == AVATAR_ID_CORAL
-
-
-async def test_elegir_un_avatar_fuera_del_conjunto_fijo_es_rechazado(client: AsyncClient) -> None:
-    student_token = await _login_como_estudiante(client, "avatar-invalido@example.com")
-
-    response = await client.patch(
-        "/students/me/avatar",
-        json={"avatar_id": 9999},
-        headers={"Authorization": f"Bearer {student_token}"},
-    )
-
-    assert response.status_code == 422
-
-
-async def test_tutor_no_puede_usar_el_endpoint_de_avatar_del_estudiante(client: AsyncClient) -> None:
-    registro = await client.post("/auth/guardians", json=_payload_registro_tutor("avatar-tutor@example.com"))
-    guardian_token = registro.json()["access_token"]
-
-    response = await client.patch(
-        "/students/me/avatar",
-        json={"avatar_id": AVATAR_ID_CORAL},
-        headers={"Authorization": f"Bearer {guardian_token}"},
-    )
-
-    assert response.status_code == 403
-    assert response.json()["error"]["code"] == "permiso_denegado"
-
-
-async def test_elegir_avatar_sin_autenticacion_es_rechazado(client: AsyncClient) -> None:
-    response = await client.patch("/students/me/avatar", json={"avatar_id": AVATAR_ID_CORAL})
-
-    assert response.status_code == 401
-
-
 # A 422 tells the client which field failed and why, but must never echo
 # back the value it received, since that value can be a password or PIN.
 async def test_error_de_validacion_no_repite_la_contrasena_enviada(client: AsyncClient) -> None:
@@ -850,7 +804,9 @@ async def test_tutor_puede_eliminar_su_cuenta_y_pierde_acceso(client: AsyncClien
     access_token = registro.json()["access_token"]
     await activar_2fa_y_abrir_portal(client, access_token)
 
-    response = await client.delete("/guardians/me", headers={"Authorization": f"Bearer {access_token}"})
+    response = await client.request(
+        "DELETE", "/guardians/me", json={"password": "Clave-Segura-123"}, headers={"Authorization": f"Bearer {access_token}"}
+    )
     assert response.status_code == 204
 
     login_tras_borrado = await client.post(

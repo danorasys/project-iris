@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from uuid import UUID
 
 STATUS_DRAFT = "borrador"
@@ -138,6 +139,41 @@ class ValidatedUser:
     subject_id: UUID
     role: str  # "guardian", "teacher" or "student". content-service only operates on teacher/student.
     extra: dict[str, object] = field(default_factory=dict)
+
+
+# How far a kid got in the pages of a lesson, or of one of its extras
+# (extra_id). Only the furthest page counts, going back doesn't lower it.
+@dataclass
+class PageProgress:
+    student_id: UUID
+    lesson_id: UUID
+    extra_id: UUID | None
+    pages_seen: int
+    # The page they were on when they left, to take them back there (HU-62).
+    last_page: int = 0
+
+
+# One try of a kid at the activity of a lesson or of an extra, graded by the
+# server (HU-47). It hangs from the lesson, not from the activity: the
+# teacher's edits replace the activity and the record has to stay.
+@dataclass
+class Attempt:
+    id: UUID
+    student_id: UUID
+    lesson_id: UUID
+    extra_id: UUID | None
+    correct: int
+    total: int
+    passed: bool
+    created_at: datetime
+
+
+# What a family can already see of a classroom: its published lessons and
+# the units that have at least one of them (an empty unit isn't shown).
+@dataclass(frozen=True)
+class PublishedContent:
+    lessons: int = 0
+    units: int = 0
 
 
 # What a teacher has built in one of their classrooms, for the Inicio of the

@@ -21,6 +21,12 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://localhost:6379/0"
 
+    # The services asked to erase their part before an account is deleted
+    # (HU-91, HU-92), on the internal network.
+    classroom_service_url: str = "http://classroom-service:8000"
+    content_service_url: str = "http://content-service:8000"
+    notification_service_url: str = "http://notification-service:8000"
+
     # No default value here on purpose. If we put a fake secret in the code
     # and someone forgets to set the real one, that fake secret would still
     # work to sign tokens, and anyone who reads the code could forge one.

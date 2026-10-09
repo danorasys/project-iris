@@ -6,17 +6,26 @@ from __future__ import annotations
 from app.api.schemas import (
     ActivityRequest,
     ActivityResponse,
+    AttemptOut,
     BlockInput,
     BlockResponse,
     ExtraResponse,
     LessonDetailResponse,
+    LessonProgressResponse,
     LessonResponse,
     OptionResponse,
+    PartProgressResponse,
+    PlayActivityResponse,
+    PlayExtraResponse,
+    PlayLessonResponse,
+    PlayOptionResponse,
+    PlayQuestionResponse,
     QuestionResponse,
     UnitResponse,
     UnitWithLessonsResponse,
 )
 from app.application import dtos
+from app.application.dtos import LessonProgress, PartProgress, PlayableLesson
 from app.application.lesson_rules import decode_items, decode_rows, extra_missing, missing_to_publish
 from app.domain.entities import BLOCK_LIST, BLOCK_TABLE, Activity, ContentBlock, Extra, Lesson, Unit
 
@@ -138,3 +147,73 @@ def unit_response(unit: Unit) -> UnitResponse:
 
 def unit_with_lessons_response(unit: Unit, lessons: list[Lesson]) -> UnitWithLessonsResponse:
     return UnitWithLessonsResponse(**unit_response(unit).model_dump(), lessons=[lesson_response(lesson) for lesson in lessons])
+
+
+# --- a kid playing a lesson, and their progress ------------------------------------
+
+
+def play_activity_response(activity: Activity | None) -> PlayActivityResponse | None:
+    if activity is None:
+        return None
+    return PlayActivityResponse(
+        pass_threshold=activity.pass_threshold,
+        questions=[
+            PlayQuestionResponse(
+                id=q.id,
+                prompt=q.prompt,
+                options=[PlayOptionResponse(id=o.id, text=o.text) for o in sorted(q.options, key=lambda o: o.order_index)],
+            )
+            for q in sorted(activity.questions, key=lambda q: q.order_index)
+        ],
+    )
+
+
+def play_lesson_response(played: PlayableLesson) -> PlayLessonResponse:
+    lesson = played.lesson
+    return PlayLessonResponse(
+        **lesson_response(lesson).model_dump(),
+        blocks=_ordered(lesson.blocks),
+        activity=play_activity_response(lesson.activity),
+        extras=[
+            PlayExtraResponse(
+                id=extra.id,
+                kind=extra.kind,
+                title=extra.title,
+                blocks=_ordered(extra.blocks),
+                activity=play_activity_response(extra.activity),
+                pages_seen=played.pages_seen.get(extra.id, 0),
+                last_page=played.last_page.get(extra.id, 0),
+                activity_done=extra.id in played.activity_done,
+            )
+            for extra in played.extras
+        ],
+        pages_seen=played.pages_seen.get(None, 0),
+        last_page=played.last_page.get(None, 0),
+        activity_done=None in played.activity_done,
+    )
+
+
+def _part_response(part: PartProgress) -> PartProgressResponse:
+    return PartProgressResponse(
+        extra_id=part.extra_id,
+        title=part.title,
+        kind=part.kind,
+        total_pages=part.total_pages,
+        pages_seen=part.pages_seen,
+        has_activity=part.has_activity,
+        attempts=[
+            AttemptOut(correct=a.correct, total=a.total, passed=a.passed, created_at=a.created_at) for a in part.attempts
+        ],
+        percent=part.percent,
+    )
+
+
+def lesson_progress_response(progress: LessonProgress) -> LessonProgressResponse:
+    return LessonProgressResponse(
+        lesson_id=progress.lesson_id,
+        title=progress.title,
+        unit_title=progress.unit_title,
+        main=_part_response(progress.main),
+        extras=[_part_response(extra) for extra in progress.extras],
+    )
+

@@ -12,7 +12,6 @@ from app.api.routes_catalogs import router as catalogs_router
 from app.api.routes_guardians import router as guardians_router
 from app.api.routes_health import router as health_router
 from app.api.routes_internal import router as internal_router
-from app.api.routes_students import router as students_router
 from app.api.routes_teachers import router as teachers_router
 from app.api.routes_users import router as users_router
 from app.config import get_settings
@@ -47,7 +46,6 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(catalogs_router)
 app.include_router(guardians_router)
-app.include_router(students_router)
 app.include_router(teachers_router)
 app.include_router(users_router)
 app.include_router(internal_router)

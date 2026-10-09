@@ -4,6 +4,7 @@ import { formatPhoneNumberIntl, parsePhoneNumber } from "react-phone-number-inpu
 import {
   useActualizarMiPerfilTutor,
   useCambiarMiPassword,
+  useDeleteGuardianAccount,
   useDocumentTypes,
   useMiPerfilTutor,
   useRelationshipTypes,
@@ -27,7 +28,7 @@ import { Card, EDIT_HINT, EditableRow, ReadOnlyRow, SaveBar } from "@/shared/ui/
 import { useProfileForm } from "@/shared/ui/profile/useProfileForm";
 import form from "@/shared/ui/profile/ProfileForm.module.css";
 import { Toast } from "@/shared/ui/Toast";
-import { IdentityChangeNotice, SecurityCard } from "@/shared/ui/profile/AccountSections";
+import { DeleteAccountCard, IdentityChangeNotice, SecurityCard } from "@/shared/ui/profile/AccountSections";
 import { ProfileHero } from "@/shared/ui/profile/ProfileHero";
 import { isPortalAccessRequired, useWithPortalAccess } from "../portalAccess";
 import styles from "@/shared/ui/profile/ProfileSection.module.css";
@@ -86,6 +87,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
   const updateProfile = useActualizarMiPerfilTutor();
   const changePassword = useCambiarMiPassword();
   const withPortalAccess = useWithPortalAccess();
+  const deleteAccount = useDeleteGuardianAccount();
 
   const fields = useProfileForm<ProfileValues>(() => toValues(profile), onDirtyChange);
   const { values, original } = fields;
@@ -256,6 +258,15 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
       </form>
 
       <SecurityCard changePassword={changePassword} />
+
+      {/* HU-91: with the portal's code, like everything else here. */}
+      <DeleteAccountCard
+        deleteAccount={{
+          mutateAsync: (password) => withPortalAccess(() => deleteAccount.mutateAsync(password)),
+          isPending: deleteAccount.isPending,
+        }}
+        warning="Se eliminan tu cuenta, los perfiles de tus peques, sus consentimientos, su progreso y sus notificaciones, y tus peques salen de todas sus clases."
+      />
 
       {/* Out of the form and last, so it floats over every card while
           scrolling. It saves the form above through formId. */}

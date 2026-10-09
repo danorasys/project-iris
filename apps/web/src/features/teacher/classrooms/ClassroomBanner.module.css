@@ -1,0 +1,41 @@
+/* Same band as the teacher's class cards: the classroom's color, lightened
+   with white towards the right, with two soft circles on it. */
+.banner {
+  --class-color: var(--color-iris-medium);
+  display: block;
+  align-self: stretch;
+  flex: none;
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      circle at 88% 20%,
+      color-mix(in srgb, var(--color-surface) 22%, transparent) 0 46px,
+      transparent 47px
+    ),
+    radial-gradient(
+      circle at 70% 120%,
+      color-mix(in srgb, var(--color-surface) 14%, transparent) 0 62px,
+      transparent 63px
+    ),
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--class-color) 82%, var(--color-surface)),
+      color-mix(in srgb, var(--class-color) 30%, var(--color-surface))
+    );
+}
+
+.banner[data-color="navy"] {
+  --class-color: var(--color-iris-deep);
+}
+
+.banner[data-color="orange"] {
+  --class-color: var(--color-amber-dark);
+}
+
+.banner[data-color="green"] {
+  --class-color: var(--color-mint);
+}
+
+.banner[data-color="gold"] {
+  --class-color: var(--color-gold);
+}

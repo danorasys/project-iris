@@ -86,3 +86,10 @@ class InvalidAudience(DomainError):
     # An extra can only be for kids that are members of the class.
     code = "estudiantes_no_validos"
     message = "Elige estudiantes que sean miembros de la clase."
+
+
+class ActivityChanged(DomainError):
+    # The answers don't match the activity anymore: the teacher changed it
+    # while the kid was doing it, or they skipped a question.
+    code = "actividad_cambio"
+    message = "La actividad cambió mientras la hacías. Ábrela de nuevo para intentarlo."

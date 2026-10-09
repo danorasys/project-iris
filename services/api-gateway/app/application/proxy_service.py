@@ -77,7 +77,7 @@ class ProxyService:
         destination: str,
         rest: str,
         incoming_headers: dict[str, str],
-        params: dict[str, str],
+        params: list[tuple[str, str]],
         content: bytes,
         client_ip: str | None = None,
     ) -> UpstreamResponse:

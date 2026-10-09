@@ -22,13 +22,23 @@
 }
 
 .button:hover,
-.button.focused {
+.button.focused,
+.button:focus-visible {
   transform: translateY(-2px) scale(1.02);
+}
+
+/* With the keyboard (HU-88) the button in focus gets a thick ring, so the
+   kid always sees where Enter will go. */
+.button:focus-visible {
+  outline: 5px solid var(--color-focus);
+  outline-offset: 5px;
 }
 
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  /* A closed option doesn't move when looked at or hovered. */
+  transform: none;
 }
 
 .coral {
@@ -77,4 +87,34 @@
   font-family: var(--font-body);
   font-size: 0.9rem;
   color: var(--color-ink-soft);
+}
+
+/* The count in the corner (unread notifications): a white circle with the
+   number, so it reads on every color of button. */
+.badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  color: var(--color-coral-dark);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-card);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

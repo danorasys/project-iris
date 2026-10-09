@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import type { StudentProfile } from "@iris/shared-types";
 import { useAuth } from "@/shared/auth/useAuth";
 import { useEstudiantesDeTutor, useLoginPerfilEstudiante } from "@/shared/api/hooks/useAuthApi";
 import { getAuthErrorMessage } from "@/features/auth/errors";
-import { isTourSeen } from "@/features/student/lib/dwellPreferences";
+import { routeAfterPin } from "@/features/student/lib/studentJourney";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { NumericKeypad } from "@/shared/ui/NumericKeypad";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
-import { IconInfo } from "@/shared/ui/icons";
+import { ViewEnter } from "@/shared/ui/ViewEnter";
+import { IconArrowLeft, IconArrowRight, IconInfo } from "@/shared/ui/icons";
 import avatarGuardian from "@/assets/auth/avatar-guardian.png";
 import avatarPeques from "@/assets/auth/avatar-peques.png";
 import styles from "./ProfileSelectorAuth.module.css";
@@ -76,9 +77,14 @@ function GuardianPortalChoice() {
   );
 }
 
+// HU-30: three profiles at a time, so each one stays big. More than that
+// and the arrows show up.
+const PROFILES_PER_GROUP = 3;
+
 function ProfilePicker({ onBack }: { onBack: () => void }) {
   const profiles = useEstudiantesDeTutor(true);
   const [selected, setSelected] = useState<StudentProfile | null>(null);
+  const [group, setGroup] = useState(0);
 
   if (selected) {
     return <PinEntry profile={selected} onBack={() => setSelected(null)} />;
@@ -100,24 +106,76 @@ function ProfilePicker({ onBack }: { onBack: () => void }) {
       )}
 
       {profiles.data && profiles.data.length > 0 && (
-        <div className={styles.profiles}>
-          {profiles.data.map((profile) => (
-            <BigChoiceButton
-              key={profile.id}
-              variant="teal"
-              icon={<StudentAvatarImage avatarId={profile.avatar_id} size="small" label={profile.first_name} />}
-              onSelect={() => setSelected(profile)}
-            >
-              <span className={styles.profileName}>{profile.first_name}</span>
-            </BigChoiceButton>
-          ))}
-        </div>
+        <ProfileGroups profiles={profiles.data} group={group} onGroup={setGroup} onPick={setSelected} />
       )}
 
       <button type="button" className={styles.textLink} onClick={onBack}>
         Volver
       </button>
     </main>
+  );
+}
+
+function ProfileGroups({
+  profiles,
+  group,
+  onGroup,
+  onPick,
+}: {
+  profiles: StudentProfile[];
+  group: number;
+  onGroup: (group: number) => void;
+  onPick: (profile: StudentProfile) => void;
+}) {
+  const groups = Math.ceil(profiles.length / PROFILES_PER_GROUP);
+  const current = Math.min(group, groups - 1);
+  const shown = profiles.slice(current * PROFILES_PER_GROUP, (current + 1) * PROFILES_PER_GROUP);
+  const paged = groups > 1;
+
+  return (
+    <div className={styles.groupRow}>
+      {paged && (
+        <button
+          type="button"
+          className={styles.groupArrow}
+          onClick={() => onGroup(current - 1)}
+          disabled={current === 0}
+          aria-label="Ver los perfiles anteriores"
+        >
+          <IconArrowLeft width={40} height={40} />
+        </button>
+      )}
+      {/* Each group comes in from the side of its arrow. */}
+      <ViewEnter view={current} level={current} className={styles.profiles}>
+        {shown.map((profile) => (
+          <BigChoiceButton
+            key={profile.id}
+            variant="teal"
+            icon={<StudentAvatarImage avatarId={profile.avatar_id} size="small" label={profile.first_name} />}
+            onSelect={() => onPick(profile)}
+          >
+            <span className={styles.profileName}>{profile.first_name}</span>
+          </BigChoiceButton>
+        ))}
+      </ViewEnter>
+      {paged && (
+        <button
+          type="button"
+          className={styles.groupArrow}
+          onClick={() => onGroup(current + 1)}
+          disabled={current === groups - 1}
+          aria-label="Ver los perfiles siguientes"
+        >
+          <IconArrowRight width={40} height={40} />
+        </button>
+      )}
+      {paged && (
+        <p className={styles.groupCount} aria-live="polite">
+          Perfiles {current * PROFILES_PER_GROUP + 1} a {current * PROFILES_PER_GROUP + shown.length} de{" "}
+          {profiles.length}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -132,9 +190,13 @@ function PinEntry({ profile, onBack }: { profile: StudentProfile; onBack: () => 
     setError(null);
     try {
       const tokens = await loginProfile.mutateAsync({ student_id: profile.id, pin });
-      setSession(tokens);
-      const alreadySawTour = isTourSeen(profile.id);
-      navigate(alreadySawTour ? "/student/home" : "/student/tour", { replace: true });
+      // React Router moves inside a transition. If the kid's session landed
+      // first, this page (only for guardians) would see a student and send
+      // them to /login/adult. In the same transition both land together.
+      startTransition(() => {
+        setSession(tokens);
+        navigate(routeAfterPin(profile.id), { replace: true });
+      });
     } catch (err) {
       setError(getAuthErrorMessage(err));
       setPin("");
@@ -167,9 +229,10 @@ function PinEntry({ profile, onBack }: { profile: StudentProfile; onBack: () => 
         </p>
       )}
 
-      <button type="button" className={styles.textLink} onClick={onBack}>
+      {/* HU-52: a big button, like every choice of the kid's side. */}
+      <BigChoiceButton variant="sol" icon={<IconArrowLeft width={32} height={32} />} onSelect={onBack}>
         No soy yo, elegir otro perfil
-      </button>
+      </BigChoiceButton>
     </main>
   );
 }

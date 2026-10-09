@@ -1,0 +1,91 @@
+/* "Mensajes" of a class: the title with "Escribir un mensaje" beside it,
+   then each message as a row that opens to show its text. */
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.message {
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Unread, like in the tray: the soft blue of IRIS and a bold subject. */
+.message[data-unread="true"] {
+  background: color-mix(in srgb, var(--color-iris-pale) 45%, var(--color-surface));
+}
+
+.message[data-unread="true"] .subject {
+  font-weight: 800;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 2px var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  list-style: none;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-large);
+}
+
+/* Received or sent, as a small label on the left. */
+.direction {
+  grid-row: span 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--color-leaf) 16%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-leaf) 70%, var(--color-ink));
+}
+
+.direction[data-sent="true"] {
+  background: color-mix(in srgb, var(--color-iris-pale) 70%, var(--color-surface));
+  color: var(--color-iris-deep);
+}
+
+.subject {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  font-size: 0.88rem;
+  color: var(--color-ink-soft);
+}
+
+.body {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-4);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+}

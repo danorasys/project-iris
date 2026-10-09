@@ -5,7 +5,11 @@ from types import TracebackType
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db import SessionLocal
-from app.infrastructure.repositories import SqlAlchemyLessonRepository, SqlAlchemyUnitRepository
+from app.infrastructure.repositories import (
+    SqlAlchemyLessonRepository,
+    SqlAlchemyProgressRepository,
+    SqlAlchemyUnitRepository,
+)
 
 
 class SqlAlchemyUnitOfWork:
@@ -16,6 +20,7 @@ class SqlAlchemyUnitOfWork:
         self.session = SessionLocal()
         self.lessons = SqlAlchemyLessonRepository(self.session)
         self.units = SqlAlchemyUnitRepository(self.session)
+        self.progress = SqlAlchemyProgressRepository(self.session)
         return self
 
     async def __aexit__(

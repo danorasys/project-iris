@@ -14,11 +14,14 @@ export function GazeCursor() {
       const element = ref.current;
       if (!element) return;
       element.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
+      element.style.visibility = "visible";
     });
   }, [fuente]);
 
+  // Hidden until the first position: with the keyboard (HU-88) none ever
+  // comes, and a dot stuck in the corner would only confuse.
   return (
-    <div ref={ref} className={styles.cursor} aria-hidden="true">
+    <div ref={ref} className={styles.cursor} style={{ visibility: "hidden" }} aria-hidden="true">
       <span className={styles.nucleo} />
     </div>
   );

@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, status
 
 from app.api.deps import (
     CurrentUser,
+    get_account_erasure_service,
     get_auth_service,
     get_password_change_service,
     get_teacher_profile_service,
@@ -20,6 +21,7 @@ from app.api.deps import (
 from app.api.schemas import (
     AccessTokenResponse,
     ChangePasswordRequest,
+    DeleteAccountRequest,
     TeacherAccountResponse,
     TeacherProfileResponse,
     TotpSetupResponse,
@@ -28,6 +30,7 @@ from app.api.schemas import (
     UpdateTeacherAccountRequest,
     UpdateTeacherProfileRequest,
 )
+from app.application.account_erasure import AccountErasureService
 from app.application.auth_service import AuthService
 from app.application.dtos import UpdateTeacherAccountData
 from app.application.password_change import PasswordChangeService
@@ -131,6 +134,19 @@ async def change_my_password(
     except DomainError:
         await totp.release_code(user.subject_id, payload.code)
         raise
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def delete_my_account(
+    payload: DeleteAccountRequest,
+    user: VerifiedTeacherDep,
+    erasure: Annotated[AccountErasureService, Depends(get_account_erasure_service)],
+) -> None:
+    """Right to erasure (HU-92): the teacher's personal data goes; their
+    classes, lessons and the kids in them stay, without a teacher. Asks for
+    the password again. 503 borrado_no_disponible if another service didn't
+    answer: then nothing is deleted here."""
+    await erasure.delete_teacher(user.subject_id, payload.password)
 
 
 @router.get("/me/profile", response_model=TeacherProfileResponse)

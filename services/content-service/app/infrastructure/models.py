@@ -215,6 +215,56 @@ class ExtraModel(Base):
     students: Mapped[list["ExtraStudentModel"]] = relationship(cascade="all, delete-orphan")
 
 
+# How far each kid got in the pages of a lesson (extra_id NULL) or of one of
+# its extras. One row per kid and part, see the two unique indexes.
+class PageProgressModel(Base):
+    __tablename__ = "page_progress"
+    __table_args__ = (
+        Index(
+            "uq_page_progress_lesson",
+            "student_id",
+            "lesson_id",
+            unique=True,
+            postgresql_where=text("extra_id IS NULL"),
+            sqlite_where=text("extra_id IS NULL"),
+        ),
+        Index("uq_page_progress_extra", "student_id", "extra_id", unique=True),
+        CheckConstraint("pages_seen >= 0", name="ck_page_progress_pages_seen"),
+        CheckConstraint("last_page >= 0", name="ck_page_progress_last_page"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=_uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True))
+    lesson_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("lessons.id", ondelete="CASCADE"))
+    extra_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("extras.id", ondelete="CASCADE"), nullable=True
+    )
+    pages_seen: Mapped[int] = mapped_column(Integer, default=0)
+    last_page: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+# Every try of a kid at an activity (HU-47), newest last.
+class AttemptModel(Base):
+    __tablename__ = "activity_attempts"
+    __table_args__ = (
+        # A kid's tries in the lessons of a class, in order (the progress page).
+        Index("ix_activity_attempts_student_lesson", "student_id", "lesson_id", "created_at"),
+        CheckConstraint("total >= 1 AND correct >= 0 AND correct <= total", name="ck_activity_attempts_score"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=_uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True))
+    lesson_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("lessons.id", ondelete="CASCADE"))
+    extra_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("extras.id", ondelete="CASCADE"), nullable=True
+    )
+    correct: Mapped[int] = mapped_column(Integer)
+    total: Mapped[int] = mapped_column(Integer)
+    passed: Mapped[bool] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
 # The kids an extra is for, when it isn't for everyone.
 class ExtraStudentModel(Base):
     __tablename__ = "extra_students"

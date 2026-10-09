@@ -10,7 +10,7 @@ from uuid import UUID
 
 from app.application.dtos import ActivityInput, BlockInput, ExtraChanges, LessonChanges
 from app.application.image_rules import EXTENSION_BY_CONTENT_TYPE, matches_declared_type
-from app.application.lesson_rules import encode_items, encode_rows, missing_to_publish
+from app.application.lesson_rules import encode_items, encode_rows, extra_missing, missing_to_publish
 from app.domain.entities import (
     BLOCK_IMAGE,
     BLOCK_LIST,
@@ -23,6 +23,7 @@ from app.domain.entities import (
     ContentBlock,
     Extra,
     Lesson,
+    PublishedContent,
     Question,
     QuestionOption,
     SignedDownload,
@@ -40,6 +41,10 @@ from app.domain.exceptions import (
 from app.domain.ports import ClassroomClient, ObjectStorage, UnitOfWork
 
 logger = logging.getLogger(__name__)
+
+# The notices classroom-service sends to the families (HU-83).
+NOTICE_LESSON = "lesson.published"
+NOTICE_EXTRA = "extra.published"
 
 UowFactory = Callable[[], "UnitOfWork"]
 
@@ -294,16 +299,22 @@ class LessonService:
         return lesson
 
     # POST /lessons/{lesson_id}/publish (HU-81). Only when nothing is missing;
-    # otherwise 422 with the list of what is.
-    async def publish(self, lesson_id: UUID, user: ValidatedUser) -> Lesson:
+    # otherwise 422 with the list of what is. The first time, the kids of
+    # the class and their guardians hear about it (HU-83).
+    async def publish(self, lesson_id: UUID, user: ValidatedUser, correlation_id: str | None = None) -> Lesson:
         async with self._uow_factory() as uow:
             lesson = await self._own_lesson(uow, lesson_id, user)
             missing = missing_to_publish(lesson)
             if missing:
                 raise LessonIncomplete(missing=missing)
+            is_new = lesson.status != STATUS_PUBLISHED
             lesson.status = STATUS_PUBLISHED
             await uow.lessons.update_details(lesson)
             await uow.commit()
+        if is_new:
+            await self._classroom.announce(
+                lesson.classroom_id, NOTICE_LESSON, lesson.id, lesson.title, None, None, correlation_id
+            )
         return lesson
 
     # PUT /units/{unit_id}/lessons/order: names every lesson of the unit once.
@@ -380,6 +391,7 @@ class LessonService:
             lesson = await self._own_lesson(uow, lesson_id, user)
             extra = self._find_extra(lesson, extra_id)
             images_before = _images_of(lesson)
+            was_shown = self._shown_to_kids(lesson, extra)
             if changes.title is not None:
                 extra.title = changes.title
             if changes.for_everyone is not None:
@@ -401,20 +413,45 @@ class LessonService:
             await uow.commit()
 
         await self._delete_unused_images(lesson.id, images_before, _images_of(lesson))
+        if not was_shown:
+            await self._announce_extra_if_shown(lesson, extra, correlation_id)
         return extra
 
     async def set_extra_activity(
-        self, lesson_id: UUID, extra_id: UUID, user: ValidatedUser, activity: ActivityInput
+        self,
+        lesson_id: UUID,
+        extra_id: UUID,
+        user: ValidatedUser,
+        activity: ActivityInput,
+        correlation_id: str | None = None,
     ) -> Extra:
         async with self._uow_factory() as uow:
             lesson = await self._own_lesson(uow, lesson_id, user)
             extra = self._find_extra(lesson, extra_id)
             if extra.kind != EXTRA_ACTIVITY:
                 raise InvalidFile("Este extra es de contenido, no tiene preguntas.")
+            was_shown = self._shown_to_kids(lesson, extra)
             extra.activity = _to_activity(activity)
             await uow.lessons.replace_activity(lesson.id, extra.activity, extra.id)
             await uow.commit()
+        if not was_shown:
+            await self._announce_extra_if_shown(lesson, extra, correlation_id)
         return extra
+
+    # The kids see an extra once it's complete and its lesson is published.
+    @staticmethod
+    def _shown_to_kids(lesson: Lesson, extra: Extra) -> bool:
+        return lesson.status == STATUS_PUBLISHED and not extra_missing(extra)
+
+    # An extra the kids couldn't see before and now can is new for them
+    # (HU-83): only the ones it's for, and their guardians, hear about it.
+    async def _announce_extra_if_shown(self, lesson: Lesson, extra: Extra, correlation_id: str | None) -> None:
+        if not self._shown_to_kids(lesson, extra):
+            return
+        audience = None if extra.for_everyone else list(extra.student_ids)
+        await self._classroom.announce(
+            lesson.classroom_id, NOTICE_EXTRA, lesson.id, lesson.title, extra.title, audience, correlation_id
+        )
 
     async def delete_extra(self, lesson_id: UUID, extra_id: UUID, user: ValidatedUser) -> None:
         async with self._uow_factory() as uow:
@@ -474,9 +511,9 @@ class LessonService:
     # --- classroom-service (HU-85) ---------------------------------------------
 
     # Called by classroom-service for the parents' portal: how many lessons
-    # each of the kids' classrooms already has for them. classroom-service
-    # already checked those are the guardian's kids' classrooms.
-    async def published_counts(self, classroom_ids: list[UUID]) -> dict[UUID, int]:
+    # (and units with lessons) each of the kids' classrooms already has for
+    # them. classroom-service already checked those are the guardian's kids'.
+    async def published_counts(self, classroom_ids: list[UUID]) -> dict[UUID, PublishedContent]:
         async with self._uow_factory() as uow:
             return await uow.lessons.count_published_by_classrooms(classroom_ids)
 

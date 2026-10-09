@@ -1,0 +1,381 @@
+/* The window to add a class. Same backdrop as the other windows of the
+   portal (ConfirmDialog, the 2FA code), a bit wider for the class. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  overflow-y: auto;
+  background: rgba(22, 36, 46, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: backdrop-in 200ms ease-out;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 600px;
+  /* On a short screen the card scrolls instead of getting cut. */
+  margin: auto;
+  padding: var(--space-4) 40px var(--space-5);
+  border-radius: 24px;
+  background:
+    radial-gradient(
+      120% 60% at 50% 0%,
+      color-mix(in srgb, var(--color-iris-pale) 70%, transparent) 0%,
+      transparent 60%
+    ),
+    var(--color-surface);
+  box-shadow:
+    0 24px 60px rgba(30, 58, 82, 0.28),
+    0 2px 6px rgba(30, 58, 82, 0.12);
+  animation: card-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: max-width 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* "¿Es esta la clase?" has more to show, so the window grows wider. */
+.cardWide {
+  max-width: 780px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+}
+
+.closeButton,
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: none;
+  border-radius: var(--radius-medium);
+  background: none;
+  color: var(--color-iris-deep);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.closeButton {
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.backLink {
+  padding: var(--space-1) var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
+  font-size: 0.9rem;
+}
+
+.closeButton:hover:not(:disabled),
+.backLink:hover:not(:disabled) {
+  background: var(--color-iris-pale);
+}
+
+.closeButton:focus-visible,
+.backLink:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--color-iris-deep);
+  text-align: center;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- The code --- */
+.codeForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* The label, the box and its notes go together, with room around them. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* Big and spaced, so each character reads apart. Always shown in capitals,
+   like the server keeps it. */
+.codeInput {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--color-iris-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  font-family: inherit;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-align: center;
+  text-transform: uppercase;
+  transition:
+    border-color 120ms ease,
+    box-shadow 160ms ease;
+}
+
+.codeInput:focus {
+  outline: none;
+  border-color: var(--color-focus);
+  box-shadow: var(--focus-halo);
+}
+
+.codeInput[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.86rem;
+  text-align: center;
+  color: var(--color-ink-soft);
+}
+
+.error {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+/* --- The class found --- */
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.classHead {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-radius: 18px;
+  background: var(--color-canvas);
+}
+
+.classRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: 0 8px 6px;
+}
+
+/* The avatar hangs from the band, with a ring of the card's background. */
+.classAvatar {
+  flex: none;
+  margin-top: -36px;
+  padding: 4px;
+  border-radius: 26%;
+  background: var(--color-canvas);
+}
+
+.classText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding-top: 10px;
+}
+
+.className {
+  margin: 0 0 2px;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.classMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-ink-soft);
+}
+
+/* The description reads like the lines above it, a bit more spaced, with
+   its label in bold. */
+.classDescription {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.descriptionLabel {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* The row to see the teacher's profile: a white card with the pale border,
+   like the option rows of the portal, and an arrow that turns when open. */
+.teacherRow {
+  min-height: 64px;
+  border: 1px solid var(--color-iris-pale);
+  background: var(--color-surface);
+}
+
+.teacherRow:hover {
+  border-color: var(--color-iris-medium);
+}
+
+.teacherArrow {
+  flex: none;
+  color: var(--color-iris-medium);
+  transition: transform 200ms ease;
+}
+
+.teacherRow[aria-expanded="true"] .teacherArrow {
+  transform: rotate(180deg);
+}
+
+/* The profile unfolds down from the row and folds back up into it: its
+   height grows from 0 (grid rows from 0fr to 1fr) while it fades and
+   slides in a little. The gap above it shrinks too, so nothing jumps. */
+.teacherReveal {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: reveal-open 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.teacherRevealInner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.teacherRevealClosing {
+  animation: reveal-close 240ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes reveal-open {
+  from {
+    grid-template-rows: 0fr;
+    margin-top: calc(var(--space-3) * -1);
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes reveal-close {
+  to {
+    grid-template-rows: 0fr;
+    margin-top: calc(var(--space-3) * -1);
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* The question before sending, on its own light box at the end. */
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: 18px;
+  background: var(--color-surface);
+}
+
+.confirmText {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+/* Closing: the card sinks a little and everything fades, like ConfirmDialog. */
+.leaving {
+  animation: backdrop-out 180ms ease forwards;
+}
+
+.leaving .card {
+  animation: dialog-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+
+@keyframes backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: var(--space-3);
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .classHead {
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .card,
+  .leaving,
+  .leaving .card,
+  .teacherArrow,
+  .teacherReveal {
+    animation: none;
+    transition: none;
+  }
+}

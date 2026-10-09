@@ -1,0 +1,84 @@
+/* "Estadísticas" of a class: the numbers on top, then the charts side by
+   side, then the lessons, each one a row that opens its own. */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.kpiValue {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-iris-deep);
+}
+
+.kpiLabel {
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.lessonRow {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.lessonRow:hover {
+  border-color: var(--color-iris-medium);
+}
+
+.lessonRow:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.rowPercent {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-iris-deep);
+}
+
+.rankingTitle {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--color-iris-deep);
+}
+
+.ranking {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ranking li {
+  display: flex;
+  flex-direction: column;
+}
+
+.rankingName {
+  font-weight: 700;
+}

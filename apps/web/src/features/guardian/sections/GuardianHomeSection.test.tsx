@@ -17,15 +17,18 @@ function classOf(student: StudentProfile, name: string, extra: Partial<FamilyCla
     student_first_name: student.first_name,
     status: "aceptada",
     requested_at: "2026-10-04T10:00:00Z",
+    resolved_at: null,
     classroom_id: `c-${name}`,
     name,
     description: "d",
+    logo_file: null,
     color: "green",
     area: "mathematics",
     grade: 2,
     area_other: null,
     teacher_name: "Laura Gómez",
     published_lessons: 3,
+    published_units: 1,
     ...extra,
   };
 }

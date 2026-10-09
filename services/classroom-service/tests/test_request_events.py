@@ -10,6 +10,7 @@ import json
 import fakeredis.aioredis
 from httpx import AsyncClient
 
+from tests.helpers import pedir_ingreso
 from tests.fakes import FakeIdentityGateway
 
 
@@ -33,9 +34,7 @@ async def _classroom_and_request(client: AsyncClient, identity: FakeIdentityGate
     aula = await client.post(
         "/classrooms", json={"name": "Matemáticas 3A", "description": "d", "area": "mathematics", "grade": 3}, headers=_auth(token_docente)
     )
-    ingreso = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula.json()["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    ingreso = await pedir_ingreso(client, aula.json()["enrollment_code"], token_estudiante)
     return token_docente, aula.json(), ingreso.json()["enrollment_id"]
 
 

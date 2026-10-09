@@ -5,25 +5,41 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Path, Response, UploadFile, status
 
-from app.api.deps import CurrentUser, get_classroom_service, require_portal_guardian, require_role
+from app.api.deps import (
+    CurrentUser,
+    get_classroom_service,
+    require_logo_reader,
+    require_portal_guardian,
+    require_role,
+)
 from app.api.media import media_response
 from app.api.schemas import (
+    ClassroomPreviewResponse,
+    ClassStatisticsOut,
     ClassroomResponse,
     ClassroomWithStudentsResponse,
     CreateClassroomRequest,
     EnrolledStudentResponse,
     EnrollmentResponse,
-    EnrollRequest,
+    FamilyClassroomDetailResponse,
     FamilyClassroomResponse,
+    FamilyEnrollmentRequest,
+    FamilyMessageRequest,
+    LessonProgressOut,
+    LookupClassroomRequest,
     RequestResponse,
     ResolveRequestBody,
     ResolveResponse,
     TeacherClassroomResponse,
+    TeacherExperienceOut,
+    TeacherMessageRequest,
+    TeacherProfileOut,
+    TeacherStudyOut,
     UpdateClassroomRequest,
 )
 from app.application.classroom_service import ClassroomService
-from app.application.dtos import UpdateClassroomData
-from app.domain.entities import Classroom
+from app.application.dtos import FamilyClassroom, UpdateClassroomData
+from app.domain.entities import Classroom, TeacherPublicProfile
 from app.domain.exceptions import InvalidFile
 
 router = APIRouter(prefix="/classrooms", tags=["classrooms"])
@@ -31,7 +47,7 @@ router = APIRouter(prefix="/classrooms", tags=["classrooms"])
 ClassroomServiceDep = Annotated[ClassroomService, Depends(get_classroom_service)]
 TeacherDep = Annotated[CurrentUser, Depends(require_role("teacher"))]
 StudentDep = Annotated[CurrentUser, Depends(require_role("student"))]
-ReaderDep = Annotated[CurrentUser, Depends(require_role("teacher", "student"))]
+LogoReaderDep = Annotated[CurrentUser, Depends(require_logo_reader)]
 GuardianPortalDep = Annotated[CurrentUser, Depends(require_portal_guardian)]
 
 # Same shape as the names this service creates (32 hex chars and an
@@ -55,6 +71,43 @@ def _classroom_response(classroom: Classroom) -> ClassroomResponse:
         grade=classroom.grade,
         enrollment_code=classroom.enrollment_code,
         created_at=classroom.created_at,
+        has_teacher=classroom.has_teacher,
+    )
+
+
+def _teacher_out(teacher: TeacherPublicProfile | None) -> TeacherProfileOut | None:
+    if teacher is None:
+        return None
+    return TeacherProfileOut(
+        first_name=teacher.first_name,
+        last_name=teacher.last_name,
+        institution=teacher.institution,
+        about=teacher.about,
+        studies=[TeacherStudyOut(**s.__dict__) for s in teacher.studies],
+        experiences=[TeacherExperienceOut(**e.__dict__) for e in teacher.experiences],
+    )
+
+
+def _family_response(f: FamilyClassroom) -> FamilyClassroomResponse:
+    return FamilyClassroomResponse(
+        enrollment_id=f.enrollment_id,
+        student_id=f.student_id,
+        student_first_name=f.student_first_name,
+        status=f.status,  # type: ignore[arg-type]  # the service only stores these three
+        requested_at=f.requested_at,
+        resolved_at=f.resolved_at,
+        classroom_id=f.classroom.id,
+        name=f.classroom.name,
+        description=f.classroom.description,
+        logo_file=f.classroom.logo_file,
+        color=f.classroom.color,  # type: ignore[arg-type]  # the CHECK in the database keeps it in the list
+        area=f.classroom.area,  # type: ignore[arg-type]  # same, ck_classrooms_area
+        area_other=f.classroom.area_other,
+        grade=f.classroom.grade,
+        teacher_name=f.teacher_name,
+        published_lessons=f.published_lessons,
+        published_units=f.published_units,
+        has_teacher=f.classroom.has_teacher,
     )
 
 
@@ -93,37 +146,91 @@ async def list_my_classrooms(user: StudentDep, classrooms: ClassroomServiceDep) 
     return [_classroom_response(c) for c in result]
 
 
+# ---------------------------------------------------------------------------
+# Parents' portal (EP-07). All behind the portal's 2FA code, and only about
+# the guardian's own kids.
+# ---------------------------------------------------------------------------
+
+
 @router.get("/family", response_model=list[FamilyClassroomResponse])
 async def list_family_classrooms(user: GuardianPortalDep, classrooms: ClassroomServiceDep) -> list[FamilyClassroomResponse]:
-    """The classes of the guardian's kids, for the parents' portal: the ones
-    they're in and the requests still waiting for the teacher, newest first.
-    Needs the portal's 2FA code, like the rest of the portal."""
+    """The classes of the guardian's kids and every request with how it
+    went (pending, accepted or rejected), newest first."""
     result = await classrooms.list_family_classrooms(user.subject_id)
-    return [
-        FamilyClassroomResponse(
-            enrollment_id=f.enrollment_id,
-            student_id=f.student_id,
-            student_first_name=f.student_first_name,
-            status=f.status,  # type: ignore[arg-type]  # only pending and accepted come back
-            requested_at=f.requested_at,
-            classroom_id=f.classroom.id,
-            name=f.classroom.name,
-            description=f.classroom.description,
-            color=f.classroom.color,  # type: ignore[arg-type]  # the CHECK in the database keeps it in the list
-            area=f.classroom.area,  # type: ignore[arg-type]  # same, ck_classrooms_area
-            area_other=f.classroom.area_other,
-            grade=f.classroom.grade,
-            teacher_name=f.teacher_name,
-            published_lessons=f.published_lessons,
-        )
-        for f in result
-    ]
+    return [_family_response(f) for f in result]
 
 
-@router.post("/enroll", response_model=EnrollmentResponse, status_code=status.HTTP_201_CREATED)
-async def enroll(payload: EnrollRequest, user: StudentDep, classrooms: ClassroomServiceDep) -> EnrollmentResponse:
-    enrollment = await classrooms.enroll_in_classroom(user.subject_id, payload.enrollment_code)
+@router.post("/family/lookup", response_model=ClassroomPreviewResponse)
+async def preview_classroom(
+    payload: LookupClassroomRequest, user: GuardianPortalDep, classrooms: ClassroomServiceDep
+) -> ClassroomPreviewResponse:
+    """The class behind a code and its teacher, before asking to join
+    (HU-40). A POST so the code never ends up in a URL or a log. 404 if no
+    class has it, 429 after too many tries."""
+    preview = await classrooms.preview_classroom(user.subject_id, payload.enrollment_code)
+    c = preview.classroom
+    return ClassroomPreviewResponse(
+        classroom_id=c.id,
+        name=c.name,
+        description=c.description,
+        logo_file=c.logo_file,
+        color=c.color,  # type: ignore[arg-type]  # the CHECK in the database keeps it in the list
+        area=c.area,  # type: ignore[arg-type]  # same, ck_classrooms_area
+        area_other=c.area_other,
+        grade=c.grade,
+        teacher=_teacher_out(preview.teacher),
+        published_lessons=preview.published_lessons,
+        published_units=preview.published_units,
+    )
+
+
+@router.post("/family/requests", response_model=EnrollmentResponse, status_code=status.HTTP_201_CREATED)
+async def request_enrollment(
+    payload: FamilyEnrollmentRequest, user: GuardianPortalDep, classrooms: ClassroomServiceDep
+) -> EnrollmentResponse:
+    """Asks the teacher to let one of the guardian's kids in. 409 if there's
+    already a pending or accepted one; a rejected one can be asked again."""
+    enrollment = await classrooms.request_enrollment(user.subject_id, payload.student_id, payload.enrollment_code)
     return EnrollmentResponse(enrollment_id=enrollment.id, classroom_id=enrollment.classroom_id, status=enrollment.status)
+
+
+@router.get("/family/{enrollment_id}", response_model=FamilyClassroomDetailResponse)
+async def get_family_classroom(
+    enrollment_id: UUID, user: GuardianPortalDep, classrooms: ClassroomServiceDep
+) -> FamilyClassroomDetailResponse:
+    """The space of a class the kid is in (HU-42) with its teacher's
+    profile (HU-97). 409 while the request still waits."""
+    detail = await classrooms.get_family_classroom(user.subject_id, enrollment_id)
+    return FamilyClassroomDetailResponse(
+        **_family_response(detail.family).model_dump(), teacher=_teacher_out(detail.teacher)
+    )
+
+
+@router.get("/family/{enrollment_id}/progress", response_model=list[LessonProgressOut])
+async def get_family_progress(
+    enrollment_id: UUID, user: GuardianPortalDep, classrooms: ClassroomServiceDep
+) -> list[LessonProgressOut]:
+    """How far the kid got in each lesson of the class, regular and extra,
+    and every try at the activities (HU-46, HU-47). 409 while the request
+    still waits, 503 if content-service didn't answer."""
+    lessons = await classrooms.get_family_progress(user.subject_id, enrollment_id)
+    return [LessonProgressOut.model_validate(lesson) for lesson in lessons]
+
+
+@router.delete("/family/{enrollment_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def leave_classroom(enrollment_id: UUID, user: GuardianPortalDep, classrooms: ClassroomServiceDep) -> None:
+    """Takes the kid out of the class (HU-49), cancels a request still
+    waiting, or clears a rejected one off the list. The teacher hears about
+    the first two."""
+    await classrooms.leave_classroom(user.subject_id, enrollment_id)
+
+
+@router.post("/family/{enrollment_id}/messages", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def send_message(
+    enrollment_id: UUID, payload: TeacherMessageRequest, user: GuardianPortalDep, classrooms: ClassroomServiceDep
+) -> None:
+    """A message to the teacher of the class (HU-48), kept in their tray."""
+    await classrooms.send_message(user.subject_id, enrollment_id, payload.subject, payload.body, payload.thread_id)
 
 
 @router.get("/{classroom_id}", response_model=ClassroomWithStudentsResponse)
@@ -181,6 +288,37 @@ async def remove_student(
     await classrooms.remove_student(classroom_id, enrollment_id, user.subject_id)
 
 
+@router.post(
+    "/{classroom_id}/students/{enrollment_id}/messages", status_code=status.HTTP_204_NO_CONTENT, response_model=None
+)
+async def send_family_message(
+    classroom_id: UUID,
+    enrollment_id: UUID,
+    payload: FamilyMessageRequest,
+    user: TeacherDep,
+    classrooms: ClassroomServiceDep,
+) -> None:
+    """A message to a kid of the class or to their guardian (HU-77), kept in
+    their tray. 503 mensaje_no_enviado if it couldn't go out."""
+    await classrooms.send_family_message(
+        classroom_id,
+        enrollment_id,
+        user.subject_id,
+        payload.recipient,
+        payload.subject,
+        payload.body,
+        payload.thread_id,
+    )
+
+
+@router.get("/{classroom_id}/statistics", response_model=ClassStatisticsOut)
+async def get_statistics(classroom_id: UUID, user: TeacherDep, classrooms: ClassroomServiceDep) -> ClassStatisticsOut:
+    """The statistics of the class (HU-86, HU-87): how far each kid got in
+    every published lesson, who passed, the best and the lowest scores, and
+    the totals. 503 estadisticas_no_disponibles without content-service."""
+    return ClassStatisticsOut.model_validate(await classrooms.get_statistics(classroom_id, user.subject_id))
+
+
 @router.post("/{classroom_id}/logo", response_model=ClassroomResponse)
 async def upload_logo(
     classroom_id: UUID,
@@ -208,7 +346,7 @@ async def remove_logo(classroom_id: UUID, user: TeacherDep, classrooms: Classroo
     responses={200: {"content": {"image/*": {}}}, 404: {"description": "No existe o no tienes acceso."}},
 )
 async def get_logo(
-    classroom_id: UUID, file_name: LogoFileName, user: ReaderDep, classrooms: ClassroomServiceDep
+    classroom_id: UUID, file_name: LogoFileName, user: LogoReaderDep, classrooms: ClassroomServiceDep
 ) -> Response:
     signed = await classrooms.get_logo(classroom_id, file_name, user.subject_id, user.role)
     return media_response(signed, _LOGO_CACHE)

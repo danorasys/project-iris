@@ -1,8 +1,8 @@
 // Gaze preferences saved in localStorage per student profile
-// (`session.subjectId`): whether the tour was already seen, and the custom
-// dwell duration measured at /student/calibration.
+// (`session.subjectId`): the custom dwell duration measured at
+// /student/calibration. What the kid already went through is in
+// studentJourney.ts.
 
-const TOUR_SEEN_PREFIX = "iris_recorrido_visto_";
 const DWELL_DURATION_PREFIX = "iris_dwell_ms_";
 
 /** Average time (ms) the student took to complete each calibration target.
@@ -17,24 +17,6 @@ export function calculateAverageDwellMs(timesMs: number[]): number {
 function isLocalStorageAvailable(): boolean {
   try {
     return typeof window !== "undefined" && !!window.localStorage;
-  } catch {
-    return false;
-  }
-}
-
-export function markTourSeen(subjectId: string): void {
-  if (!isLocalStorageAvailable()) return;
-  try {
-    window.localStorage.setItem(TOUR_SEEN_PREFIX + subjectId, "1");
-  } catch {
-    /* storage unavailable (private mode, quota full), not critical */
-  }
-}
-
-export function isTourSeen(subjectId: string): boolean {
-  if (!isLocalStorageAvailable()) return false;
-  try {
-    return window.localStorage.getItem(TOUR_SEEN_PREFIX + subjectId) === "1";
   } catch {
     return false;
   }

@@ -16,6 +16,7 @@ import {
 import { useDocumentTypes } from "@/shared/api/hooks/useAuthApi";
 import {
   useChangeMyTeacherPassword,
+  useDeleteTeacherAccount,
   useGuardarMiPerfilDocente,
   useMiPerfilDocente,
   useMyTeacherAccount,
@@ -23,7 +24,7 @@ import {
 } from "@/shared/api/hooks/useTeacherProfileApi";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { IconBriefcase, IconGraduationCap, IconLock, IconPencil, IconUserCircle } from "@/shared/ui/icons";
-import { IdentityChangeNotice, SecurityCard } from "@/shared/ui/profile/AccountSections";
+import { DeleteAccountCard, IdentityChangeNotice, SecurityCard } from "@/shared/ui/profile/AccountSections";
 import { Card, EDIT_HINT, EditableRow, ReadOnlyRow, SaveBar } from "@/shared/ui/profile/ProfileForm";
 import form from "@/shared/ui/profile/ProfileForm.module.css";
 import { ProfileHero } from "@/shared/ui/profile/ProfileHero";
@@ -141,6 +142,7 @@ function AccountEditor({ account, onDirtyChange }: AccountEditorProps) {
   const documentTypes = useDocumentTypes();
   const updateAccount = useUpdateMyTeacherAccount();
   const changePassword = useChangeMyTeacherPassword();
+  const deleteAccount = useDeleteTeacherAccount();
   const teachingProfile = useMiPerfilDocente();
   const saveTeachingProfile = useGuardarMiPerfilDocente();
 
@@ -405,6 +407,11 @@ function AccountEditor({ account, onDirtyChange }: AccountEditorProps) {
       />
 
       <SecurityCard changePassword={changePassword} />
+
+      <DeleteAccountCard
+        deleteAccount={deleteAccount}
+        warning="Se eliminan tus datos personales y tu perfil. Tus clases, sus lecciones y sus estudiantes siguen en IRIS: los peques pueden seguir aprendiendo con ellas, pero ya nadie podrá editarlas ni aceptar solicitudes nuevas."
+      />
 
       {/* Out of the form and last, so it floats over every card while
           scrolling. It saves the form above through formId. */}

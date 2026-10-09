@@ -14,7 +14,14 @@ import httpx
 from cachetools import TTLCache
 
 from app.correlation import get_correlation_id
-from app.domain.entities import GuardianStudent, StudentInfo, UserClaims
+from app.domain.entities import (
+    GuardianStudent,
+    StudentInfo,
+    TeacherExperience,
+    TeacherPublicProfile,
+    TeacherStudy,
+    UserClaims,
+)
 from app.domain.exceptions import IdentityServiceUnavailable, InvalidToken, PortalAccessRequired, ResourceNotFound
 from app.infrastructure.http_clients.circuit_breaker import CircuitAbiertoError, CircuitBreaker
 
@@ -118,6 +125,50 @@ class IdentityHttpClient:
 
         body = response.json()
         return f"{body['first_name']} {body['last_name']}"
+
+    # What a family sees of a teacher (HU-97). identity-service only sends the
+    # profile and the name, never contact or document.
+    async def get_teacher_profile(self, teacher_id: UUID) -> TeacherPublicProfile:
+        headers = self._headers()
+        try:
+            response = await self._breaker.llamar(
+                lambda: self._get(f"/internal/teachers/{teacher_id}/profile", headers)
+            )
+        except (httpx.HTTPError, CircuitAbiertoError) as exc:
+            raise IdentityServiceUnavailable() from exc
+
+        if response.status_code == 404:
+            raise ResourceNotFound("Docente no encontrado en identity-service.")
+        if response.status_code != 200:
+            raise IdentityServiceUnavailable()
+
+        body = response.json()
+        return TeacherPublicProfile(
+            first_name=str(body["first_name"]),
+            last_name=str(body["last_name"]),
+            about=body.get("about"),
+            institution=body.get("institution"),
+            studies=tuple(
+                TeacherStudy(
+                    level=str(s["level"]),
+                    title=str(s["title"]),
+                    institution=str(s["institution"]),
+                    end_month=s.get("end_month"),
+                    in_progress=bool(s.get("in_progress")),
+                )
+                for s in body.get("studies") or []
+            ),
+            experiences=tuple(
+                TeacherExperience(
+                    role=str(e["role"]),
+                    place=str(e["place"]),
+                    start_month=str(e["start_month"]),
+                    end_month=e.get("end_month"),
+                    description=e.get("description"),
+                )
+                for e in body.get("experiences") or []
+            ),
+        )
 
     async def list_guardian_students(self, guardian_id: UUID) -> list[GuardianStudent]:
         headers = self._headers()

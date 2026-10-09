@@ -33,8 +33,14 @@ class Settings(BaseSettings):
     s3_bucket: str = "iris-classroom"
     s3_region: str = "us-east-1"
 
+    # Per guardian, so a code can't be guessed by trying many. Looking a
+    # class up allows a few more, a code is easy to mistype.
+    rate_limit_lookup_max: int = 10
     rate_limit_enrollment_max: int = 5
     rate_limit_enrollment_window_sec: int = 600
+    # Messages to a teacher (HU-48), per guardian.
+    rate_limit_message_max: int = 10
+    rate_limit_message_window_sec: int = 3600
 
 
 @lru_cache

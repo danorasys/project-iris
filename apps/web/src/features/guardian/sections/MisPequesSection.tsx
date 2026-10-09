@@ -18,6 +18,8 @@ import {
 } from "@/shared/ui/icons";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
+import type { ClassOption } from "../classes/ClassSpace";
+import { AddKidForm } from "./AddKidForm";
 import { SusClasesSection } from "./SusClasesSection";
 import { SusDatosSection } from "./SusDatosSection";
 import styles from "./MisPequesSection.module.css";
@@ -42,13 +44,14 @@ function kidDetails(student: StudentProfile, classes: FamilyClassroom[] | null) 
   if (!classes) return { age, classes: null, line: age, label: age, waiting: 0 };
   const own = classes.filter((c) => c.student_id === student.id);
   const inside = own.filter((c) => c.status === "aceptada").length;
+  const waiting = own.filter((c) => c.status === "pendiente").length;
   const classesText = inside === 0 ? "sin clases" : inside === 1 ? "1 clase" : `${inside} clases`;
   return {
     age,
     classes: classesText,
     line: `${age} · ${classesText}`,
     label: `${age}, ${classesText}`,
-    waiting: own.length - inside,
+    waiting,
   };
 }
 
@@ -63,9 +66,8 @@ interface MisPequesSectionProps {
 }
 
 /** Shows the guardian's real children (from /guardians/me/students) as
- * cards. Opening one shows a small space for that child with two options:
- * "sus datos" (see SusDatosSection) and "sus clases", which is not built
- * yet and says so instead of pretending to be finished. */
+ * rows. Opening one shows a small space for that child with two options:
+ * "sus datos" (see SusDatosSection) and "sus clases" (SusClasesSection). */
 export function MisPequesSection({
   initialStudentId = null,
   initialOption = null,
@@ -77,6 +79,8 @@ export function MisPequesSection({
   // just show the age.
   const classes = useFamilyClassrooms().data ?? null;
   const [selectedId, setSelectedId] = useState<string | null>(initialStudentId);
+  // HU-50: the form to add a kid, in place of the list.
+  const [adding, setAdding] = useState(false);
   const selected = students.data?.find((s) => s.id === selectedId) ?? null;
 
   if (students.isLoading) return <p className={styles.status}>Cargando tus peques…</p>;
@@ -85,6 +89,20 @@ export function MisPequesSection({
       <p role="alert" className={`${styles.status} ${styles.error}`}>
         No pudimos cargar los perfiles de tus peques. Intenta recargar la página.
       </p>
+    );
+  }
+
+  if (adding) {
+    return (
+      <ViewEnter view="add" level={1}>
+        <AddKidForm
+          onBack={() => setAdding(false)}
+          onCreated={(student) => {
+            setAdding(false);
+            setSelectedId(student.id);
+          }}
+        />
+      </ViewEnter>
     );
   }
 
@@ -135,14 +153,13 @@ export function MisPequesSection({
             per kid with the age, how many classes and the requests waiting.
             The whole row opens the kid's space. */}
           <ul className={styles.kidList}>
-            {/* The headings, and on their right the button to add a kid. Adding
-              isn't built yet, aria-disabled tells screen readers so. */}
+            {/* The headings, and on their right the button to add a kid (HU-50). */}
             <li className={styles.kidHead}>
               <span aria-hidden="true">Peque</span>
               <span aria-hidden="true">Edad</span>
               <span aria-hidden="true">Clases</span>
               <span aria-hidden="true">En espera</span>
-              <button type="button" className={styles.addButton} aria-disabled="true">
+              <button type="button" className={styles.addButton} onClick={() => setAdding(true)}>
                 <IconPlus width={16} height={16} />
                 Agregar estudiante
               </button>
@@ -211,10 +228,16 @@ interface StudentSpaceProps {
 function StudentSpace({ student, initialOption, onBack, onDirtyChange }: StudentSpaceProps) {
   const [option, setOption] = useState<StudentOption | null>(initialOption);
   const current = OPTIONS.find((o) => o.id === option) ?? null;
+  // Inside "sus clases": the class open and the option open in it. They live
+  // here so the one back button on top walks out a step at a time.
+  const [openClassId, setOpenClassId] = useState<string | null>(null);
+  const [classOption, setClassOption] = useState<ClassOption | null>(null);
+  const familyClasses = useFamilyClassrooms().data ?? null;
+  const openClass = familyClasses?.find((c) => c.enrollment_id === openClassId) ?? null;
   // The full name comes with the kid's data, the list only has the first name.
   const detail = useEstudianteDeTutor(student.id).data;
   // Same query as the list, so it comes from the cache.
-  const details = kidDetails(student, useFamilyClassrooms().data ?? null);
+  const details = kidDetails(student, familyClasses);
   // The banner takes the color of the kid's avatar, from the catalog.
   const avatarColor = useAvatars().data?.find((a) => a.id === student.avatar_id)?.accent_color;
   const fullName = detail ? `${detail.first_name} ${detail.last_name}` : student.first_name;
@@ -233,15 +256,30 @@ function StudentSpace({ student, initialOption, onBack, onDirtyChange }: Student
 
   function goBack() {
     setConfirmingBack(false);
-    if (current) setOption(null);
+    if (classOption) setClassOption(null);
+    else if (openClassId) setOpenClassId(null);
+    else if (current) setOption(null);
     else onBack();
   }
+
+  function openClassSpace(enrollmentId: string | null) {
+    setClassOption(null);
+    setOpenClassId(enrollmentId);
+  }
+
+  const backLabel = classOption
+    ? `Regresar a ${openClass?.name ?? "la clase"}`
+    : openClassId
+      ? "Regresar a sus clases"
+      : current
+        ? `Regresar al espacio de ${student.first_name}`
+        : "Regresar a mis peques";
 
   return (
     <div className={styles.section}>
       <button type="button" className={styles.backButton} onClick={dirty ? () => setConfirmingBack(true) : goBack}>
         <IconArrowLeft width={18} height={18} />
-        {current ? `Regresar al espacio de ${student.first_name}` : "Regresar a mis peques"}
+        {backLabel}
       </button>
 
       {/* Like the banner of Mi perfil: the avatar hanging from a sky band, the
@@ -268,7 +306,16 @@ function StudentSpace({ student, initialOption, onBack, onDirtyChange }: Student
       <ViewEnter view={option ?? "menu"} level={option ? 1 : 0} className={styles.section}>
         {option === "datos" && <SusDatosSection studentId={student.id} onDirtyChange={handleDirtyChange} />}
 
-        {option === "clases" && <SusClasesSection studentId={student.id} firstName={student.first_name} />}
+        {option === "clases" && (
+          <SusClasesSection
+            studentId={student.id}
+            firstName={student.first_name}
+            openId={openClassId}
+            option={classOption}
+            onOpen={openClassSpace}
+            onOption={setClassOption}
+          />
+        )}
 
         {/* The options one under the other on a white panel, split by thin
             lines like the list of Mis peques. */}

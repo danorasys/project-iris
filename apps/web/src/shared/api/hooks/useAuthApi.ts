@@ -20,7 +20,6 @@ import type {
   UpdateStudentRequest,
   ChangeStudentPinRequest,
   CheckStudentPinRequest,
-  UpdateStudentAvatarRequest,
 } from "@iris/shared-types";
 import { apiFetch } from "@/shared/api/httpClient";
 
@@ -62,6 +61,38 @@ export function useEstudiantesDeTutor(habilitado: boolean) {
     queryKey: ["guardian", "students"],
     queryFn: () => apiFetch<StudentProfile[]>("/identity/guardians/me/students"),
     enabled: habilitado,
+  });
+}
+
+/** `POST /guardians/me/students` (HU-50): a new kid under the same
+ * guardian, with only their own data. Needs the portal's 2FA access. */
+export function useAddStudent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateAdditionalStudentBody) =>
+      apiFetch<StudentProfile>("/identity/guardians/me/students", { method: "POST", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["guardian", "students"] }),
+  });
+}
+
+/** What a new kid needs: the same fields as the first one of the registration. */
+export interface CreateAdditionalStudentBody {
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  avatar_id: number;
+  pin: string;
+  support_condition_ids: number[];
+  support_condition_other: string | null;
+  additional_support_need: string | null;
+}
+
+/** `DELETE /guardians/me` (HU-91): the guardian, their kids and their
+ * consents, everywhere in IRIS. Asks for the password again. */
+export function useDeleteGuardianAccount() {
+  return useMutation({
+    mutationFn: (password: string) =>
+      apiFetch<void>("/identity/guardians/me", { method: "DELETE", body: { password } }),
   });
 }
 
@@ -148,16 +179,6 @@ export function useAvatars() {
     queryKey: ["avatars"],
     queryFn: () => apiFetch<Avatar[]>("/identity/catalogs/avatars", { auth: false }),
     staleTime: Infinity,
-  });
-}
-
-/** The logged-in student picks their own avatar right after calibrating.
- * Authenticated as the student itself, no id in the payload, the backend
- * resolves it from the JWT. */
-export function useActualizarMiAvatar() {
-  return useMutation({
-    mutationFn: (body: UpdateStudentAvatarRequest) =>
-      apiFetch<StudentProfile>("/identity/students/me/avatar", { method: "PATCH", body }),
   });
 }
 

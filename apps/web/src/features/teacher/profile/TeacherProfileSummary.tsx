@@ -1,21 +1,53 @@
 import type { TeacherProfile } from "@iris/shared-types";
-import { IconBriefcase, IconGraduationCap } from "@/shared/ui/icons";
+import { IconBriefcase, IconGraduationCap, IconSchool, IconUserCircle } from "@/shared/ui/icons";
 import { monthLabel, STUDY_LEVEL_LABELS } from "./teacherProfileDraft";
 import styles from "./TeacherProfileSummary.module.css";
+
+interface TeacherProfileSummaryProps {
+  profile: TeacherProfile;
+  title?: string;
+  /** The school they work for, for the families (HU-97). Left out, the
+   * block isn't shown, null says they didn't give one. */
+  institution?: string | null;
+  /** A small line under everything, like who declared it. */
+  note?: string;
+}
 
 /** The teacher's profile to read, not to edit: their presentation, studies
  * and jobs, in the order the server keeps them (newest on top). Shown in the
  * last step of the registration so they check it before creating the
- * account. */
-export function TeacherProfileSummary({ profile }: { profile: TeacherProfile }) {
+ * account, and to families who look at a class (HU-97). */
+export function TeacherProfileSummary({
+  profile,
+  title = "Tu perfil docente",
+  institution,
+  note,
+}: TeacherProfileSummaryProps) {
   return (
-    <section className={styles.summary} aria-label="Tu perfil docente">
-      <h3 className={styles.title}>Tu perfil docente</h3>
+    <section className={styles.summary} aria-label={title}>
+      <h3 className={styles.title}>{title}</h3>
+
+      {institution !== undefined && (
+        <div className={styles.block}>
+          <h4 className={styles.blockTitle}>Institución</h4>
+          {institution ? (
+            <div className={styles.entry}>
+              <IconSchool className={styles.entryIcon} aria-hidden="true" />
+              <p className={styles.institution}>{institution}</p>
+            </div>
+          ) : (
+            <p className={styles.empty}>No indicó una institución.</p>
+          )}
+        </div>
+      )}
 
       <div className={styles.block}>
         <h4 className={styles.blockTitle}>Sobre mí</h4>
         {profile.about ? (
-          <p className={styles.about}>{profile.about}</p>
+          <div className={styles.entry}>
+            <IconUserCircle className={styles.entryIcon} aria-hidden="true" />
+            <p className={styles.about}>{profile.about}</p>
+          </div>
         ) : (
           <p className={styles.empty}>Sin presentación.</p>
         )}
@@ -67,6 +99,8 @@ export function TeacherProfileSummary({ profile }: { profile: TeacherProfile }) 
           </ul>
         )}
       </div>
+
+      {note && <p className={styles.note}>{note}</p>}
     </section>
   );
 }

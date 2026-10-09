@@ -25,7 +25,7 @@ class HttpForwarder(Protocol):
         method: str,
         url: str,
         headers: dict[str, str],
-        params: dict[str, str],
+        params: list[tuple[str, str]],
         content: bytes,
         timeout_sec: float,
     ) -> UpstreamResponse: ...

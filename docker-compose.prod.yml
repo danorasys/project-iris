@@ -127,6 +127,10 @@ services:
             <<: *python-service-env
             DATABASE_URL: ${IDENTITY_DATABASE_URL}
             SERVICE_NAME: identity-service
+            # Asked to erase their part before an account is deleted (HU-91, HU-92).
+            CLASSROOM_SERVICE_URL: http://classroom-service:8000
+            CONTENT_SERVICE_URL: http://content-service:8000
+            NOTIFICATION_SERVICE_URL: http://notification-service:8000
             JWT_SECRET: ${JWT_SECRET}
             JWT_ALGORITHM: ${JWT_ALGORITHM}
             JWT_ACCESS_TTL_MIN: ${JWT_ACCESS_TTL_MIN}

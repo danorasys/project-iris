@@ -80,9 +80,25 @@
   word-break: break-word;
 }
 
+/* The institution reads as plain text, not as a title. */
+.institution {
+  margin: 0;
+  color: var(--color-ink);
+  word-break: break-word;
+}
+
 .entryLine {
   margin: 0;
   font-size: 0.9rem;
   color: var(--color-ink-soft);
   word-break: break-word;
+}
+
+/* Who stands behind what's written, small and quiet at the end. */
+.note {
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-iris-pale);
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
 }

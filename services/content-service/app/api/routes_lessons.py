@@ -92,7 +92,7 @@ async def set_activity(
 async def publish_lesson(lesson_id: UUID, user: TeacherUser, service: Service) -> LessonDetailResponse:
     """Publishes it for the kids (HU-81) if nothing is missing; otherwise 422
     `leccion_incompleta` with `details.missing`."""
-    lesson = await service.publish(lesson_id, user)
+    lesson = await service.publish(lesson_id, user, get_correlation_id())
     return lesson_detail_response(lesson, for_teacher=True)
 
 
@@ -121,7 +121,7 @@ async def update_extra(
 async def set_extra_activity(
     lesson_id: UUID, extra_id: UUID, payload: ActivityRequest, user: TeacherUser, service: Service
 ) -> ExtraResponse:
-    extra = await service.set_extra_activity(lesson_id, extra_id, user, to_activity_input(payload))
+    extra = await service.set_extra_activity(lesson_id, extra_id, user, to_activity_input(payload), get_correlation_id())
     return extra_response(extra)
 
 

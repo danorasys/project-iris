@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from app.domain.exceptions import (
     UnauthorizedInternalAccess,
+    ErasureUnavailable,
     MissingClientHeader,
     ConsentRequired,
     DocumentNumberAlreadyRegistered,
@@ -54,6 +55,7 @@ _STATUS_POR_ERROR: dict[type[DomainError], int] = {
     RefreshTokenJustUsed: status.HTTP_401_UNAUTHORIZED,
     AttemptLimitExceeded: status.HTTP_429_TOO_MANY_REQUESTS,
     ResourceNotFound: status.HTTP_404_NOT_FOUND,
+    ErasureUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
     PermissionDenied: status.HTTP_403_FORBIDDEN,
     ConsentRequired: status.HTTP_422_UNPROCESSABLE_CONTENT,
     InvalidDocumentType: status.HTTP_422_UNPROCESSABLE_CONTENT,

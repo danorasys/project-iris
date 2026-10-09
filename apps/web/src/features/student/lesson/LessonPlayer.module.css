@@ -1,0 +1,217 @@
+/* The kid's lesson: big letters, lots of air, and at most four things to
+   look at on each screen, like the rest of the student side. */
+.stage {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.centered {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--color-iris-deep);
+}
+
+.choices,
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+/* The options of a question, two per row so each one stays big. */
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 320px));
+}
+
+/* A page between the two big arrows. */
+.viewer {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-5);
+  overflow-y: auto;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 820px;
+}
+
+/* The way back and where they are, above the page. */
+.pagesTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.counter {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+
+.prompt {
+  max-width: 900px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1.3;
+  color: var(--color-iris-deep);
+}
+
+.error {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+/* Right or wrong per question, in green or warm orange, never red: it's
+   something to review, not a punishment. */
+.results {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.right,
+.wrong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.right {
+  background: color-mix(in srgb, var(--color-leaf) 18%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-leaf) 70%, var(--color-ink));
+}
+
+.wrong {
+  background: color-mix(in srgb, var(--color-coral) 18%, var(--color-surface));
+  color: var(--color-coral-dark);
+}
+
+/* "Salir de la actividad", a line apart from the answers. */
+.leave {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 2px dashed color-mix(in srgb, var(--color-ink-soft) 30%, transparent);
+}
+
+/* Right or wrong right after answering (HU-63): a pop for right, a little
+   shake for wrong. It never shows which option was the right one. */
+.feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 14px 28px 14px 14px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-card);
+}
+
+.feedbackIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  color: var(--color-surface);
+}
+
+.feedbackRight {
+  background: color-mix(in srgb, var(--color-leaf) 18%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-leaf) 70%, var(--color-ink));
+  animation: feedback-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.feedbackRight .feedbackIcon {
+  background: var(--color-leaf);
+}
+
+.feedbackWrong {
+  background: color-mix(in srgb, var(--color-coral) 18%, var(--color-surface));
+  color: var(--color-coral-dark);
+  animation: feedback-shake 420ms ease-in-out;
+}
+
+.feedbackWrong .feedbackIcon {
+  background: var(--color-coral-dark);
+}
+
+@keyframes feedback-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes feedback-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-10px);
+  }
+  75% {
+    transform: translateX(10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedbackRight,
+  .feedbackWrong {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -5,6 +5,7 @@ import { useClassroomRequests, useRemoveStudent, useResolveRequest } from "@/sha
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { IconChild } from "@/shared/ui/icons";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
+import { FamilyMessageDialog } from "./FamilyMessageDialog";
 import styles from "../portalSection.module.css";
 
 interface MembersPanelProps {
@@ -13,13 +14,15 @@ interface MembersPanelProps {
 }
 
 /** "Miembros" of a classroom (HU-75): each student with their guardian's
- * name and contact, and "Retirar" (HU-76), which asks first. Requests
- * still waiting are on top, to accept or reject them right here too. */
+ * name and contact, "Escribir" (HU-77) and "Retirar" (HU-76), which asks
+ * first. Requests still waiting are on top, to accept or reject them right
+ * here too. */
 export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
   const requests = useClassroomRequests(classroom.id);
   const resolve = useResolveRequest();
   const removeStudent = useRemoveStudent();
   const [toRemove, setToRemove] = useState<ClassroomMember | null>(null);
+  const [writingTo, setWritingTo] = useState<ClassroomMember | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function answer(enrollmentId: string, studentName: string, decision: "aceptar" | "rechazar") {
@@ -138,6 +141,14 @@ export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
                 <div className={styles.rowActions}>
                   <button
                     type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => setWritingTo(member)}
+                    aria-label={`Escribirle a ${member.first_name} o a su familia`}
+                  >
+                    Escribir
+                  </button>
+                  <button
+                    type="button"
                     className={styles.dangerButton}
                     onClick={() => setToRemove(member)}
                     disabled={removeStudent.isPending}
@@ -151,6 +162,16 @@ export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
           </ul>
         )}
       </section>
+
+      {writingTo && (
+        <FamilyMessageDialog
+          classroomId={classroom.id}
+          members={classroom.students}
+          enrollmentId={writingTo.enrollment_id}
+          onClose={() => setWritingTo(null)}
+          onSent={onToast}
+        />
+      )}
 
       {toRemove && (
         <ConfirmDialog

@@ -12,6 +12,7 @@ from redis.asyncio import Redis
 
 from app.api import deps
 from app.api.routes_health import router as health_router
+from app.api.routes_internal import router as internal_router
 from app.api.routes_notifications import router as notifications_router
 from app.config import get_settings
 from app.correlation import CorrelationIdMiddleware
@@ -62,3 +63,4 @@ register_exception_handlers(app)
 
 app.include_router(health_router)
 app.include_router(notifications_router)
+app.include_router(internal_router)

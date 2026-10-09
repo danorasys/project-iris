@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { Mascot } from "@/shared/ui/Mascot";
 import { IrisMark } from "@/shared/ui/IrisMark";
 import { useAuth } from "@/shared/auth/useAuth";
 import { useDwellSelect } from "@/shared/gaze/useDwellSelect";
 import { useGazeSourceOptional } from "@/shared/gaze/useGazeSource";
-import { activateManualFallback, type GazeEngineState } from "@/shared/gaze/GazeSource";
+import type { GazeEngineState } from "@/shared/gaze/GazeSource";
+import { getInputMode, switchInputMode } from "@/shared/gaze/inputMode";
+import { IconKey } from "@/shared/ui/icons";
 import { calculateAverageDwellMs, saveDwellDurationMs } from "../lib/dwellPreferences";
+import { markProfileReady, routeAfterCalibration } from "../lib/studentJourney";
 import styles from "./CalibrationPage.module.css";
 
 interface CalibrationPointProps {
@@ -62,11 +65,21 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-type Phase = "engine_calibrating" | "engine_error" | "intro" | "calibrating" | "ready";
+type Phase = "engine_calibrating" | "engine_error" | "no_camera" | "intro" | "calibrating" | "ready";
 
-function continueWithMouse(): void {
-  activateManualFallback();
-  window.location.reload();
+// HU-88: without a camera the kid goes on with the mouse or the keyboard.
+// The choice stays on this device; the page starts again with it.
+function FallbackChoices({ next }: { next: string }) {
+  return (
+    <div className={styles.choices}>
+      <BigChoiceButton variant="coral" onSelect={() => switchInputMode("mouse", next)}>
+        Usar el mouse
+      </BigChoiceButton>
+      <BigChoiceButton variant="teal" icon={<IconKey width={32} height={32} />} onSelect={() => switchInputMode("keyboard", next)}>
+        Usar el teclado
+      </BigChoiceButton>
+    </div>
+  );
 }
 
 /** `/student/calibration`, chains two calibrations: the EyeGestures
@@ -89,6 +102,7 @@ export default function CalibrationPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const timesRef = useRef<number[]>([]);
   const pointStartRef = useRef(0);
+  const next = session ? routeAfterCalibration(session.subjectId) : "/student/home";
 
   // The real engine (if this source has one) doesn't start just by entering
   // /student/*, it starts here, on purpose, since its calibration UI
@@ -142,11 +156,17 @@ export default function CalibrationPage() {
       if (session && average > 0) {
         saveDwellDurationMs(session.subjectId, clamp(average, DURATION_MIN_MS, DURATION_MAX_MS));
       }
+      // Next time the camera setup is skipped and it goes straight to calibrating.
+      if (session) markProfileReady(session.subjectId);
       setPhase("ready");
     } else {
       setCurrentStep((s) => s + 1);
     }
   };
+
+  // With the keyboard there's nothing to calibrate: the dwell points need
+  // something pointing at them.
+  if (getInputMode() === "keyboard") return <Navigate to={next} replace />;
 
   if (phase === "engine_calibrating") {
     return (
@@ -155,23 +175,25 @@ export default function CalibrationPage() {
         <Mascot mood="thinking" size="large">
           Activa tu cámara y sigue las instrucciones en pantalla. Nos vamos a tardar un momento.
         </Mascot>
-        <button type="button" className={styles.fallbackLink} onClick={continueWithMouse}>
-          ¿No tienes cámara? Continuar con el mouse
+        <button type="button" className={styles.fallbackLink} onClick={() => setPhase("no_camera")}>
+          ¿No tienes cámara? Seguir con el mouse o el teclado
         </button>
       </main>
     );
   }
 
-  if (phase === "engine_error") {
+  if (phase === "engine_error" || phase === "no_camera") {
     return (
       <main className={styles.centered}>
         <Mascot mood="thinking" size="large">
-          No pudimos activar tu cámara. Puede que necesites darle permiso, o que este computador no
-          tenga una — no hay problema, sigamos con el mouse por ahora.
+          {phase === "engine_error"
+            ? "No pudimos activar tu cámara. Puede que necesite permiso o que este computador no tenga una. No hay problema: sigamos con el mouse o con el teclado."
+            : "No hay problema, sigamos sin la cámara. ¿Cómo prefieres moverte por IRIS?"}
         </Mascot>
-        <BigChoiceButton variant="coral" onSelect={continueWithMouse}>
-          Continuar con el mouse
-        </BigChoiceButton>
+        <FallbackChoices next={next} />
+        <p className={styles.fallbackNote}>
+          Con el teclado: la tecla Tab pasa de un botón a otro y Enter lo elige. Lo puedes cambiar después en Ajustes.
+        </p>
       </main>
     );
   }
@@ -195,7 +217,7 @@ export default function CalibrationPage() {
         <Mascot mood="celebrating" size="large">
           ¡Muy bien! Ya sé cómo miras. Ahora todo se va a llenar a tu ritmo.
         </Mascot>
-        <BigChoiceButton variant="hoja" onSelect={() => navigate("/student/avatar")}>
+        <BigChoiceButton variant="hoja" onSelect={() => navigate(next, { replace: true })}>
           Continuar
         </BigChoiceButton>
       </main>

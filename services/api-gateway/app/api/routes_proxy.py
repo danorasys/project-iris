@@ -37,7 +37,9 @@ async def _execute_forward(request: Request, rest: str, destination: str, proxy:
         destination=destination,
         rest=rest,
         incoming_headers=dict(request.headers),
-        params=dict(request.query_params),
+        # Every value: a dict would keep only the last of a repeated one
+        # (?event=a&event=b, the messages of a class).
+        params=request.query_params.multi_items(),
         content=body,
         client_ip=request.client.host if request.client else None,
     )

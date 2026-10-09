@@ -210,3 +210,15 @@ async def test_each_set_cookie_reaches_the_browser_on_its_own(client: AsyncClien
     response = await client.post("/api/identity/auth/refresh")
 
     assert response.headers.get_list("set-cookie") == ["uno=1; Path=/; HttpOnly", "dos=2; Path=/; HttpOnly"]
+
+
+@respx.mock
+async def test_a_repeated_query_param_keeps_all_its_values(client: AsyncClient) -> None:
+    route = respx.get(f"{NOTIFICATION_SERVICE_URL}/notifications/me").mock(return_value=httpx.Response(200, json={}))
+
+    await client.get(
+        "/api/notifications/me?event=message.sent&event=teacher.message",
+        headers={"Authorization": "Bearer token-docente"},
+    )
+
+    assert route.calls.last.request.url.params.get_list("event") == ["message.sent", "teacher.message"]

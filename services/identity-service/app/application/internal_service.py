@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Callable
 from uuid import UUID
 
+from app.domain.entities import TeacherProfile
 from app.domain.exceptions import ResourceNotFound
 from app.domain.ports import UnitOfWork
 
@@ -40,6 +41,17 @@ class GuardianStudent:
 class TeacherName:
     first_name: str
     last_name: str
+
+
+# What a family sees of a teacher before and after joining a class (HU-97):
+# the name and the profile they filled in. Never their contact or document.
+@dataclass
+class TeacherPublicProfile:
+    first_name: str
+    last_name: str
+    # The school they said they work for, if any.
+    institution: str | None
+    profile: TeacherProfile
 
 
 class InternalQueryService:
@@ -87,3 +99,17 @@ class InternalQueryService:
             if person is None:
                 raise ResourceNotFound("Docente no encontrado.")
             return TeacherName(first_name=person.first_name, last_name=person.last_name)
+
+    async def get_teacher_public_profile(self, person_id: UUID) -> TeacherPublicProfile:
+        async with self._uow_factory() as uow:
+            teacher = await uow.teachers.get_by_person_id(person_id)
+            person = await uow.people.get_by_id(person_id) if teacher is not None else None
+            if teacher is None or person is None:
+                raise ResourceNotFound("Docente no encontrado.")
+            profile = await uow.teacher_profiles.get(teacher.id)
+            return TeacherPublicProfile(
+                first_name=person.first_name,
+                last_name=person.last_name,
+                institution=teacher.institution,
+                profile=profile,
+            )

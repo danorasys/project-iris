@@ -15,11 +15,12 @@ const base = {
 };
 
 describe("notification texts", () => {
-  it("tells that the kid asked to join a class", () => {
+  // Only older trays have these: the family now sends the request themselves.
+  it("tells that a request was sent", () => {
     const n: NotificationItem = { ...base, event: "request.created", sender_name: "Sofía" };
 
     expect(notificationSubject(n)).toBe("Solicitud de ingreso enviada");
-    expect(notificationMessage(n)).toContain('Sofía pidió unirse a la clase "Matemáticas 3A"');
+    expect(notificationMessage(n)).toContain('Se envió la solicitud para que Sofía se una a la clase "Matemáticas 3A"');
   });
 
   it("tells who accepted and who didn't", () => {
@@ -53,9 +54,49 @@ describe("notification texts", () => {
       "El docente aceptó la solicitud de tu peque para unirse a la clase. Desde ahora tu peque ya puede entrar a la clase y ver sus lecciones.",
     );
     expect(notificationMessage({ ...n, event: "request.created" })).toMatch(
-      /^Tu peque pidió unirse a la clase con el código/,
+      /^Se envió la solicitud para que tu peque se una a la clase\./,
     );
     expect(studentOf(n)).toBe("tu peque");
     expect(senderOf(n)).toBe("IRIS");
+  });
+
+  it("shows the teacher's message as they wrote it (HU-77)", () => {
+    const n: NotificationItem = {
+      ...base,
+      event: "teacher.message",
+      subject: "Reunión",
+      body: "Hablemos el jueves.",
+      addressee: "guardian",
+    };
+
+    expect(notificationSubject(n)).toBe("Reunión");
+    expect(notificationMessage(n)).toBe("Hablemos el jueves.");
+    expect(senderOf(n)).toBe("Carlos Ruiz");
+  });
+
+  it("tells about a new lesson and a new extra (HU-83)", () => {
+    const lesson = { lesson_id: "l1", lesson_title: "Animales terrestres", extra_title: null };
+    const published: NotificationItem = { ...base, ...lesson, event: "lesson.published" };
+    const extra: NotificationItem = { ...base, ...lesson, event: "extra.published", extra_title: "La granja" };
+
+    expect(notificationSubject(published)).toBe("Nueva lección");
+    expect(notificationMessage(published)).toContain('Carlos Ruiz publicó la lección "Animales terrestres"');
+    expect(notificationSubject(extra)).toBe("Nuevo material extra");
+    expect(notificationMessage(extra)).toContain('dejó "La granja" para Sofía');
+  });
+
+  it("shows the copy of a message the guardian wrote, as theirs (HU-51)", () => {
+    const n: NotificationItem = {
+      ...base,
+      event: "message.sent",
+      subject: "Tarea",
+      body: "¿Hay tarea?",
+      addressee: "teacher",
+      read: true,
+    };
+
+    expect(senderOf(n)).toBe("Tú");
+    expect(notificationSubject(n)).toBe("Tarea");
+    expect(notificationMessage(n)).toBe('Para el docente de la clase "Matemáticas 3A":\n¿Hay tarea?');
   });
 });

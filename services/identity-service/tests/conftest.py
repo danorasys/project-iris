@@ -35,7 +35,7 @@ from app.infrastructure.models import (
     SupportConditionModel,
 )
 from app.main import app
-from tests.fakes import FakeObjectStorage
+from tests.fakes import FakeAccountErasure, FakeObjectStorage
 
 TEST_HOST = "iris.test"
 REFRESH_COOKIE = "iris_refresh"
@@ -116,6 +116,15 @@ def object_storage() -> Iterator[FakeObjectStorage]:
     app.dependency_overrides[deps.get_object_storage] = lambda: fake
     yield fake
     app.dependency_overrides.pop(deps.get_object_storage, None)
+
+
+# Every test gets one, so deleting an account never calls the network.
+@pytest.fixture(autouse=True)
+def account_erasure() -> Iterator[FakeAccountErasure]:
+    fake = FakeAccountErasure()
+    app.dependency_overrides[deps.get_account_erasure_gateway] = lambda: fake
+    yield fake
+    app.dependency_overrides.pop(deps.get_account_erasure_gateway, None)
 
 
 @pytest_asyncio.fixture

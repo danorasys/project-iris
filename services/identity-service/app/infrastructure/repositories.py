@@ -224,6 +224,20 @@ class SqlAlchemyTeacherRepository:
     async def add(self, teacher: Teacher) -> None:
         self._session.add(TeacherModel(id=teacher.id, person_id=teacher.person_id, institution=teacher.institution))
 
+    async def delete(self, teacher_id: UUID) -> None:
+        teacher = await self._session.get(TeacherModel, teacher_id)
+        if teacher is None:
+            return
+        person_id = teacher.person_id
+        # The database also deletes them on its own (ON DELETE CASCADE), but
+        # deleting them here doesn't depend on that being turned on.
+        for model in (TeacherStudyModel, TeacherExperienceModel, TeacherConsentModel):
+            await self._session.execute(delete(model).where(model.teacher_id == teacher_id))
+        await self._session.execute(delete(TeacherModel).where(TeacherModel.id == teacher_id))
+        await self._session.execute(delete(ProfileChangeModel).where(ProfileChangeModel.person_id == person_id))
+        await self._session.execute(delete(SessionHistoryModel).where(SessionHistoryModel.person_id == person_id))
+        await self._session.execute(delete(PersonModel).where(PersonModel.id == person_id))
+
     async def update_institution(self, teacher_id: UUID, institution: str | None) -> None:
         m = await self._session.get(TeacherModel, teacher_id)
         if m is not None:
@@ -332,11 +346,6 @@ class SqlAlchemyStudentRepository:
                 additional_support_need=student.additional_support_need,
             )
         )
-
-    async def update_avatar(self, student_id: UUID, avatar_id: int) -> None:
-        m = await self._session.get(StudentModel, student_id)
-        if m is not None:
-            m.avatar_id = avatar_id
 
     async def update_details(
         self,

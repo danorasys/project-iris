@@ -1,0 +1,270 @@
+/* The space of one class: the class on a white card, its options like the
+   ones of a kid's space, and taking the kid out apart, in soft red. */
+.status {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.error {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: 0 12px 6px;
+}
+
+/* The avatar hangs from the band, with a white ring around it. */
+.headerAvatar {
+  flex: none;
+  margin-top: -40px;
+  padding: 5px;
+  border-radius: 26%;
+  background: var(--color-surface);
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding-top: 12px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-iris-medium);
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  line-height: 1.2;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.lessons {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--color-canvas);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+/* How many notifications wait, amber like the rest of what needs a look. */
+.badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--color-amber);
+  color: var(--color-surface);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* Taking the kid out: a soft red box with its own button. */
+.leave {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-error) 25%, var(--color-surface));
+  border-radius: var(--radius-large);
+  background: color-mix(in srgb, var(--color-error) 5%, var(--color-surface));
+}
+
+.leaveTitle {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--color-ink);
+}
+
+.leaveText {
+  max-width: 60ch;
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.leaveButton {
+  flex: none;
+  padding: var(--space-2) var(--space-4);
+  border: 2px solid var(--color-error);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-error);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.leaveButton:hover:not(:disabled) {
+  background: var(--color-error);
+  color: var(--color-surface);
+}
+
+.leaveButton:focus-visible,
+.noticeHead:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.leaveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* The notifications and the message form go on the same white panel. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.notices {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notice + .notice {
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.noticeHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 14px 10px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.noticeHead:hover {
+  background: var(--color-canvas);
+}
+
+/* Unread: a blue dot and the subject in bold, like the tray. */
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.unread .dot {
+  background: var(--color-iris-medium);
+}
+
+.noticeSubject {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-ink);
+}
+
+.unread .noticeSubject {
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.noticeDate {
+  flex: none;
+  font-size: 0.82rem;
+  color: var(--portal-muted);
+}
+
+.noticeBody {
+  margin: 0 10px 14px 27px;
+  line-height: 1.6;
+  color: var(--color-ink);
+}
+
+.formIntro {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .headerRow {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .leave {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

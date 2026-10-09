@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
 from httpx import AsyncClient
 
 from app.application.notification_service import NotificationService
@@ -46,12 +47,19 @@ async def test_list_requires_authentication(client: AsyncClient) -> None:
     assert response.status_code == 401
 
 
-async def test_a_student_has_no_tray(client: AsyncClient, fake_identity_client: FakeIdentityClient) -> None:
-    fake_identity_client.register("token-estudiante", sub=str(uuid.uuid4()), role="student")
+async def test_a_kid_has_their_own_tray(client: AsyncClient, fake_identity_client: FakeIdentityClient) -> None:
+    kid_id = str(uuid.uuid4())
+    fake_identity_client.register("token-estudiante", sub=kid_id, role="student")
+    await _record(
+        "teacher.message", recipient="student", student_id=kid_id, subject="Hola", body="¡Bienvenida!"
+    )
+    # A notification for the teacher about that same kid isn't theirs.
+    await _record(student_id=kid_id)
 
     response = await client.get("/notifications/me", headers=_auth("token-estudiante"))
 
-    assert response.status_code == 403
+    assert response.status_code == 200
+    assert [n["event"] for n in response.json()["items"]] == ["teacher.message"]
 
 
 async def test_a_teacher_only_sees_their_own(client: AsyncClient, fake_identity_client: FakeIdentityClient) -> None:
@@ -115,21 +123,20 @@ async def test_the_guardian_gets_their_own_with_the_kid_the_classroom_and_the_se
     guardian_id, token = _guardian(fake_identity_client)
     student_id = str(uuid.uuid4())
     common = {"guardian_id": guardian_id, "student_id": student_id, "classroom_name": "Matemáticas 3A"}
+    # The guardian sent the request themselves (EP-07), so only the answer reaches them.
     await _record("request.created", **common)
     await _record("request.resolved", teacher_name="Carlos Ruiz", **common)
 
     response = await client.get("/notifications/me", headers=_auth(token))
 
     assert response.status_code == 200
-    resolved, created = response.json()["items"]
+    [resolved] = response.json()["items"]
     assert resolved["event"] == "request.resolved"
     assert resolved["decision"] == "aceptada"
     assert resolved["sender_name"] == "Carlos Ruiz"
-    assert created["sender_name"] == "Sofía"
-    for item in (resolved, created):
-        assert item["student_id"] == student_id
-        assert item["student_name"] == "Sofía"
-        assert item["classroom_name"] == "Matemáticas 3A"
+    assert resolved["student_id"] == student_id
+    assert resolved["student_name"] == "Sofía"
+    assert resolved["classroom_name"] == "Matemáticas 3A"
     # Reading the tray doesn't keep the portal open.
     assert fake_identity_client.portal_checks == [False]
 
@@ -185,6 +192,72 @@ async def test_taking_a_kid_out_only_reaches_their_guardian(
     assert teacher_tray["total"] == 0
 
 
+# What a family does from the portal only reaches the teacher, with who did
+# it, and a message keeps its subject and body (HU-48, HU-49).
+@pytest.mark.parametrize("event", ["request.cancelled", "enrollment.withdrawn", "message.sent"])
+async def test_what_a_family_does_only_reaches_the_teacher(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient, event: str
+) -> None:
+    teacher_id = str(uuid.uuid4())
+    fake_identity_client.register("token-docente", sub=teacher_id, role="teacher")
+    guardian_id, token = _guardian(fake_identity_client)
+    await _record(
+        event,
+        teacher_id=teacher_id,
+        guardian_id=guardian_id,
+        guardian_name="Ana Pérez",
+        subject="Tarea de sumas",
+        body="Hola profe,\nSofía no pudo entrar ayer.",
+    )
+
+    teacher_tray = (await client.get("/notifications/me", headers=_auth("token-docente"))).json()
+    guardian_tray = (await client.get("/notifications/me", headers=_auth(token))).json()
+
+    [item] = teacher_tray["items"]
+    assert (item["event"], item["sender_name"], item["read"]) == (event, "Ana Pérez", False)
+    if event == "message.sent":
+        assert (item["subject"], item["body"]) == ("Tarea de sumas", "Hola profe,\nSofía no pudo entrar ayer.")
+        # The guardian keeps a copy of what they wrote, already read (HU-51).
+        [copy] = guardian_tray["items"]
+        assert (copy["read"], copy["addressee"], copy["thread_id"]) == (True, "teacher", item["thread_id"])
+    else:
+        assert item["subject"] is None and item["body"] is None
+        assert guardian_tray["total"] == 0
+
+
+async def test_a_long_message_is_cut_to_its_column(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    teacher_id = str(uuid.uuid4())
+    fake_identity_client.register("token-docente", sub=teacher_id, role="teacher")
+    await _record("message.sent", teacher_id=teacher_id, subject="s" * 500, body="b" * 5000)
+
+    [item] = (await client.get("/notifications/me", headers=_auth("token-docente"))).json()["items"]
+
+    assert (len(item["subject"]), len(item["body"])) == (120, 2000)
+
+
+# HU-42: the space of one class shows only the notifications of that class
+# and that kid, with its own unread count.
+async def test_the_tray_of_one_class_and_kid(client: AsyncClient, fake_identity_client: FakeIdentityClient) -> None:
+    guardian_id, token = _guardian(fake_identity_client)
+    classroom, kid = str(uuid.uuid4()), str(uuid.uuid4())
+    await _record("request.resolved", guardian_id=guardian_id, classroom_id=classroom, student_id=kid)
+    await _record("enrollment.removed", guardian_id=guardian_id, classroom_id=classroom, student_id=kid)
+    await _record("request.resolved", guardian_id=guardian_id, classroom_id=classroom, student_id=str(uuid.uuid4()))
+    await _record("request.resolved", guardian_id=guardian_id, student_id=kid)
+
+    response = await client.get(
+        "/notifications/me", params={"classroom_id": classroom, "student_id": kid}, headers=_auth(token)
+    )
+    everything = (await client.get("/notifications/me", headers=_auth(token))).json()
+
+    body = response.json()
+    assert [item["event"] for item in body["items"]] == ["enrollment.removed", "request.resolved"]
+    assert (body["total"], body["unread_count"]) == (2, 2)
+    assert everything["total"] == 4
+
+
 async def test_an_event_without_a_guardian_only_reaches_the_teacher(
     client: AsyncClient, fake_identity_client: FakeIdentityClient
 ) -> None:
@@ -198,7 +271,7 @@ async def test_an_event_without_a_guardian_only_reaches_the_teacher(
 
 async def test_the_guardian_needs_the_portal_open(client: AsyncClient, fake_identity_client: FakeIdentityClient) -> None:
     guardian_id, token = _guardian(fake_identity_client, portal_open=False)
-    await _record(guardian_id=guardian_id)
+    await _record("request.resolved", guardian_id=guardian_id)
 
     response = await client.get("/notifications/me", headers=_auth(token))
 
@@ -210,8 +283,8 @@ async def test_reading_and_deleting_count_as_using_the_portal(
     client: AsyncClient, fake_identity_client: FakeIdentityClient
 ) -> None:
     guardian_id, token = _guardian(fake_identity_client)
-    await _record(guardian_id=guardian_id)
-    await _record(guardian_id=guardian_id)
+    await _record("request.resolved", guardian_id=guardian_id)
+    await _record("request.resolved", guardian_id=guardian_id)
     first, second = (await client.get("/notifications/me", headers=_auth(token))).json()["items"]
 
     read = await client.patch(f"/notifications/{first['id']}/read", headers=_auth(token))
@@ -233,8 +306,8 @@ async def test_deletes_several_at_once_only_the_own_ones(
     fake_identity_client.register(other_token, sub=other_id, role="guardian", session_id="sesion-2")
     fake_identity_client.open_portals.add((other_id, "sesion-2"))
     for _ in range(3):
-        await _record(guardian_id=guardian_id)
-    await _record(guardian_id=other_id)
+        await _record("request.resolved", guardian_id=guardian_id)
+    await _record("request.resolved", guardian_id=other_id)
     mine = [item["id"] for item in (await client.get("/notifications/me", headers=_auth(token))).json()["items"]]
     theirs = (await client.get("/notifications/me", headers=_auth(other_token))).json()["items"][0]["id"]
 
@@ -270,7 +343,7 @@ async def test_deleting_several_needs_the_portal_open(
     client: AsyncClient, fake_identity_client: FakeIdentityClient
 ) -> None:
     guardian_id, token = _guardian(fake_identity_client, portal_open=False)
-    await _record(guardian_id=guardian_id)
+    await _record("request.resolved", guardian_id=guardian_id)
 
     response = await client.post("/notifications/me/delete", json={"ids": [str(uuid.uuid4())]}, headers=_auth(token))
 
@@ -297,7 +370,7 @@ async def test_the_tray_comes_in_pages_newest_first(
 ) -> None:
     guardian_id, token = _guardian(fake_identity_client)
     for _ in range(5):
-        await _record(guardian_id=guardian_id)
+        await _record("request.resolved", guardian_id=guardian_id)
 
     first = (await client.get("/notifications/me?page=1&page_size=2", headers=_auth(token))).json()
     last = (await client.get("/notifications/me?page=3&page_size=2", headers=_auth(token))).json()

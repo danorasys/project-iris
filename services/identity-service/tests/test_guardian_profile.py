@@ -371,7 +371,7 @@ async def test_eliminar_la_cuenta_borra_su_registro_de_cambios(client: AsyncClie
     await client.patch("/guardians/me", json=_perfil(last_name="Gómez"), headers=_headers(token))
     assert len(await _cambios_registrados()) == 1
 
-    respuesta = await client.delete("/guardians/me", headers=_headers(token))
+    respuesta = await client.request("DELETE", "/guardians/me", json={"password": "Clave-Segura-123"}, headers=_headers(token))
 
     assert respuesta.status_code == 204
     assert await _cambios_registrados() == []

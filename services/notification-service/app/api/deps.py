@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from functools import lru_cache
 from typing import Annotated
 from uuid import UUID
@@ -12,7 +13,13 @@ from redis.asyncio import Redis, from_url
 from app.application.notification_service import NotificationService
 from app.config import get_settings
 from app.correlation import get_correlation_id
-from app.domain.exceptions import InvalidToken, PermissionDenied, PortalAccessRequired, TwoFactorRequired
+from app.domain.exceptions import (
+    InvalidToken,
+    PermissionDenied,
+    PortalAccessRequired,
+    TwoFactorRequired,
+    UnauthorizedInternalAccess,
+)
 from app.infrastructure.http_clients.circuit_breaker import CircuitBreaker
 from app.infrastructure.http_clients.identity_client import IdentityClient
 from app.infrastructure.uow import SqlAlchemyUnitOfWork
@@ -104,13 +111,14 @@ def require_role(*allowed_roles: str):
     return _dep
 
 
-# A teacher or a guardian. A guardian's notifications talk about their kids,
+# A teacher, a guardian or a kid (their own tray: new lessons and their
+# teacher's messages). A guardian's notifications talk about their kids,
 # so they need the portal's 2FA access, same as the rest of the parents'
 # portal. renew=False for reading the tray, so a tab left open doesn't keep
 # the portal open; reading or deleting one does count as using it.
 def require_tray_owner(renew: bool):
     async def _dep(
-        user: Annotated[CurrentUser, Depends(require_role("teacher", "guardian"))],
+        user: Annotated[CurrentUser, Depends(require_role("teacher", "guardian", "student"))],
         identity: Annotated[IdentityClient, Depends(get_identity_client)],
     ) -> CurrentUser:
         if user.role == "guardian":
@@ -120,3 +128,11 @@ def require_tray_owner(renew: bool):
         return user
 
     return _dep
+
+
+# Other IRIS services only (identity, to erase an account). Compared in
+# constant time, so the key can't be guessed by timing.
+async def verify_internal_key(x_internal_key: Annotated[str | None, Header()] = None) -> None:
+    expected = get_settings().internal_service_key
+    if x_internal_key is None or not secrets.compare_digest(x_internal_key, expected):
+        raise UnauthorizedInternalAccess()

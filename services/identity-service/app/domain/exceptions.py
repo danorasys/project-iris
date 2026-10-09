@@ -102,6 +102,11 @@ class RefreshTokenJustUsed(DomainError):
     message = "La sesión ya se renovó desde otra pestaña. Intenta de nuevo."
 
 
+class ErasureUnavailable(DomainError):
+    code = "borrado_no_disponible"
+    message = "No pudimos borrar todo en este momento, así que tu cuenta sigue igual. Intenta de nuevo en un rato."
+
+
 class ResourceNotFound(DomainError):
     code = "recurso_no_encontrado"
     message = "El recurso solicitado no existe."

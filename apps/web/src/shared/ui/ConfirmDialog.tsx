@@ -19,8 +19,8 @@ interface ConfirmDialogProps {
 }
 
 /** The confirm/cancel dialog of both portals (leaving without saving,
- * cerrar sesión, deleting). The student side has its own one, made for
- * the eye tracking (ConfirmModal).
+ * cerrar sesión, deleting). The kid's side has its own one, made for the
+ * gaze (ConfirmModal).
  *
  * It's drawn on <body> and not inside the card that opened it, because an
  * animated card keeps it inside its own box and the page around stays

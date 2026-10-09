@@ -140,8 +140,6 @@ export interface TeacherExperience {
   description: string | null;
 }
 
-/** What a teacher tells the families about themselves. Everything is
- * optional, and it never has contact or ID data. */
 /** The teacher's own account (`GET /teachers/me`). Document and email are read-only. */
 export interface TeacherAccount {
   first_name: string;
@@ -156,10 +154,20 @@ export interface TeacherAccount {
   institution: string | null;
 }
 
+/** What a teacher tells the families about themselves. Everything is
+ * optional, and it never has contact or ID data. */
 export interface TeacherProfile {
   about: string | null;
   studies: TeacherStudy[];
   experiences: TeacherExperience[];
+}
+
+/** A teacher as a family sees them (HU-97): the name, the institution they
+ * work for (if they gave one) and their profile. */
+export interface TeacherPublicProfile extends TeacherProfile {
+  first_name: string;
+  last_name: string;
+  institution: string | null;
 }
 
 export interface LoginRequest {
@@ -212,10 +220,6 @@ export interface ChangeStudentPinRequest {
   code: string;
   pin: string;
   pin_confirmation: string;
-}
-
-export interface UpdateStudentAvatarRequest {
-  avatar_id: number;
 }
 
 export interface TotpSetupResponse {
@@ -301,6 +305,8 @@ export type ClassroomArea =
   | "other";
 
 export interface Classroom {
+  /** False once its teacher deleted their account (HU-92). */
+  has_teacher?: boolean;
   id: string;
   teacher_id: string;
   name: string;
@@ -327,19 +333,25 @@ export interface TeacherClassroom extends Classroom {
   student_count: number;
 }
 
-/** One classroom of a guardian's kid, for the Inicio of the parents' portal
- * (`GET /classrooms/family`). No code to join and no logo: the avatar is the
- * initials on the classroom's color. */
+/** One classroom of a guardian's kid and how its request went, for the
+ * parents' portal (`GET /classrooms/family`). The code never comes back. */
 export interface FamilyClassroom {
+  /** False once its teacher deleted their account (HU-92): the class stays
+   * for the kids already in it, but has nobody to write to. */
+  has_teacher?: boolean;
   enrollment_id: string;
   student_id: string;
   student_first_name: string;
-  /** "pendiente" while the teacher hasn't answered, "aceptada" once in. */
-  status: "pendiente" | "aceptada";
+  /** "pendiente" while the teacher hasn't answered, then "aceptada" or "rechazada". */
+  status: EnrollmentStatus;
   requested_at: string;
+  /** When the teacher answered, null while it waits. */
+  resolved_at: string | null;
   classroom_id: string;
   name: string;
   description: string;
+  /** The logo, asked with the portal open (`classroomLogoPath`). */
+  logo_file: string | null;
   color: ClassroomColor;
   area: ClassroomArea | null;
   area_other: string | null;
@@ -347,6 +359,31 @@ export interface FamilyClassroom {
   /** null when the service that knows it didn't answer. */
   teacher_name: string | null;
   published_lessons: number | null;
+  /** Units with at least one published lesson, null like the lessons. */
+  published_units: number | null;
+}
+
+/** The space of a class the kid is in (`GET /classrooms/family/{enrollment_id}`). */
+export interface FamilyClassroomDetail extends FamilyClassroom {
+  /** null when identity-service didn't answer. */
+  teacher: TeacherPublicProfile | null;
+}
+
+/** A class found by its code, before asking to join
+ * (`POST /classrooms/family/lookup`). */
+export interface ClassroomPreview {
+  classroom_id: string;
+  name: string;
+  description: string;
+  logo_file: string | null;
+  color: ClassroomColor;
+  area: ClassroomArea | null;
+  area_other: string | null;
+  grade: number | null;
+  teacher: TeacherPublicProfile | null;
+  published_lessons: number | null;
+  /** Units with at least one published lesson, null like the lessons. */
+  published_units: number | null;
 }
 
 export interface ClassroomMember {
@@ -477,6 +514,155 @@ export interface LessonDetail extends Lesson {
   missing: string[];
 }
 
+/* --- A kid playing a lesson (HU-46, HU-47) ---
+ * Questions and options carry ids to answer them, never which one is right:
+ * the server grades. */
+
+export interface PlayOption {
+  id: string;
+  text: string;
+}
+
+export interface PlayQuestion {
+  id: string;
+  prompt: string;
+  options: PlayOption[];
+}
+
+export interface PlayActivity {
+  pass_threshold: number;
+  questions: PlayQuestion[];
+}
+
+/** An extra the kid gets (complete, and for everyone or for them). */
+export interface PlayExtra {
+  id: string;
+  kind: ExtraKind;
+  title: string;
+  blocks: ContentBlock[];
+  activity: PlayActivity | null;
+  /** The furthest page they already reached in it (their progress). */
+  pages_seen: number;
+  /** The page where they left it, from 1 (0 if never opened). */
+  last_page: number;
+  /** They already did its activity once, whatever the score. */
+  activity_done: boolean;
+}
+
+/** `GET /content/lessons/{id}/play` */
+export interface PlayLesson extends Lesson {
+  blocks: ContentBlock[];
+  activity: PlayActivity | null;
+  extras: PlayExtra[];
+  pages_seen: number;
+  last_page: number;
+  activity_done: boolean;
+}
+
+/** `PUT /content/lessons/{id}/progress` */
+export interface PageProgress {
+  extra_id: string | null;
+  pages_seen: number;
+  last_page: number;
+}
+
+/** `POST /content/lessons/{id}/answer-checks`: right or wrong, never which
+ * option was the right one. */
+export interface AnswerCheck {
+  correct: boolean;
+}
+
+/** `POST /content/lessons/{id}/attempts`: the try graded by the server. */
+export interface AttemptResult {
+  id: string;
+  correct: number;
+  total: number;
+  passed: boolean;
+  created_at: string;
+  /** Right or wrong, per question in their order. */
+  results: boolean[];
+}
+
+/* --- A kid's progress in a class, for the parents' portal --- */
+
+export interface ProgressAttempt {
+  correct: number;
+  total: number;
+  passed: boolean;
+  created_at: string;
+}
+
+/** The lesson itself ("leccion") or one of its extras. */
+export interface PartProgress {
+  extra_id: string | null;
+  title: string;
+  kind: "leccion" | ExtraKind;
+  total_pages: number;
+  pages_seen: number;
+  has_activity: boolean;
+  /** Oldest first. */
+  attempts: ProgressAttempt[];
+  /** 0 to 100: every page counts one step, the activity one more once tried. */
+  percent: number;
+}
+
+/** `GET /classrooms/family/{enrollment_id}/progress`, one per published lesson in order. */
+export interface LessonProgress {
+  lesson_id: string;
+  title: string;
+  unit_title: string;
+  main: PartProgress;
+  extras: PartProgress[];
+}
+
+/* --- The statistics of a class for its teacher (HU-86, HU-87) --- */
+
+export interface KidInLesson {
+  student_id: string;
+  first_name: string;
+  avatar_id: number;
+  /** 0 to 100, the same percent their family sees. */
+  percent: number;
+  tries: number;
+  /** Their best try, or null if they haven't tried. */
+  best_correct: number | null;
+  best_total: number | null;
+  passed: boolean;
+}
+
+export interface LessonStatistics {
+  lesson_id: string;
+  title: string;
+  unit_title: string;
+  has_activity: boolean;
+  average_percent: number;
+  completed: number;
+  in_progress: number;
+  not_started: number;
+  passed: number;
+  tried_not_passed: number;
+  /** Best performance first; the ones who haven't tried go last. */
+  kids: KidInLesson[];
+}
+
+export interface KidInClass {
+  student_id: string;
+  first_name: string;
+  avatar_id: number;
+  average_percent: number;
+  completed_lessons: number;
+}
+
+/** `GET /classrooms/{id}/statistics`. Only the lessons themselves count, not their extras. */
+export interface ClassStatistics {
+  kids: number;
+  lessons: LessonStatistics[];
+  /** Of every kid and lesson, the percent that got to 100 %. */
+  completed_percent: number;
+  average_percent: number;
+  by_kid: KidInClass[];
+}
+
 interface NotificationBase {
   id: string;
   classroom_id: string;
@@ -489,13 +675,55 @@ interface NotificationBase {
   sender_name: string | null;
   read: boolean;
   created_at: string;
+  /** The conversation a message belongs to (HU-51). Only in messages. */
+  thread_id?: string | null;
 }
 
 export type NotificationItem =
   | (NotificationBase & { event: "request.created" })
   | (NotificationBase & { event: "request.resolved"; decision: "aceptada" | "rechazada" })
   /** The teacher took the kid out of the classroom. Only the guardian gets it. */
-  | (NotificationBase & { event: "enrollment.removed" });
+  | (NotificationBase & { event: "enrollment.removed" })
+  /** The teacher left IRIS and a request still waiting was closed (HU-92). */
+  | (NotificationBase & { event: "request.closed" })
+  /** What a family does from the portal (EP-07). Only the teacher gets them. */
+  | (NotificationBase & { event: "request.cancelled" | "enrollment.withdrawn" })
+  /** A guardian's message to the teacher of the class (HU-48). */
+  | (NotificationBase & {
+      event: "message.sent";
+      subject: string | null;
+      body: string | null;
+      /** "teacher" in the copy the guardian keeps of what they wrote (HU-51). */
+      addressee?: "teacher" | null;
+    })
+  /** The teacher's message to a kid or to their guardian (HU-77). The teacher
+   * keeps a copy, already read, with `addressee` saying to whom it went. */
+  | (NotificationBase & {
+      event: "teacher.message";
+      subject: string | null;
+      body: string | null;
+      addressee: MessageRecipient | null;
+    })
+  /** A new lesson, or a new extra of a published one, for the kid and their
+   * guardian (HU-83). */
+  | (NotificationBase & {
+      event: "lesson.published" | "extra.published";
+      lesson_id: string | null;
+      lesson_title: string | null;
+      extra_title: string | null;
+    })
+  /** What a kid finished, for their teacher (HU-69): the reading, or the first
+   * try at the activity with its score. */
+  | (NotificationBase & {
+      event: "lesson.content_completed" | "lesson.activity_completed";
+      lesson_id: string | null;
+      lesson_title: string | null;
+      correct: number | null;
+      total: number | null;
+    });
+
+/** Who a teacher writes to about a kid of the class (HU-77). */
+export type MessageRecipient = "student" | "guardian";
 
 /** One page of the tray, newest first. */
 export interface NotificationPage {

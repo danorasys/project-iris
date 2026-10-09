@@ -22,7 +22,7 @@ class HttpxHttpForwarder:
         method: str,
         url: str,
         headers: dict[str, str],
-        params: dict[str, str],
+        params: list[tuple[str, str]],
         content: bytes,
         timeout_sec: float,
     ) -> UpstreamResponse:
@@ -31,7 +31,8 @@ class HttpxHttpForwarder:
                 method,
                 url,
                 headers=headers,
-                params=params,
+                # A tuple: httpx takes it with any value type, a list it does not.
+                params=tuple(params),
                 content=content,
                 timeout=httpx.Timeout(timeout_sec),
             )

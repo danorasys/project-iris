@@ -10,7 +10,8 @@ from uuid import UUID
 import httpx
 
 from app.correlation import get_correlation_id
-from app.domain.exceptions import ContentServiceUnavailable
+from app.domain.entities import PublishedContent
+from app.domain.exceptions import ContentServiceUnavailable, ProgressUnavailable, StatisticsUnavailable
 from app.infrastructure.http_clients.circuit_breaker import CircuitAbiertoError, CircuitBreaker
 
 
@@ -52,7 +53,7 @@ class ContentHttpClient:
 
     # Short timeout: it only reads a count, and the portal shows the
     # classes without it if content-service is slow.
-    async def published_lessons(self, classroom_ids: list[UUID]) -> dict[UUID, int]:
+    async def published_content(self, classroom_ids: list[UUID]) -> dict[UUID, PublishedContent]:
         async def _get() -> httpx.Response:
             response = await self._client.get(
                 f"{self._base_url}/internal/classrooms/published-lessons",
@@ -70,7 +71,53 @@ class ContentHttpClient:
             raise ContentServiceUnavailable() from exc
         if response.status_code != 200:
             raise ContentServiceUnavailable()
-        return {UUID(str(item["classroom_id"])): int(item["published_lessons"]) for item in response.json()}
+        return {
+            UUID(str(item["classroom_id"])): PublishedContent(
+                lessons=int(item["published_lessons"]), units=int(item.get("published_units", 0))
+            )
+            for item in response.json()
+        }
+
+    async def student_progress(self, classroom_id: UUID, student_id: UUID) -> list[dict[str, object]]:
+        async def _get() -> httpx.Response:
+            response = await self._client.get(
+                f"{self._base_url}/internal/classrooms/{classroom_id}/students/{student_id}/progress",
+                headers=self._headers(),
+                timeout=httpx.Timeout(5.0),
+            )
+            if response.status_code >= 500:
+                response.raise_for_status()
+            return response
+
+        try:
+            response = await self._breaker.llamar(_get)
+        except (httpx.HTTPError, CircuitAbiertoError) as exc:
+            raise ProgressUnavailable() from exc
+        if response.status_code != 200:
+            raise ProgressUnavailable()
+        lessons: list[dict[str, object]] = response.json()
+        return lessons
+
+    async def classroom_statistics(self, classroom_id: UUID, student_ids: list[UUID]) -> dict[str, object]:
+        async def _get() -> httpx.Response:
+            response = await self._client.get(
+                f"{self._base_url}/internal/classrooms/{classroom_id}/statistics",
+                params=[("student_id", str(s)) for s in student_ids],
+                headers=self._headers(),
+                timeout=httpx.Timeout(5.0),
+            )
+            if response.status_code >= 500:
+                response.raise_for_status()
+            return response
+
+        try:
+            response = await self._breaker.llamar(_get)
+        except (httpx.HTTPError, CircuitAbiertoError) as exc:
+            raise StatisticsUnavailable() from exc
+        if response.status_code != 200:
+            raise StatisticsUnavailable()
+        statistics: dict[str, object] = response.json()
+        return statistics
 
     async def aclose(self) -> None:
         await self._client.aclose()

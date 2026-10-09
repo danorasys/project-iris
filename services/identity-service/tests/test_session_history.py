@@ -242,6 +242,7 @@ async def test_al_eliminar_la_cuenta_se_va_su_historial(client: AsyncClient) -> 
     token = respuesta.json()["access_token"]
     await activar_2fa_y_abrir_portal(client, token)
 
-    assert (await client.delete("/guardians/me", headers=_headers(token))).status_code == 204
+    deleted = await client.request("DELETE", "/guardians/me", json={"password": "Clave-Segura-123"}, headers=_headers(token))
+    assert deleted.status_code == 204
 
     assert await _sesiones() == []

@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  calculateAverageDwellMs,
-  saveDwellDurationMs,
-  getDwellDurationMs,
-  markTourSeen,
-  isTourSeen,
-} from "./dwellPreferences";
+import { calculateAverageDwellMs, saveDwellDurationMs, getDwellDurationMs } from "./dwellPreferences";
 
 describe("calculateAverageDwellMs", () => {
   it("devuelve 0 si no hay mediciones", () => {
@@ -31,20 +25,6 @@ describe("preferencias en localStorage", () => {
 
   beforeEach(() => {
     window.localStorage.clear();
-  });
-
-  it("el recorrido no está visto por defecto", () => {
-    expect(isTourSeen(subjectId)).toBe(false);
-  });
-
-  it("marca y recuerda el recorrido como visto", () => {
-    markTourSeen(subjectId);
-    expect(isTourSeen(subjectId)).toBe(true);
-  });
-
-  it("no confunde perfiles distintos", () => {
-    markTourSeen(subjectId);
-    expect(isTourSeen("otro-estudiante")).toBe(false);
   });
 
   it("no hay duración de dwell guardada por defecto", () => {

@@ -30,6 +30,12 @@ from app.domain.exceptions import (
     RequestAlreadyResolved,
     InvalidToken,
     AlreadyEnrolledOrPending,
+    KidNotInFamily,
+    MessageNotSent,
+    NotInClassroomYet,
+    ProgressUnavailable,
+    StatisticsUnavailable,
+    ClassroomWithoutTeacher,
 )
 
 logger = logging.getLogger(__name__)
@@ -40,6 +46,12 @@ _STATUS_POR_ERROR: dict[type[DomainError], int] = {
     EnrollmentNotFound: status.HTTP_404_NOT_FOUND,
     InvalidEnrollmentCode: status.HTTP_404_NOT_FOUND,
     AlreadyEnrolledOrPending: status.HTTP_409_CONFLICT,
+    KidNotInFamily: status.HTTP_404_NOT_FOUND,
+    NotInClassroomYet: status.HTTP_409_CONFLICT,
+    MessageNotSent: status.HTTP_503_SERVICE_UNAVAILABLE,
+    ProgressUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
+    StatisticsUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
+    ClassroomWithoutTeacher: status.HTTP_409_CONFLICT,
     RequestAlreadyResolved: status.HTTP_409_CONFLICT,
     PermissionDenied: status.HTTP_403_FORBIDDEN,
     TwoFactorRequired: status.HTTP_403_FORBIDDEN,

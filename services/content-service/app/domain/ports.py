@@ -8,7 +8,18 @@ from types import TracebackType
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.entities import Activity, ContentBlock, Extra, Lesson, SignedDownload, Unit, ValidatedUser
+from app.domain.entities import (
+    Activity,
+    Attempt,
+    ContentBlock,
+    Extra,
+    Lesson,
+    PageProgress,
+    PublishedContent,
+    SignedDownload,
+    Unit,
+    ValidatedUser,
+)
 
 
 class UnitRepository(Protocol):
@@ -38,6 +49,10 @@ class LessonRepository(Protocol):
     # Only the lessons' own fields, ordered by unit and then by their order.
     async def list_by_classroom(self, classroom_id: UUID, published_only: bool) -> list[Lesson]: ...
 
+    # The published lessons of a classroom with everything inside, in the
+    # order of their units and then their own, in one go (the progress page).
+    async def list_published_full(self, classroom_id: UUID) -> list[Lesson]: ...
+
     # If at least one lesson by this teacher already exists in the classroom,
     # ownership is assumed without calling classroom-service again.
     async def has_lesson_by_teacher_in_classroom(self, teacher_id: UUID, classroom_id: UUID) -> bool: ...
@@ -48,9 +63,9 @@ class LessonRepository(Protocol):
     # {classroom_id: {"publicada": 2, "borrador": 1}}.
     async def count_by_teacher(self, teacher_id: UUID) -> dict[UUID, dict[str, int]]: ...
 
-    # Published lessons of each of these classrooms, in one query. A
-    # classroom with none isn't in the result.
-    async def count_published_by_classrooms(self, classroom_ids: list[UUID]) -> dict[UUID, int]: ...
+    # Published lessons of each of these classrooms and the units they're
+    # in, in one query. A classroom with none isn't in the result.
+    async def count_published_by_classrooms(self, classroom_ids: list[UUID]) -> dict[UUID, PublishedContent]: ...
 
     async def list_ids_by_classroom(self, classroom_id: UUID) -> list[UUID]: ...
 
@@ -78,9 +93,38 @@ class LessonRepository(Protocol):
     async def delete_by_classroom(self, classroom_id: UUID) -> None: ...
 
 
+# What kids have done in the lessons (HU-46, HU-47).
+class ProgressRepository(Protocol):
+    async def get_pages(self, student_id: UUID, lesson_id: UUID, extra_id: UUID | None) -> PageProgress | None: ...
+
+    # Creates the row: the furthest page only moves forward, the last page
+    # is always the one given.
+    async def save_pages(self, progress: PageProgress) -> None: ...
+
+    async def add_attempt(self, attempt: Attempt) -> None: ...
+
+    # Everything of one kid in these lessons (their extras included).
+    async def pages_of(self, student_id: UUID, lesson_ids: list[UUID]) -> list[PageProgress]: ...
+
+    # Oldest first.
+    async def attempts_of(self, student_id: UUID, lesson_ids: list[UUID]) -> list[Attempt]: ...
+
+    # The same, for several kids at once (the statistics of a class).
+    async def pages_of_kids(self, student_ids: list[UUID], lesson_ids: list[UUID]) -> list[PageProgress]: ...
+
+    async def attempts_of_kids(self, student_ids: list[UUID], lesson_ids: list[UUID]) -> list[Attempt]: ...
+
+    # Everything of these kids: pages, tries, and their place in the
+    # extras made only for some (HU-91). Says how many rows went.
+    async def erase_kids(self, student_ids: list[UUID]) -> int: ...
+
+
 class UnitOfWork(Protocol):
     @property
     def lessons(self) -> LessonRepository: ...
+
+    @property
+    def progress(self) -> ProgressRepository: ...
 
     @property
     def units(self) -> UnitRepository: ...
@@ -123,3 +167,30 @@ class ClassroomClient(Protocol):
     async def verify_access(
         self, classroom_id: UUID, subject_id: UUID, role: str, correlation_id: str | None
     ) -> bool: ...
+
+    # A new lesson, or a new extra of a published one, for the kids of the
+    # class and their guardians (HU-83). Without student_ids it's for
+    # everyone. Never raises: a notice that doesn't go out is only logged.
+    async def announce(
+        self,
+        classroom_id: UUID,
+        kind: str,
+        lesson_id: UUID,
+        lesson_title: str,
+        extra_title: str | None,
+        student_ids: list[UUID] | None,
+        correlation_id: str | None,
+    ) -> None: ...
+
+    # A kid finished the reading or the activity of a lesson, for their
+    # teacher (HU-69). Never raises either.
+    async def report_student(
+        self,
+        classroom_id: UUID,
+        student_id: UUID,
+        kind: str,
+        lesson_id: UUID,
+        lesson_title: str,
+        score: tuple[int, int] | None,
+        correlation_id: str | None,
+    ) -> None: ...

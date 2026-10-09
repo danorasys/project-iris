@@ -15,6 +15,7 @@ from sqlalchemy import update
 
 from app.infrastructure.db import SessionLocal
 from app.infrastructure.models import ClassroomModel
+from tests.helpers import pedir_ingreso
 from tests.fakes import FakeContentGateway, FakeIdentityGateway, FakeObjectStorage
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"datos-de-prueba"
@@ -35,9 +36,7 @@ async def _create(client: AsyncClient, token: str, **body: object) -> dict:
 
 
 async def _ask_to_join(client: AsyncClient, classroom: dict, token_student: str) -> str:
-    response = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": classroom["enrollment_code"]}, headers=_auth(token_student)
-    )
+    response = await pedir_ingreso(client, classroom["enrollment_code"], token_student)
     assert response.status_code == 201, response.text
     enrollment_id: str = response.json()["enrollment_id"]
     return enrollment_id
@@ -234,9 +233,7 @@ async def test_el_retirado_puede_volver_a_pedir_ingreso(
     enrollment_id = await _member(client, classroom, token, token_student)
     await client.delete(f"/classrooms/{classroom['id']}/students/{enrollment_id}", headers=_auth(token))
 
-    again = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": classroom["enrollment_code"]}, headers=_auth(token_student)
-    )
+    again = await pedir_ingreso(client, classroom["enrollment_code"], token_student)
 
     assert again.status_code == 201
 

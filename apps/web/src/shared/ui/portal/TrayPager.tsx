@@ -6,16 +6,18 @@ interface TrayPagerProps {
   page: number;
   totalPages: number;
   onChange: (page: number) => void;
+  /** What's paged, for screen readers. */
+  label?: string;
 }
 
 /** The pages of the tray, under the list: "Anterior", the page numbers
  * (with "…" when there are many) and "Siguiente". The current page is
  * blue. Only shown when there's more than one page. */
-export function TrayPager({ page, totalPages, onChange }: TrayPagerProps) {
+export function TrayPager({ page, totalPages, onChange, label = "Páginas de notificaciones" }: TrayPagerProps) {
   if (totalPages <= 1) return null;
 
   return (
-    <nav className={styles.pager} aria-label="Páginas de notificaciones">
+    <nav className={styles.pager} aria-label={label}>
       <button type="button" className={styles.pagerButton} onClick={() => onChange(page - 1)} disabled={page <= 1}>
         <IconArrowLeft width={16} height={16} />
         Anterior

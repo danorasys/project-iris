@@ -5,7 +5,7 @@ const LEAVE_MS = 180;
 
 // No closing animation when the person asked for less motion, or where the
 // browser can't tell (the tests). Then it just closes at once.
-function canAnimate(): boolean {
+export function canAnimate(): boolean {
   return typeof window.matchMedia === "function" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 

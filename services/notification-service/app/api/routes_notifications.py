@@ -1,4 +1,4 @@
-"""REST routes for the notification tray of a teacher or a guardian,
+"""REST routes for the notification tray of a teacher, a guardian or a kid,
 asked by the frontend from time to time (no live push). Each person only
 ever sees, reads or deletes their own."""
 
@@ -26,11 +26,25 @@ async def list_my_notifications(
     service: ServiceDep,
     page: Annotated[int, Query(ge=1, le=10_000)] = 1,
     page_size: Annotated[int, Query(ge=1, le=50)] = 10,
+    classroom_id: UUID | None = None,
+    student_id: UUID | None = None,
+    event: Annotated[list[str] | None, Query(max_length=10)] = None,
 ) -> NotificationPageOut:
     """The tray, newest first and one page at a time, with the total and how
-    many are still unread."""
-    result = await service.list_page(user.subject_id, user.role, page, page_size)
+    many are still unread. With classroom_id and student_id, only the ones
+    of that class and kid (the space of a class in the parents' portal).
+    With event, only those kinds (the messages of a class, HU-77)."""
+    result = await service.list_page(user.subject_id, user.role, page, page_size, classroom_id, student_id, event)
     return NotificationPageOut.from_page(result, page, page_size)
+
+
+@router.get("/me/threads/{thread_id}", response_model=list[NotificationOut])
+async def read_thread(thread_id: UUID, user: ReaderDep, service: ServiceDep) -> list[NotificationOut]:
+    """One conversation (HU-51) as this person sees it in their tray: the
+    messages they got and the copies of the ones they sent, oldest first.
+    404 if they have nothing of it."""
+    messages = await service.thread(user.subject_id, user.role, thread_id)
+    return [NotificationOut.from_entity(m) for m in messages]
 
 
 @router.post("/me/delete", response_model=DeleteNotificationsOut)

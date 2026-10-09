@@ -4,6 +4,8 @@ import pytest
 from httpx import AsyncClient
 
 from app.config import get_settings
+from app.domain.entities import CODE_SYMBOLS
+from tests.helpers import pedir_ingreso
 from tests.fakes import FakeIdentityGateway, FakeObjectStorage
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"datos-de-prueba"
@@ -34,9 +36,21 @@ async def test_crear_aula_devuelve_codigo_ingreso_y_logo_null(
 
     aula = await _crear_aula(client, token, "Matemáticas 3A", "Aula de prueba")
 
-    assert len(aula["enrollment_code"]) == 7
-    assert aula["enrollment_code"].isdigit()
+    # HU-40: 8 characters with letters, numbers and symbols, none that look alike.
+    code = aula["enrollment_code"]
+    assert len(code) == 8
+    assert any(c.isalpha() for c in code) and any(c.isdigit() for c in code)
+    assert any(c in CODE_SYMBOLS for c in code)
+    assert not set(code) & set("ILO01")
     assert aula["logo_file"] is None
+
+
+async def test_cada_aula_tiene_su_propio_codigo(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
+    token, _ = identity_gateway.registrar_docente()
+
+    codes = {(await _crear_aula(client, token, f"Aula {i}"))["enrollment_code"] for i in range(20)}
+
+    assert len(codes) == 20
 
 
 async def test_listar_aulas_docente(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
@@ -198,9 +212,7 @@ async def _aula_con_logo(client: AsyncClient, token_docente: str) -> tuple[dict,
 
 
 async def _inscribir_y_aceptar(client: AsyncClient, aula: dict, token_docente: str, token_estudiante: str) -> None:
-    ingreso = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    ingreso = await pedir_ingreso(client, aula["enrollment_code"], token_estudiante)
     assert ingreso.status_code == 201
     resolver = await client.post(
         f"/classrooms/{aula['id']}/requests/{ingreso.json()['enrollment_id']}/resolve",
@@ -244,9 +256,7 @@ async def test_estudiante_con_solicitud_pendiente_no_ve_el_logo(
     token_docente, _ = identity_gateway.registrar_docente()
     token_estudiante, _ = identity_gateway.registrar_estudiante_token()
     aula, logo_file = await _aula_con_logo(client, token_docente)
-    await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    await pedir_ingreso(client, aula["enrollment_code"], token_estudiante)
 
     response = await client.get(f"/classrooms/{aula['id']}/logo/{logo_file}", headers=_auth(token_estudiante))
 
@@ -360,10 +370,24 @@ async def test_almacenamiento_lleno_responde_507(
 async def test_codigo_ingreso_invalido(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
     token, _ = identity_gateway.registrar_estudiante_token()
 
-    response = await client.post("/classrooms/enroll", json={"enrollment_code": "9999999"}, headers=_auth(token))
+    response = await pedir_ingreso(client, "AB3#CD4%", token)
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "codigo_ingreso_invalido"
+
+
+# What can't be a code (too short, only digits like the old ones, no symbol)
+# is refused before looking anything up.
+@pytest.mark.parametrize("code", ["1234567", "12345678", "ABCD2345", "AB#CD%EF", "AB3#CD4!"])
+async def test_un_codigo_mal_formado_no_se_busca(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway, code: str
+) -> None:
+    token, _ = identity_gateway.registrar_estudiante_token()
+
+    response = await pedir_ingreso(client, code, token)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "datos_invalidos"
 
 
 async def test_fuerza_bruta_ingresar_bloqueada(client: AsyncClient, identity_gateway: FakeIdentityGateway) -> None:
@@ -372,7 +396,7 @@ async def test_fuerza_bruta_ingresar_bloqueada(client: AsyncClient, identity_gat
 
     ultima = None
     for _ in range(maximo + 1):
-        ultima = await client.post("/classrooms/enroll", json={"enrollment_code": "1234567"}, headers=_auth(token))
+        ultima = await pedir_ingreso(client, "AB3#CD4%", token)
 
     assert ultima is not None
     assert ultima.status_code == 429
@@ -386,14 +410,10 @@ async def test_solicitud_duplicada_pendiente_es_rechazada(
     token_estudiante, _ = identity_gateway.registrar_estudiante_token()
     aula = await _crear_aula(client, token_docente)
 
-    primero = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    primero = await pedir_ingreso(client, aula["enrollment_code"], token_estudiante)
     assert primero.status_code == 201
 
-    segundo = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    segundo = await pedir_ingreso(client, aula["enrollment_code"], token_estudiante)
     assert segundo.status_code == 409
     assert segundo.json()["error"]["code"] == "ya_inscrito_o_pendiente"
 
@@ -405,9 +425,7 @@ async def test_reactivar_solicitud_rechazada_no_duplica_fila(
     token_estudiante, _ = identity_gateway.registrar_estudiante_token()
     aula = await _crear_aula(client, token_docente)
 
-    ingreso1 = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    ingreso1 = await pedir_ingreso(client, aula["enrollment_code"], token_estudiante)
     enrollment_id = ingreso1.json()["enrollment_id"]
 
     await client.post(
@@ -416,9 +434,7 @@ async def test_reactivar_solicitud_rechazada_no_duplica_fila(
         headers=_auth(token_docente),
     )
 
-    ingreso2 = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    ingreso2 = await pedir_ingreso(client, aula["enrollment_code"], token_estudiante)
     assert ingreso2.status_code == 201
     assert ingreso2.json()["enrollment_id"] == enrollment_id
     assert ingreso2.json()["status"] == "pendiente"
@@ -435,9 +451,7 @@ async def test_flujo_feliz_completo(client: AsyncClient, identity_gateway: FakeI
 
     aula = await _crear_aula(client, token_docente, "Matemáticas", "3er grado")
 
-    ingreso = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    ingreso = await pedir_ingreso(client, aula["enrollment_code"], token_estudiante)
     assert ingreso.status_code == 201
     assert ingreso.json()["status"] == "pendiente"
     enrollment_id = ingreso.json()["enrollment_id"]
@@ -475,9 +489,7 @@ async def test_resolver_solicitud_rechazar(client: AsyncClient, identity_gateway
     token_docente, _ = identity_gateway.registrar_docente()
     token_estudiante, _ = identity_gateway.registrar_estudiante_token()
     aula = await _crear_aula(client, token_docente)
-    ingreso = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    ingreso = await pedir_ingreso(client, aula["enrollment_code"], token_estudiante)
     enrollment_id = ingreso.json()["enrollment_id"]
 
     response = await client.post(
@@ -496,9 +508,7 @@ async def test_resolver_solicitud_ya_resuelta_es_rechazado(
     token_docente, _ = identity_gateway.registrar_docente()
     token_estudiante, _ = identity_gateway.registrar_estudiante_token()
     aula = await _crear_aula(client, token_docente)
-    ingreso = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    ingreso = await pedir_ingreso(client, aula["enrollment_code"], token_estudiante)
     enrollment_id = ingreso.json()["enrollment_id"]
 
     await client.post(
@@ -601,9 +611,7 @@ async def test_internal_acceso_estudiante_pasa_a_autorizado_tras_aceptar(
     token_docente, _ = identity_gateway.registrar_docente()
     token_estudiante, student_id = identity_gateway.registrar_estudiante_token()
     aula = await _crear_aula(client, token_docente)
-    ingreso = await client.post(
-        "/classrooms/enroll", json={"enrollment_code": aula["enrollment_code"]}, headers=_auth(token_estudiante)
-    )
+    ingreso = await pedir_ingreso(client, aula["enrollment_code"], token_estudiante)
     enrollment_id = ingreso.json()["enrollment_id"]
 
     pendiente = await client.get(

@@ -9,7 +9,7 @@ from fastapi import Depends, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis, from_url
 
-from app.application.classroom_service import ClassroomService
+from app.application.classroom_service import ClassroomService, RateLimits
 from app.config import Settings, get_settings
 from app.domain.exceptions import (
     InvalidToken,
@@ -82,8 +82,13 @@ def get_classroom_service(
         storage=storage,
         event_publisher=events,
         rate_limiter=rate_limiter,
-        rate_limit_enrollment_max=settings.rate_limit_enrollment_max,
-        rate_limit_enrollment_window_sec=settings.rate_limit_enrollment_window_sec,
+        limits=RateLimits(
+            lookup_max=settings.rate_limit_lookup_max,
+            enrollment_max=settings.rate_limit_enrollment_max,
+            enrollment_window_sec=settings.rate_limit_enrollment_window_sec,
+            message_max=settings.rate_limit_message_max,
+            message_window_sec=settings.rate_limit_message_window_sec,
+        ),
         content_gateway=content,
     )
 
@@ -140,6 +145,18 @@ async def require_portal_guardian(
     if not session_id:
         raise PortalAccessRequired()
     await identity.check_portal_access(user.subject_id, session_id, renew=x_iris_activity != BACKGROUND_ACTIVITY)
+    return user
+
+
+# Who can see a classroom's logo: its teacher and students (the service
+# checks which classroom), and a guardian only with the portal open.
+async def require_logo_reader(
+    user: Annotated[CurrentUser, Depends(require_role("teacher", "student", "guardian"))],
+    identity: Annotated[IdentityGateway, Depends(get_identity_gateway)],
+    x_iris_activity: Annotated[str | None, Header()] = None,
+) -> CurrentUser:
+    if user.role == "guardian":
+        await require_portal_guardian(user, identity, x_iris_activity)
     return user
 
 

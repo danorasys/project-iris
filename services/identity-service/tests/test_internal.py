@@ -96,6 +96,57 @@ async def test_un_tutor_no_pasa_por_docente(client: AsyncClient) -> None:
     assert (await client.get(f"/internal/teachers/{uuid.uuid4()}", headers=_internal())).status_code == 404
 
 
+# HU-97: what a family sees of the teacher of a class. The profile they
+# filled in and their name, never their email, phone or document.
+async def test_el_perfil_publico_de_un_docente_sin_contacto(client: AsyncClient) -> None:
+    registro = await client.post(
+        "/auth/teachers",
+        json={
+            "first_name": "Laura",
+            "last_name": "Gómez",
+            "email": "interno-perfil@example.com",
+            "password": "Clave-Segura-123",
+            "institution": "Colegio Nacional",
+            "document_type_id": 1,
+            "document_number": "80099002",
+            "date_of_birth": "1988-06-20",
+            "phone_country_code": "57",
+            "phone_number": "3009876544",
+            "document_issued_at": "2006-07-01",
+            "consent": {"policy_version": "1.1", "accepts_data_processing": True},
+            "profile": {
+                "about": "Docente de primaria.",
+                "studies": [{"level": "professional", "title": "Licenciatura", "institution": "UPB", "end_month": "2015-11"}],
+                "experiences": [{"role": "Docente", "place": "Colegio San José", "start_month": "2016-02"}],
+            },
+        },
+    )
+    teacher_id = (await _claims(client, registro.json()["access_token"]))["sub"]
+
+    respuesta = await client.get(f"/internal/teachers/{teacher_id}/profile", headers=_internal())
+
+    assert respuesta.status_code == 200
+    perfil = respuesta.json()
+    assert set(perfil) == {"first_name", "last_name", "institution", "about", "studies", "experiences"}
+    assert (perfil["first_name"], perfil["about"]) == ("Laura", "Docente de primaria.")
+    assert perfil["institution"] == "Colegio Nacional"
+    assert perfil["studies"][0]["title"] == "Licenciatura"
+    assert perfil["experiences"][0]["place"] == "Colegio San José"
+    texto = respuesta.text
+    assert "interno-perfil@example.com" not in texto and "80099002" not in texto and "3009876544" not in texto
+
+
+async def test_el_perfil_publico_solo_es_de_docentes(client: AsyncClient) -> None:
+    token = await registrar_tutor(client, "interno-perfil-tutor@example.com", "9100000005")
+    person_id = (await _claims(client, token))["sub"]
+
+    no_docente = await client.get(f"/internal/teachers/{person_id}/profile", headers=_internal())
+    sin_clave = await client.get(f"/internal/teachers/{person_id}/profile")
+
+    assert no_docente.status_code == 404
+    assert sin_clave.status_code == 401
+
+
 async def test_el_acceso_al_portal_responde_por_cada_sesion(client: AsyncClient) -> None:
     token, _secret = await registrar_tutor_con_2fa(client, "interno-portal@example.com", "9100000003")
     claims = await _claims(client, token)

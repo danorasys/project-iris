@@ -10,6 +10,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis, from_url
 
 from app.application.lesson_service import LessonService
+from app.application.progress_service import ProgressService
 from app.application.unit_service import UnitService
 from app.config import Settings, get_settings
 from app.correlation import get_correlation_id
@@ -80,6 +81,12 @@ def get_unit_service(
     classroom: Annotated[HttpClassroomClient, Depends(get_classroom_client)],
 ) -> UnitService:
     return UnitService(uow_factory=SqlAlchemyUnitOfWork, classroom_client=classroom)
+
+
+def get_progress_service(
+    classroom: Annotated[HttpClassroomClient, Depends(get_classroom_client)],
+) -> ProgressService:
+    return ProgressService(uow_factory=SqlAlchemyUnitOfWork, classroom_client=classroom)
 
 
 def get_lesson_service(

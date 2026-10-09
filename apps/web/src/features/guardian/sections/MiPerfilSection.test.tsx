@@ -9,6 +9,7 @@ import { MiPerfilSection } from "./MiPerfilSection";
 const updateProfile = vi.fn();
 const changePassword = vi.fn();
 const closeAllSessions = vi.fn();
+const deleteAccount = vi.fn();
 const discardSession = vi.fn();
 const onDirtyChange = vi.fn();
 
@@ -41,6 +42,7 @@ vi.mock("@/shared/api/hooks/useAuthApi", () => ({
   useActualizarMiPerfilTutor: () => ({ mutateAsync: updateProfile, isPending: false }),
   useCambiarMiPassword: () => ({ mutateAsync: changePassword, isPending: false }),
   useCerrarTodasMisSesiones: () => ({ mutateAsync: closeAllSessions, isPending: false }),
+  useDeleteGuardianAccount: () => ({ mutateAsync: deleteAccount, isPending: false }),
 }));
 
 function renderSection() {
@@ -498,6 +500,36 @@ describe("MiPerfilSection", { timeout: 20_000 }, () => {
       expect(await screen.findByRole("alert")).toBeTruthy();
       expect(discardSession).not.toHaveBeenCalled();
       expect(screen.queryByText("Login")).toBeNull();
+    });
+  });
+
+  describe("deleting the account (HU-91)", () => {
+    it("says what goes, asks for the password and the 'entiendo', then goes to the login", async () => {
+      deleteAccount.mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      render(
+        <MemoryRouter initialEntries={["/guardian/portal"]}>
+          <Routes>
+            <Route path="/guardian/portal" element={<MiPerfilSection onDirtyChange={onDirtyChange} />} />
+            <Route path="/login/adult" element={<p>Login</p>} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(screen.getByText(/tus peques salen de todas sus clases/)).toBeTruthy();
+      await user.click(screen.getByRole("button", { name: "Eliminar mi cuenta" }));
+      const dialog = screen.getByRole("dialog");
+      await user.type(within(dialog).getByLabelText(/Tu contraseña/), "Clave-Segura-123");
+      await user.click(within(dialog).getByRole("button", { name: "Eliminar mi cuenta para siempre" }));
+      // Without the "entiendo" nothing goes.
+      expect(deleteAccount).not.toHaveBeenCalled();
+      await user.click(within(dialog).getByLabelText(/Entiendo que mi cuenta se elimina/));
+      await user.click(within(dialog).getByRole("button", { name: "Eliminar mi cuenta para siempre" }));
+
+      expect(await screen.findByText("Login")).toBeTruthy();
+      expect(deleteAccount).toHaveBeenCalledWith("Clave-Segura-123");
+      expect(discardSession).toHaveBeenCalled();
+      expect(peekLoginNotice()?.title).toBe("Tu cuenta se eliminó");
     });
   });
 });

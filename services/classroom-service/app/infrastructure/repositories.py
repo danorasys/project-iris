@@ -22,6 +22,7 @@ def _classroom_to_entity(m: ClassroomModel) -> Classroom:
         area=m.area,
         area_other=m.area_other,
         grade=m.grade,
+        teacher_left_at=m.teacher_left_at,
     )
 
 
@@ -89,6 +90,7 @@ class SqlAlchemyClassroomRepository:
         m.area = classroom.area
         m.area_other = classroom.area_other
         m.grade = classroom.grade
+        m.teacher_left_at = classroom.teacher_left_at
 
     async def delete(self, classroom_id: UUID) -> None:
         # Through the ORM, so the enrollments go too (cascade) on every database.
@@ -140,14 +142,11 @@ class SqlAlchemyEnrollmentRepository:
         return [_enrollment_to_entity(m) for m in result.scalars().all()]
 
     # The index on student_id serves it.
-    async def list_active_by_students(self, student_ids: list[UUID]) -> list[Enrollment]:
+    async def list_by_students(self, student_ids: list[UUID]) -> list[Enrollment]:
         if not student_ids:
             return []
         result = await self._session.execute(
-            select(EnrollmentModel).where(
-                EnrollmentModel.student_id.in_(student_ids),
-                EnrollmentModel.status.in_((STATUS_PENDING, STATUS_ACCEPTED)),
-            )
+            select(EnrollmentModel).where(EnrollmentModel.student_id.in_(student_ids))
         )
         return [_enrollment_to_entity(m) for m in result.scalars().all()]
 
@@ -193,6 +192,14 @@ class SqlAlchemyEnrollmentRepository:
         m.status = enrollment.status
         m.requested_at = enrollment.requested_at
         m.resolved_at = enrollment.resolved_at
+
+    async def delete_by_students(self, student_ids: list[UUID]) -> int:
+        if not student_ids:
+            return 0
+        result = await self._session.execute(
+            delete(EnrollmentModel).where(EnrollmentModel.student_id.in_(student_ids))
+        )
+        return int(getattr(result, "rowcount", 0) or 0)
 
     async def delete(self, enrollment_id: UUID) -> None:
         await self._session.execute(delete(EnrollmentModel).where(EnrollmentModel.id == enrollment_id))

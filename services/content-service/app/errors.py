@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from app.domain.exceptions import (
     DomainError,
     IdentityServiceUnavailable,
+    ActivityChanged,
     InvalidAudience,
     InvalidFile,
     InvalidOrder,
@@ -41,6 +42,7 @@ _STATUS_BY_ERROR: dict[type[DomainError], int] = {
     InvalidOrder: status.HTTP_422_UNPROCESSABLE_CONTENT,
     LessonIncomplete: status.HTTP_422_UNPROCESSABLE_CONTENT,
     InvalidAudience: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    ActivityChanged: status.HTTP_409_CONFLICT,
 }
 
 

@@ -1,27 +1,34 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.domain.entities import (
     STATUS_PUBLISHED,
     Activity,
+    Attempt,
     ContentBlock,
     Extra,
     Lesson,
+    PageProgress,
+    PublishedContent,
     Question,
     QuestionOption,
     Unit,
 )
 from app.infrastructure.models import (
     ActivityModel,
+    AttemptModel,
     ContentBlockModel,
     ExtraModel,
     ExtraStudentModel,
     LessonModel,
+    PageProgressModel,
     QuestionModel,
     QuestionOptionModel,
     UnitModel,
@@ -233,6 +240,16 @@ class SqlAlchemyLessonRepository:
         # Only the lessons' own fields: a list never needs their pages.
         return [_lesson_to_entity(m, with_parts=False) for m in result.scalars().all()]
 
+    async def list_published_full(self, classroom_id: UUID) -> list[Lesson]:
+        result = await self._session.execute(
+            select(LessonModel)
+            .options(*_FULL_LESSON)
+            .join(UnitModel, UnitModel.id == LessonModel.unit_id)
+            .where(LessonModel.classroom_id == classroom_id, LessonModel.status == STATUS_PUBLISHED)
+            .order_by(UnitModel.order_index, LessonModel.order_index)
+        )
+        return [_lesson_to_entity(m, with_parts=True) for m in result.scalars().all()]
+
     async def has_lesson_by_teacher_in_classroom(self, teacher_id: UUID, classroom_id: UUID) -> bool:
         stmt = (
             select(LessonModel.id)
@@ -260,16 +277,20 @@ class SqlAlchemyLessonRepository:
             counts.setdefault(classroom_id, {})[status] = int(count)
         return counts
 
-    # ix_lessons_classroom_status serves it: classroom_id + status.
-    async def count_published_by_classrooms(self, classroom_ids: list[UUID]) -> dict[UUID, int]:
+    # ix_lessons_classroom_status serves it: classroom_id + status. The
+    # units are the different ones among those lessons.
+    async def count_published_by_classrooms(self, classroom_ids: list[UUID]) -> dict[UUID, PublishedContent]:
         if not classroom_ids:
             return {}
         result = await self._session.execute(
-            select(LessonModel.classroom_id, func.count())
+            select(LessonModel.classroom_id, func.count(), func.count(LessonModel.unit_id.distinct()))
             .where(LessonModel.classroom_id.in_(classroom_ids), LessonModel.status == STATUS_PUBLISHED)
             .group_by(LessonModel.classroom_id)
         )
-        return {classroom_id: int(count) for classroom_id, count in result.all()}
+        return {
+            classroom_id: PublishedContent(lessons=int(lessons), units=int(units))
+            for classroom_id, lessons, units in result.all()
+        }
 
     async def list_ids_by_classroom(self, classroom_id: UUID) -> list[UUID]:
         result = await self._session.execute(select(LessonModel.id).where(LessonModel.classroom_id == classroom_id))
@@ -377,3 +398,128 @@ class SqlAlchemyLessonRepository:
         for lesson_id in await self.list_ids_by_classroom(classroom_id):
             await self.delete(lesson_id)
         await self._session.flush()
+
+
+def _attempt_to_entity(m: AttemptModel) -> Attempt:
+    return Attempt(
+        id=m.id,
+        student_id=m.student_id,
+        lesson_id=m.lesson_id,
+        extra_id=m.extra_id,
+        correct=m.correct,
+        total=m.total,
+        passed=m.passed,
+        created_at=m.created_at,
+    )
+
+
+def _pages_to_entity(m: PageProgressModel) -> PageProgress:
+    return PageProgress(m.student_id, m.lesson_id, m.extra_id, m.pages_seen, m.last_page)
+
+
+class SqlAlchemyProgressRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def _pages_row(self, student_id: UUID, lesson_id: UUID, extra_id: UUID | None) -> PageProgressModel | None:
+        part = PageProgressModel.extra_id.is_(None) if extra_id is None else PageProgressModel.extra_id == extra_id
+        result = await self._session.execute(
+            select(PageProgressModel).where(
+                PageProgressModel.student_id == student_id, PageProgressModel.lesson_id == lesson_id, part
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def get_pages(self, student_id: UUID, lesson_id: UUID, extra_id: UUID | None) -> PageProgress | None:
+        m = await self._pages_row(student_id, lesson_id, extra_id)
+        return _pages_to_entity(m) if m else None
+
+    async def save_pages(self, progress: PageProgress) -> None:
+        m = await self._pages_row(progress.student_id, progress.lesson_id, progress.extra_id)
+        if m is None:
+            # Two quick page turns can both find no row. In a savepoint, so
+            # the one that loses the unique index moves the other's row instead.
+            try:
+                async with self._session.begin_nested():
+                    self._session.add(
+                        PageProgressModel(
+                            student_id=progress.student_id,
+                            lesson_id=progress.lesson_id,
+                            extra_id=progress.extra_id,
+                            pages_seen=progress.pages_seen,
+                            last_page=progress.last_page,
+                        )
+                    )
+                return
+            except IntegrityError:
+                m = await self._pages_row(progress.student_id, progress.lesson_id, progress.extra_id)
+        if m is not None:
+            m.pages_seen = max(m.pages_seen, progress.pages_seen)
+            m.last_page = progress.last_page
+            m.updated_at = datetime.now(timezone.utc)
+
+    async def add_attempt(self, attempt: Attempt) -> None:
+        self._session.add(
+            AttemptModel(
+                id=attempt.id,
+                student_id=attempt.student_id,
+                lesson_id=attempt.lesson_id,
+                extra_id=attempt.extra_id,
+                correct=attempt.correct,
+                total=attempt.total,
+                passed=attempt.passed,
+                created_at=attempt.created_at,
+            )
+        )
+
+    async def pages_of(self, student_id: UUID, lesson_ids: list[UUID]) -> list[PageProgress]:
+        if not lesson_ids:
+            return []
+        result = await self._session.execute(
+            select(PageProgressModel).where(
+                PageProgressModel.student_id == student_id, PageProgressModel.lesson_id.in_(lesson_ids)
+            )
+        )
+        return [_pages_to_entity(m) for m in result.scalars().all()]
+
+    async def attempts_of(self, student_id: UUID, lesson_ids: list[UUID]) -> list[Attempt]:
+        if not lesson_ids:
+            return []
+        # Served by ix_activity_attempts_student_lesson.
+        result = await self._session.execute(
+            select(AttemptModel)
+            .where(AttemptModel.student_id == student_id, AttemptModel.lesson_id.in_(lesson_ids))
+            .order_by(AttemptModel.created_at)
+        )
+        return [_attempt_to_entity(m) for m in result.scalars().all()]
+
+    async def erase_kids(self, student_ids: list[UUID]) -> int:
+        if not student_ids:
+            return 0
+        deleted = 0
+        for model in (PageProgressModel, AttemptModel, ExtraStudentModel):
+            result = await self._session.execute(delete(model).where(model.student_id.in_(student_ids)))
+            deleted += int(getattr(result, "rowcount", 0) or 0)
+        return deleted
+
+    async def pages_of_kids(self, student_ids: list[UUID], lesson_ids: list[UUID]) -> list[PageProgress]:
+        if not student_ids or not lesson_ids:
+            return []
+        result = await self._session.execute(
+            select(PageProgressModel).where(
+                PageProgressModel.student_id.in_(student_ids), PageProgressModel.lesson_id.in_(lesson_ids)
+            )
+        )
+        return [_pages_to_entity(m) for m in result.scalars().all()]
+
+    async def attempts_of_kids(self, student_ids: list[UUID], lesson_ids: list[UUID]) -> list[Attempt]:
+        if not student_ids or not lesson_ids:
+            return []
+        # Also served by ix_activity_attempts_student_lesson.
+        result = await self._session.execute(
+            select(AttemptModel)
+            .where(AttemptModel.student_id.in_(student_ids), AttemptModel.lesson_id.in_(lesson_ids))
+            .order_by(AttemptModel.created_at)
+        )
+        return [_attempt_to_entity(m) for m in result.scalars().all()]
+

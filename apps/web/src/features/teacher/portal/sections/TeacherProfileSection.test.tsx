@@ -36,6 +36,7 @@ vi.mock("@/shared/api/hooks/useTeacherProfileApi", () => ({
   useMyTeacherAccount: () => ({ data: account, isLoading: false, isError: false }),
   useUpdateMyTeacherAccount: () => ({ mutateAsync: updateAccount, isPending: false }),
   useChangeMyTeacherPassword: () => ({ mutateAsync: changePassword, isPending: false }),
+  useDeleteTeacherAccount: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/shared/api/hooks/useAuthApi", () => ({
@@ -95,6 +96,7 @@ describe("TeacherProfileSection", { timeout: 20_000 }, () => {
       "Identificación de la cuenta",
       "Perfil docente",
       "Seguridad",
+      "Eliminar mi cuenta",
     ]);
     // The data that identifies the account can't be edited here.
     const identity = screen.getByRole("region", { name: "Identificación de la cuenta" });
