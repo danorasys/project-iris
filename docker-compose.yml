@@ -28,7 +28,7 @@ services:
             retries: 10
 
     redis:
-        image: redis:7-alpine
+        image: redis:8-alpine
         command: redis-server --appendonly yes
         volumes:
             - redisdata:/data
@@ -72,7 +72,7 @@ services:
     # Creates one bucket and one key per service, plus the admin key. Runs on
     # every start and puts the permissions back (see infra/garage/init.py).
     garage-init:
-        image: python:3.13-alpine
+        image: python:3.14-alpine
         command: ["python", "/init.py"]
         user: "65534:65534"
         read_only: true
@@ -286,7 +286,7 @@ services:
     # is only reachable through here, so private images work like in prod:
     # the service checks access and Caddy streams the file from Garage.
     reverse-proxy:
-        image: caddy:2.11.4-alpine
+        image: caddy:2.11.7-alpine
         command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile.dev", "--adapter", "caddyfile"]
         volumes:
             - ./infra/caddy:/etc/caddy:ro

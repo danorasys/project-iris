@@ -43,7 +43,7 @@ services:
             - "127.0.0.1:5432:5432"
 
     redis:
-        image: redis:7-alpine
+        image: redis:8-alpine
         <<: [*restart-policy, *log-limits]
         command: redis-server --appendonly yes
         volumes:
@@ -89,7 +89,7 @@ services:
     # Creates one bucket and one key per service, plus the admin key. Runs on
     # every start and puts the permissions back (see infra/garage/init.py).
     garage-init:
-        image: python:3.13-alpine
+        image: python:3.14-alpine
         command: ["python", "/init.py"]
         user: "65534:65534"
         read_only: true
@@ -317,7 +317,7 @@ services:
     reverse-proxy:
         # Pinned: the private images depend on handle_response and
         # copy_response_headers behaving exactly like this version.
-        image: caddy:2.11.4-alpine
+        image: caddy:2.11.7-alpine
         <<: [*restart-policy, *log-limits]
         volumes:
             # The whole folder, the Caddyfile imports api.caddy from it.
