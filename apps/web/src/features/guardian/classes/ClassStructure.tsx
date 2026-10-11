@@ -63,12 +63,7 @@ export function ClassStructure({ enrollmentId, firstName }: ClassStructureProps)
 
   return (
     <>
-      <StructureOverview
-        unitCount={units.length}
-        lessonCount={lessons.length}
-        firstName={firstName}
-        withDba={withDba}
-      />
+      <StructureOverview unitCount={units.length} lessonCount={lessons.length} withDba={withDba} />
 
       {units.map((unit, unitIndex) => (
         <section
@@ -81,7 +76,7 @@ export function ClassStructure({ enrollmentId, firstName }: ClassStructureProps)
             <h3 id={`structure-unit-${unitIndex}`} className={styles.unitTitle}>
               {unit.title}
             </h3>
-            {(unit.guidingQuestion || unit.learningGoal || unit.dba) && (
+            {(unit.guidingQuestion || unit.dba) && (
               <div className={styles.unitFacts}>
                 {unit.guidingQuestion && (
                   <p className={styles.question}>
@@ -89,15 +84,6 @@ export function ClassStructure({ enrollmentId, firstName }: ClassStructureProps)
                     <span>
                       <span className={styles.questionLabel}>Pregunta guía</span>
                       {unit.guidingQuestion}
-                    </span>
-                  </p>
-                )}
-                {unit.learningGoal && (
-                  <p className={styles.question}>
-                    <IconCheck width={18} height={18} aria-hidden="true" />
-                    <span>
-                      <span className={styles.questionLabel}>Qué debería lograr {firstName} con esta unidad</span>
-                      {unit.learningGoal}
                     </span>
                   </p>
                 )}
@@ -125,13 +111,12 @@ export function ClassStructure({ enrollmentId, firstName }: ClassStructureProps)
 interface StructureOverviewProps {
   unitCount: number;
   lessonCount: number;
-  firstName: string;
   withDba: boolean;
 }
 
 // The card on top: how many units and lessons the class has, and what each
 // unit and each lesson tells below, with the same icons they use.
-function StructureOverview({ unitCount, lessonCount, firstName, withDba }: StructureOverviewProps) {
+function StructureOverview({ unitCount, lessonCount, withDba }: StructureOverviewProps) {
   return (
     <section className={styles.panel} aria-labelledby="structure-overview-title">
       <header className={styles.overviewHead}>
@@ -159,10 +144,6 @@ function StructureOverview({ unitCount, lessonCount, firstName, withDba }: Struc
             <li>
               <IconQuestion width={16} height={16} aria-hidden="true" />
               La pregunta que la guía
-            </li>
-            <li>
-              <IconCheck width={16} height={16} aria-hidden="true" />
-              Lo que {firstName} debería lograr con ella
             </li>
             {withDba && (
               <li>

@@ -91,21 +91,19 @@ def _check_pages(blocks: list[BlockInput] | None) -> None:
 class CreateUnitRequest(_Strict):
     title: str = Field(min_length=1, max_length=rules.UNIT_TITLE_MAX)
     guiding_question: str = Field(min_length=1, max_length=rules.GUIDING_QUESTION_MAX)
-    # What the kids should manage after the whole unit (its expected performance).
-    learning_goal: str = Field(min_length=1, max_length=rules.LEARNING_GOAL_MAX)
-    # Its DBA, needed to publish its lessons in the areas with DBA.
+    # Its DBA, needed to publish its lessons in the areas with DBA. Its
+    # Evidencias de Aprendizaje are what the unit should achieve.
     dba: UnitDbaInput | None = None
 
 
 class UpdateUnitRequest(_Strict):
     title: str | None = Field(default=None, min_length=1, max_length=rules.UNIT_TITLE_MAX)
     guiding_question: str | None = Field(default=None, min_length=1, max_length=rules.GUIDING_QUESTION_MAX)
-    learning_goal: str | None = Field(default=None, min_length=1, max_length=rules.LEARNING_GOAL_MAX)
     dba: UnitDbaInput | None = None
 
     @model_validator(mode="after")
     def _required_stay_required(self) -> UpdateUnitRequest:
-        _not_null(self, "title", "guiding_question", "learning_goal", "dba")
+        _not_null(self, "title", "guiding_question", "dba")
         return self
 
 
@@ -282,8 +280,6 @@ class UnitResponse(BaseModel):
     classroom_id: UUID
     title: str
     guiding_question: str
-    # Empty only in a unit from before it existed, until its teacher writes it.
-    learning_goal: str
     # Its DBA, null until it's chosen.
     dba: UnitDbaResponse | None = None
     order_index: int
@@ -523,10 +519,9 @@ class LessonProgressResponse(BaseModel):
     unit_title: str
     main: PartProgressResponse
     extras: list[PartProgressResponse]
-    # So the family sees what the class is about (HU-46): the question and
-    # goal of its unit, what the lesson is for and what the kid should manage.
+    # So the family sees what the class is about (HU-46): the question of
+    # its unit, what the lesson is for and what the kid should manage.
     unit_guiding_question: str
-    unit_learning_goal: str
     purpose: str
     learning_goal: str
     # The DBA of its unit with its Evidencias de Aprendizaje.

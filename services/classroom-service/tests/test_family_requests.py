@@ -448,7 +448,6 @@ PROGRESS = [
         "title": "Animales terrestres",
         "unit_title": "Los animales",
         "unit_guiding_question": "¿Dónde viven los animales?",
-        "unit_learning_goal": "Explico dónde viven algunos animales y por qué.",
         "purpose": "Hoy vas a conocer animales que viven en la tierra.",
         "learning_goal": "Identifico dónde viven algunos animales.",
         "unit_dba": {
@@ -498,9 +497,8 @@ async def test_el_progreso_del_peque_solo_cuando_ya_esta_en_la_clase(
     assert (lesson["title"], lesson["main"]["percent"]) == ("Animales terrestres", 67)
     assert "something_else" not in lesson["main"]
     # What the class is about reaches the family too.
-    assert (lesson["unit_guiding_question"], lesson["unit_learning_goal"], lesson["purpose"], lesson["learning_goal"]) == (
+    assert (lesson["unit_guiding_question"], lesson["purpose"], lesson["learning_goal"]) == (
         "¿Dónde viven los animales?",
-        "Explico dónde viven algunos animales y por qué.",
         "Hoy vas a conocer animales que viven en la tierra.",
         "Identifico dónde viven algunos animales.",
     )
@@ -517,7 +515,7 @@ async def test_el_progreso_de_un_content_service_de_antes_llega_sin_lo_nuevo(
     await _answer(client, teacher_token, classroom, enrollment_id, "aceptar")
     # As content-service answered before it sent the question, purpose and goal.
     old = [
-        {k: v for k, v in PROGRESS[0].items() if k not in ("unit_guiding_question", "unit_learning_goal", "purpose", "learning_goal", "unit_dba")}
+        {k: v for k, v in PROGRESS[0].items() if k not in ("unit_guiding_question", "purpose", "learning_goal", "unit_dba")}
     ]
     content_gateway.progress[(UUID(classroom["id"]), UUID(kid))] = old  # type: ignore[assignment]
 
@@ -525,7 +523,7 @@ async def test_el_progreso_de_un_content_service_de_antes_llega_sin_lo_nuevo(
 
     assert response.status_code == 200, response.text
     [lesson] = response.json()
-    assert (lesson["unit_guiding_question"], lesson["unit_learning_goal"], lesson["purpose"]) == ("", "", "")
+    assert (lesson["unit_guiding_question"], lesson["purpose"]) == ("", "")
     assert lesson["unit_dba"] is None
 
 

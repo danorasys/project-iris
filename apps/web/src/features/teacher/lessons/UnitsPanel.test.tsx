@@ -99,7 +99,6 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
     await user.click(screen.getByRole("button", { name: "Nueva unidad" }));
     await user.type(screen.getByLabelText(/^Título de la unidad/), "Los animales");
     await user.type(screen.getByLabelText(/^Pregunta guía/), "¿Dónde viven?");
-    await user.type(screen.getByLabelText(/^Desempeño esperado de la unidad/), "Explico dónde viven.");
     await user.click(screen.getByRole("button", { name: "Crear unidad" }));
     expect(screen.getByText("Elige el DBA de la unidad o escribe uno propio.")).toBeTruthy();
     expect(createUnit).not.toHaveBeenCalled();
@@ -137,7 +136,6 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
         classroom_id: "c1",
         title: "A",
         guiding_question: "¿A?",
-        learning_goal: "A.",
         order_index: 0,
         lessons: [],
       },
@@ -177,7 +175,6 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
         classroom_id: "c1",
         title: "Los medios",
         guiding_question: "¿Cómo nos informamos?",
-        learning_goal: "Comparo medios.",
         dba: {
           own: false,
           id: "language-1-1",
@@ -211,7 +208,7 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
     expect(screen.getByText("Esta clase aún no tiene unidades")).toBeTruthy();
   });
 
-  it("asks for the title, the guiding question and the goal before creating a unit", async () => {
+  it("asks for the title and the guiding question before creating a unit", async () => {
     createUnit.mockResolvedValue({ id: "u9" });
     const user = userEvent.setup({ delay: null });
     renderPanel();
@@ -220,18 +217,17 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
     await user.click(screen.getByRole("button", { name: "Crear unidad" }));
     expect(screen.getByText("Escribe el título de la unidad.")).toBeTruthy();
     expect(screen.getByText("Escribe la pregunta que guía la unidad.")).toBeTruthy();
-    expect(screen.getByText("Escribe el desempeño esperado de la unidad.")).toBeTruthy();
+    // The unit has no goal of its own: its DBA says it.
+    expect(screen.queryByLabelText(/^Desempeño esperado/)).toBeNull();
     expect(createUnit).not.toHaveBeenCalled();
 
     await user.type(screen.getByLabelText(/^Título de la unidad/), "Las plantas");
     await user.type(screen.getByLabelText(/^Pregunta guía/), "¿Qué necesita una planta?");
-    await user.type(screen.getByLabelText(/^Desempeño esperado de la unidad/), "Explico qué necesita una planta.");
     await user.click(screen.getByRole("button", { name: "Crear unidad" }));
 
     expect(createUnit).toHaveBeenCalledWith({
       title: "Las plantas",
       guiding_question: "¿Qué necesita una planta?",
-      learning_goal: "Explico qué necesita una planta.",
     });
     expect(onToast).toHaveBeenCalledWith("La unidad se creó.");
   });
@@ -243,7 +239,6 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
         classroom_id: "c1",
         title: "Los animales",
         guiding_question: "¿Dónde viven?",
-        learning_goal: "Explico dónde viven algunos animales.",
         order_index: 0,
         lessons: [lesson],
       },
@@ -252,7 +247,6 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
         classroom_id: "c1",
         title: "Las plantas",
         guiding_question: "¿Qué comen?",
-        learning_goal: "Explico qué necesita una planta.",
         order_index: 1,
         lessons: [],
       },
@@ -262,7 +256,6 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
     renderPanel();
 
     expect(screen.getByText("¿Dónde viven?")).toBeTruthy();
-    expect(screen.getByText("Explico dónde viven algunos animales.")).toBeTruthy();
     expect(screen.getByText("Publicada")).toBeTruthy();
     expect(
       (screen.getByRole("button", { name: /No se puede eliminar la unidad Los animales/ }) as HTMLButtonElement)
@@ -275,14 +268,13 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
     expect(deleteUnit).toHaveBeenCalledWith("u2");
   });
 
-  it("a unit from before without its goal says so and opens its form to write it", async () => {
+  it("the pencil opens the unit's form with what it has", async () => {
     units = [
       {
         id: "u1",
         classroom_id: "c1",
         title: "Los animales",
         guiding_question: "¿Dónde viven?",
-        learning_goal: "",
         order_index: 0,
         lessons: [],
       },
@@ -290,8 +282,7 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
     const user = userEvent.setup({ delay: null });
     renderPanel();
 
-    expect(screen.getByText(/Falta el desempeño esperado de la unidad/)).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: "Escribirlo" }));
+    await user.click(screen.getByRole("button", { name: "Editar la unidad Los animales" }));
 
     expect(screen.getByRole("dialog", { name: /Editar unidad/ })).toBeTruthy();
     expect((screen.getByLabelText(/^Título de la unidad/) as HTMLInputElement).value).toBe("Los animales");
@@ -304,7 +295,6 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
         classroom_id: "c1",
         title: "A",
         guiding_question: "¿A?",
-        learning_goal: "A.",
         order_index: 0,
         lessons: [lesson],
       },
@@ -313,7 +303,6 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
         classroom_id: "c1",
         title: "B",
         guiding_question: "¿B?",
-        learning_goal: "B.",
         order_index: 1,
         lessons: [],
       },
@@ -336,7 +325,6 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
         classroom_id: "c1",
         title: "Los animales",
         guiding_question: "¿Dónde viven?",
-        learning_goal: "Explico dónde viven algunos animales.",
         order_index: 0,
         lessons: [lesson],
       },
@@ -355,7 +343,6 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
         classroom_id: "c1",
         title: "A",
         guiding_question: "¿A?",
-        learning_goal: "A.",
         order_index: 0,
         lessons: [],
       },

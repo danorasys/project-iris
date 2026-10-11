@@ -117,7 +117,12 @@ class NotificationService:
         addressee = _text_or_none(payload.get("recipient"), 20) if event == TEACHER_MESSAGE else None
 
         def notification_for(
-            recipient_id: UUID, role: str, sender_name: str | None, read: bool = False, to: str | None = None
+            recipient_id: UUID,
+            role: str,
+            sender_name: str | None,
+            sender_id: UUID | None = None,
+            read: bool = False,
+            to: str | None = None,
         ) -> Notification:
             correct = _int_or_none(payload.get("correct"))
             total = _int_or_none(payload.get("total"))
@@ -135,6 +140,7 @@ class NotificationService:
                 student_id=_uuid_or_none(payload.get("student_id")),
                 classroom_name=_text_or_none(payload.get("classroom_name"), 120),
                 sender_name=sender_name,
+                sender_id=sender_id if sender_name else None,
                 subject=_text_or_none(payload.get("subject"), SUBJECT_MAX_LENGTH) if is_message else None,
                 body=_text_or_none(payload.get("body"), BODY_MAX_LENGTH) if is_message else None,
                 lesson_id=_uuid_or_none(payload.get("lesson_id")),
@@ -153,7 +159,7 @@ class NotificationService:
             if addressee not in (ROLE_STUDENT, ROLE_GUARDIAN) or to is None:
                 return
             teacher_name = _text_or_none(payload.get("teacher_name"), 255)
-            notifications.append(notification_for(to, str(addressee), teacher_name))
+            notifications.append(notification_for(to, str(addressee), teacher_name, teacher_id))
             notifications.append(notification_for(teacher_id, ROLE_TEACHER, None, read=True))
         elif event in _FOR_TEACHER:
             # From the guardian, or from the kid in a report, except an
@@ -163,7 +169,8 @@ class NotificationService:
             from_kid = event in (CONTENT_COMPLETED, ACTIVITY_COMPLETED)
             sender_key = "student_name" if from_kid else "guardian_name"
             teacher_sender = None if answered else _text_or_none(payload.get(sender_key), 255)
-            notifications.append(notification_for(teacher_id, ROLE_TEACHER, teacher_sender, read=answered))
+            sender_id = _uuid_or_none(payload.get("student_id" if from_kid else "guardian_id"))
+            notifications.append(notification_for(teacher_id, ROLE_TEACHER, teacher_sender, sender_id, read=answered))
         guardian_id = _uuid_or_none(payload.get("guardian_id"))
         if event == MESSAGE_SENT and guardian_id is not None:
             # The guardian keeps a copy of what they wrote, already read, so
@@ -172,7 +179,7 @@ class NotificationService:
         if event in _FOR_GUARDIAN and guardian_id is not None:
             # From the teacher who answered or took the kid out.
             sender = _text_or_none(payload.get("teacher_name"), 255)
-            notifications.append(notification_for(guardian_id, ROLE_GUARDIAN, sender))
+            notifications.append(notification_for(guardian_id, ROLE_GUARDIAN, sender, teacher_id))
         await self._save(notifications)
 
     # The thread of a message (HU-51). A new one comes with a fresh id from
@@ -215,11 +222,13 @@ class NotificationService:
             return []
         now = datetime.now(timezone.utc)
         event = str(payload.get("event"))
+        teacher_name = _text_or_none(payload.get("teacher_name"), 255)
         common = {
             "event": event,
             "classroom_id": classroom_id,
             "classroom_name": _text_or_none(payload.get("classroom_name"), 120),
-            "sender_name": _text_or_none(payload.get("teacher_name"), 255),
+            "sender_name": teacher_name,
+            "sender_id": _uuid_or_none(payload.get("teacher_id")) if teacher_name else None,
             "lesson_id": _uuid_or_none(payload.get("lesson_id")),
             "lesson_title": _text_or_none(payload.get("lesson_title"), 200),
             "extra_title": _text_or_none(payload.get("extra_title"), 200) if event == EXTRA_PUBLISHED else None,
@@ -295,7 +304,8 @@ class NotificationService:
 
     # For identity-service, before deleting an account (HU-91, HU-92): every
     # notification of these people, and every one about these kids in
-    # anybody's tray (a teacher's keeps the kid's name). Says how many went.
+    # anybody's tray (a teacher's keeps the kid's name). What they sent to
+    # others stays, without their name. Says how many went.
     async def erase(self, person_ids: list[UUID], student_ids: list[UUID]) -> int:
         async with self._uow_factory() as uow:
             deleted = await uow.notifications.erase(person_ids, student_ids)

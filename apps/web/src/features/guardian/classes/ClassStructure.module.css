@@ -143,7 +143,7 @@
   color: var(--color-iris-deep);
 }
 
-/* The question, the goal and the DBA of the unit together in one pale box,
+/* The question and the DBA of the unit together in one pale box,
    split only by thin lines, so they read as one block. */
 .unitFacts {
   margin-top: 6px;

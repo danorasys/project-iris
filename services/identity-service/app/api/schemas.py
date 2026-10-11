@@ -666,9 +666,11 @@ class DocumentTypeResponse(BaseModel):
     name: str
 
 
-# Deleting the account (HU-91, HU-92) asks for the password again.
+# Deleting the account (HU-91, HU-92) asks for both factors again, right
+# then: the password and a fresh code from the authenticator app.
 class DeleteAccountRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
+    code: str = Field(pattern=r"^\d{6}$")
 
 
 class TotpSetupResponse(BaseModel):

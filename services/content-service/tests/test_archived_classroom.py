@@ -25,7 +25,7 @@ async def test_en_una_clase_archivada_no_se_cambia_nada_pero_se_lee(
     answers = [
         await client.post(
             f"/classrooms/{who.classroom_id}/units",
-            json={"title": "Las plantas", "guiding_question": "¿Cómo crecen?", "learning_goal": "Explico cómo crecen."},
+            json={"title": "Las plantas", "guiding_question": "¿Cómo crecen?"},
             headers=headers,
         ),
         await client.patch(f"/units/{animals['id']}", json={"title": "Otra"}, headers=headers),

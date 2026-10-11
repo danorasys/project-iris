@@ -1,5 +1,5 @@
 import type { NotificationItem } from "@iris/shared-types";
-import { AUTOMATIC_SENDER, isAutomatic } from "@/features/utils/notificationKinds";
+import { AUTOMATIC_SENDER, FORMER_TEACHER, isAutomatic } from "@/features/utils/notificationKinds";
 
 // What a guardian reads for each kind of notification. The server only
 // keeps the facts (the event, the kid, the classroom, who it's from), the
@@ -22,10 +22,11 @@ export function classroomOf(n: NotificationItem): string {
 
 /** Who it's from: IRIS for what it writes by itself (the teacher who did
  * it is named in the text), the teacher in a message, "Tú" in the copy of
- * one the guardian wrote (HU-51). */
+ * one the guardian wrote (HU-51). A teacher who left IRIS has no name. */
 export function senderOf(n: NotificationItem): string {
   if (isAutomatic(n)) return AUTOMATIC_SENDER;
   if (n.event === "message.sent") return "Tú";
+  if (n.sender_left) return FORMER_TEACHER;
   return n.sender_name ?? FALLBACK.sender;
 }
 
@@ -51,7 +52,7 @@ export function notificationSubject(n: NotificationItem): string {
 export function notificationMessage(n: NotificationItem): string {
   const student = studentOf(n);
   const classroom = classroomOf(n);
-  const teacher = n.sender_name ?? "El docente";
+  const teacher = n.sender_left ? "Un docente que ya no está en IRIS" : (n.sender_name ?? "El docente");
   // What the teacher wrote, as they wrote it.
   if (n.event === "teacher.message") return n.body ?? "";
   if (n.event === "message.sent")

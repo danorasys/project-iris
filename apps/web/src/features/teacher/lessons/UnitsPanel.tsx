@@ -133,19 +133,6 @@ export function UnitsPanel({ classroomId, area, onToast, readOnly = false }: Uni
                 <p className={styles.unitEyebrow}>Unidad {unitIndex + 1}</p>
                 <h3 className={styles.unitTitle}>{unit.title}</h3>
                 <p className={styles.unitQuestion}>{unit.guiding_question}</p>
-                {unit.learning_goal ? (
-                  <p className={styles.unitGoal}>
-                    <span className={styles.unitGoalLabel}>Desempeño esperado:</span> {unit.learning_goal}
-                  </p>
-                ) : (
-                  // A unit from before it existed: its lessons can't be
-                  // published until it has one.
-                  !readOnly && (
-                    <MissingNote action="Escribirlo" onFix={() => setUnitDialog({ unit })}>
-                      Falta el desempeño esperado de la unidad: sin él no se pueden publicar sus lecciones.
-                    </MissingNote>
-                  )
-                )}
                 {unit.dba ? (
                   <>
                     <p className={styles.unitGoal}>

@@ -262,7 +262,7 @@ function ProfileEditor({ profile, onDirtyChange }: MiPerfilSectionProps & { prof
       {/* HU-91: with the portal's code, like everything else here. */}
       <DeleteAccountCard
         deleteAccount={{
-          mutateAsync: (password) => withPortalAccess(() => deleteAccount.mutateAsync(password)),
+          mutateAsync: (body) => withPortalAccess(() => deleteAccount.mutateAsync(body)),
           isPending: deleteAccount.isPending,
         }}
         warning="Se eliminan tu cuenta, los perfiles de tus peques, sus consentimientos, su progreso y sus notificaciones, y tus peques salen de todas sus clases."

@@ -305,12 +305,10 @@ async def test_el_progreso_de_un_peque_en_su_clase(
     # And what the class is about, for the family: unit question, purpose and goal.
     assert (
         animals_progress["unit_guiding_question"],
-        animals_progress["unit_learning_goal"],
         animals_progress["purpose"],
         animals_progress["learning_goal"],
     ) == (
         "¿Dónde viven los animales?",
-        "Explico dónde viven algunos animales y por qué.",
         "Hoy vas a aprender qué animales viven en la tierra.",
         "Identifico dónde viven algunos animales.",
     )

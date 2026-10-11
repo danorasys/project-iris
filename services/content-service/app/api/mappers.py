@@ -149,7 +149,6 @@ def unit_response(unit: Unit) -> UnitResponse:
         classroom_id=unit.classroom_id,
         title=unit.title,
         guiding_question=unit.guiding_question,
-        learning_goal=unit.learning_goal,
         dba=unit_dba_response(unit.dba, unit.own_dba_name, unit.dba_points),
         order_index=unit.order_index,
     )
@@ -226,7 +225,6 @@ def lesson_progress_response(progress: LessonProgress) -> LessonProgressResponse
         main=_part_response(progress.main),
         extras=[_part_response(extra) for extra in progress.extras],
         unit_guiding_question=progress.unit_guiding_question,
-        unit_learning_goal=progress.unit_learning_goal,
         purpose=progress.purpose,
         learning_goal=progress.learning_goal,
         unit_dba=unit_dba_response(progress.unit_dba, progress.unit_own_dba_name, progress.unit_dba_points),

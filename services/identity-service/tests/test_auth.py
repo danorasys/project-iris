@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pyotp
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -802,10 +803,13 @@ async def test_usuario_actual_como_estudiante_es_rechazado(client: AsyncClient) 
 async def test_tutor_puede_eliminar_su_cuenta_y_pierde_acceso(client: AsyncClient) -> None:
     registro = await client.post("/auth/guardians", json=_payload_registro_tutor("borrar-cuenta@example.com"))
     access_token = registro.json()["access_token"]
-    await activar_2fa_y_abrir_portal(client, access_token)
+    secret = await activar_2fa_y_abrir_portal(client, access_token)
 
     response = await client.request(
-        "DELETE", "/guardians/me", json={"password": "Clave-Segura-123"}, headers={"Authorization": f"Bearer {access_token}"}
+        "DELETE",
+        "/guardians/me",
+        json={"password": "Clave-Segura-123", "code": pyotp.TOTP(secret).now()},
+        headers={"Authorization": f"Bearer {access_token}"},
     )
     assert response.status_code == 204
 

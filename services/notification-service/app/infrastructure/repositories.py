@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import case, delete, func, select
+from sqlalchemy import case, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities import Notification, NotificationPage
@@ -24,6 +24,8 @@ def _to_entity(m: NotificationModel) -> Notification:
         student_id=m.student_id,
         classroom_name=m.classroom_name,
         sender_name=m.sender_name,
+        sender_id=m.sender_id,
+        sender_left=m.sender_left,
         subject=m.subject,
         body=m.body,
         lesson_id=m.lesson_id,
@@ -95,6 +97,8 @@ class SqlAlchemyNotificationRepository:
                 student_name=notification.student_name,
                 classroom_name=notification.classroom_name,
                 sender_name=notification.sender_name,
+                sender_id=notification.sender_id,
+                sender_left=notification.sender_left,
                 subject=notification.subject,
                 body=notification.body,
                 lesson_id=notification.lesson_id,
@@ -151,6 +155,12 @@ class SqlAlchemyNotificationRepository:
                 NotificationModel.recipient_id.in_(person_ids + student_ids)
                 | NotificationModel.student_id.in_(student_ids)
             )
+        )
+        # What they sent stays in other trays, but without their name.
+        await self._session.execute(
+            update(NotificationModel)
+            .where(NotificationModel.sender_id.in_(person_ids + student_ids))
+            .values(sender_name=None, sender_id=None, sender_left=True)
         )
         return int(getattr(result, "rowcount", 0) or 0)
 

@@ -520,16 +520,44 @@ describe("MiPerfilSection", { timeout: 20_000 }, () => {
       await user.click(screen.getByRole("button", { name: "Eliminar mi cuenta" }));
       const dialog = screen.getByRole("dialog");
       await user.type(within(dialog).getByLabelText(/Tu contraseña/), "Clave-Segura-123");
-      await user.click(within(dialog).getByRole("button", { name: "Eliminar mi cuenta para siempre" }));
+      await user.click(within(dialog).getByRole("button", { name: "Sí, eliminar mi cuenta" }));
       // Without the "entiendo" nothing goes.
       expect(deleteAccount).not.toHaveBeenCalled();
       await user.click(within(dialog).getByLabelText(/Entiendo que mi cuenta se elimina/));
-      await user.click(within(dialog).getByRole("button", { name: "Eliminar mi cuenta para siempre" }));
+      await user.click(within(dialog).getByRole("button", { name: "Sí, eliminar mi cuenta" }));
+      // Last, the code of the authenticator app, in a window on top.
+      expect(deleteAccount).not.toHaveBeenCalled();
+      const codeDialog = screen.getByRole("dialog", { name: "Confirma que eres tú" });
+      await user.type(within(codeDialog).getByLabelText("Dígito 1 de 6"), "123456");
 
       expect(await screen.findByText("Login")).toBeTruthy();
-      expect(deleteAccount).toHaveBeenCalledWith("Clave-Segura-123");
+      expect(deleteAccount).toHaveBeenCalledWith({ password: "Clave-Segura-123", code: "123456" });
       expect(discardSession).toHaveBeenCalled();
       expect(peekLoginNotice()?.title).toBe("Tu cuenta se eliminó");
+    });
+
+    it("takes a wrong password back to its field after the code", async () => {
+      deleteAccount.mockRejectedValue(new ApiError(422, "contrasena_actual_incorrecta", "x"));
+      const user = userEvent.setup();
+      render(
+        <MemoryRouter>
+          <MiPerfilSection onDirtyChange={onDirtyChange} />
+        </MemoryRouter>,
+      );
+
+      await user.click(screen.getByRole("button", { name: "Eliminar mi cuenta" }));
+      const dialog = screen.getByRole("dialog", { name: "Eliminar mi cuenta" });
+      await user.type(within(dialog).getByLabelText(/Tu contraseña/), "otra-clave");
+      await user.click(within(dialog).getByLabelText(/Entiendo que mi cuenta se elimina/));
+      await user.click(within(dialog).getByRole("button", { name: "Sí, eliminar mi cuenta" }));
+      const codeDialog = screen.getByRole("dialog", { name: "Confirma que eres tú" });
+      await user.type(within(codeDialog).getByLabelText("Dígito 1 de 6"), "123456");
+
+      // The code window closes and the password is asked again.
+      await waitFor(() => expect(screen.queryByRole("dialog", { name: "Confirma que eres tú" })).toBeNull());
+      expect((within(dialog).getByLabelText(/Tu contraseña/) as HTMLInputElement).value).toBe("");
+      expect(within(dialog).getByText("La contraseña actual no es correcta.")).toBeTruthy();
+      expect(discardSession).not.toHaveBeenCalled();
     });
   });
 });

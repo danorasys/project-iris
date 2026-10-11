@@ -180,6 +180,10 @@
   cursor: pointer;
 }
 
+.rowMain {
+  --button-focus-halo: inset var(--focus-halo);
+}
+
 .rowMain:focus-visible {
   outline: 2px solid transparent;
   box-shadow: inset var(--focus-halo);
@@ -245,6 +249,7 @@
    one reached with the keyboard. On a touch screen there's no mouse, so
    there it's always shown. */
 .trashButton {
+  --button-focus-halo: var(--focus-halo-danger);
   flex: none;
   display: grid;
   place-items: center;
@@ -442,6 +447,7 @@
 }
 
 .mailDelete {
+  --button-focus-halo: var(--focus-halo-danger);
   color: var(--color-ink-soft);
 }
 

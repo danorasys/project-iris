@@ -139,19 +139,18 @@
   background: var(--color-action-hover);
 }
 
-/* A light red, like the circle of the warning sign: soft background, dark
-   red letters (about 6:1) and a light red border. On hover it fills with
-   the full red and white letters, so it's clear what is about to happen. */
+/* Same as the blue one but in red: filled, white letters (about 5:1) and a
+   darker red on hover, so both dialogs feel like the same button. */
 .dangerButton {
-  border: 2px solid color-mix(in srgb, var(--color-error) 40%, var(--color-surface));
-  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface));
-  color: color-mix(in srgb, var(--color-error) 82%, black);
+  --button-focus-halo: var(--focus-halo-danger);
+  border: 2px solid var(--color-error);
+  background: var(--color-error);
+  color: var(--color-surface);
 }
 
 .dangerButton:hover {
-  border-color: var(--color-error);
-  background: var(--color-error);
-  color: var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-error) 80%, black);
+  background: color-mix(in srgb, var(--color-error) 80%, black);
 }
 
 /* Can't be used yet: a quiet blue-gray instead of a faded button. */

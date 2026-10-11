@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   ChangePasswordRequest,
+  DeleteAccountRequest,
   TeacherAccount,
   TeacherProfile,
   UpdateTeacherAccountRequest,
@@ -56,10 +57,10 @@ export function useUpdateMyTeacherAccount() {
 }
 
 /** `DELETE /teachers/me` (HU-92): the teacher's personal data goes, their
- * classes stay for their kids. Asks for the password again. */
+ * classes stay for their kids. Asks for the password and a fresh 2FA code. */
 export function useDeleteTeacherAccount() {
   return useMutation({
-    mutationFn: (password: string) => apiFetch<void>("/identity/teachers/me", { method: "DELETE", body: { password } }),
+    mutationFn: (body: DeleteAccountRequest) => apiFetch<void>("/identity/teachers/me", { method: "DELETE", body }),
   });
 }
 

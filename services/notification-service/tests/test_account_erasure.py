@@ -90,3 +90,48 @@ async def test_la_familia_sabe_que_su_solicitud_se_cerro(
     assert (closed["event"], closed["classroom_name"]) == ("request.closed", "Ciencias 1A")
     # Nothing for the teacher who left.
     assert await _tray(client, fake_identity_client, teacher, "teacher") == []
+
+
+async def test_si_el_docente_se_va_sus_avisos_quedan_sin_su_nombre(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    teacher, kid, guardian = (str(uuid.uuid4()) for _ in range(3))
+    other_teacher = str(uuid.uuid4())
+    await _record(_event("request.resolved", teacher, kid, guardian, decision="aceptada", teacher_name="Laura Gómez"))
+    await _record(
+        _event(
+            "teacher.message",
+            teacher,
+            kid,
+            guardian,
+            recipient="student",
+            subject="Hola",
+            body="x",
+            teacher_name="Laura Gómez",
+        )
+    )
+    await _record(
+        {
+            "event": "lesson.published",
+            "classroom_id": str(uuid.uuid4()),
+            "teacher_id": teacher,
+            "teacher_name": "Laura Gómez",
+            "lesson_id": str(uuid.uuid4()),
+            "members": [{"enrollment_id": str(uuid.uuid4()), "student_id": kid, "guardian_id": guardian}],
+        }
+    )
+    # Another teacher of the same kid keeps their name.
+    await _record(_event("request.resolved", other_teacher, kid, guardian, decision="aceptada", teacher_name="Pedro"))
+
+    response = await client.post(
+        "/internal/erasures", json={"person_ids": [teacher], "student_ids": []}, headers=_internal()
+    )
+
+    assert response.status_code == 200
+    family = await _tray(client, fake_identity_client, guardian, "guardian")
+    by_sender = sorted((n["sender_name"] or "", n["sender_left"]) for n in family)
+    assert by_sender == [("", True), ("", True), ("Pedro", False)]
+    kid_tray = await _tray(client, fake_identity_client, kid, "student")
+    assert {(n["sender_name"], n["sender_left"]) for n in kid_tray} == {(None, True)}
+    # Who it was is never sent to the web.
+    assert all("sender_id" not in n for n in family + kid_tray)

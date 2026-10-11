@@ -196,6 +196,76 @@
   color: var(--color-ink-soft);
 }
 
+/* A kid with no class yet: the same pale box of the other panels, its icon
+   on a white circle and the steps to join one, each with its number. */
+.noClasses {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-iris-pale) 25%, var(--color-surface));
+}
+
+.noClassesIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-iris-pale);
+  color: var(--color-iris-medium);
+}
+
+.noClassesBody {
+  min-width: 0;
+}
+
+.noClassesTitle {
+  margin: 2px 0 8px;
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  color: var(--color-iris-deep);
+}
+
+.noClassesSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.noClassesSteps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.45;
+  color: var(--color-ink);
+  counter-increment: step;
+}
+
+/* The number of each step in a small blue circle. */
+.noClassesSteps li::before {
+  content: counter(step);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--color-action);
+  color: var(--color-surface);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 /* --- The requests sent (HU-41) --- */
 /* The filters by state: soft pills like the search box, the chosen one in
    the blue of the main buttons, each with how many it has. */

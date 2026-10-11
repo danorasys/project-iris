@@ -76,7 +76,6 @@ async def create_unit(
         user,
         payload.title,
         payload.guiding_question,
-        payload.learning_goal,
         get_correlation_id(),
         _unit_dba(payload.dba),
     )
@@ -94,9 +93,7 @@ async def reorder_units(
 
 @router.patch("/units/{unit_id}", response_model=UnitResponse)
 async def update_unit(unit_id: UUID, payload: UpdateUnitRequest, user: TeacherUser, units: Units) -> UnitResponse:
-    unit = await units.update_unit(
-        unit_id, user, payload.title, payload.guiding_question, payload.learning_goal, _unit_dba(payload.dba)
-    )
+    unit = await units.update_unit(unit_id, user, payload.title, payload.guiding_question, _unit_dba(payload.dba))
     return unit_response(unit)
 
 

@@ -32,7 +32,6 @@ function lesson(
     main: part({ title, ...main }),
     extras,
     unit_guiding_question: "",
-    unit_learning_goal: "",
     purpose: "",
     learning_goal: "",
     unit_dba: null,

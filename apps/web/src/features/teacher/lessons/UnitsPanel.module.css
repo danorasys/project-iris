@@ -278,6 +278,7 @@
 }
 
 .iconDanger {
+  --button-focus-halo: var(--focus-halo-danger);
   color: var(--color-error);
 }
 

@@ -367,11 +367,12 @@ async def test_cada_guardado_con_cambios_queda_registrado(client: AsyncClient) -
 
 
 async def test_eliminar_la_cuenta_borra_su_registro_de_cambios(client: AsyncClient) -> None:
-    token = await _registrar_y_obtener_token(client, "perfil-borrar-registro@example.com", "6000000045")
+    token, secret = await _registrar_con_secreto(client, "perfil-borrar-registro@example.com", "6000000045")
     await client.patch("/guardians/me", json=_perfil(last_name="Gómez"), headers=_headers(token))
     assert len(await _cambios_registrados()) == 1
 
-    respuesta = await client.request("DELETE", "/guardians/me", json={"password": "Clave-Segura-123"}, headers=_headers(token))
+    cuerpo = {"password": "Clave-Segura-123", "code": pyotp.TOTP(secret).now()}
+    respuesta = await client.request("DELETE", "/guardians/me", json=cuerpo, headers=_headers(token))
 
     assert respuesta.status_code == 204
     assert await _cambios_registrados() == []

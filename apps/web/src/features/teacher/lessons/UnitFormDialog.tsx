@@ -20,16 +20,15 @@ interface UnitFormDialogProps {
   onSaved: (message: string) => void;
 }
 
-/** Create or edit a unit (HU-101): its title, the question that guides it,
- * what the kids should manage after all its lessons and, in the areas with
- * DBA, its DBA with its Evidencias de Aprendizaje, all required, like the
- * guiding questions, expected performances and DBA of the MEN sequences. */
+/** Create or edit a unit (HU-101): its title, the question that guides it
+ * and, in the areas with DBA, its DBA with its Evidencias de Aprendizaje,
+ * which say what the unit should achieve. All required, like the guiding
+ * questions and DBA of the MEN sequences. */
 export function UnitFormDialog({ classroomId, unit, area, onClose, onSaved }: UnitFormDialogProps) {
   const editing = unit !== undefined;
   const [title, setTitle] = useState(unit?.title ?? "");
   const [question, setQuestion] = useState(unit?.guiding_question ?? "");
-  const [goal, setGoal] = useState(unit?.learning_goal ?? "");
-  const [errors, setErrors] = useState<{ title?: string; question?: string; goal?: string }>({});
+  const [errors, setErrors] = useState<{ title?: string; question?: string }>({});
   const askDba = hasDba(area);
   const catalog = useClassroomDba(classroomId, askDba);
   const [dba, setDba] = useState<UnitDbaDraft>(() => toUnitDbaDraft(unit?.dba));
@@ -48,16 +47,11 @@ export function UnitFormDialog({ classroomId, unit, area, onClose, onSaved }: Un
         : question.trim().length > LIMITS.guidingQuestion
           ? `La pregunta puede tener máximo ${LIMITS.guidingQuestion} caracteres.`
           : undefined,
-      goal: !goal.trim()
-        ? "Escribe el desempeño esperado de la unidad."
-        : goal.trim().length > LIMITS.learningGoal
-          ? `El desempeño esperado puede tener máximo ${LIMITS.learningGoal} caracteres.`
-          : undefined,
     };
     setErrors(found);
     setTried(true);
-    if (found.title || found.question || found.goal) {
-      document.getElementById(found.title ? "unit-title" : found.question ? "unit-question" : "unit-goal")?.focus();
+    if (found.title || found.question) {
+      document.getElementById(found.title ? "unit-title" : "unit-question")?.focus();
       return false;
     }
     if (askDba && !unitDbaReady(dba)) {
@@ -72,7 +66,6 @@ export function UnitFormDialog({ classroomId, unit, area, onClose, onSaved }: Un
     const body = {
       title: title.trim(),
       guiding_question: question.trim(),
-      learning_goal: goal.trim(),
       ...(askDba && { dba: toUnitDbaBody(dba) }),
     };
     try {
@@ -90,7 +83,7 @@ export function UnitFormDialog({ classroomId, unit, area, onClose, onSaved }: Un
     <FormDialog
       eyebrow="Unidades"
       title={editing ? "Editar unidad" : "Nueva unidad"}
-      intro="Una unidad agrupa las lecciones de un mismo tema, guiadas por una pregunta y con una meta para todas."
+      intro="Una unidad agrupa las lecciones de un mismo tema, guiadas por una pregunta."
       icon={editing ? <IconPencil width={24} height={24} /> : <IconLayers width={26} height={26} />}
       submitLabel={editing ? "Guardar cambios" : "Crear unidad"}
       saving={saving}
@@ -126,22 +119,6 @@ export function UnitFormDialog({ classroomId, unit, area, onClose, onSaved }: Un
         multiline
         rows={2}
         hint="La pregunta que tus estudiantes podrán responder al terminar la unidad."
-      />
-      <CountedTextField
-        id="unit-goal"
-        label="Desempeño esperado de la unidad"
-        value={goal}
-        onChange={(value) => {
-          setGoal(value);
-          setErrors((current) => ({ ...current, goal: undefined }));
-        }}
-        max={LIMITS.learningGoal}
-        error={errors.goal}
-        required
-        disabled={saving}
-        multiline
-        rows={2}
-        hint="Lo que tus estudiantes podrán hacer al terminar todas sus lecciones, a partir del DBA de su grado y área."
       />
       {askDba && (
         <UnitDbaPicker

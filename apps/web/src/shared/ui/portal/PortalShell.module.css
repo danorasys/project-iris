@@ -157,8 +157,14 @@
   transform: scaleY(1);
 }
 
-.navItem:focus-visible {
-  outline-offset: -3px;
+/* The halo of an option goes inside, the sidebar cuts what goes out. And
+   "Cerrar sesión" turns red, so its halo does too. */
+.navItem {
+  --button-focus-halo: inset var(--focus-halo);
+}
+
+.navItemDanger {
+  --button-focus-halo: inset var(--focus-halo-danger);
 }
 
 /* How many notifications are unread, at the end of its option, in the

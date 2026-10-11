@@ -280,6 +280,13 @@ export interface UpdateTeacherAccountRequest {
   truthful_declaration: true;
 }
 
+/** Deleting the account (HU-91, HU-92): both factors again, right then. */
+export interface DeleteAccountRequest {
+  password: string;
+  /** A fresh code from the authenticator app. */
+  code: string;
+}
+
 export interface ChangePasswordRequest {
   current_password: string;
   /** A fresh code from the authenticator app, checked at the same moment. */
@@ -424,10 +431,6 @@ export interface Unit {
   classroom_id: string;
   title: string;
   guiding_question: string;
-  /** What the kids should manage after all its lessons (its expected
-   * performance). "" only in a unit from before it existed: its lessons
-   * can't be published until the teacher writes it. */
-  learning_goal: string;
   /** The DBA its lessons work on with its Evidencias de Aprendizaje, null until it's chosen. */
   dba?: UnitDba | null;
   order_index: number;
@@ -661,11 +664,10 @@ export interface LessonProgress {
   unit_title: string;
   main: PartProgress;
   extras: PartProgress[];
-  /** What the class is about, for the family: the question and goal of its
-   * unit, what the lesson is for and what the kid should manage (from the
-   * DBA). Empty only if content-service is on an older version. */
+  /** What the class is about, for the family: the question of its unit,
+   * what the lesson is for and what the kid should manage after it. Empty
+   * only if content-service is on an older version. */
   unit_guiding_question: string;
-  unit_learning_goal: string;
   purpose: string;
   learning_goal: string;
   /** The DBA of its unit with its Evidencias de Aprendizaje; null when its
@@ -731,6 +733,8 @@ interface NotificationBase {
   student_name: string | null;
   classroom_name: string | null;
   sender_name: string | null;
+  /** Whoever sent it deleted their account, so their name is gone (HU-92). */
+  sender_left?: boolean;
   read: boolean;
   created_at: string;
   /** The conversation a message belongs to (HU-51). Only in messages. */

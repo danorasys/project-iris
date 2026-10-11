@@ -268,11 +268,12 @@ async def test_guardar_un_peque_sin_cambiar_nada_no_registra_nada(client: AsyncC
 
 
 async def test_eliminar_la_cuenta_borra_el_registro_de_cambios_de_sus_peques(client: AsyncClient) -> None:
-    token, student_id = await _tutor_con_peque(client, "peque-borrar@example.com", "8000000024")
+    token, student_id, secret = await _tutor_con_peque_y_secreto(client, "peque-borrar@example.com", "8000000024")
     await client.patch(f"/guardians/me/students/{student_id}", json=_datos(last_name="Gómez"), headers=_headers(token))
     assert len(await _cambios_registrados()) == 1
 
-    respuesta = await client.request("DELETE", "/guardians/me", json={"password": "Clave-Segura-123"}, headers=_headers(token))
+    cuerpo = {"password": "Clave-Segura-123", "code": pyotp.TOTP(secret).now()}
+    respuesta = await client.request("DELETE", "/guardians/me", json=cuerpo, headers=_headers(token))
 
     assert respuesta.status_code == 204
     assert await _cambios_registrados() == []

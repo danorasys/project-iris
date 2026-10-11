@@ -174,18 +174,15 @@ class LessonService:
         async with self._uow_factory() as uow:
             return await self._missing_with_context(uow, lesson, correlation_id, strict=False)
 
-    # The expected performance of its unit (one from before it existed has
-    # to get it first) and, in the areas that have DBA, the DBA of its unit
-    # (of the class's area and grade, or the teacher's own) with at least one
-    # Evidencia de Aprendizaje. strict: when publishing, not knowing the class
-    # stops it (503); in the editor's list it just isn't shown.
+    # In the areas that have DBA, the DBA of its unit (of the class's area and
+    # grade, or the teacher's own) with at least one Evidencia de Aprendizaje.
+    # strict: when publishing, not knowing the class stops it (503); in the
+    # editor's list it just isn't shown.
     async def _missing_with_context(
         self, uow: UnitOfWork, lesson: Lesson, correlation_id: str | None, *, strict: bool
     ) -> list[str]:
         missing = missing_to_publish(lesson)
         unit = await uow.units.get_by_id(lesson.unit_id)
-        if unit is not None and not unit.learning_goal.strip():
-            missing.insert(0, f"Escribe el desempeño esperado de la unidad “{unit.title}”.")
         subject = await self._classroom.subject_of(lesson.classroom_id, correlation_id)
         if subject is None:
             if strict:

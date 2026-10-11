@@ -184,7 +184,6 @@ export interface DbaPointsChoice {
 export interface UnitBody {
   title: string;
   guiding_question: string;
-  learning_goal: string;
   /** Its DBA, one of the catalog (`dba_id`) or the teacher's own
    * (`own_name`), with its evidences, replaced whole: the catalog's (only
    * with a catalog DBA) and the own ones. */

@@ -38,7 +38,6 @@ function unit(id: string, title: string, lessons = [lesson(`${id}-l`, "Lección"
     classroom_id: "c1",
     title,
     guiding_question: `¿Qué hay en ${title}?`,
-    learning_goal: "Aprendo.",
     order_index: 0,
     lessons,
   };
@@ -109,7 +108,6 @@ describe("the lessons of a unit (HU-60)", () => {
         main,
         extras: [],
         unit_guiding_question: "",
-        unit_learning_goal: "",
         purpose: "",
         learning_goal: "",
         unit_dba: null,

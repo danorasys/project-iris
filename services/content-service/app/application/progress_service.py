@@ -248,7 +248,6 @@ class ProgressService:
                     main=part(lesson, None),
                     extras=[part(lesson, extra) for extra in rules.extras_for(lesson, student_id)],
                     unit_guiding_question=unit.guiding_question if unit else "",
-                    unit_learning_goal=unit.learning_goal if unit else "",
                     purpose=lesson.purpose,
                     learning_goal=lesson.learning_goal,
                     unit_dba=unit.dba if unit else None,

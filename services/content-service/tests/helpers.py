@@ -49,7 +49,6 @@ async def unit(client: AsyncClient, who: Teacher, title: str = "Los animales") -
         json={
             "title": title,
             "guiding_question": "¿Dónde viven los animales?",
-            "learning_goal": "Explico dónde viven algunos animales y por qué.",
         },
         headers=auth(who.token),
     )

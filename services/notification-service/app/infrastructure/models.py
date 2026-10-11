@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Index, Integer, String, Uuid
+from sqlalchemy import Boolean, DateTime, Index, Integer, String, Uuid, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.entities import BODY_MAX_LENGTH, SUBJECT_MAX_LENGTH
@@ -44,6 +44,10 @@ class NotificationModel(Base):
     student_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     classroom_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     sender_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Who sender_name names, and if they deleted their account, see
+    # migration 0007.
+    sender_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    sender_left: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     decision: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # A guardian's message to a teacher (HU-48), see migration 0003.
     subject: Mapped[str | None] = mapped_column(String(SUBJECT_MAX_LENGTH), nullable=True)

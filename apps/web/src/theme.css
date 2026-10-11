@@ -35,6 +35,9 @@
   /* Text fields get a blue border and a sky-blue halo instead. */
   --color-focus-halo: #bfe2f5;
   --focus-halo: 0 0 0 4px var(--color-focus-halo);
+  /* The same halo in light red, for the red buttons. */
+  --color-focus-halo-danger: color-mix(in srgb, var(--color-error-v) 28%, white);
+  --focus-halo-danger: 0 0 0 4px var(--color-focus-halo-danger);
   --focus-halo-transition: border-color 160ms ease, box-shadow 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* --- The landing's livelier palette (only the landing and its footer) ---
@@ -218,6 +221,22 @@ img {
 :focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+/* In the portals a button or a link reached with Tab gets the soft halo of
+   the text fields instead of the dark ring: sky blue, or light red on a red
+   button (those set --button-focus-halo). The outline stays, transparent,
+   for the high contrast mode of Windows. */
+:root[data-theme="portal"] :is(button, a[href]):focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: var(--button-focus-halo, var(--focus-halo));
+}
+
+/* A link in the middle of a text has square corners, so its halo gets a
+   little round. :where() leaves it weaker than a link with its own corners. */
+:where(:root[data-theme="portal"] a[href]:focus-visible) {
+  border-radius: 4px;
 }
 
 /* --- Opening and closing a profile field (see withViewTransition) ---

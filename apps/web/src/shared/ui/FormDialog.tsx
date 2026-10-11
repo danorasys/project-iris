@@ -6,13 +6,18 @@ import styles from "./FormDialog.module.css";
 
 interface FormDialogProps {
   /** Small word on top, like "Unidades". */
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   intro: string;
   icon: ReactNode;
   children: ReactNode;
   submitLabel: string;
+  /** What the button says while it works, "Guardando…" if not given. */
+  savingLabel?: string;
   saving: boolean;
+  /** For something that can't be undone: centered, in red like the
+   * ConfirmDialog, with the two buttons the same size. */
+  danger?: boolean;
   /** Shown above the buttons when saving failed. */
   error?: string | null;
   /** Resolves true when it was saved, then the dialog closes by itself. */
@@ -30,7 +35,9 @@ export function FormDialog({
   icon,
   children,
   submitLabel,
+  savingLabel = "Guardando…",
   saving,
+  danger = false,
   error,
   onSubmit,
   onClose,
@@ -49,7 +56,8 @@ export function FormDialog({
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !saving) close();
+      // Not while another window is open on top of it (it's inert then).
+      if (event.key === "Escape" && !saving && !ref.current?.inert) close();
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
@@ -69,13 +77,13 @@ export function FormDialog({
       aria-labelledby={titleId}
       aria-describedby={introId}
     >
-      <form className={styles.card} onSubmit={submit} noValidate>
+      <form className={danger ? `${styles.card} ${styles.danger}` : styles.card} onSubmit={submit} noValidate>
         <header className={styles.header}>
           <span className={styles.badge} aria-hidden="true">
             {icon}
           </span>
           <div className={styles.headerText}>
-            <p className={styles.eyebrow}>{eyebrow}</p>
+            {eyebrow && <p className={styles.eyebrow}>{eyebrow}</p>}
             <h2 id={titleId} className={styles.title}>
               {title}
             </h2>
@@ -101,7 +109,7 @@ export function FormDialog({
               Cancelar
             </button>
             <button type="submit" className={styles.saveButton} disabled={saving}>
-              {saving ? "Guardando…" : submitLabel}
+              {saving ? savingLabel : submitLabel}
             </button>
           </div>
         </footer>

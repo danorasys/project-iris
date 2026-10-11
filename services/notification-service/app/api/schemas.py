@@ -17,8 +17,9 @@ class NotificationOut(BaseModel):
     student_name: str | None
     classroom_name: str | None
     # Who it's from: the guardian who wrote or asked, or the teacher who
-    # answered.
+    # answered. sender_left: they deleted their account, so no name anymore.
     sender_name: str | None
+    sender_left: bool = False
     decision: str | None
     # Only in a message, from a guardian (HU-48) or from the teacher (HU-77).
     subject: str | None = None
@@ -49,6 +50,7 @@ class NotificationOut(BaseModel):
             student_name=notification.student_name,
             classroom_name=notification.classroom_name,
             sender_name=notification.sender_name,
+            sender_left=notification.sender_left,
             decision=notification.decision,
             subject=notification.subject,
             body=notification.body,

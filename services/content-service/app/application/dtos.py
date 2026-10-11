@@ -114,11 +114,9 @@ class LessonProgress:
     unit_title: str
     main: PartProgress
     extras: list[PartProgress]
-    # What the class is about, so the family can see it too: the question
-    # and goal of its unit, what the lesson is for and what the kid should
-    # manage after it.
+    # What the class is about, so the family can see it too: the question of
+    # its unit, what the lesson is for and what the kid should manage after it.
     unit_guiding_question: str = ""
-    unit_learning_goal: str = ""
     purpose: str = ""
     learning_goal: str = ""
     # The DBA of its unit (catalog or own) with its Evidencias de Aprendizaje.

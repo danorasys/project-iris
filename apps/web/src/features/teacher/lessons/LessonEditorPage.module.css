@@ -157,6 +157,7 @@
 }
 
 .delete {
+  --button-focus-halo: var(--focus-halo-danger);
   border: 2px solid color-mix(in srgb, var(--color-error) 35%, var(--color-surface));
   background: var(--color-surface);
   color: var(--color-error);

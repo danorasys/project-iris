@@ -290,3 +290,104 @@
     animation: none;
   }
 }
+
+/* --- danger: something that can't be undone, like deleting the account ---
+   Everything centered like the ConfirmDialog: the icon in red rings on top,
+   the title under it, the close button in the corner, and the two buttons
+   the same size, the red one filled like the blue one of the other windows. */
+.danger {
+  max-width: 520px;
+}
+
+.danger .header {
+  position: relative;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-5) var(--space-3);
+  border-bottom: none;
+  text-align: center;
+  background:
+    radial-gradient(
+      120% 70% at 50% 0%,
+      color-mix(in srgb, var(--color-iris-pale) 70%, transparent) 0%,
+      transparent 60%
+    ),
+    var(--color-surface);
+}
+
+.danger .badge {
+  width: 60px;
+  height: 60px;
+  margin-bottom: var(--space-2);
+  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface));
+  color: var(--color-error);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--color-error) 7%, transparent),
+    0 0 0 7px color-mix(in srgb, var(--color-error) 22%, transparent);
+}
+
+.danger .headerText {
+  margin-left: 0;
+}
+
+.danger .title {
+  font-size: 1.35rem;
+}
+
+.danger .closeButton {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+}
+
+.danger .body {
+  padding-top: var(--space-2);
+}
+
+.danger .footer {
+  flex-direction: column;
+  align-items: stretch;
+  border-top: none;
+  padding-bottom: var(--space-5);
+}
+
+.danger .error {
+  text-align: center;
+}
+
+.danger .buttons {
+  margin-left: 0;
+}
+
+.danger .buttons > button {
+  flex: 1 1 0;
+}
+
+.danger .saveButton {
+  --button-focus-halo: var(--focus-halo-danger);
+  min-width: 0;
+  border-color: var(--color-error);
+  background: var(--color-error);
+}
+
+.danger .saveButton:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-error) 80%, black);
+  background: color-mix(in srgb, var(--color-error) 80%, black);
+}
+
+.danger .saveButton:disabled {
+  border-color: var(--color-action-disabled);
+  background: var(--color-action-disabled);
+}
+
+@media (max-width: 520px) {
+  .danger .header,
+  .danger .body,
+  .danger .footer {
+    padding-inline: var(--space-4);
+  }
+
+  .danger .buttons {
+    flex-direction: column;
+  }
+}

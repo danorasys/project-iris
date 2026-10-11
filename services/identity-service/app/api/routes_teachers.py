@@ -141,12 +141,19 @@ async def delete_my_account(
     payload: DeleteAccountRequest,
     user: VerifiedTeacherDep,
     erasure: Annotated[AccountErasureService, Depends(get_account_erasure_service)],
+    totp: TotpServiceDep,
 ) -> None:
     """Right to erasure (HU-92): the teacher's personal data goes; their
-    classes, lessons and the kids in them stay, without a teacher. Asks for
-    the password again. 503 borrado_no_disponible if another service didn't
-    answer: then nothing is deleted here."""
-    await erasure.delete_teacher(user.subject_id, payload.password)
+    classes, lessons and the kids in them stay, without a teacher. Same as
+    the guardian's: a fresh 2FA code and the password. 503
+    borrado_no_disponible if another service didn't answer: then nothing is
+    deleted here."""
+    await totp.confirm_sensitive_action(user.subject_id, user.session_id, payload.code)
+    try:
+        await erasure.delete_teacher(user.subject_id, payload.password)
+    except DomainError:
+        await totp.release_code(user.subject_id, payload.code)
+        raise
 
 
 @router.get("/me/profile", response_model=TeacherProfileResponse)

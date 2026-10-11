@@ -61,9 +61,6 @@ class UnitModel(Base):
     teacher_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True))
     title: Mapped[str] = mapped_column(String(120))
     guiding_question: Mapped[str] = mapped_column(String(300))
-    # What the kids should manage after the whole unit (migration 0008).
-    # '' only in the units from before, until their teacher writes it.
-    learning_goal: Mapped[str] = mapped_column(String(300))
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     # The DBA its lessons work on (migration 0009): one of the catalog

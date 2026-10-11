@@ -25,7 +25,6 @@ function lesson(title: string, unit: string, extra: Partial<LessonProgress> = {}
     title,
     unit_title: unit,
     unit_guiding_question: `¿Qué sabemos de ${unit.toLowerCase()}?`,
-    unit_learning_goal: `Explico qué sé de ${unit.toLowerCase()}.`,
     purpose: `Hoy vas a conocer ${title.toLowerCase()}.`,
     learning_goal: `Reconozco ${title.toLowerCase()}.`,
     unit_dba: null,
@@ -71,14 +70,13 @@ describe("the structure of a class, for the family", () => {
     expect(screen.getByText(/^Tiene/).textContent).toContain("2 unidades con 3 lecciones");
     // The card on top says what each unit and each lesson tells.
     const overview = screen.getByRole("region", { name: "Cómo está organizada la clase" });
-    expect(within(overview).getByText("Lo que Sofía debería lograr con ella")).toBeTruthy();
     expect(within(overview).getByText("Qué debería lograr al terminarla")).toBeTruthy();
+    // The unit has no goal of its own anymore: its DBA says it.
+    expect(within(overview).queryByText(/debería lograr con ella/)).toBeNull();
     const [animals, plants] = screen.getAllByRole("region", { name: /^Los animales|^Las plantas/ });
     expect(within(animals).getByText("Unidad 1")).toBeTruthy();
     expect(within(animals).getByText("¿Qué sabemos de los animales?")).toBeTruthy();
-    // And what the kid should manage with the whole unit.
-    expect(within(animals).getByText("Qué debería lograr Sofía con esta unidad")).toBeTruthy();
-    expect(within(animals).getByText("Explico qué sé de los animales.")).toBeTruthy();
+    expect(within(animals).queryByText(/con esta unidad/)).toBeNull();
     expect(
       within(animals)
         .getAllByRole("heading", { level: 4 })
@@ -163,7 +161,6 @@ describe("the structure of a class, for the family", () => {
     data = [
       lesson("Animales terrestres", "Los animales", {
         unit_guiding_question: "",
-        unit_learning_goal: "",
         purpose: "",
         learning_goal: "",
         main: part({ has_activity: false, total_pages: 1 }),

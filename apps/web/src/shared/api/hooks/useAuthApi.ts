@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Avatar,
   ChangePasswordRequest,
+  DeleteAccountRequest,
   DocumentType,
   GuardianProfile,
   GuardianRegistrationRequest,
@@ -88,11 +89,10 @@ export interface CreateAdditionalStudentBody {
 }
 
 /** `DELETE /guardians/me` (HU-91): the guardian, their kids and their
- * consents, everywhere in IRIS. Asks for the password again. */
+ * consents, everywhere in IRIS. Asks for the password and a fresh 2FA code. */
 export function useDeleteGuardianAccount() {
   return useMutation({
-    mutationFn: (password: string) =>
-      apiFetch<void>("/identity/guardians/me", { method: "DELETE", body: { password } }),
+    mutationFn: (body: DeleteAccountRequest) => apiFetch<void>("/identity/guardians/me", { method: "DELETE", body }),
   });
 }
 

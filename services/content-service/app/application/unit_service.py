@@ -113,7 +113,6 @@ class UnitService:
         user: ValidatedUser,
         title: str,
         guiding_question: str,
-        learning_goal: str,
         correlation_id: str | None,
         dba: UnitDbaChoice | None = None,
     ) -> Unit:
@@ -126,7 +125,6 @@ class UnitService:
                 teacher_id=user.subject_id,
                 title=title,
                 guiding_question=guiding_question,
-                learning_goal=learning_goal,
                 order_index=await uow.units.count_by_classroom(classroom_id),
                 dba=chosen,
                 own_dba_name=own_name,
@@ -142,7 +140,6 @@ class UnitService:
         user: ValidatedUser,
         title: str | None,
         guiding_question: str | None,
-        learning_goal: str | None = None,
         dba: UnitDbaChoice | None = None,
     ) -> Unit:
         async with self._uow_factory() as uow:
@@ -151,8 +148,6 @@ class UnitService:
                 unit.title = title
             if guiding_question is not None:
                 unit.guiding_question = guiding_question
-            if learning_goal is not None:
-                unit.learning_goal = learning_goal
             if dba is not None:
                 unit.dba, unit.own_dba_name, unit.dba_points = await self._unit_dba(uow, dba)
             await uow.units.update(unit)

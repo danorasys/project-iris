@@ -193,12 +193,20 @@ async def delete_my_account(
     payload: DeleteAccountRequest,
     user: CurrentGuardianDep,
     erasure: Annotated[AccountErasureService, Depends(get_account_erasure_service)],
+    totp: TotpServiceDep,
 ) -> None:
     """Right to erasure (HU-91): the guardian, their kids and consents. The
     kids leave every class and their progress and notifications go too.
-    Asks for the password again. 503 borrado_no_disponible if another
-    service didn't answer: then nothing is deleted here."""
-    await erasure.delete_guardian(user.subject_id, payload.password)
+    Asks for a fresh 2FA code and the password, like changing the password.
+    503 borrado_no_disponible if another service didn't answer: then
+    nothing is deleted here. If the code was right but the rest failed, the
+    code can be used again."""
+    await totp.confirm_sensitive_action(user.subject_id, user.session_id, payload.code)
+    try:
+        await erasure.delete_guardian(user.subject_id, payload.password)
+    except DomainError:
+        await totp.release_code(user.subject_id, payload.code)
+        raise
 
 
 @router.get("/me", response_model=GuardianProfileResponse, dependencies=[PortalAccessDep])

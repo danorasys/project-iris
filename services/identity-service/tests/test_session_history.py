@@ -240,9 +240,10 @@ async def test_cada_cambio_del_perfil_se_cruza_con_la_sesion_que_lo_hizo(client:
 async def test_al_eliminar_la_cuenta_se_va_su_historial(client: AsyncClient) -> None:
     respuesta = await client.post("/auth/guardians", json=payload_registro_tutor("borra-h@example.com", "7100000009"))
     token = respuesta.json()["access_token"]
-    await activar_2fa_y_abrir_portal(client, token)
+    secret = await activar_2fa_y_abrir_portal(client, token)
 
-    deleted = await client.request("DELETE", "/guardians/me", json={"password": "Clave-Segura-123"}, headers=_headers(token))
+    cuerpo = {"password": "Clave-Segura-123", "code": pyotp.TOTP(secret).now()}
+    deleted = await client.request("DELETE", "/guardians/me", json=cuerpo, headers=_headers(token))
     assert deleted.status_code == 204
 
     assert await _sesiones() == []

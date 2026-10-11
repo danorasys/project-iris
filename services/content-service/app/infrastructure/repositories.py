@@ -147,7 +147,6 @@ def _unit_to_entity(m: UnitModel) -> Unit:
         title=m.title,
         guiding_question=m.guiding_question,
         order_index=m.order_index,
-        learning_goal=m.learning_goal,
         dba=_dba_to_entity(m.dba, with_evidences=False) if m.dba is not None else None,
         own_dba_name=m.own_dba_name,
         dba_points=_dba_points(m),
@@ -241,7 +240,6 @@ class SqlAlchemyUnitRepository:
                 teacher_id=unit.teacher_id,
                 title=unit.title,
                 guiding_question=unit.guiding_question,
-                learning_goal=unit.learning_goal,
                 dba_id=unit.dba.id if unit.dba else None,
                 own_dba_name=unit.own_dba_name,
                 order_index=unit.order_index,
@@ -254,7 +252,6 @@ class SqlAlchemyUnitRepository:
         if m is not None:
             m.title = unit.title
             m.guiding_question = unit.guiding_question
-            m.learning_goal = unit.learning_goal
             m.dba_id = unit.dba.id if unit.dba else None
             m.own_dba_name = unit.own_dba_name
             m.order_index = unit.order_index

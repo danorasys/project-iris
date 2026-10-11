@@ -290,11 +290,10 @@ class LessonProgressOut(BaseModel):
     unit_title: str
     main: PartProgressOut
     extras: list[PartProgressOut]
-    # What the class is about, for the family: the question and goal of its
-    # unit, what the lesson is for and what the kid should manage. Empty
-    # while content-service is on a version from before it sent them.
+    # What the class is about, for the family: the question of its unit,
+    # what the lesson is for and what the kid should manage. Empty while
+    # content-service is on a version from before it sent them.
     unit_guiding_question: str = ""
-    unit_learning_goal: str = ""
     purpose: str = ""
     learning_goal: str = ""
     # The DBA of its unit with its Evidencias de Aprendizaje, where the class's

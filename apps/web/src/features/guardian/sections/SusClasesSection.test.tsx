@@ -101,6 +101,24 @@ describe("SusClasesSection", () => {
 
     expect(tileNames()).toEqual(["Agregar clase", "Matemáticas, con Laura Gómez. Ver la clase"]);
     expect(screen.getByRole("heading", { name: "1 clase" })).toBeTruthy();
+    // With a class, the steps to join the first one aren't needed.
+    expect(screen.queryByRole("region", { name: /aún no está en ninguna clase/ })).toBeNull();
+  });
+
+  it("without classes says how to join the first one, step by step", () => {
+    classes = [classOf("Ciencias", { status: "pendiente" })];
+    renderClasses();
+
+    const box = screen.getByRole("region", { name: /aún no está en ninguna clase/ });
+    expect(
+      within(box)
+        .getAllByRole("listitem")
+        .map((step) => step.textContent),
+    ).toEqual([
+      "Pídele al docente el código de ingreso de su clase.",
+      'Toca "Agregar clase" y escribe el código.',
+      "Cuando el docente acepte la solicitud, la clase aparecerá aquí.",
+    ]);
   });
 
   it("opens the window to add a class, and a class's space", async () => {

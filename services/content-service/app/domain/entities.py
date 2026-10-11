@@ -137,10 +137,6 @@ class Unit:
     title: str
     guiding_question: str
     order_index: int
-    # What the kids should manage after all its lessons, from the DBA, like
-    # the expected performances of the MEN sequences. Empty only in the units
-    # from before it existed, and then their lessons can't be published.
-    learning_goal: str = ""
     # The DBA its lessons work on, a goal for the whole unit: one of the
     # catalog (dba, without its evidences) or the teacher's own, with the
     # Evidencias de Aprendizaje the unit works on. Needed to publish its

@@ -95,6 +95,23 @@ describe("notification texts", () => {
     expect(senderOf(n)).toBe("Carlos Ruiz");
   });
 
+  it("doesn't name a teacher who deleted their account (HU-92)", () => {
+    const left = { sender_name: null, sender_left: true };
+    const message: NotificationItem = {
+      ...base,
+      ...left,
+      event: "teacher.message",
+      subject: "Reunión",
+      body: "Hablemos el jueves.",
+      addressee: "guardian",
+    };
+    const accepted: NotificationItem = { ...base, ...left, event: "request.resolved", decision: "aceptada" };
+
+    expect(senderOf(message)).toBe("Docente que ya no está en IRIS");
+    expect(notificationMessage(accepted)).toMatch(/^Un docente que ya no está en IRIS aceptó la solicitud de Sofía/);
+    expect(senderOf(accepted)).toBe("IRIS");
+  });
+
   it("tells about a new lesson and a new extra (HU-83)", () => {
     const lesson = { lesson_id: "l1", lesson_title: "Animales terrestres", extra_title: null };
     const published: NotificationItem = { ...base, ...lesson, event: "lesson.published" };

@@ -9,6 +9,9 @@ const WRITTEN_BY_A_PERSON: ReadonlySet<NotificationItem["event"]> = new Set(["me
 /** Who signs the notices IRIS writes by itself, in every portal. */
 export const AUTOMATIC_SENDER = "IRIS";
 
+/** Who sent it when the teacher deleted their account and their name went with it. */
+export const FORMER_TEACHER = "Docente que ya no está en IRIS";
+
 export function isAutomatic(n: NotificationItem): boolean {
   return !WRITTEN_BY_A_PERSON.has(n.event);
 }

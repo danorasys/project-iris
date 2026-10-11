@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import type { ChangePasswordRequest } from "@iris/shared-types";
+import type { ChangePasswordRequest, DeleteAccountRequest } from "@iris/shared-types";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { PasswordRequirements } from "@/features/auth/ui/PasswordRequirements";
 import { passwordMeetsRequirements } from "@/features/auth/ui/passwordRules";
@@ -299,7 +299,7 @@ function CloseAllSessions() {
 /** What deletes each kind of account (the guardian's and the teacher's go
  * to different routes; the guardian's also needs the portal open). */
 export interface AccountDeleter {
-  mutateAsync: (password: string) => Promise<unknown>;
+  mutateAsync: (body: DeleteAccountRequest) => Promise<unknown>;
   isPending: boolean;
 }
 
@@ -311,38 +311,57 @@ interface DeleteAccountCardProps {
 
 /** HU-91, HU-92: deleting the account for good. It says first what goes
  * and what stays, then asks for the password and an "entiendo" in a
- * window. After it, the session closes and the login says it's done. */
+ * window, and last the 2FA code in another one on top, like changing the
+ * password. After it, the session closes and the login says it's done. */
 export function DeleteAccountCard({ deleteAccount, warning }: DeleteAccountCardProps) {
   const navigate = useNavigate();
   const { discardSession } = useAuth();
   const [open, setOpen] = useState(false);
+  const [askingCode, setAskingCode] = useState(false);
   const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [understood, setUnderstood] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function close() {
     setOpen(false);
+    setAskingCode(false);
     setPassword("");
+    setPasswordError(null);
     setUnderstood(false);
     setError(null);
   }
 
+  // The form only checks what it can by itself, then the code is asked.
   async function submit(): Promise<boolean> {
     setError(null);
+    setPasswordError(null);
     if (!understood) {
       setError("Marca la casilla para confirmar que entiendes que no se puede deshacer.");
       return false;
     }
     if (!password) {
-      setError("Escribe tu contraseña para confirmar.");
+      setPasswordError("Escribe tu contraseña para confirmar.");
       return false;
     }
-    try {
-      await deleteAccount.mutateAsync(password);
-    } catch (err) {
+    setAskingCode(true);
+    return false;
+  }
+
+  // A wrong current password goes back under its field, anything else
+  // that isn't about the code shows above the buttons.
+  function showFormError(err: unknown) {
+    setAskingCode(false);
+    if (err instanceof ApiError && err.code === "contrasena_actual_incorrecta") {
+      setPasswordError(getAuthErrorMessage(err));
+      setPassword("");
+    } else {
       setError(getAuthErrorMessage(err));
-      return false;
     }
+  }
+
+  async function deleteWithCode(code: string) {
+    await deleteAccount.mutateAsync({ password, code });
     // The account and its sessions are gone on the server, only the local copy is left.
     discardSession();
     leaveLoginNotice({
@@ -350,7 +369,6 @@ export function DeleteAccountCard({ deleteAccount, warning }: DeleteAccountCardP
       message: "Borramos tu cuenta y tus datos de IRIS. Gracias por haber estado aquí.",
     });
     navigate("/login/adult", { replace: true });
-    return true;
   }
 
   return (
@@ -360,7 +378,7 @@ export function DeleteAccountCard({ deleteAccount, warning }: DeleteAccountCardP
       title="Eliminar mi cuenta"
       hint="Tu derecho a que borremos tus datos."
     >
-      <div className={styles.sessionsRow}>
+      <div className={`${styles.sessionsRow} ${styles.deleteRow}`}>
         <span className={styles.sessionsText}>{warning}</span>
         <button type="button" className={styles.dangerButton} onClick={() => setOpen(true)}>
           Eliminar mi cuenta
@@ -368,30 +386,46 @@ export function DeleteAccountCard({ deleteAccount, warning }: DeleteAccountCardP
       </div>
       {open && (
         <FormDialog
-          eyebrow="Mi cuenta"
+          danger
           title="Eliminar mi cuenta"
-          intro={`${warning} No se puede deshacer.`}
-          icon={<IconTrash width={24} height={24} />}
-          submitLabel="Eliminar mi cuenta para siempre"
+          intro="Esta acción no se puede deshacer."
+          icon={<IconTrash width={26} height={26} />}
+          submitLabel="Sí, eliminar mi cuenta"
+          savingLabel="Eliminando…"
           saving={deleteAccount.isPending}
           error={error}
           onSubmit={submit}
           onClose={close}
         >
+          {/* What goes, in a soft box so the title stays short. */}
+          <p className={styles.deleteNote}>{warning}</p>
           <TextField
             id="delete-account-password"
             label="Tu contraseña"
             type="password"
             autoComplete="current-password"
             value={password}
-            onChange={setPassword}
+            onChange={(value) => {
+              setPassword(value);
+              setPasswordError(null);
+            }}
             required
             disabled={deleteAccount.isPending}
+            error={passwordError ?? undefined}
           />
           <CheckboxField id="delete-account-understood" checked={understood} onChange={setUnderstood} required>
-            Entiendo que mi cuenta se elimina para siempre y que no se puede deshacer.
+            Entiendo que mi cuenta se elimina para siempre.
           </CheckboxField>
         </FormDialog>
+      )}
+      {askingCode && (
+        <TwoFactorCodeDialog
+          title="Confirma que eres tú"
+          text="Para eliminar tu cuenta, escribe el código de 6 dígitos que muestra tu aplicación autenticadora."
+          onSubmit={deleteWithCode}
+          onCancel={() => setAskingCode(false)}
+          onOtherError={showFormError}
+        />
       )}
     </Card>
   );

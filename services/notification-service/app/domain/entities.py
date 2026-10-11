@@ -67,6 +67,10 @@ class Notification:
     student_id: UUID | None = None
     classroom_name: str | None = None
     sender_name: str | None = None
+    # Who sender_name names (never sent to the web), so their name can be
+    # taken out when they delete their account; then sender_left is true.
+    sender_id: UUID | None = None
+    sender_left: bool = False
     # Only in a message, from a guardian (HU-48) or from the teacher (HU-77).
     subject: str | None = None
     body: str | None = None

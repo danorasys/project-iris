@@ -8,7 +8,7 @@ import { ClassroomBanner } from "@/features/teacher/classrooms/ClassroomBanner";
 import { formatArrival } from "@/features/utils/formatArrival";
 import { useFamilyClassrooms, useLeaveClassroom } from "@/shared/api/hooks/useClassroomsApi";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { IconArchive, IconCheck, IconClock, IconClose, IconPlus, IconSearch } from "@/shared/ui/icons";
+import { IconArchive, IconCheck, IconClassroom, IconClock, IconClose, IconPlus, IconSearch } from "@/shared/ui/icons";
 import { TrayPager } from "@/shared/ui/portal/TrayPager";
 import { Toast } from "@/shared/ui/Toast";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
@@ -190,11 +190,7 @@ function ClassesHome({ studentId, firstName, onOpen, onAdd }: ClassesHomeProps) 
           )}
         </ul>
 
-        {inside.length === 0 && (
-          <p className={styles.emptyText}>
-            {firstName} aún no está en ninguna clase. Pídele al docente el código de ingreso y agrégala aquí.
-          </p>
-        )}
+        {inside.length === 0 && <NoClassesYet firstName={firstName} />}
         {inside.length > 0 && found.length === 0 && (
           <p className={styles.emptyText} role="status">
             Ninguna clase de {firstName} se llama así.
@@ -206,6 +202,28 @@ function ClassesHome({ studentId, firstName, onOpen, onAdd }: ClassesHomeProps) 
 
       <SentRequests requests={own} firstName={firstName} onOpen={onOpen} />
     </>
+  );
+}
+
+// While the kid has no class: a pale box with how to join the first one,
+// step by step, in the same order the family does it.
+function NoClassesYet({ firstName }: { firstName: string }) {
+  return (
+    <section className={styles.noClasses} aria-labelledby="no-classes-title">
+      <span className={styles.noClassesIcon} aria-hidden="true">
+        <IconClassroom width={22} height={22} />
+      </span>
+      <div className={styles.noClassesBody}>
+        <h3 id="no-classes-title" className={styles.noClassesTitle}>
+          {firstName} aún no está en ninguna clase
+        </h3>
+        <ol className={styles.noClassesSteps}>
+          <li>Pídele al docente el código de ingreso de su clase.</li>
+          <li>Toca "Agregar clase" y escribe el código.</li>
+          <li>Cuando el docente acepte la solicitud, la clase aparecerá aquí.</li>
+        </ol>
+      </div>
+    </section>
   );
 }
 
