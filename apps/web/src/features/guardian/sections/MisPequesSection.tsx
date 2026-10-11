@@ -43,7 +43,8 @@ function kidDetails(student: StudentProfile, classes: FamilyClassroom[] | null) 
   const age = ageLabel(student.date_of_birth);
   if (!classes) return { age, classes: null, line: age, label: age, waiting: 0 };
   const own = classes.filter((c) => c.student_id === student.id);
-  const inside = own.filter((c) => c.status === "aceptada").length;
+  // The archived ones (HU-106) don't count, the kid doesn't see them.
+  const inside = own.filter((c) => c.status === "aceptada" && !c.archived_at).length;
   const waiting = own.filter((c) => c.status === "pendiente").length;
   const classesText = inside === 0 ? "sin clases" : inside === 1 ? "1 clase" : `${inside} clases`;
   return {

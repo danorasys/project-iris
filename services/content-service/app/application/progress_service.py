@@ -178,7 +178,7 @@ class ProgressService:
         if user.role != "student":
             raise PermissionDenied("Solo un estudiante ve su propio progreso.")
         if not await self._classroom.verify_access(classroom_id, user.subject_id, "student", correlation_id):
-            raise ResourceNotFound("El aula solicitada no existe.")
+            raise ResourceNotFound("La clase no existe.")
         return await self.classroom_progress(classroom_id, user.subject_id)
 
     # For identity-service, before deleting a guardian (HU-91): everything
@@ -209,7 +209,7 @@ class ProgressService:
     async def classroom_progress(self, classroom_id: UUID, student_id: UUID) -> list[LessonProgress]:
         async with self._uow_factory() as uow:
             lessons = await uow.lessons.list_published_full(classroom_id)
-            units = {u.id: u.title for u in await uow.units.list_by_classroom(classroom_id)}
+            units = {u.id: u for u in await uow.units.list_by_classroom(classroom_id)}
             ids = [lesson.id for lesson in lessons]
             seen = await uow.progress.pages_of(student_id, ids)
             attempts = await uow.progress.attempts_of(student_id, ids)
@@ -237,13 +237,23 @@ class ProgressService:
                 percent=rules.percent_done(pages_seen, total_pages, has_activity, bool(tries)),
             )
 
-        return [
-            LessonProgress(
-                lesson_id=lesson.id,
-                title=lesson.title,
-                unit_title=units.get(lesson.unit_id, ""),
-                main=part(lesson, None),
-                extras=[part(lesson, extra) for extra in rules.extras_for(lesson, student_id)],
+        result: list[LessonProgress] = []
+        for lesson in lessons:
+            unit = units.get(lesson.unit_id)
+            result.append(
+                LessonProgress(
+                    lesson_id=lesson.id,
+                    title=lesson.title,
+                    unit_title=unit.title if unit else "",
+                    main=part(lesson, None),
+                    extras=[part(lesson, extra) for extra in rules.extras_for(lesson, student_id)],
+                    unit_guiding_question=unit.guiding_question if unit else "",
+                    unit_learning_goal=unit.learning_goal if unit else "",
+                    purpose=lesson.purpose,
+                    learning_goal=lesson.learning_goal,
+                    unit_dba=unit.dba if unit else None,
+                    unit_own_dba_name=unit.own_dba_name if unit else None,
+                    unit_dba_points=unit.dba_points if unit else [],
+                )
             )
-            for lesson in lessons
-        ]
+        return result

@@ -46,7 +46,11 @@ def student(identity: FakeIdentityClient, classrooms: FakeClassroomClient, class
 async def unit(client: AsyncClient, who: Teacher, title: str = "Los animales") -> dict[str, Any]:
     response = await client.post(
         f"/classrooms/{who.classroom_id}/units",
-        json={"title": title, "guiding_question": "¿Dónde viven los animales?"},
+        json={
+            "title": title,
+            "guiding_question": "¿Dónde viven los animales?",
+            "learning_goal": "Explico dónde viven algunos animales y por qué.",
+        },
         headers=auth(who.token),
     )
     assert response.status_code == 201, response.text

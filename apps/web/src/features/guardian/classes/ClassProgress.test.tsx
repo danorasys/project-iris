@@ -25,7 +25,18 @@ function lesson(
   main: Partial<PartProgress> = {},
   extras: PartProgress[] = [],
 ): LessonProgress {
-  return { lesson_id: title, title, unit_title: unit, main: part({ title, ...main }), extras };
+  return {
+    lesson_id: title,
+    title,
+    unit_title: unit,
+    main: part({ title, ...main }),
+    extras,
+    unit_guiding_question: "",
+    unit_learning_goal: "",
+    purpose: "",
+    learning_goal: "",
+    unit_dba: null,
+  };
 }
 
 let data: LessonProgress[] | undefined;

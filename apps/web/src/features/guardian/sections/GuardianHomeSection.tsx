@@ -104,7 +104,8 @@ export function GuardianHomeSection({
 
   const kids = students.data ?? [];
   const classes = family.data ?? [];
-  const accepted = classes.filter((c) => c.status === "aceptada");
+  // An archived class (HU-106) isn't one the kid is in now.
+  const accepted = classes.filter((c) => c.status === "aceptada" && !c.archived_at);
   const pending = classes.filter((c) => c.status === "pendiente");
   const lessons = accepted.reduce((total, c) => total + (c.published_lessons ?? 0), 0);
   const loading = students.isLoading || family.isLoading;
@@ -309,7 +310,7 @@ function KidRow({
   onOpen: () => void;
   onOpenClasses: () => void;
 }) {
-  const inClasses = classes.filter((c) => c.status === "aceptada").length;
+  const inClasses = classes.filter((c) => c.status === "aceptada" && !c.archived_at).length;
   const waiting = classes.filter((c) => c.status === "pendiente").length;
 
   return (

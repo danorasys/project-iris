@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, File, Path, Response, UploadFile, status
 
 from app.api.deps import get_lesson_service, require_role
 from app.api.mappers import (
+    dba_response,
     extra_response,
     lesson_detail_response,
     lesson_response,
@@ -17,10 +18,11 @@ from app.api.mappers import (
 )
 from app.api.media import media_response
 from app.api.schemas import (
-    IMAGE_FILE_PATTERN,
     ActivityRequest,
     CreateExtraRequest,
+    DbaResponse,
     ExtraResponse,
+    IMAGE_FILE_PATTERN,
     ImageUploadResponse,
     LessonDetailResponse,
     LessonResponse,
@@ -51,12 +53,24 @@ async def list_lessons(classroom_id: UUID, user: ReaderUser, service: Service) -
     return [lesson_response(lesson) for lesson in lessons]
 
 
+@router.get("/classrooms/{classroom_id}/dba", response_model=list[DbaResponse])
+async def classroom_dba(classroom_id: UUID, user: TeacherUser, service: Service) -> list[DbaResponse]:
+    """The DBA a unit of this class can use: its area and grade (in
+    humanities, those of language and of English), each with its learning
+    evidences. Empty in the areas without DBA. Names and evidences are IRIS's
+    own summaries; the official text is on Colombia Aprende."""
+    result = await service.classroom_dba(classroom_id, user, get_correlation_id())
+    return [dba_response(dba) for dba in result]
+
+
 @router.get("/lessons/{lesson_id}", response_model=LessonDetailResponse)
 async def get_lesson(lesson_id: UUID, user: ReaderUser, service: Service) -> LessonDetailResponse:
     """The lesson with its pages. Its teacher also gets the activity, the
     extras and what's missing to publish it; a kid never gets the answers."""
     lesson = await service.get_lesson(lesson_id, user, get_correlation_id())
-    return lesson_detail_response(lesson, for_teacher=user.role == "teacher")
+    if user.role != "teacher":
+        return lesson_detail_response(lesson, for_teacher=False)
+    return lesson_detail_response(lesson, True, await service.missing_for(lesson, get_correlation_id()))
 
 
 @router.patch("/lessons/{lesson_id}", response_model=LessonDetailResponse)
@@ -67,10 +81,13 @@ async def update_lesson(
     pages. A published lesson only saves complete (422 `leccion_incompleta`)."""
     blocks = to_block_inputs(payload.blocks) if payload.blocks is not None else None
     changes = LessonChanges(
-        unit_id=payload.unit_id, title=payload.title, purpose=payload.purpose, learning_goal=payload.learning_goal
+        unit_id=payload.unit_id,
+        title=payload.title,
+        purpose=payload.purpose,
+        learning_goal=payload.learning_goal,
     )
     lesson = await service.update_lesson(lesson_id, user, changes, blocks)
-    return lesson_detail_response(lesson, for_teacher=True)
+    return lesson_detail_response(lesson, True, await service.missing_for(lesson, get_correlation_id()))
 
 
 @router.delete("/lessons/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
@@ -85,7 +102,7 @@ async def set_activity(
 ) -> LessonDetailResponse:
     """The lesson's questions, replaced whole (HU-80)."""
     lesson = await service.set_activity(lesson_id, user, to_activity_input(payload))
-    return lesson_detail_response(lesson, for_teacher=True)
+    return lesson_detail_response(lesson, True, await service.missing_for(lesson, get_correlation_id()))
 
 
 @router.post("/lessons/{lesson_id}/publish", response_model=LessonDetailResponse)
@@ -93,7 +110,7 @@ async def publish_lesson(lesson_id: UUID, user: TeacherUser, service: Service) -
     """Publishes it for the kids (HU-81) if nothing is missing; otherwise 422
     `leccion_incompleta` with `details.missing`."""
     lesson = await service.publish(lesson_id, user, get_correlation_id())
-    return lesson_detail_response(lesson, for_teacher=True)
+    return lesson_detail_response(lesson, True, await service.missing_for(lesson, get_correlation_id()))
 
 
 @router.post("/lessons/{lesson_id}/extras", response_model=ExtraResponse, status_code=status.HTTP_201_CREATED)

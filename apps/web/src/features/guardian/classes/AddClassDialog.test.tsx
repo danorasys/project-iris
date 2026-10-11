@@ -126,7 +126,11 @@ describe("AddClassDialog", () => {
   it("doesn't let the same request go twice", async () => {
     lookup.mockResolvedValue(preview);
     request.mockRejectedValue(
-      new ApiError(409, "ya_inscrito_o_pendiente", "Ya existe una inscripción pendiente o aceptada para esta aula."),
+      new ApiError(
+        409,
+        "ya_inscrito_o_pendiente",
+        "Tu peque ya está en esta clase o ya tiene una solicitud esperando respuesta.",
+      ),
     );
     renderDialog();
 
@@ -134,7 +138,7 @@ describe("AddClassDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Buscar clase" }));
     await userEvent.click(screen.getByRole("button", { name: "Enviar solicitud" }));
 
-    expect(screen.getByRole("alert").textContent).toContain("Ya existe una inscripción");
+    expect(screen.getByRole("alert").textContent).toContain("Tu peque ya está en esta clase");
     expect(onSent).not.toHaveBeenCalled();
   });
 

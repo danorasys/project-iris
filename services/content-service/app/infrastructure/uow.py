@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db import SessionLocal
 from app.infrastructure.repositories import (
+    SqlAlchemyDbaRepository,
     SqlAlchemyLessonRepository,
     SqlAlchemyProgressRepository,
     SqlAlchemyUnitRepository,
@@ -21,6 +22,7 @@ class SqlAlchemyUnitOfWork:
         self.lessons = SqlAlchemyLessonRepository(self.session)
         self.units = SqlAlchemyUnitRepository(self.session)
         self.progress = SqlAlchemyProgressRepository(self.session)
+        self.dba = SqlAlchemyDbaRepository(self.session)
         return self
 
     async def __aexit__(

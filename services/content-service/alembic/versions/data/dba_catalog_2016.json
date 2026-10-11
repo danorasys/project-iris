@@ -1,0 +1,2219 @@
+{
+ "about": "Catálogo de los Derechos Básicos de Aprendizaje (DBA) del MEN para 1.° a 5.°. Los nombres y las evidencias son resúmenes propios de IRIS, no el texto oficial, que se consulta en Colombia Aprende. Fuentes: DBA Matemáticas V.2, Lenguaje V.2, Ciencias Naturales V.1 y Ciencias Sociales V.1 (MEN y Universidad de Antioquia, 2016) y DBA de Inglés de transición a 5.° (MEN, 2016; ese documento no trae evidencias).",
+ "dba": [
+  {
+   "id": "mathematics-1-1",
+   "subject": "mathematics",
+   "grade": 1,
+   "number": 1,
+   "name": "Para qué sirven los números, la suma y la resta",
+   "evidences": [
+    "Hace dibujos y diagramas para mostrar cómo se relacionan unas cantidades.",
+    "Explica por qué una situación se resuelve con una suma o con una resta.",
+    "Reconoce dónde usa números y operaciones en su vida diaria.",
+    "Resuelve problemas de juntar, quitar y completar cantidades o medidas.",
+    "Usa la suma y la resta para mostrar cómo cambia una cantidad."
+   ]
+  },
+  {
+   "id": "mathematics-1-2",
+   "subject": "mathematics",
+   "grade": 1,
+   "number": 2,
+   "name": "Estrategias para contar, sumar y restar",
+   "evidences": [
+    "Cuenta de uno en uno, de dos en dos y más, empezando en cualquier número.",
+    "Cuenta una colección agrupando de 1 en 1, de 2 en 2 o de 5 en 5.",
+    "Resuelve problemas de suma y resta aunque el número que falta esté en distintos lugares.",
+    "Propone y defiende qué número sigue en una secuencia.",
+    "Usa decenas y unidades para calcular y estimar sumas y restas."
+   ]
+  },
+  {
+   "id": "mathematics-1-3",
+   "subject": "mathematics",
+   "grade": 1,
+   "number": 3,
+   "name": "Decenas y unidades",
+   "evidences": [
+    "Arma y desarma números de dos cifras en decenas y unidades.",
+    "Encuentra parejas de números que sumadas dan un número dado.",
+    "Encuentra el número que tiene diez más o diez menos que otro.",
+    "Suma y resta pasando por el diez."
+   ]
+  },
+  {
+   "id": "mathematics-1-4",
+   "subject": "mathematics",
+   "grade": 1,
+   "number": 4,
+   "name": "Lo que se puede medir",
+   "evidences": [
+    "Reconoce qué se puede medir en un objeto.",
+    "Distingue qué se mide con cada instrumento y unidad: largo, peso, capacidad, tiempo.",
+    "Compara y ordena objetos por altura, peso u otras características, y recorridos por su distancia.",
+    "Compara y ordena colecciones según cuántos elementos tienen."
+   ]
+  },
+  {
+   "id": "mathematics-1-5",
+   "subject": "mathematics",
+   "grade": 1,
+   "number": 5,
+   "name": "Medir con instrumentos y unidades",
+   "evidences": [
+    "Mide longitudes con distintos instrumentos y dice el resultado en unidades comunes.",
+    "Compara objetos por su largo, su peso, su capacidad o lo que dura algo.",
+    "Decide qué hacer a partir de lo que midió."
+   ]
+  },
+  {
+   "id": "mathematics-1-6",
+   "subject": "mathematics",
+   "grade": 1,
+   "number": 6,
+   "name": "Formas planas y sólidas a su alrededor",
+   "evidences": [
+    "Crea, arma y desarma figuras y cuerpos con plastilina, papel, palitos o cajas.",
+    "Describe con palabras la forma de un objeto.",
+    "Agrupa objetos por su forma y tamaño y explica cómo los agrupó.",
+    "Reconoce un objeto cuando otro describe su forma."
+   ]
+  },
+  {
+   "id": "mathematics-1-7",
+   "subject": "mathematics",
+   "grade": 1,
+   "number": 7,
+   "name": "Ubicarse y dar indicaciones en el espacio",
+   "evidences": [
+    "Usa planos sencillos para ubicarse.",
+    "Toma decisiones según dónde están las cosas.",
+    "Dibuja recorridos con giros, a la izquierda y a la derecha.",
+    "Compara distancias en un plano contando pasos o baldosas."
+   ]
+  },
+  {
+   "id": "mathematics-1-8",
+   "subject": "mathematics",
+   "grade": 1,
+   "number": 8,
+   "name": "Notar lo que cambia",
+   "evidences": [
+    "Nombra diferencias entre objetos o grupos de objetos.",
+    "Cuenta las diferencias que encuentra y explica por qué lo son.",
+    "Reconoce cuándo una cantidad depende de otra."
+   ]
+  },
+  {
+   "id": "mathematics-1-9",
+   "subject": "mathematics",
+   "grade": 1,
+   "number": 9,
+   "name": "El signo igual",
+   "evidences": [
+    "Propone números que hacen cierta una igualdad con sumas y restas.",
+    "Describe qué número hace falta para que se cumpla una igualdad.",
+    "Explica por qué, si dos cosas son iguales a una tercera, son iguales entre sí."
+   ]
+  },
+  {
+   "id": "mathematics-1-10",
+   "subject": "mathematics",
+   "grade": 1,
+   "number": 10,
+   "name": "Datos en tablas de conteo y pictogramas",
+   "evidences": [
+    "Reconoce qué se está contando en fichas u objetos.",
+    "Ordena datos en tablas de conteo o en pictogramas sencillos.",
+    "Lee tablas de conteo y pictogramas.",
+    "Responde con los datos cuántos hay, cuál se repite más y cuál menos."
+   ]
+  },
+  {
+   "id": "mathematics-2-1",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 1,
+   "name": "Problemas de suma, resta y multiplicación sencilla",
+   "evidences": [
+    "Hace diagramas para mostrar relaciones de suma y de multiplicación entre cantidades.",
+    "Resuelve problemas de suma y resta aunque el número que falta esté en distintos lugares.",
+    "Reconoce situaciones de suma o de multiplicación e inventa problemas con ellas."
+   ]
+  },
+  {
+   "id": "mathematics-2-2",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 2,
+   "name": "Estrategias para calcular y estimar",
+   "evidences": [
+    "Hace dibujos para relacionar las cantidades de una situación.",
+    "Calcula o estima sumas, restas, multiplicaciones y repartos con sus propias estrategias y las explica."
+   ]
+  },
+  {
+   "id": "mathematics-2-3",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 3,
+   "name": "Comparar y ordenar números",
+   "evidences": [
+    "Ordena números de menor a mayor y al revés, con calculadora, billetes de juguete u otros apoyos.",
+    "Explica qué hacer para que un número siga siendo mayor o menor que otro al operar con ellos.",
+    "Reconoce cuándo hay más, menos o lo mismo, y cómo mantenerlo aunque cambien los números."
+   ]
+  },
+  {
+   "id": "mathematics-2-4",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 4,
+   "name": "Medir para resolver problemas",
+   "evidences": [
+    "Elige el instrumento y la unidad adecuados para medir.",
+    "Explica cómo medir largos, superficies, capacidades, pesos y tiempos.",
+    "Mide con unidades propias y con unidades de uso común.",
+    "Estima medidas en situaciones prácticas."
+   ]
+  },
+  {
+   "id": "mathematics-2-5",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 5,
+   "name": "Medir y estimar con distintas unidades",
+   "evidences": [
+    "Describe objetos y sucesos por lo que se puede medir en ellos.",
+    "Mide con pasos, cuartas, cuadrados o metros.",
+    "Compara cuánto duran distintos sucesos usando el reloj."
+   ]
+  },
+  {
+   "id": "mathematics-2-6",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 6,
+   "name": "Figuras y cuerpos geométricos",
+   "evidences": [
+    "Reconoce las figuras por su número de lados.",
+    "Distingue los cuerpos geométricos.",
+    "Compara figuras planas y cuerpos, y dice en qué se parecen y en qué no."
+   ]
+  },
+  {
+   "id": "mathematics-2-7",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 7,
+   "name": "Líneas y posiciones",
+   "evidences": [
+    "Describe recorridos según la posición de las líneas.",
+    "Dibuja líneas y reconoce cómo se ubican unas respecto a otras.",
+    "Encuentra líneas paralelas, verticales y perpendiculares en dibujos y objetos.",
+    "Explica en qué se diferencian esas posiciones."
+   ]
+  },
+  {
+   "id": "mathematics-2-8",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 8,
+   "name": "Patrones y valores desconocidos",
+   "evidences": [
+    "Reconoce que la resta deshace la suma y al revés.",
+    "Usa distintos caminos para hallar un número que falta."
+   ]
+  },
+  {
+   "id": "mathematics-2-9",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 9,
+   "name": "Números y operaciones que faltan",
+   "evidences": [
+    "Usa las propiedades de las operaciones para hallar el número que falta en una igualdad.",
+    "Encuentra la operación que falta en un cálculo.",
+    "Reconoce que un número se puede escribir de varias formas.",
+    "Prueba y corrige para encontrar valores u operaciones que faltan."
+   ]
+  },
+  {
+   "id": "mathematics-2-10",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 10,
+   "name": "Datos en tablas, pictogramas y gráficos de puntos",
+   "evidences": [
+    "Reconoce cuánto vale cada ficha u objeto en un conteo.",
+    "Ordena datos en tablas de conteo y en pictogramas donde un dibujo vale varios.",
+    "Lee tablas de conteo, pictogramas y gráficos de puntos.",
+    "Responde con los datos cuántos hay, cuál se repite más y cuál menos."
+   ]
+  },
+  {
+   "id": "mathematics-2-11",
+   "subject": "mathematics",
+   "grade": 2,
+   "number": 11,
+   "name": "Lo posible y lo seguro",
+   "evidences": [
+    "Distingue situaciones con resultado seguro de otras con resultado incierto.",
+    "Reconoce resultados posibles e imposibles en situaciones diarias.",
+    "Anticipa si algo va a pasar a partir de lo que ha observado."
+   ]
+  },
+  {
+   "id": "mathematics-3-1",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 1,
+   "name": "Problemas de suma, resta, multiplicación y división",
+   "evidences": [
+    "Hace diagramas para mostrar cómo se relacionan las cantidades de una situación.",
+    "Resuelve problemas de suma, resta, multiplicación y división con medidas y conteos.",
+    "Busca cómo contar todas las combinaciones posibles de unas características.",
+    "Revisa si el resultado de un cálculo tiene sentido en la situación."
+   ]
+  },
+  {
+   "id": "mathematics-3-2",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 2,
+   "name": "Estrategias para estimar y calcular",
+   "evidences": [
+    "Justifica atajos de cálculo: descomponer, completar la decena, duplicar o multiplicar por 10.",
+    "Usa operaciones para calcular medidas de objetos de su entorno.",
+    "Explica qué se puede medir comparando con una unidad y qué se calcula con operaciones."
+   ]
+  },
+  {
+   "id": "mathematics-3-3",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 3,
+   "name": "Comparar cantidades y primeras fracciones",
+   "evidences": [
+    "Mide un objeto con unidades de distinto tamaño y encuentra equivalencias.",
+    "Usa razones y fracciones para comparar dos cantidades.",
+    "Da ejemplos de cantidades que se relacionan según una fracción.",
+    "Usa fracciones para relacionar el todo con sus partes y lo distingue de comparar o igualar."
+   ]
+  },
+  {
+   "id": "mathematics-3-4",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 4,
+   "name": "Área y perímetro",
+   "evidences": [
+    "Decide si en una situación hay que medir el área o el largo.",
+    "Cubre superficies con distintas figuras planas.",
+    "Mide y calcula el área y el perímetro de un rectángulo con la unidad adecuada.",
+    "Explica cómo figuras con el mismo perímetro pueden tener distinta área."
+   ]
+  },
+  {
+   "id": "mathematics-3-5",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 5,
+   "name": "Estimar y medir para resolver problemas",
+   "evidences": [
+    "Compara objetos por su largo, área, capacidad o volumen.",
+    "Estima largos, áreas, volúmenes, pesos y tiempos según lo que necesite.",
+    "Estima medidas con y sin los objetos y los instrumentos a la vista.",
+    "Calcula cuántos objetos caben en una caja según su forma y tamaño."
+   ]
+  },
+  {
+   "id": "mathematics-3-6",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 6,
+   "name": "Formas planas y sólidas y sus propiedades",
+   "evidences": [
+    "Relaciona objetos de su entorno con figuras y cuerpos, y nombra sus partes.",
+    "Clasifica figuras y cuerpos por lo que tienen en común y explica cómo los agrupó.",
+    "Compara y justifica propiedades de figuras y cuerpos."
+   ]
+  },
+  {
+   "id": "mathematics-3-7",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 7,
+   "name": "Posición, dirección y movimiento de figuras",
+   "evidences": [
+    "Encuentra objetos o personas siguiendo la descripción de un recorrido, y lo dibuja.",
+    "Reconoce figuras reflejadas, trasladadas o giradas.",
+    "Reconoce qué cambia y qué se mantiene en una figura al moverla así.",
+    "Resuelve situaciones en las que hay que mover figuras en el plano."
+   ]
+  },
+  {
+   "id": "mathematics-3-8",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 8,
+   "name": "Lo que cambia y lo que se mantiene en una secuencia",
+   "evidences": [
+    "Describe con palabras, gestos, dibujos o gráficas cómo cambia una situación.",
+    "Arma secuencias de números y de figuras siguiendo una regla.",
+    "Encuentra la regla de una secuencia y comprueba si se cumple."
+   ]
+  },
+  {
+   "id": "mathematics-3-9",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 9,
+   "name": "Razonar con datos desconocidos",
+   "evidences": [
+    "Propone soluciones con los datos que tiene aunque no conozca un número.",
+    "Toma decisiones sobre cantidades sin saber su valor exacto.",
+    "Opera con números desconocidos para responder un problema."
+   ]
+  },
+  {
+   "id": "mathematics-3-10",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 10,
+   "name": "Tablas de frecuencia y gráficos de barras",
+   "evidences": [
+    "Reconoce a quiénes describen los datos y cuántos son.",
+    "Arma tablas y gráficos a partir de la información.",
+    "Interpreta tablas y gráficos según la situación.",
+    "Encuentra el dato que más se repite (la moda).",
+    "Compara tablas y gráficos para hacer y responder preguntas."
+   ]
+  },
+  {
+   "id": "mathematics-3-11",
+   "subject": "mathematics",
+   "grade": 3,
+   "number": 11,
+   "name": "Qué tan posible es que algo pase",
+   "evidences": [
+    "Hace y responde preguntas usando imposible, menos posible, igual de posible, más posible o seguro.",
+    "Enumera o dibuja los resultados posibles de una situación de azar sencilla.",
+    "Ubica un suceso en esa escala de posibilidad.",
+    "Anticipa qué tan posible es algo a partir de resultados anteriores."
+   ]
+  },
+  {
+   "id": "mathematics-4-1",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 1,
+   "name": "Los distintos sentidos de una fracción",
+   "evidences": [
+    "Describe situaciones en las que se usan fracciones y decimales.",
+    "Reconoce cuándo dos cantidades cambian juntas y encuentra la razón entre ellas."
+   ]
+  },
+  {
+   "id": "mathematics-4-2",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 2,
+   "name": "Estrategias con números grandes, fracciones y decimales",
+   "evidences": [
+    "Lee, compara y opera números de 10.000 en adelante.",
+    "Suma y resta descomponiendo los números de distintas formas.",
+    "Suma y resta decimales que vienen de fracciones con denominador 10, 100 y así, y explica cómo.",
+    "Encuentra fracciones equivalentes a una fracción dada.",
+    "Busca cómo sumar y restar algunas fracciones."
+   ]
+  },
+  {
+   "id": "mathematics-4-3",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 3,
+   "name": "Comparar fracciones y decimales",
+   "evidences": [
+    "Hace dibujos para comparar fracciones y decimales.",
+    "Explica y usa criterios para saber cuál fracción o decimal es mayor.",
+    "Arma y compara expresiones con decimales y fracciones."
+   ]
+  },
+  {
+   "id": "mathematics-4-4",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 4,
+   "name": "Medir capacidad y masa",
+   "evidences": [
+    "Reconoce que capacidad y masa se miden comparando con recipientes o pesos conocidos.",
+    "Distingue capacidad, masa y volumen por cómo y con qué se miden, y para qué sirven.",
+    "Conoce las unidades e instrumentos de masa y capacidad y los relaciona.",
+    "Describe cómo medir lo que cabe en un recipiente o cuánto pesa algo."
+   ]
+  },
+  {
+   "id": "mathematics-4-5",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 5,
+   "name": "Elegir unidades e instrumentos para medir y calcular",
+   "evidences": [
+    "Expresa una medida en distintas unidades y elige la más conveniente.",
+    "Propone cómo sumar, restar, multiplicar o dividir medidas para resolver problemas.",
+    "Usa la proporcionalidad directa e inversa para resolver situaciones.",
+    "Propone cómo medir con más precisión líquidos, masas y otras cantidades."
+   ]
+  },
+  {
+   "id": "mathematics-4-6",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 6,
+   "name": "Figuras planas y cuerpos sólidos",
+   "evidences": [
+    "Arma, desarma y crea figuras y cuerpos.",
+    "Reconoce qué plantilla plana corresponde a cada cuerpo sólido."
+   ]
+  },
+  {
+   "id": "mathematics-4-7",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 7,
+   "name": "Mover, ampliar y reducir figuras",
+   "evidences": [
+    "Gira, traslada y refleja figuras en el plano.",
+    "Distingue qué pasa al ampliar o reducir una figura.",
+    "Explica cómo cambia una imagen al ampliarla o reducirla.",
+    "Representa objetos de su entorno que cambian de forma."
+   ]
+  },
+  {
+   "id": "mathematics-4-8",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 8,
+   "name": "Cantidades que dependen de otras",
+   "evidences": [
+    "Calcula, organiza en tablas, grafica e interpreta cómo cambia una cantidad.",
+    "Propone patrones de cómo se comportan unos números.",
+    "Opera con números desconocidos para responder un problema."
+   ]
+  },
+  {
+   "id": "mathematics-4-9",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 9,
+   "name": "Patrones y generalizaciones",
+   "evidences": [
+    "Cuenta con palabras y dibujos la regla que ve en una secuencia.",
+    "Busca formas de calcular los siguientes términos de una secuencia.",
+    "Anticipa y justifica un término lejano de una secuencia, como el número 10 o el 100."
+   ]
+  },
+  {
+   "id": "mathematics-4-10",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 10,
+   "name": "Encuestas, tablas de doble entrada y gráficos",
+   "evidences": [
+    "Hace encuestas sencillas para responder una pregunta.",
+    "Arma tablas de doble entrada y gráficos de barras agrupadas, de líneas o pictogramas.",
+    "Lee e interpreta esas tablas y gráficos.",
+    "Encuentra la moda y el rango de los datos y los usa para responder."
+   ]
+  },
+  {
+   "id": "mathematics-4-11",
+   "subject": "mathematics",
+   "grade": 4,
+   "number": 11,
+   "name": "El azar en la vida diaria",
+   "evidences": [
+    "Reconoce situaciones de azar en su vida diaria.",
+    "Dice en qué se diferencia algo que depende del azar de algo que no.",
+    "Usa bien palabras como azar, posibilidad o aleatorio.",
+    "Anticipa los resultados posibles de una situación de azar."
+   ]
+  },
+  {
+   "id": "mathematics-5-1",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 1,
+   "name": "Problemas con naturales, fracciones y potencias",
+   "evidences": [
+    "Representa la relación entre el todo y sus partes con fracciones, razones o cocientes.",
+    "Usa números naturales y fracciones de una situación para resolver problemas.",
+    "Decide qué operaciones hacen falta para resolver un problema.",
+    "Resuelve problemas en los que una medida se repite según un número o una fracción."
+   ]
+  },
+  {
+   "id": "mathematics-5-2",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 2,
+   "name": "Estrategias para calcular potencias",
+   "evidences": [
+    "Justifica atajos para calcular áreas de cuadrados y volúmenes de cubos.",
+    "Descompone un número en sus factores primos.",
+    "Usa las propiedades de las potencias para resolver problemas.",
+    "Explica si una forma de calcular potencias es válida o no."
+   ]
+  },
+  {
+   "id": "mathematics-5-3",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 3,
+   "name": "Comparar y ordenar fracciones",
+   "evidences": [
+    "Ubica fracciones en la recta numérica.",
+    "Explica criterios para ordenar fracciones y decimales."
+   ]
+  },
+  {
+   "id": "mathematics-5-4",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 4,
+   "name": "Superficie, volumen y sus unidades",
+   "evidences": [
+    "Calcula las medidas reales de una figura a partir de un plano.",
+    "Mide superficies y longitudes de distintas maneras: cubriendo, bordeando o calculando.",
+    "Arma y desarma figuras y sólidos con medidas dadas.",
+    "Estima y mide con la unidad adecuada para longitud, área o volumen."
+   ]
+  },
+  {
+   "id": "mathematics-5-5",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 5,
+   "name": "Perímetro y área de las figuras",
+   "evidences": [
+    "Compara figuras por las medidas de sus lados.",
+    "Calcula los lados de una figura a partir de su área.",
+    "Dibuja figuras con las medidas de sus lados dadas.",
+    "Propone cómo resolver problemas de superficie de figuras planas.",
+    "Reconoce que figuras con distinta área pueden tener el mismo perímetro.",
+    "Mide superficies y longitudes de distintas maneras."
+   ]
+  },
+  {
+   "id": "mathematics-5-6",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 6,
+   "name": "Cuerpos, sus plantillas y sus partes",
+   "evidences": [
+    "Relaciona cada cuerpo con la plantilla plana que lo forma.",
+    "Reconoce relaciones dentro de una figura y entre figuras.",
+    "Calcula las medidas reales de una figura a partir de un plano.",
+    "Arma y desarma figuras y sólidos con medidas dadas.",
+    "Mueve figuras en el plano para describirlas y medirlas."
+   ]
+  },
+  {
+   "id": "mathematics-5-7",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 7,
+   "name": "El plano cartesiano",
+   "evidences": [
+    "Ubica puntos en un mapa con coordenadas.",
+    "Reconoce los ejes, los cuadrantes y las coordenadas.",
+    "Ubica un objeto en el plano usando norte, sur, oriente y occidente.",
+    "Usa el plano cartesiano para resolver problemas de ubicación.",
+    "Representa con dibujos y símbolos dónde está un objeto y por dónde se mueve."
+   ]
+  },
+  {
+   "id": "mathematics-5-8",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 8,
+   "name": "Cantidades que dependen de otras",
+   "evidences": [
+    "Propone patrones numéricos y gráficos.",
+    "Calcula, organiza en tablas, grafica e interpreta cómo cambia una cantidad.",
+    "Opera con números desconocidos para responder un problema."
+   ]
+  },
+  {
+   "id": "mathematics-5-9",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 9,
+   "name": "Operaciones inventadas y sus propiedades",
+   "evidences": [
+    "Entiende y aplica operaciones definidas con reglas nuevas.",
+    "Explora qué propiedades tienen esas operaciones.",
+    "Compara sus propiedades con las de la suma, la resta, la multiplicación y la división.",
+    "Resuelve igualdades que usan esas operaciones."
+   ]
+  },
+  {
+   "id": "mathematics-5-10",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 10,
+   "name": "Comparar dos grupos de datos",
+   "evidences": [
+    "Hace preguntas y encuestas y decide a quién preguntar.",
+    "Organiza los datos en tablas y gráficos de barras, de líneas y circulares.",
+    "Elige el gráfico según el tipo de datos.",
+    "Saca conclusiones comparando dos grupos de datos.",
+    "Escribe informes sencillos con esa comparación."
+   ]
+  },
+  {
+   "id": "mathematics-5-11",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 11,
+   "name": "La media y la mediana",
+   "evidences": [
+    "Encuentra la media y la mediana de unos datos con gráficos y cálculos.",
+    "Explica qué dice cada una sobre los datos.",
+    "Elige cuál de las dos representa mejor los datos.",
+    "Justifica su elección comparando lo que muestra cada una."
+   ]
+  },
+  {
+   "id": "mathematics-5-12",
+   "subject": "mathematics",
+   "grade": 5,
+   "number": 12,
+   "name": "Calcular la posibilidad de un suceso",
+   "evidences": [
+    "Reconoce situaciones de azar en su vida diaria.",
+    "Enumera todos los resultados posibles de un experimento de azar sencillo.",
+    "Cuenta los resultados favorables a un suceso.",
+    "Anticipa qué tan probable es un suceso sencillo."
+   ]
+  },
+  {
+   "id": "language-1-1",
+   "subject": "language",
+   "grade": 1,
+   "number": 1,
+   "name": "Los medios de comunicación",
+   "evidences": [
+    "Compara la radio, el periódico, la televisión, las revistas, los afiches e internet.",
+    "Entiende los mensajes de distintos medios.",
+    "Reconoce para qué se usa cada medio en su entorno.",
+    "Describe cómo cambia la voz al dar una noticia, narrar un partido o leer un texto."
+   ]
+  },
+  {
+   "id": "language-1-2",
+   "subject": "language",
+   "grade": 1,
+   "number": 2,
+   "name": "Gestos, imágenes y sonidos que comunican",
+   "evidences": [
+    "Entiende lo que otros quieren decir con gestos y movimientos.",
+    "Interpreta ilustraciones por sus colores, formas y tamaños.",
+    "Representa objetos, personas y lugares con imágenes.",
+    "Reconoce qué comunican la entonación, las pausas y los silencios."
+   ]
+  },
+  {
+   "id": "language-1-3",
+   "subject": "language",
+   "grade": 1,
+   "number": 3,
+   "name": "Jugar y crear con la literatura",
+   "evidences": [
+    "Escucha o lee adivinanzas, retahílas, pregones y acrósticos de su cultura.",
+    "Entiende el sentido de canciones y cuentos de la tradición oral.",
+    "Nota que acrósticos y adivinanzas se escriben de forma distinta.",
+    "Participa con sus compañeros en recitales, cantos y juegos de palabras."
+   ]
+  },
+  {
+   "id": "language-1-4",
+   "subject": "language",
+   "grade": 1,
+   "number": 4,
+   "name": "Primeros pasos para comprender cuentos y poemas",
+   "evidences": [
+    "Comparte lo que siente con un cuento o poema y lo relaciona con su vida.",
+    "Usa las ilustraciones para entender el texto.",
+    "Expresa su opinión con dibujos o canciones y la comparte.",
+    "Reconoce las rimas en textos de la tradición oral y cómo se escriben."
+   ]
+  },
+  {
+   "id": "language-1-5",
+   "subject": "language",
+   "grade": 1,
+   "number": 5,
+   "name": "Escuchar y reconocer de qué se habla",
+   "evidences": [
+    "Reconoce quién habla y dónde en una situación de comunicación.",
+    "Entiende el tema de lo que escucha.",
+    "Separa en palabras lo que escucha.",
+    "Reconoce los sonidos de las palabras para entender lo que oye."
+   ]
+  },
+  {
+   "id": "language-1-6",
+   "subject": "language",
+   "grade": 1,
+   "number": 6,
+   "name": "Leer palabras sencillas e imágenes",
+   "evidences": [
+    "Entiende para qué es un texto apoyándose en su título y sus imágenes.",
+    "Explica en qué se parecen y en qué no lo que dice el texto y lo que muestran las imágenes.",
+    "Lee palabras sencillas.",
+    "Relaciona cada sonido con la letra o letras que le corresponden."
+   ]
+  },
+  {
+   "id": "language-1-7",
+   "subject": "language",
+   "grade": 1,
+   "number": 7,
+   "name": "Hablar sobre temas que le interesan",
+   "evidences": [
+    "Usa palabras adecuadas según con quién y dónde habla.",
+    "Expresa sus ideas con claridad y en orden.",
+    "Practica las palabras que le cuesta pronunciar y se corrige.",
+    "Ajusta el volumen de su voz según quién lo escucha y dónde está."
+   ]
+  },
+  {
+   "id": "language-1-8",
+   "subject": "language",
+   "grade": 1,
+   "number": 8,
+   "name": "Escribir palabras para comunicarse",
+   "evidences": [
+    "Escribe textos cortos para contar algo, dar ideas o pedir algo.",
+    "Expresa ideas sobre un solo tema con las palabras que conoce.",
+    "Hace listas de palabras parecidas y nota en qué se diferencian, como casa, caza y taza.",
+    "Escribe palabras sencillas.",
+    "Relaciona los sonidos con las letras que los representan."
+   ]
+  },
+  {
+   "id": "language-2-1",
+   "subject": "language",
+   "grade": 2,
+   "number": 1,
+   "name": "Los medios de comunicación masiva",
+   "evidences": [
+    "Usa los medios para informarse y dar su punto de vista.",
+    "Compara lo que dicen la radio, la televisión y la prensa.",
+    "Compara cómo presenta la información cada medio.",
+    "Cuenta con claridad lo que vio o escuchó en un medio."
+   ]
+  },
+  {
+   "id": "language-2-2",
+   "subject": "language",
+   "grade": 2,
+   "number": 2,
+   "name": "Señales y símbolos",
+   "evidences": [
+    "Usa las señales de su entorno para informar, prevenir, prohibir o dar instrucciones.",
+    "Relaciona el dibujo de una señal con lo que significa.",
+    "Reconoce para qué están las imágenes en instructivos, carteles y etiquetas."
+   ]
+  },
+  {
+   "id": "language-2-3",
+   "subject": "language",
+   "grade": 2,
+   "number": 3,
+   "name": "Personajes, lugares y acciones de un cuento",
+   "evidences": [
+    "Compara los textos literarios que lee.",
+    "Relaciona personajes, tiempos, lugares y acciones para entender la historia.",
+    "Reconoce las partes principales de un texto literario."
+   ]
+  },
+  {
+   "id": "language-2-4",
+   "subject": "language",
+   "grade": 2,
+   "number": 4,
+   "name": "Comprender cuentos desde su propia vida",
+   "evidences": [
+    "Recuenta lo que pasa y dónde, e imagina nuevas formas de ser de los personajes.",
+    "Anticipa de qué tratará un texto.",
+    "Reconoce el orden de los hechos en una narración.",
+    "Lee en voz alta con buen ritmo, pausas y velocidad."
+   ]
+  },
+  {
+   "id": "language-2-5",
+   "subject": "language",
+   "grade": 2,
+   "number": 5,
+   "name": "Palabras importantes y sonidos de un mensaje",
+   "evidences": [
+    "Reconoce qué quiere lograr quien le habla por las palabras que usa.",
+    "Entiende la idea general de un mensaje.",
+    "Entiende que al cambiar un sonido de una palabra cambia su significado.",
+    "Distingue los sonidos de la lengua de los ruidos del ambiente."
+   ]
+  },
+  {
+   "id": "language-2-6",
+   "subject": "language",
+   "grade": 2,
+   "number": 6,
+   "name": "Anticipar y analizar lo que lee",
+   "evidences": [
+    "Relaciona lo que dice el texto con lo que ya sabe.",
+    "Lee con la fluidez necesaria para entender.",
+    "Entiende el tema de un texto y responde sobre lo dicho y lo que se puede deducir.",
+    "Ordena los hechos de un texto.",
+    "Separa las sílabas de una palabra y reconoce dónde va el acento."
+   ]
+  },
+  {
+   "id": "language-2-7",
+   "subject": "language",
+   "grade": 2,
+   "number": 7,
+   "name": "Expresarse según con quién y dónde habla",
+   "evidences": [
+    "Participa en las conversaciones de su entorno.",
+    "Respeta los turnos para hablar y las ideas de los demás.",
+    "Elige palabras que tengan que ver con lo que quiere decir.",
+    "Pronuncia con claridad palabras con r, rr y q.",
+    "Cambia el ritmo de su voz para dar expresión a sus ideas."
+   ]
+  },
+  {
+   "id": "language-2-8",
+   "subject": "language",
+   "grade": 2,
+   "number": 8,
+   "name": "Escribir con un propósito",
+   "evidences": [
+    "Elige qué tipo de texto escribir según lo que quiere comunicar.",
+    "Elige palabras adecuadas para autorretratos, invitaciones o cartas.",
+    "Escribe oraciones con palabras sencillas y con sílabas más difíciles.",
+    "Agrupa palabras por cómo suenan.",
+    "Escribe b, v, m, n, ñ, r y rr según las reglas de ortografía.",
+    "Separa palabras en sílabas con golpes de voz."
+   ]
+  },
+  {
+   "id": "language-3-1",
+   "subject": "language",
+   "grade": 3,
+   "number": 1,
+   "name": "Para qué sirven los medios de comunicación",
+   "evidences": [
+    "Reconoce para qué sirven el periódico, las revistas, los noticieros, los afiches e internet.",
+    "Compara la información de distintos medios.",
+    "Distingue los formatos en que se presentan los medios que conoce."
+   ]
+  },
+  {
+   "id": "language-3-2",
+   "subject": "language",
+   "grade": 3,
+   "number": 2,
+   "name": "Textos con palabras, sonidos e imágenes",
+   "evidences": [
+    "Reconoce la escultura, la pintura y la danza y las relaciona con su entorno.",
+    "Interpreta caricaturas, tiras cómicas, historietas y anuncios.",
+    "Entiende que algunos textos combinan palabras con gráficos o imágenes.",
+    "Analiza los sonidos que usan distintas expresiones artísticas."
+   ]
+  },
+  {
+   "id": "language-3-3",
+   "subject": "language",
+   "grade": 3,
+   "number": 3,
+   "name": "El narrador y la estructura de una narración",
+   "evidences": [
+    "Distingue los textos de ficción de los que no lo son.",
+    "Comprueba si acertó en lo que anticipó sobre un texto.",
+    "Cuenta sus propias historias escribiendo narraciones.",
+    "Reconoce quién narra la historia.",
+    "Comparte textos con sus compañeros usando entonación, gestos y presencia escénica."
+   ]
+  },
+  {
+   "id": "language-3-4",
+   "subject": "language",
+   "grade": 3,
+   "number": 4,
+   "name": "Escribir cuentos con sentido",
+   "evidences": [
+    "Entiende cómo es un texto que narra un hecho o expresa sentimientos.",
+    "Relaciona en un cuento a los personajes con lo que hacen y dónde están.",
+    "Crea personajes y cuenta cómo son, dónde viven y qué problemas resuelven.",
+    "Planea lo que va a escribir antes de hacerlo.",
+    "Lee en voz alta lo que escribe cambiando la entonación según el personaje."
+   ]
+  },
+  {
+   "id": "language-3-5",
+   "subject": "language",
+   "grade": 3,
+   "number": 5,
+   "name": "Quién habla, quién escucha y para qué",
+   "evidences": [
+    "Relaciona lo que alguien quiere decir con la situación y el papel de cada uno.",
+    "Deduce el significado de palabras nuevas por el contexto.",
+    "Ordena las ideas que entiende de lo que escucha.",
+    "Deduce cosas de quien habla, como su edad o su actitud, por su voz."
+   ]
+  },
+  {
+   "id": "language-3-6",
+   "subject": "language",
+   "grade": 3,
+   "number": 6,
+   "name": "Comprender más allá de lo que dice el texto",
+   "evidences": [
+    "Relaciona un texto con la situación en que se presenta.",
+    "Usa el contexto para deducir información.",
+    "Separa los temas principales de los secundarios.",
+    "Reconoce que cada tipo de texto se organiza de forma distinta."
+   ]
+  },
+  {
+   "id": "language-3-7",
+   "subject": "language",
+   "grade": 3,
+   "number": 7,
+   "name": "Hablar ajustando la voz y los gestos",
+   "evidences": [
+    "Habla para narrar, argumentar, exponer, describir o informar.",
+    "Elige las expresiones más claras para hacerse entender.",
+    "Reconoce el papel de quien habla y de quien escucha.",
+    "Modula la voz según lo que quiere comunicar y juega con los sonidos de las palabras."
+   ]
+  },
+  {
+   "id": "language-3-8",
+   "subject": "language",
+   "grade": 3,
+   "number": 8,
+   "name": "Escribir cuidando la gramática y la ortografía",
+   "evidences": [
+    "Escribe cartas, afiches o cuentos para opinar sobre un problema de su entorno.",
+    "Elige las palabras según a quién escribe y sobre qué.",
+    "Planea su texto cuidando la concordancia y la ortografía.",
+    "Separa en sílabas palabras con hiatos, diptongos y triptongos.",
+    "Tiene en cuenta que un mismo sonido se escribe con distintas letras, como c, s, z o k, q."
+   ]
+  },
+  {
+   "id": "language-4-1",
+   "subject": "language",
+   "grade": 4,
+   "number": 1,
+   "name": "Analizar lo que dicen los medios",
+   "evidences": [
+    "Compara cómo cuentan la radio y la televisión una misma noticia.",
+    "Relaciona textos informativos por qué pasó, a quién, cuándo y dónde.",
+    "Reconoce cómo organizan los medios la información.",
+    "Conversa sobre noticias con claridad y buena pronunciación."
+   ]
+  },
+  {
+   "id": "language-4-2",
+   "subject": "language",
+   "grade": 4,
+   "number": 2,
+   "name": "Escribir a partir de imágenes y conversaciones",
+   "evidences": [
+    "Usa elementos no verbales en sus textos para reforzar lo que quiere decir.",
+    "Entiende lo que comunican sin palabras las canciones, los afiches y las conversaciones.",
+    "Acompaña sus escritos con secuencias de imágenes o dibujos."
+   ]
+  },
+  {
+   "id": "language-4-3",
+   "subject": "language",
+   "grade": 4,
+   "number": 3,
+   "name": "Crear textos literarios a partir de lo que ha leído",
+   "evidences": [
+    "Relaciona una obra con el contexto en que se escribió.",
+    "Reconoce los temas de un texto literario y cómo se relacionan con su vida.",
+    "Usa figuras literarias en lo que escribe.",
+    "Escribe textos de un género literario concreto.",
+    "Comparte en voz alta lo que crea y le añade efectos de sonido."
+   ]
+  },
+  {
+   "id": "language-4-4",
+   "subject": "language",
+   "grade": 4,
+   "number": 4,
+   "name": "Escribir poemas",
+   "evidences": [
+    "Parte de lo que observa a su alrededor para escribir poemas.",
+    "Entiende un poema reconociendo sus figuras literarias.",
+    "Escribe poemas con metáforas, comparaciones y personificaciones.",
+    "Declama poemas con la entonación que expresa sus emociones."
+   ]
+  },
+  {
+   "id": "language-4-5",
+   "subject": "language",
+   "grade": 4,
+   "number": 5,
+   "name": "Entender el tono de quien habla",
+   "evidences": [
+    "Retoma lo que se dice en una discusión para apoyarlo o criticarlo.",
+    "Conversa a partir de lo que ha leído, discutido y vivido en el colegio.",
+    "Reconoce las palabras que marcan el inicio, el desarrollo y el cierre de un discurso.",
+    "Nota el tono y el ánimo de quien habla por su ritmo, sus pausas y su velocidad."
+   ]
+  },
+  {
+   "id": "language-4-6",
+   "subject": "language",
+   "grade": 4,
+   "number": 6,
+   "name": "Organizar la información de lo que lee",
+   "evidences": [
+    "Entiende qué busca comunicar cada tipo de texto.",
+    "Deduce los temas de un texto por lo que dice y dónde circula.",
+    "Reconoce cómo está organizado un texto según su propósito."
+   ]
+  },
+  {
+   "id": "language-4-7",
+   "subject": "language",
+   "grade": 4,
+   "number": 7,
+   "name": "Participar en discusiones",
+   "evidences": [
+    "Participa en conversatorios, exposiciones y tertulias según el tema y el propósito.",
+    "Entiende de qué trata una discusión y da su punto de vista.",
+    "Conduce la conversación según cómo se va desarrollando el tema.",
+    "Usa expresiones, gestos y entonación acordes con lo que quiere comunicar."
+   ]
+  },
+  {
+   "id": "language-4-8",
+   "subject": "language",
+   "grade": 4,
+   "number": 8,
+   "name": "Escribir pensando en el lector y el formato",
+   "evidences": [
+    "Decide qué tipo de texto escribir según su propósito.",
+    "Consulta varias fuentes antes de escribir.",
+    "Hace un plan de escritura con los contenidos de su texto.",
+    "Usa signos de exclamación e interrogación con intención.",
+    "Pone la tilde en palabras agudas, graves y esdrújulas."
+   ]
+  },
+  {
+   "id": "language-5-1",
+   "subject": "language",
+   "grade": 5,
+   "number": 1,
+   "name": "Opinar a partir de lo que dicen los medios",
+   "evidences": [
+    "Describe los elementos de la comunicación.",
+    "Reconoce el papel de quienes participan en los programas de los medios.",
+    "Conversa con sus compañeros sobre lo que transmiten los medios.",
+    "Elige la información según el formato en que se presenta."
+   ]
+  },
+  {
+   "id": "language-5-2",
+   "subject": "language",
+   "grade": 5,
+   "number": 2,
+   "name": "Lo que dicen las imágenes, los símbolos y los gestos",
+   "evidences": [
+    "Deduce lo que comunican emoticones, gestos, fotos y movimientos del cuerpo.",
+    "Compara expresiones artísticas y las formas de ver el mundo de su región.",
+    "Revisa si las imágenes de un texto van de acuerdo con lo que dice."
+   ]
+  },
+  {
+   "id": "language-5-3",
+   "subject": "language",
+   "grade": 5,
+   "number": 3,
+   "name": "Los personajes, el tema y la época de una obra",
+   "evidences": [
+    "Distingue al narrador del autor en lo que lee y escribe.",
+    "Relaciona los temas de las obras que lee con su vida diaria.",
+    "Reconoce las características de los géneros literarios y cómo se relacionan sus partes."
+   ]
+  },
+  {
+   "id": "language-5-4",
+   "subject": "language",
+   "grade": 5,
+   "number": 4,
+   "name": "La literatura amplía su mirada del mundo",
+   "evidences": [
+    "Expresa en lo que escribe y dice lo que ha vivido con sus lecturas.",
+    "Conoce otras culturas leyendo literatura.",
+    "Compara los géneros literarios a partir de lo que lee y escribe."
+   ]
+  },
+  {
+   "id": "language-5-5",
+   "subject": "language",
+   "grade": 5,
+   "number": 5,
+   "name": "Lo dicho y lo no dicho en un mensaje",
+   "evidences": [
+    "Toma una postura crítica y respetuosa frente a los mensajes de su entorno.",
+    "Anticipa lo que dirá alguien por su entonación y por cómo organiza lo que dice.",
+    "Distingue la mesa redonda, el panel, el foro y el debate."
+   ]
+  },
+  {
+   "id": "language-5-6",
+   "subject": "language",
+   "grade": 5,
+   "number": 6,
+   "name": "Para qué fue escrito un texto",
+   "evidences": [
+    "Reconoce para qué sirve socialmente un texto y qué visión del mundo propone.",
+    "Usa estrategias de comprensión para relacionar las partes de un texto.",
+    "Ordena los contenidos de un texto de lo más general a lo más particular."
+   ]
+  },
+  {
+   "id": "language-5-7",
+   "subject": "language",
+   "grade": 5,
+   "number": 7,
+   "name": "Hablar según el contexto y el público",
+   "evidences": [
+    "Sabe cuándo intervenir y cuándo dar la palabra a otros.",
+    "Aprende con otros compartiendo ideas y experiencias en conversaciones.",
+    "Ordena lo que dice de forma lógica según la situación.",
+    "Pronuncia con claridad y lee con fluidez."
+   ]
+  },
+  {
+   "id": "language-5-8",
+   "subject": "language",
+   "grade": 5,
+   "number": 8,
+   "name": "Planear y escribir distintos tipos de texto",
+   "evidences": [
+    "Relaciona lo que quiere decir con el tipo de texto y su propósito.",
+    "Hace planes de escritura para que sus ideas avancen con orden.",
+    "Organiza sus ideas con esquemas y mapas mentales."
+   ]
+  },
+  {
+   "id": "english-1-1",
+   "subject": "english",
+   "grade": 1,
+   "number": 1,
+   "name": "Seguir instrucciones sencillas de clase",
+   "evidences": []
+  },
+  {
+   "id": "english-1-2",
+   "subject": "english",
+   "grade": 1,
+   "number": 2,
+   "name": "Frases sencillas sobre la casa y el colegio",
+   "evidences": []
+  },
+  {
+   "id": "english-1-3",
+   "subject": "english",
+   "grade": 1,
+   "number": 3,
+   "name": "Ordenar los hechos de un cuento corto",
+   "evidences": []
+  },
+  {
+   "id": "english-1-4",
+   "subject": "english",
+   "grade": 1,
+   "number": 4,
+   "name": "Responder preguntas sobre sí mismo",
+   "evidences": []
+  },
+  {
+   "id": "english-1-5",
+   "subject": "english",
+   "grade": 1,
+   "number": 5,
+   "name": "Describir cómo son él y las personas cercanas",
+   "evidences": []
+  },
+  {
+   "id": "english-2-1",
+   "subject": "english",
+   "grade": 2,
+   "number": 1,
+   "name": "Expresar ideas sencillas sobre temas vistos",
+   "evidences": []
+  },
+  {
+   "id": "english-2-2",
+   "subject": "english",
+   "grade": 2,
+   "number": 2,
+   "name": "Entender y volver a contar un cuento corto",
+   "evidences": []
+  },
+  {
+   "id": "english-2-3",
+   "subject": "english",
+   "grade": 2,
+   "number": 3,
+   "name": "Compartir sus datos personales",
+   "evidences": []
+  },
+  {
+   "id": "english-2-4",
+   "subject": "english",
+   "grade": 2,
+   "number": 4,
+   "name": "Hablar de la cultura de su entorno",
+   "evidences": []
+  },
+  {
+   "id": "english-3-1",
+   "subject": "english",
+   "grade": 3,
+   "number": 1,
+   "name": "Entender detalles de textos cortos con imágenes",
+   "evidences": []
+  },
+  {
+   "id": "english-3-2",
+   "subject": "english",
+   "grade": 3,
+   "number": 2,
+   "name": "Responder preguntas sobre textos descriptivos",
+   "evidences": []
+  },
+  {
+   "id": "english-3-3",
+   "subject": "english",
+   "grade": 3,
+   "number": 3,
+   "name": "Intercambiar ideas y opiniones sencillas",
+   "evidences": []
+  },
+  {
+   "id": "english-3-4",
+   "subject": "english",
+   "grade": 3,
+   "number": 4,
+   "name": "Describir objetos, lugares, personas y comunidades",
+   "evidences": []
+  },
+  {
+   "id": "english-4-1",
+   "subject": "english",
+   "grade": 4,
+   "number": 1,
+   "name": "Entender un texto informativo corto",
+   "evidences": []
+  },
+  {
+   "id": "english-4-2",
+   "subject": "english",
+   "grade": 4,
+   "number": 2,
+   "name": "Preguntar y responder quién, cuándo y dónde",
+   "evidences": []
+  },
+  {
+   "id": "english-4-3",
+   "subject": "english",
+   "grade": 4,
+   "number": 3,
+   "name": "Dar su opinión sobre un tema de interés",
+   "evidences": []
+  },
+  {
+   "id": "english-4-4",
+   "subject": "english",
+   "grade": 4,
+   "number": 4,
+   "name": "Comparar personas, objetos y lugares",
+   "evidences": []
+  },
+  {
+   "id": "english-5-1",
+   "subject": "english",
+   "grade": 5,
+   "number": 1,
+   "name": "Entender un texto narrativo corto",
+   "evidences": []
+  },
+  {
+   "id": "english-5-2",
+   "subject": "english",
+   "grade": 5,
+   "number": 2,
+   "name": "Contar una anécdota o historia corta",
+   "evidences": []
+  },
+  {
+   "id": "english-5-3",
+   "subject": "english",
+   "grade": 5,
+   "number": 3,
+   "name": "Compartir hábitos, gustos y preferencias",
+   "evidences": []
+  },
+  {
+   "id": "english-5-4",
+   "subject": "english",
+   "grade": 5,
+   "number": 4,
+   "name": "Explicar causas y consecuencias",
+   "evidences": []
+  },
+  {
+   "id": "natural_sciences-1-1",
+   "subject": "natural_sciences",
+   "grade": 1,
+   "number": 1,
+   "name": "Los sentidos para conocer los objetos",
+   "evidences": [
+    "Usa el sentido adecuado para describir sonidos, sabores, olores, colores, texturas y formas.",
+    "Nota con el tacto qué objetos se calientan más o menos al sol.",
+    "Distingue tipos de luz por su color, su intensidad y de dónde viene.",
+    "Observa cosas pequeñas con lupa y las dibuja."
+   ]
+  },
+  {
+   "id": "natural_sciences-1-2",
+   "subject": "natural_sciences",
+   "grade": 1,
+   "number": 2,
+   "name": "Los materiales y sus usos",
+   "evidences": [
+    "Agrupa materiales de la casa y del colegio, sólidos y líquidos, por lo que percibe de ellos.",
+    "Anticipa para qué puede servir un material según cómo es.",
+    "Escoge qué material usaría para fabricar algo que se necesita.",
+    "Mide y ordena materiales por tamaño con instrumentos sencillos, como las manos, cuerdas o vasos."
+   ]
+  },
+  {
+   "id": "natural_sciences-1-3",
+   "subject": "natural_sciences",
+   "grade": 1,
+   "number": 3,
+   "name": "Seres vivos y objetos sin vida",
+   "evidences": [
+    "Agrupa plantas y animales de su entorno por lo que se ve de ellos y los separa de lo que no tiene vida.",
+    "Compara plantas y animales observándolos con lupa.",
+    "Nombra las partes de una planta y de los animales que conoce.",
+    "Propone cómo cuidar plantas y animales según lo que necesitan."
+   ]
+  },
+  {
+   "id": "natural_sciences-1-4",
+   "subject": "natural_sciences",
+   "grade": 1,
+   "number": 4,
+   "name": "Mi cuerpo cambia al crecer",
+   "evidences": [
+    "Registra cómo cambia su cuerpo (peso, estatura, tamaño de manos y pies) y qué no cambia.",
+    "Imagina cómo será de grande comparando a un niño con un adulto.",
+    "Encuentra parecidos y diferencias físicas con sus compañeros.",
+    "Relaciona sus rasgos físicos con los de sus padres."
+   ]
+  },
+  {
+   "id": "natural_sciences-2-1",
+   "subject": "natural_sciences",
+   "grade": 2,
+   "number": 1,
+   "name": "Las fuerzas deforman los objetos",
+   "evidences": [
+    "Compara cómo cambian de forma objetos de distintos materiales al estirarlos, doblarlos o aplastarlos.",
+    "Ordena los materiales según cuánto resisten a deformarse.",
+    "Anticipa qué acción hace falta para deformar un material de cierta manera y lo cuenta."
+   ]
+  },
+  {
+   "id": "natural_sciences-2-2",
+   "subject": "natural_sciences",
+   "grade": 2,
+   "number": 2,
+   "name": "Sólidos, líquidos y gases",
+   "evidences": [
+    "Agrupa materiales de su entorno en sólidos, líquidos o gases por cómo se comportan.",
+    "Compara líquidos como el agua, el aceite y la miel por cómo fluyen y se ven.",
+    "Muestra que el aire es un material aunque no se vea, por ejemplo al soplar o abanicar."
+   ]
+  },
+  {
+   "id": "natural_sciences-2-3",
+   "subject": "natural_sciences",
+   "grade": 2,
+   "number": 3,
+   "name": "Plantas y animales en su ambiente",
+   "evidences": [
+    "Agrupa plantas y animales por cómo se mueven, qué comen y cómo se protegen.",
+    "Explica cómo el cuerpo de una planta o un animal le ayuda a vivir donde vive.",
+    "Anticipa con experimentos sencillos qué pasa si una planta o un animal no tiene lo que necesita.",
+    "Relaciona cómo son los seres vivos con el lugar donde habitan."
+   ]
+  },
+  {
+   "id": "natural_sciences-2-4",
+   "subject": "natural_sciences",
+   "grade": 2,
+   "number": 4,
+   "name": "El ciclo de vida de plantas y animales",
+   "evidences": [
+    "Dibuja cómo cambia una planta con el tiempo: germina, florece y da frutos.",
+    "Dibuja cómo cambia un animal con el tiempo: crece y se reproduce."
+   ]
+  },
+  {
+   "id": "natural_sciences-3-1",
+   "subject": "natural_sciences",
+   "grade": 3,
+   "number": 1,
+   "name": "La luz y los materiales",
+   "evidences": [
+    "Compara en un experimento cuánta luz dejan pasar distintos materiales y elige uno para un uso concreto.",
+    "Escoge dónde poner una luz para iluminar toda una superficie, sabiendo que viaja en línea recta.",
+    "Explica cómo cuidar los ojos de la luz directa, como la del sol o la de un láser."
+   ]
+  },
+  {
+   "id": "natural_sciences-3-2",
+   "subject": "natural_sciences",
+   "grade": 3,
+   "number": 2,
+   "name": "Las sombras",
+   "evidences": [
+    "Anticipa dónde aparecerá una sombra según dónde estén la luz y el objeto.",
+    "Mueve la luz o el objeto para agrandar o achicar una sombra.",
+    "Explica con tablas lo que mide sobre el tamaño de la sombra al cambiar la distancia a la luz."
+   ]
+  },
+  {
+   "id": "natural_sciences-3-3",
+   "subject": "natural_sciences",
+   "grade": 3,
+   "number": 3,
+   "name": "El sonido y cómo viaja",
+   "evidences": [
+    "Muestra que el sonido es una vibración con cuerdas, tambores o flautas.",
+    "Compara sonidos graves y agudos, fuertes y débiles.",
+    "Compara cómo se debilita el sonido en el agua, el aire o los sólidos, y con la distancia.",
+    "Ordena materiales según cuánto apagan un sonido."
+   ]
+  },
+  {
+   "id": "natural_sciences-3-4",
+   "subject": "natural_sciences",
+   "grade": 3,
+   "number": 4,
+   "name": "La temperatura y los cambios de estado del agua",
+   "evidences": [
+    "Anticipa con experimentos qué le pasa al agua al calentarla o enfriarla.",
+    "Explica situaciones diarias de cambio de estado, como la evaporación o un vidrio empañado.",
+    "Mide masa, volumen y temperatura del agua con balanza, probeta y termómetro."
+   ]
+  },
+  {
+   "id": "natural_sciences-3-5",
+   "subject": "natural_sciences",
+   "grade": 3,
+   "number": 5,
+   "name": "Lo vivo y lo no vivo en un ecosistema",
+   "evidences": [
+    "Distingue en un ecosistema de su región los seres vivos de la luz, el agua, el suelo y el aire.",
+    "Describe cómo se relacionan las plantas y los animales con esos elementos sin vida.",
+    "Anticipa qué les pasa a los seres vivos si cambia uno de esos elementos."
+   ]
+  },
+  {
+   "id": "natural_sciences-3-6",
+   "subject": "natural_sciences",
+   "grade": 3,
+   "number": 6,
+   "name": "Cómo se relacionan los seres vivos",
+   "evidences": [
+    "Da ejemplos de relaciones entre seres vivos, como la competencia, la depredación o el parasitismo.",
+    "Explica cómo el camuflaje ayuda a algunos animales a sobrevivir.",
+    "Anticipa qué pasa con un ecosistema si cambian sus condiciones o una de sus poblaciones.",
+    "Describe las relaciones con otros seres vivos que necesitan las personas para vivir."
+   ]
+  },
+  {
+   "id": "natural_sciences-4-1",
+   "subject": "natural_sciences",
+   "grade": 4,
+   "number": 1,
+   "name": "Las fuerzas cambian el movimiento",
+   "evidences": [
+    "Describe qué fuerza hace falta para frenar, acelerar o cambiar de dirección un objeto.",
+    "Muestra con experiencias cuándo una fuerza no cambia el movimiento de un objeto.",
+    "Cuenta cómo la fricción frena los objetos en superficies distintas.",
+    "Anticipa en qué superficie un objeto se mantiene más tiempo en movimiento."
+   ]
+  },
+  {
+   "id": "natural_sciences-4-2",
+   "subject": "natural_sciences",
+   "grade": 4,
+   "number": 2,
+   "name": "Las máquinas simples",
+   "evidences": [
+    "Explora cómo cambia el esfuerzo al mover el punto de apoyo o alargar una palanca.",
+    "Describe qué hacen las fuerzas dentro de una máquina simple.",
+    "Encuentra máquinas simples en objetos diarios y explica para qué sirven.",
+    "Reconoce palancas en su propio cuerpo, formadas por huesos y músculos."
+   ]
+  },
+  {
+   "id": "natural_sciences-4-3",
+   "subject": "natural_sciences",
+   "grade": 4,
+   "number": 3,
+   "name": "El día y la noche",
+   "evidences": [
+    "Dibuja la sombra de un objeto al sol en distintos momentos del día.",
+    "Explica el día y la noche con una maqueta de la Tierra y el Sol.",
+    "Registra en tablas el ciclo del día y la noche y cuenta lo que encontró."
+   ]
+  },
+  {
+   "id": "natural_sciences-4-4",
+   "subject": "natural_sciences",
+   "grade": 4,
+   "number": 4,
+   "name": "Las fases de la Luna",
+   "evidences": [
+    "Dibuja la forma de la Luna a lo largo del mes y explica cómo cambia.",
+    "Anticipa qué fase se verá desde la Tierra según dónde estén el Sol, la Tierra y la Luna."
+   ]
+  },
+  {
+   "id": "natural_sciences-4-5",
+   "subject": "natural_sciences",
+   "grade": 4,
+   "number": 5,
+   "name": "Las mezclas y cómo separarlas",
+   "evidences": [
+    "Clasifica una mezcla como homogénea o heterogénea por cuántas partes se ven.",
+    "Elige cómo separar una mezcla según cómo son sus componentes.",
+    "Anticipa qué tipo de mezcla saldrá al juntar ciertos materiales.",
+    "Compara ventajas y desventajas de filtrar, tamizar, decantar o evaporar."
+   ]
+  },
+  {
+   "id": "natural_sciences-4-6",
+   "subject": "natural_sciences",
+   "grade": 4,
+   "number": 6,
+   "name": "Cadenas y redes alimenticias",
+   "evidences": [
+    "Reconoce los niveles de una cadena alimenticia y qué papel cumple cada uno.",
+    "Anticipa qué les pasa a las demás poblaciones si se altera un nivel.",
+    "Representa cadenas, pirámides o redes alimenticias."
+   ]
+  },
+  {
+   "id": "natural_sciences-4-7",
+   "subject": "natural_sciences",
+   "grade": 4,
+   "number": 7,
+   "name": "Ecosistemas terrestres y acuáticos",
+   "evidences": [
+    "Distingue ecosistemas terrestres y acuáticos de distintos lugares y sus características.",
+    "Explica cómo la temperatura, la humedad, el suelo o la altura afectan a quienes viven allí.",
+    "Representa los ecosistemas de su región y propone cómo cuidarlos."
+   ]
+  },
+  {
+   "id": "natural_sciences-5-1",
+   "subject": "natural_sciences",
+   "grade": 5,
+   "number": 1,
+   "name": "El circuito eléctrico",
+   "evidences": [
+    "Arma circuitos sencillos con pilas, cables y bombillos, motores o timbres, y los dibuja con sus símbolos.",
+    "Encuentra y arregla lo que falla en un circuito que no funciona.",
+    "Reconoce los efectos de un circuito: luz y calor, movimiento o sonido."
+   ]
+  },
+  {
+   "id": "natural_sciences-5-2",
+   "subject": "natural_sciences",
+   "grade": 5,
+   "number": 2,
+   "name": "Conductores y aislantes",
+   "evidences": [
+    "Prueba con circuitos sencillos qué materiales conducen la electricidad.",
+    "Separa materiales en conductores y aislantes según cómo funcionan en un circuito.",
+    "Explica por qué los cables son de metal por dentro y de plástico por fuera.",
+    "Comprueba con el tacto que las partes de un circuito se calientan al funcionar."
+   ]
+  },
+  {
+   "id": "natural_sciences-5-3",
+   "subject": "natural_sciences",
+   "grade": 5,
+   "number": 3,
+   "name": "Órganos, tejidos y células",
+   "evidences": [
+    "Explica de qué están hechos los sistemas de su cuerpo y para qué sirven.",
+    "Relaciona cómo funciona un tejido con el tipo de células que tiene.",
+    "Relaciona el cuidado de su cuerpo con la buena alimentación y la higiene."
+   ]
+  },
+  {
+   "id": "natural_sciences-5-4",
+   "subject": "natural_sciences",
+   "grade": 5,
+   "number": 4,
+   "name": "La nutrición y los sistemas del cuerpo",
+   "evidences": [
+    "Explica el recorrido de los alimentos en el cuerpo hasta que los nutrientes llegan a las células.",
+    "Relaciona los dientes y el estómago de distintos animales con lo que comen.",
+    "Explica por qué al hacer ejercicio se acelera el corazón y la respiración.",
+    "Explica cómo pasa el oxígeno del aire a la sangre en los pulmones."
+   ]
+  },
+  {
+   "id": "social_sciences-1-1",
+   "subject": "social_sciences",
+   "grade": 1,
+   "number": 1,
+   "name": "Ubicarse con su cuerpo y los puntos cardinales",
+   "evidences": [
+    "Relaciona izquierda, derecha, adelante y atrás con los puntos cardinales en un dibujo del colegio.",
+    "Dibuja las instituciones deportivas, educativas, religiosas y políticas de su barrio o vereda.",
+    "Ubica en un dibujo de su barrio la tienda, la iglesia, el parque o la escuela con los puntos cardinales.",
+    "Describe el camino de su casa al colegio y los lugares importantes que hay en él."
+   ]
+  },
+  {
+   "id": "social_sciences-1-2",
+   "subject": "social_sciences",
+   "grade": 1,
+   "number": 2,
+   "name": "El paisaje del lugar donde vive",
+   "evidences": [
+    "Reconoce las formas del relieve de su entorno, como montañas, valles, llanuras o costas.",
+    "Distingue el clima por el calor o el frío que siente y por las épocas de lluvia y sequía.",
+    "Reconoce obras construidas en su comunidad y para qué sirven.",
+    "Representa problemas ambientales que afectan a su barrio o vereda."
+   ]
+  },
+  {
+   "id": "social_sciences-1-3",
+   "subject": "social_sciences",
+   "grade": 1,
+   "number": 3,
+   "name": "El tiempo personal: antes, ahora y después",
+   "evidences": [
+    "Nombra en orden los días de la semana y los meses del año.",
+    "Distingue ayer, hoy y mañana en sus actividades y lee la hora en el reloj.",
+    "Dice qué miembros de su familia nacieron antes o después que él."
+   ]
+  },
+  {
+   "id": "social_sciences-1-4",
+   "subject": "social_sciences",
+   "grade": 1,
+   "number": 4,
+   "name": "Cambios en su vida, su familia y su entorno",
+   "evidences": [
+    "Cuenta sucesos del salón, como su entrada al colegio o celebraciones, distinguiendo antes y ahora.",
+    "Señala cambios recientes en su comunidad y para qué se hicieron.",
+    "Describe los grupos a los que pertenece: familia, colegio y vecindario.",
+    "Hace preguntas sobre hechos importantes de su comunidad.",
+    "Recuerda los cumpleaños de sus familiares y amigos y compara sus edades."
+   ]
+  },
+  {
+   "id": "social_sciences-1-5",
+   "subject": "social_sciences",
+   "grade": 1,
+   "number": 5,
+   "name": "Ser único y parte de grupos",
+   "evidences": [
+    "Expresa rasgos físicos y emocionales que lo hacen único.",
+    "Compara sus gustos, costumbres y formas de comunicarse con las de sus compañeros.",
+    "Reconoce cualidades suyas, de sus compañeros y de su familia que ayudan a convivir.",
+    "Conoce las costumbres de su comunidad por los relatos de los abuelos y los mayores."
+   ]
+  },
+  {
+   "id": "social_sciences-1-6",
+   "subject": "social_sciences",
+   "grade": 1,
+   "number": 6,
+   "name": "Formas de habitar y tipos de vivienda",
+   "evidences": [
+    "Dice de dónde viene su familia y cómo llegó a su casa actual.",
+    "Nombra los materiales de su casa y cómo están repartidos los cuartos.",
+    "Reconoce viviendas de su comunidad que son patrimonio y deben cuidarse.",
+    "Valora su casa como el lugar donde su familia lo cuida y protege."
+   ]
+  },
+  {
+   "id": "social_sciences-1-7",
+   "subject": "social_sciences",
+   "grade": 1,
+   "number": 7,
+   "name": "Acuerdos y normas para metas comunes",
+   "evidences": [
+    "Expresa lo que piensa y siente sobre las normas de la casa y del salón.",
+    "Da su opinión y ayuda a construir acuerdos para convivir.",
+    "Propone soluciones a conflictos en su familia y en el salón.",
+    "Reconoce la importancia de trabajar en equipo para lograr metas."
+   ]
+  },
+  {
+   "id": "social_sciences-1-8",
+   "subject": "social_sciences",
+   "grade": 1,
+   "number": 8,
+   "name": "Convivir respetándose a sí mismo y a los demás",
+   "evidences": [
+    "Valora lo que hace único a cada compañero, como su origen, su edad o sus ideas.",
+    "Reconoce lo que lo hace igual a los demás según los deberes y derechos del manual de convivencia.",
+    "Identifica situaciones de maltrato y sabe a quién pedir ayuda.",
+    "Participa en acciones para convivir bien en casa y en el colegio."
+   ]
+  },
+  {
+   "id": "social_sciences-2-1",
+   "subject": "social_sciences",
+   "grade": 2,
+   "number": 1,
+   "name": "El paisaje cambia por las acciones humanas",
+   "evidences": [
+    "Nombra las formas del relieve, como montañas, valles, llanuras e islas, y las de su localidad.",
+    "Opina sobre paisajes de fotos y revistas y dice cuáles prefiere.",
+    "Dibuja o hace maquetas del paisaje de su municipio con materiales a su alcance.",
+    "Explica cómo han cambiado el paisaje los cultivos, las carreteras y las construcciones."
+   ]
+  },
+  {
+   "id": "social_sciences-2-2",
+   "subject": "social_sciences",
+   "grade": 2,
+   "number": 2,
+   "name": "Orientarse con los puntos cardinales",
+   "evidences": [
+    "Relaciona el salón con otros lugares del colegio en dibujos o planos con los puntos cardinales.",
+    "Dibuja las rutas que siguen sus compañeros para llegar a la escuela.",
+    "Mide distancias con pasos u otras medidas y dice qué está cerca o lejos.",
+    "Da indicaciones para llegar a un lugar con izquierda, derecha y los puntos cardinales."
+   ]
+  },
+  {
+   "id": "social_sciences-2-3",
+   "subject": "social_sciences",
+   "grade": 2,
+   "number": 3,
+   "name": "Las fuentes de la memoria familiar",
+   "evidences": [
+    "Describe cómo era su familia antes de que él naciera.",
+    "Cuenta de dónde vienen los miembros de su familia y cómo llegaron a su municipio.",
+    "Ordena datos de su historia con su registro civil y hace su árbol genealógico."
+   ]
+  },
+  {
+   "id": "social_sciences-2-4",
+   "subject": "social_sciences",
+   "grade": 2,
+   "number": 4,
+   "name": "Cómo nos transportamos antes y ahora",
+   "evidences": [
+    "Reconoce cómo han cambiado los medios de transporte según los relatos de su familia.",
+    "Clasifica las formas de transportarse según el medio que usan.",
+    "Describe el transporte que más usa y sus ventajas y desventajas.",
+    "Representa cómo se mueve la gente en su comunidad y qué tiene de bueno y de malo."
+   ]
+  },
+  {
+   "id": "social_sciences-2-5",
+   "subject": "social_sciences",
+   "grade": 2,
+   "number": 5,
+   "name": "Los trabajos de su comunidad",
+   "evidences": [
+    "Reconoce los trabajos con que las personas de su comunidad se sostienen.",
+    "Describe el trabajo de los adultos de su casa y cómo beneficia a la familia.",
+    "Compara los oficios de los abuelos con los de hoy y los del campo con los de la ciudad.",
+    "Rechaza el trabajo infantil y explica por qué."
+   ]
+  },
+  {
+   "id": "social_sciences-2-6",
+   "subject": "social_sciences",
+   "grade": 2,
+   "number": 6,
+   "name": "Las viviendas de aquí y de otros lugares",
+   "evidences": [
+    "Reconoce viviendas rurales y urbanas por sus materiales.",
+    "Describe con imágenes las viviendas de distintos grupos étnicos.",
+    "Reconoce cómo cambian las viviendas con el tiempo.",
+    "Describe ventajas y desventajas de vivir en el campo o en la ciudad."
+   ]
+  },
+  {
+   "id": "social_sciences-2-7",
+   "subject": "social_sciences",
+   "grade": 2,
+   "number": 7,
+   "name": "Cómo se organiza el territorio de su municipio",
+   "evidences": [
+    "Reconoce el mapa de su municipio entre los demás del departamento.",
+    "Ubica con los puntos cardinales las comunas, veredas o territorios indígenas de su municipio.",
+    "Nombra lugares de su municipio y dice si están en la zona urbana o rural."
+   ]
+  },
+  {
+   "id": "social_sciences-2-8",
+   "subject": "social_sciences",
+   "grade": 2,
+   "number": 8,
+   "name": "Rechazar la exclusión y la discriminación",
+   "evidences": [
+    "Describe la diversidad de los grupos humanos y propone cómo convivir mejor en el salón.",
+    "Compara las comidas favoritas de su familia y los juegos favoritos de sus compañeros.",
+    "Distingue grupos pequeños, como la familia, de grupos grandes, como el resguardo o el municipio.",
+    "Expresa cómo se siente al ser excluido o aceptado y valora aceptar a los demás.",
+    "Reconoce acciones que discriminan y sabe a quién pedir ayuda."
+   ]
+  },
+  {
+   "id": "social_sciences-3-1",
+   "subject": "social_sciences",
+   "grade": 3,
+   "number": 1,
+   "name": "Los océanos, los mares y los pueblos de la costa",
+   "evidences": [
+    "Nombra los continentes y océanos y las actividades de las zonas costeras.",
+    "Reconoce los mares como partes de los océanos que sirven de límite entre países.",
+    "Pregunta por los problemas ambientales de los océanos y cómo afectan a la gente de la costa.",
+    "Relaciona si su región tiene costa con las ventajas y desventajas de tenerla."
+   ]
+  },
+  {
+   "id": "social_sciences-3-2",
+   "subject": "social_sciences",
+   "grade": 3,
+   "number": 2,
+   "name": "Recursos naturales y trabajos de su región",
+   "evidences": [
+    "Reconoce los recursos de su región: suelo, clima, plantas, animales y agua.",
+    "Reconoce actividades de su región como la agricultura, la pesca, la industria o la minería.",
+    "Describe cómo se organizan las personas y las empresas para aprovechar esos recursos.",
+    "Explica por qué algunos productos no se dan en ciertos climas y valora a quienes producen alimentos."
+   ]
+  },
+  {
+   "id": "social_sciences-3-3",
+   "subject": "social_sciences",
+   "grade": 3,
+   "number": 3,
+   "name": "Cómo cambia el territorio con la gente y las obras",
+   "evidences": [
+    "Reconoce qué ha cambiado y qué se mantiene en la escuela, la plaza o el mercado.",
+    "Distingue los cambios que trajeron obras como carreteras, parques o acueductos.",
+    "Investiga en distintas fuentes si la población de su lugar ha crecido o disminuido.",
+    "Reconoce problemas sociales causados por el uso de los recursos naturales."
+   ]
+  },
+  {
+   "id": "social_sciences-3-4",
+   "subject": "social_sciences",
+   "grade": 3,
+   "number": 4,
+   "name": "El legado cultural de su región",
+   "evidences": [
+    "Reconoce objetos, herramientas, construcciones y documentos que cuentan el pasado de su región.",
+    "Describe costumbres que aprende de sus abuelos y que lo hacen parte de su comunidad y su país.",
+    "Compara las fiestas de los municipios de su departamento: origen, propósito y participantes.",
+    "Describe la variedad de comidas de las regiones de su departamento."
+   ]
+  },
+  {
+   "id": "social_sciences-3-5",
+   "subject": "social_sciences",
+   "grade": 3,
+   "number": 5,
+   "name": "El tiempo en la vida de su comunidad",
+   "evidences": [
+    "Describe cuánto tiempo dedica su familia a trabajar, estudiar, jugar o leer.",
+    "Organiza sus actividades y las de su familia con el calendario.",
+    "Compara lo que hizo el año pasado con lo que hace ahora y lo que quiere hacer el próximo.",
+    "Hace esquemas del tiempo que toma producir un producto típico de su región."
+   ]
+  },
+  {
+   "id": "social_sciences-3-6",
+   "subject": "social_sciences",
+   "grade": 3,
+   "number": 6,
+   "name": "Los grupos humanos de su región y sus aportes",
+   "evidences": [
+    "Describe los grupos humanos de su región: afrodescendientes, raizales, indígenas, gitanos o mestizos.",
+    "Describe las expresiones culturales de esos grupos.",
+    "Reconoce la diversidad cultural de Colombia y los aportes de cada grupo.",
+    "Saca conclusiones sobre la situación de los indígenas de su región con distintas fuentes."
+   ]
+  },
+  {
+   "id": "social_sciences-3-7",
+   "subject": "social_sciences",
+   "grade": 3,
+   "number": 7,
+   "name": "Participar en el gobierno escolar",
+   "evidences": [
+    "Conoce cómo se elige el gobierno escolar y por qué es importante elegir y ser elegido.",
+    "Reconoce el papel de los representantes y del consejo estudiantil.",
+    "Compara las propuestas de los candidatos a personero.",
+    "Explica cómo funciona el consejo directivo de su colegio."
+   ]
+  },
+  {
+   "id": "social_sciences-3-8",
+   "subject": "social_sciences",
+   "grade": 3,
+   "number": 8,
+   "name": "Cómo funciona el departamento",
+   "evidences": [
+    "Distingue las autoridades del departamento de las del municipio y los resguardos.",
+    "Explica cómo el gobierno departamental mejora la educación, la salud y las obras públicas.",
+    "Opina sobre los problemas que ve en las elecciones de su región.",
+    "Propone acciones del departamento para mejorar la convivencia y la paz."
+   ]
+  },
+  {
+   "id": "social_sciences-4-1",
+   "subject": "social_sciences",
+   "grade": 4,
+   "number": 1,
+   "name": "Límites y fronteras de Colombia",
+   "evidences": [
+    "Reconoce los límites de Colombia en un mapa político.",
+    "Describe actividades económicas y culturales con los países vecinos.",
+    "Explica por qué las fronteras son lugares de encuentro y documenta hechos recientes con los vecinos.",
+    "Compara los límites y el tamaño de los departamentos de Colombia."
+   ]
+  },
+  {
+   "id": "social_sciences-4-2",
+   "subject": "social_sciences",
+   "grade": 4,
+   "number": 2,
+   "name": "La ciudad y el campo",
+   "evidences": [
+    "Reconoce en mapas los usos del suelo de la ciudad y los del campo.",
+    "Identifica cómo ha cambiado el uso del suelo en ciudades y zonas rurales en los últimos años.",
+    "Compara cuántas personas viven en las ciudades y cuántas en el campo.",
+    "Explica por qué hoy la gente se concentra más en las ciudades."
+   ]
+  },
+  {
+   "id": "social_sciences-4-3",
+   "subject": "social_sciences",
+   "grade": 4,
+   "number": 3,
+   "name": "La tecnología cambia la vida en Colombia",
+   "evidences": [
+    "Explica cómo se vivía sin luz eléctrica, acueducto ni teléfono.",
+    "Relaciona hospitales, vacunas y medicamentos con el bienestar de las familias.",
+    "Describe la importancia de los medios de comunicación en la política y la cultura del país.",
+    "Opina cómo el teléfono, la televisión e internet han cambiado la vida en familia."
+   ]
+  },
+  {
+   "id": "social_sciences-4-4",
+   "subject": "social_sciences",
+   "grade": 4,
+   "number": 4,
+   "name": "Los pueblos que habitaban el territorio antes de los españoles",
+   "evidences": [
+    "Reconoce y ubica los pueblos indígenas de las familias chibcha, caribe y arawak.",
+    "Compara cómo se organizaban muiscas, taironas, calimas y zenúes.",
+    "Investiga el legado de las comunidades indígenas y cómo viven hoy.",
+    "Explica por qué disminuyó la población indígena con la llegada de los europeos."
+   ]
+  },
+  {
+   "id": "social_sciences-4-5",
+   "subject": "social_sciences",
+   "grade": 4,
+   "number": 5,
+   "name": "La diversidad étnica y cultural de Colombia",
+   "evidences": [
+    "Reconoce las características de los grupos humanos del país.",
+    "Explica costumbres de esos grupos en su comida, su vivienda y su forma de ver el mundo.",
+    "Describe cómo el intercambio entre culturas ha formado la manera de ser colombiana.",
+    "Valora preservar las expresiones culturales de todos los grupos para una sociedad más justa."
+   ]
+  },
+  {
+   "id": "social_sciences-4-6",
+   "subject": "social_sciences",
+   "grade": 4,
+   "number": 6,
+   "name": "La división de poderes en Colombia",
+   "evidences": [
+    "Distingue las ramas legislativa, ejecutiva y judicial y por qué se equilibran.",
+    "Reconoce con casos la importancia del voto.",
+    "Explica las responsabilidades de los cargos de elección popular, del personero al presidente.",
+    "Describe para qué sirven la Procuraduría, la Contraloría y la Defensoría del Pueblo."
+   ]
+  },
+  {
+   "id": "social_sciences-4-7",
+   "subject": "social_sciences",
+   "grade": 4,
+   "number": 7,
+   "name": "Derechos de la niñez y deberes para convivir",
+   "evidences": [
+    "Describe los derechos de la niñez y rechaza la discriminación y el abuso.",
+    "Se reconoce con derechos y deberes en la vida de su colegio.",
+    "Sabe a qué personas e instituciones acudir para defender sus derechos, como el ICBF o la comisaría de familia.",
+    "Describe situaciones en que se vulneran los derechos de los niños y propone soluciones."
+   ]
+  },
+  {
+   "id": "social_sciences-4-8",
+   "subject": "social_sciences",
+   "grade": 4,
+   "number": 8,
+   "name": "Las necesidades básicas y el bienestar",
+   "evidences": [
+    "Reconoce las necesidades básicas (vivienda, alimentación, salud, educación y empleo) y si se cubren en su comunidad.",
+    "Ordena por importancia las necesidades básicas de la gente en Colombia hoy.",
+    "Reconoce factores económicos, sociales y políticos que influyen en cubrirlas.",
+    "Propone qué puede hacer la comunidad para cubrir esas necesidades."
+   ]
+  },
+  {
+   "id": "social_sciences-5-1",
+   "subject": "social_sciences",
+   "grade": 5,
+   "number": 1,
+   "name": "La organización del territorio y las regiones de Colombia",
+   "evidences": [
+    "Explica las divisiones del territorio: corregimiento, municipio, departamento, región y territorio indígena.",
+    "Reconoce los distritos y en qué se diferencian de los municipios y las capitales.",
+    "Distingue en mapas las regiones geográficas de Colombia.",
+    "Relaciona los pisos térmicos con los recursos, los cultivos y las actividades de cada región."
+   ]
+  },
+  {
+   "id": "social_sciences-5-2",
+   "subject": "social_sciences",
+   "grade": 5,
+   "number": 2,
+   "name": "La ubicación de Colombia y su economía",
+   "evidences": [
+    "Identifica en mapas la ubicación de Colombia, sus límites y sus fronteras de tierra y de mar.",
+    "Relaciona la latitud, la altura y la cercanía al mar con la variedad de climas.",
+    "Explica qué es la órbita geoestacionaria y por qué importa para las telecomunicaciones.",
+    "Se pregunta por la importancia para el país de tener dos océanos."
+   ]
+  },
+  {
+   "id": "social_sciences-5-3",
+   "subject": "social_sciences",
+   "grade": 5,
+   "number": 3,
+   "name": "La tecnología cambia la forma de comunicarnos",
+   "evidences": [
+    "Explica la importancia de la comunicación para Colombia en los siglos XX y XXI.",
+    "Compara los medios que usaban sus padres de niños con los que él usa.",
+    "Argumenta cómo los medios facilitan informarse y aprender.",
+    "Discute cómo usar los medios con respeto al relacionarse con otros."
+   ]
+  },
+  {
+   "id": "social_sciences-5-4",
+   "subject": "social_sciences",
+   "grade": 5,
+   "number": 4,
+   "name": "La Colonia en la Nueva Granada",
+   "evidences": [
+    "Compara las instituciones coloniales, como la Real Audiencia o el Virreinato, con las de hoy.",
+    "Distingue la encomienda, la mita y el resguardo y cómo cambiaron.",
+    "Explica los grupos sociales de la Colonia y cómo influyeron en la sociedad actual.",
+    "Examina con varias fuentes el papel de la religión católica en la vida colonial."
+   ]
+  },
+  {
+   "id": "social_sciences-5-5",
+   "subject": "social_sciences",
+   "grade": 5,
+   "number": 5,
+   "name": "El nacimiento de Colombia como república",
+   "evidences": [
+    "Se pregunta por los antecedentes de la independencia, como la revolución de los comuneros.",
+    "Explica cómo nació la república y cómo cambió la vida económica y social.",
+    "Reconoce en mapas cómo han cambiado las fronteras de Colombia desde el siglo XIX.",
+    "Relaciona el origen de los partidos políticos con las luchas de ideas del siglo XIX."
+   ]
+  },
+  {
+   "id": "social_sciences-5-6",
+   "subject": "social_sciences",
+   "grade": 5,
+   "number": 6,
+   "name": "Colombia en la primera mitad del siglo XX",
+   "evidences": [
+    "Explica cómo la radio, la prensa y los ferrocarriles cambiaron la economía y la sociedad.",
+    "Reconoce con distintas fuentes la influencia de los partidos liberal y conservador.",
+    "Identifica las consecuencias de conflictos como la Guerra de los Mil Días y la violencia partidista.",
+    "Participa en debates y propone acciones para una cultura de paz."
+   ]
+  },
+  {
+   "id": "social_sciences-5-7",
+   "subject": "social_sciences",
+   "grade": 5,
+   "number": 7,
+   "name": "Derechos, deberes y convivencia en la Constitución",
+   "evidences": [
+    "Describe las ventajas de vivir en un Estado democrático según la Constitución de 1991.",
+    "Reconoce con casos los derechos fundamentales y cómo aplican en su vida.",
+    "Compara los derechos y deberes de la Constitución con los del manual de convivencia.",
+    "Explica para qué sirve conocer sus derechos y cómo reclamarlos."
+   ]
+  },
+  {
+   "id": "social_sciences-5-8",
+   "subject": "social_sciences",
+   "grade": 5,
+   "number": 8,
+   "name": "Las organizaciones sociales y los derechos humanos",
+   "evidences": [
+    "Explica qué hacen los cabildos y las juntas de acción comunal por la comunidad.",
+    "Reconoce la importancia de proteger los derechos de las comunidades con los mecanismos de la Constitución.",
+    "Describe cómo funcionan la Personería y la Defensoría del Pueblo.",
+    "Participa en proyectos de su colegio por el bien común y la solidaridad."
+   ]
+  }
+ ]
+}

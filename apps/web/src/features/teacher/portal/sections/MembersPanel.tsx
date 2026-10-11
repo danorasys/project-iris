@@ -11,13 +11,15 @@ import styles from "../portalSection.module.css";
 interface MembersPanelProps {
   classroom: ClassroomWithStudents;
   onToast: (message: string) => void;
+  /** An archived class (HU-105): the members are only listed. */
+  readOnly?: boolean;
 }
 
 /** "Miembros" of a classroom (HU-75): each student with their guardian's
  * name and contact, "Escribir" (HU-77) and "Retirar" (HU-76), which asks
  * first. Requests still waiting are on top, to accept or reject them right
- * here too. */
-export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
+ * here too. An archived class has none waiting and no buttons. */
+export function MembersPanel({ classroom, onToast, readOnly = false }: MembersPanelProps) {
   const requests = useClassroomRequests(classroom.id);
   const resolve = useResolveRequest();
   const removeStudent = useRemoveStudent();
@@ -112,10 +114,12 @@ export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
               <IconChild width={24} height={24} />
             </span>
             <p className={styles.emptyTitle}>Aún no hay estudiantes en esta clase</p>
-            <p className={styles.emptyText}>
-              Comparte el código de ingreso {classroom.enrollment_code} con las familias. Cuando un tutor lo use, verás
-              aquí su solicitud.
-            </p>
+            {!readOnly && (
+              <p className={styles.emptyText}>
+                Comparte el código de ingreso {classroom.enrollment_code} con las familias. Cuando un tutor lo use,
+                verás aquí su solicitud.
+              </p>
+            )}
           </div>
         ) : (
           <ul className={styles.list}>
@@ -138,25 +142,27 @@ export function MembersPanel({ classroom, onToast }: MembersPanelProps) {
                     <span className={styles.rowMeta}>No encontramos los datos de su familia.</span>
                   )}
                 </div>
-                <div className={styles.rowActions}>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => setWritingTo(member)}
-                    aria-label={`Escribirle a ${member.first_name} o a su familia`}
-                  >
-                    Escribir
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.dangerButton}
-                    onClick={() => setToRemove(member)}
-                    disabled={removeStudent.isPending}
-                    aria-label={`Retirar a ${member.first_name} de la clase`}
-                  >
-                    Retirar
-                  </button>
-                </div>
+                {!readOnly && (
+                  <div className={styles.rowActions}>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => setWritingTo(member)}
+                      aria-label={`Escribirle a ${member.first_name} o a su familia`}
+                    >
+                      Escribir
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.dangerButton}
+                      onClick={() => setToRemove(member)}
+                      disabled={removeStudent.isPending}
+                      aria-label={`Retirar a ${member.first_name} de la clase`}
+                    >
+                      Retirar
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

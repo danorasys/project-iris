@@ -15,7 +15,20 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, Uuid, text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    SmallInteger,
+    String,
+    Text,
+    UniqueConstraint,
+    Uuid,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.domain.entities import BLOCK_TYPES, EXTRA_KINDS, STATUS_DRAFT
@@ -36,6 +49,8 @@ def _utcnow() -> datetime:
 class UnitModel(Base):
     __tablename__ = "units"
     __table_args__ = (
+        # A DBA of the catalog or one the teacher writes, never both.
+        CheckConstraint("dba_id IS NULL OR own_dba_name IS NULL", name="ck_units_one_dba"),
         Index("ix_units_classroom_order", "classroom_id", "order_index"),
         # the units of one teacher by classroom, for the Inicio (migration 0005)
         Index("ix_units_teacher_classroom", "teacher_id", "classroom_id"),
@@ -46,8 +61,23 @@ class UnitModel(Base):
     teacher_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True))
     title: Mapped[str] = mapped_column(String(120))
     guiding_question: Mapped[str] = mapped_column(String(300))
+    # What the kids should manage after the whole unit (migration 0008).
+    # '' only in the units from before, until their teacher writes it.
+    learning_goal: Mapped[str] = mapped_column(String(300))
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    # The DBA its lessons work on (migration 0009): one of the catalog
+    # (RESTRICT: it can't leave the catalog while in use) or the teacher's own.
+    dba_id: Mapped[str | None] = mapped_column(String(40), ForeignKey("dba.id", ondelete="RESTRICT"), nullable=True)
+    own_dba_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    dba: Mapped["DbaModel | None"] = relationship(lazy="selectin")
+    # Its Evidencias de Aprendizaje: the catalog's ticked and the teacher's own.
+    dba_points: Mapped[list["UnitDbaPointModel"]] = relationship(
+        cascade="all, delete-orphan",
+        order_by="UnitDbaPointModel.order_index",
+        lazy="selectin",
+    )
 
 
 class LessonModel(Base):
@@ -94,6 +124,56 @@ class LessonModel(Base):
         cascade="all, delete-orphan",
         order_by="ExtraModel.order_index",
     )
+
+
+# The catalog of DBA (migration 0009 loads it from alembic/versions/data).
+class DbaModel(Base):
+    __tablename__ = "dba"
+    __table_args__ = (
+        CheckConstraint(
+            "subject IN ('mathematics', 'language', 'english', 'natural_sciences', 'social_sciences')",
+            name="ck_dba_subject",
+        ),
+        CheckConstraint("grade BETWEEN 1 AND 5", name="ck_dba_grade"),
+        UniqueConstraint("subject", "grade", "number", name="uq_dba_subject_grade_number"),
+    )
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    subject: Mapped[str] = mapped_column(String(20))
+    grade: Mapped[int] = mapped_column(SmallInteger)
+    number: Mapped[int] = mapped_column(SmallInteger)
+    name: Mapped[str] = mapped_column(String(120))
+
+    evidences: Mapped[list["DbaEvidenceModel"]] = relationship(order_by="DbaEvidenceModel.order_index")
+
+
+class DbaEvidenceModel(Base):
+    __tablename__ = "dba_evidences"
+    __table_args__ = (Index("ix_dba_evidences_dba_order", "dba_id", "order_index"),)
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    dba_id: Mapped[str] = mapped_column(String(40), ForeignKey("dba.id", ondelete="CASCADE"))
+    order_index: Mapped[int] = mapped_column(Integer)
+    text: Mapped[str] = mapped_column(String(300))
+
+
+# One Evidencia de Aprendizaje of a unit: the catalog's or the teacher's own text.
+class UnitDbaPointModel(Base):
+    __tablename__ = "unit_dba_points"
+    __table_args__ = (
+        CheckConstraint("(evidence_id IS NULL) <> (text IS NULL)", name="ck_unit_dba_points_one_kind"),
+        Index("ix_unit_dba_points_unit_order", "unit_id", "order_index"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=_uuid4)
+    unit_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("units.id", ondelete="CASCADE"))
+    evidence_id: Mapped[str | None] = mapped_column(
+        String(48), ForeignKey("dba_evidences.id", ondelete="RESTRICT"), nullable=True
+    )
+    text: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    order_index: Mapped[int] = mapped_column(Integer)
+
+    evidence: Mapped["DbaEvidenceModel | None"] = relationship(lazy="selectin")
 
 
 class ContentBlockModel(Base):

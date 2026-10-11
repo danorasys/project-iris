@@ -13,6 +13,9 @@ from app.domain.entities import (
     Activity,
     Attempt,
     ContentBlock,
+    Dba,
+    DbaEvidence,
+    DbaPoint,
     Extra,
     Lesson,
     PageProgress,
@@ -25,12 +28,14 @@ from app.infrastructure.models import (
     ActivityModel,
     AttemptModel,
     ContentBlockModel,
+    DbaModel,
     ExtraModel,
     ExtraStudentModel,
     LessonModel,
     PageProgressModel,
     QuestionModel,
     QuestionOptionModel,
+    UnitDbaPointModel,
     UnitModel,
 )
 
@@ -103,6 +108,37 @@ def _lesson_to_entity(m: LessonModel, with_parts: bool) -> Lesson:
     )
 
 
+def _dba_to_entity(m: DbaModel, with_evidences: bool) -> Dba:
+    return Dba(
+        id=m.id,
+        subject=m.subject,
+        grade=m.grade,
+        number=m.number,
+        name=m.name,
+        evidences=tuple(DbaEvidence(id=e.id, text=e.text) for e in m.evidences) if with_evidences else (),
+    )
+
+
+# The Evidencias de Aprendizaje of a unit; a catalog one shows the catalog's text.
+def _dba_points(m: UnitModel) -> list[DbaPoint]:
+    return [
+        DbaPoint(evidence_id=p.evidence_id, text=p.evidence.text if p.evidence is not None else (p.text or ""))
+        for p in m.dba_points
+    ]
+
+
+# Its evidences as rows: a catalog one keeps only its id, its text is the catalog's.
+def _point_models(unit: Unit) -> list[UnitDbaPointModel]:
+    return [
+        UnitDbaPointModel(
+            evidence_id=point.evidence_id,
+            text=None if point.evidence_id else point.text,
+            order_index=index,
+        )
+        for index, point in enumerate(unit.dba_points)
+    ]
+
+
 def _unit_to_entity(m: UnitModel) -> Unit:
     return Unit(
         id=m.id,
@@ -111,6 +147,10 @@ def _unit_to_entity(m: UnitModel) -> Unit:
         title=m.title,
         guiding_question=m.guiding_question,
         order_index=m.order_index,
+        learning_goal=m.learning_goal,
+        dba=_dba_to_entity(m.dba, with_evidences=False) if m.dba is not None else None,
+        own_dba_name=m.own_dba_name,
+        dba_points=_dba_points(m),
     )
 
 
@@ -201,7 +241,11 @@ class SqlAlchemyUnitRepository:
                 teacher_id=unit.teacher_id,
                 title=unit.title,
                 guiding_question=unit.guiding_question,
+                learning_goal=unit.learning_goal,
+                dba_id=unit.dba.id if unit.dba else None,
+                own_dba_name=unit.own_dba_name,
                 order_index=unit.order_index,
+                dba_points=_point_models(unit),
             )
         )
 
@@ -210,13 +254,41 @@ class SqlAlchemyUnitRepository:
         if m is not None:
             m.title = unit.title
             m.guiding_question = unit.guiding_question
+            m.learning_goal = unit.learning_goal
+            m.dba_id = unit.dba.id if unit.dba else None
+            m.own_dba_name = unit.own_dba_name
             m.order_index = unit.order_index
+            # Replaced only when they changed (reordering saves every unit).
+            if _dba_points(m) != unit.dba_points:
+                m.dba_points = _point_models(unit)
 
     async def delete(self, unit_id: UUID) -> None:
         await self._session.execute(delete(UnitModel).where(UnitModel.id == unit_id))
 
     async def delete_by_classroom(self, classroom_id: UUID) -> None:
         await self._session.execute(delete(UnitModel).where(UnitModel.classroom_id == classroom_id))
+
+
+class SqlAlchemyDbaRepository:
+    # The catalog of DBA, read only (migration 0009 loads it).
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def list_for(self, subjects: tuple[str, ...], grade: int) -> list[Dba]:
+        result = await self._session.execute(
+            select(DbaModel)
+            .options(selectinload(DbaModel.evidences))
+            .where(DbaModel.subject.in_(subjects), DbaModel.grade == grade)
+            .order_by(DbaModel.subject, DbaModel.number)
+        )
+        return [_dba_to_entity(m, with_evidences=True) for m in result.scalars().all()]
+
+    async def get_by_id(self, dba_id: str) -> Dba | None:
+        result = await self._session.execute(
+            select(DbaModel).options(selectinload(DbaModel.evidences)).where(DbaModel.id == dba_id)
+        )
+        m = result.scalar_one_or_none()
+        return _dba_to_entity(m, with_evidences=True) if m else None
 
 
 class SqlAlchemyLessonRepository:

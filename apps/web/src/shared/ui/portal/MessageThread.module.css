@@ -1,101 +1,224 @@
-/* The conversation under a message (HU-51): each message as a bubble, the
-   ones the person sent on the right in IRIS blue, and the answer below. */
+/* A message and its conversation (HU-51), like a mail thread: every email
+   across the whole width, one under the other with a thin line between them,
+   no bubbles and no sides. A closed one is a single line, an open one shows
+   its text under who sent it. */
 .thread {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  margin-top: var(--space-5);
-  padding-top: var(--space-5);
-  border-top: 1px solid var(--color-iris-pale);
 }
 
-.title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  color: var(--color-iris-deep);
-}
-
-.messages {
+.emails {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  border-bottom: 1px solid var(--color-iris-pale);
 }
 
-.message {
-  max-width: min(560px, 90%);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-large);
-  background: var(--color-canvas);
-  border: 1px solid var(--color-iris-pale);
+.email {
+  border-top: 1px solid var(--color-iris-pale);
 }
 
-.message[data-own="true"] {
-  align-self: flex-end;
-  background: color-mix(in srgb, var(--color-iris-pale) 60%, var(--color-surface));
+/* Who sent it: initials, name, to whom (or the first words when closed) and
+   the date on the right. In a conversation the whole line opens and closes it. */
+.head {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
 }
 
-/* The one being read stands out a little. */
-.message[aria-current="true"] {
-  border-color: var(--color-iris-medium);
+button.head {
+  cursor: pointer;
+  border-radius: var(--radius-medium);
+  transition: background 120ms ease;
+}
+
+button.head:hover {
+  background: color-mix(in srgb, var(--color-iris-pale) 30%, transparent);
+}
+
+button.head:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-iris-medium);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-surface);
+}
+
+/* The person's own emails: a pale circle, so the other side stands out. */
+.avatarOwn {
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+  font-size: 0.85rem;
 }
 
 .who {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sender {
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.to {
   font-size: 0.85rem;
   color: var(--color-ink-soft);
 }
 
-.subject {
-  font-weight: 700;
-  color: var(--color-iris-deep);
-  overflow-wrap: anywhere;
+/* Closed: the first words of the text, in one line. */
+.snippet {
+  overflow: hidden;
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
+.date {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  color: var(--color-ink-soft);
+}
+
+/* Open: its text under the name, lined up with it, keeping its line breaks. */
 .body {
   margin: 0;
+  padding: 0 0 18px 56px;
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: var(--color-ink);
   white-space: pre-line;
   overflow-wrap: anywhere;
-  line-height: 1.5;
 }
 
-.reply {
+.replyBar {
+  display: flex;
+}
+
+/* "Responder": an outlined pill under the thread, like in a mail app. */
+.replyButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border: 1px solid color-mix(in srgb, var(--color-iris-medium) 45%, var(--color-surface));
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.replyButton:hover {
+  border-color: var(--color-iris-medium);
+  background: color-mix(in srgb, var(--color-iris-pale) 35%, var(--color-surface));
+}
+
+.replyButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The answer being written: a card under the thread, to whom on top. */
+.compose {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.composeTo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+}
+
+.composeTo strong {
+  color: var(--color-iris-deep);
+}
+
+.composeTo svg {
+  color: var(--color-iris-medium);
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
+  gap: var(--space-2);
 }
 
-.send {
-  border: none;
+.send,
+.discard {
   border-radius: var(--radius-medium);
-  background: var(--color-action);
-  color: var(--color-surface);
   padding: var(--space-3) var(--space-5);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
 }
 
+.send {
+  border: none;
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
 .send:hover:not(:disabled) {
   background: var(--color-action-hover);
 }
 
-.send:disabled {
+/* "Descartar": white with a clear blue outline, so it reads as a button
+   next to "Enviar" without competing with it. */
+.discard {
+  border: 1.5px solid color-mix(in srgb, var(--color-iris-medium) 65%, var(--color-surface));
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+}
+
+.discard:hover:not(:disabled) {
+  border-color: var(--color-iris-medium);
+  background: color-mix(in srgb, var(--color-iris-pale) 35%, var(--color-surface));
+}
+
+.send:disabled,
+.discard:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.send:focus-visible {
+.send:focus-visible,
+.discard:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
@@ -110,4 +233,35 @@
   margin: 0;
   font-weight: 700;
   color: color-mix(in srgb, var(--color-leaf) 70%, var(--color-ink));
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .head {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .body {
+    padding-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.head,
+  .replyButton {
+    transition: none;
+  }
 }

@@ -92,6 +92,41 @@ class Extra:
     activity: Activity | None = None
 
 
+# The area (classroom-service's code) and grade of a class, asked to
+# classroom-service to know which DBA its units can use.
+@dataclass(frozen=True)
+class ClassSubject:
+    area: str
+    grade: int
+
+
+# A Derecho Básico de Aprendizaje of the MEN catalog (migration 0009): its
+# subject, grade and number, a short name and its learning evidences, all in
+# IRIS's own words (the official text is read on Colombia Aprende).
+@dataclass(frozen=True)
+class DbaEvidence:
+    id: str
+    text: str
+
+
+@dataclass(frozen=True)
+class Dba:
+    id: str
+    subject: str  # mathematics, language, english, natural_sciences or social_sciences
+    grade: int
+    number: int
+    name: str
+    evidences: tuple[DbaEvidence, ...] = ()
+
+
+# One Evidencia de Aprendizaje of a unit: one of the catalog (evidence_id)
+# or one the teacher wrote (evidence_id None). text is what's shown either way.
+@dataclass(frozen=True)
+class DbaPoint:
+    evidence_id: str | None
+    text: str
+
+
 # A group of lessons about the same topic, like the sequences of the MEN,
 # with the question that guides it (HU-101).
 @dataclass
@@ -102,6 +137,17 @@ class Unit:
     title: str
     guiding_question: str
     order_index: int
+    # What the kids should manage after all its lessons, from the DBA, like
+    # the expected performances of the MEN sequences. Empty only in the units
+    # from before it existed, and then their lessons can't be published.
+    learning_goal: str = ""
+    # The DBA its lessons work on, a goal for the whole unit: one of the
+    # catalog (dba, without its evidences) or the teacher's own, with the
+    # Evidencias de Aprendizaje the unit works on. Needed to publish its
+    # lessons in the areas with DBA.
+    dba: Dba | None = None
+    own_dba_name: str | None = None
+    dba_points: list[DbaPoint] = field(default_factory=list)
 
 
 @dataclass

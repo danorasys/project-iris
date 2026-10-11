@@ -5,8 +5,15 @@ from uuid import UUID
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.entities import STATUS_ACCEPTED, STATUS_PENDING, Classroom, Enrollment, EnrollmentCounts
-from app.infrastructure.models import ClassroomModel, EnrollmentModel
+from app.domain.entities import (
+    STATUS_ACCEPTED,
+    STATUS_PENDING,
+    Classroom,
+    ClassroomAuditEntry,
+    Enrollment,
+    EnrollmentCounts,
+)
+from app.infrastructure.models import ClassroomAuditLogModel, ClassroomModel, EnrollmentModel
 
 
 def _classroom_to_entity(m: ClassroomModel) -> Classroom:
@@ -23,6 +30,7 @@ def _classroom_to_entity(m: ClassroomModel) -> Classroom:
         area_other=m.area_other,
         grade=m.grade,
         teacher_left_at=m.teacher_left_at,
+        archived_at=m.archived_at,
     )
 
 
@@ -91,6 +99,7 @@ class SqlAlchemyClassroomRepository:
         m.area_other = classroom.area_other
         m.grade = classroom.grade
         m.teacher_left_at = classroom.teacher_left_at
+        m.archived_at = classroom.archived_at
 
     async def delete(self, classroom_id: UUID) -> None:
         # Through the ORM, so the enrollments go too (cascade) on every database.
@@ -203,3 +212,41 @@ class SqlAlchemyEnrollmentRepository:
 
     async def delete(self, enrollment_id: UUID) -> None:
         await self._session.execute(delete(EnrollmentModel).where(EnrollmentModel.id == enrollment_id))
+
+
+class SqlAlchemyAuditLogRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, entry: ClassroomAuditEntry) -> None:
+        self._session.add(
+            ClassroomAuditLogModel(
+                id=entry.id,
+                classroom_id=entry.classroom_id,
+                action=entry.action,
+                actor_id=entry.actor_id,
+                occurred_at=entry.occurred_at,
+                student_count=entry.student_count,
+                pending_count=entry.pending_count,
+            )
+        )
+
+    # Oldest first, served by ix_classroom_audit_log_classroom_occurred.
+    async def list_by_classroom(self, classroom_id: UUID) -> list[ClassroomAuditEntry]:
+        result = await self._session.execute(
+            select(ClassroomAuditLogModel)
+            .where(ClassroomAuditLogModel.classroom_id == classroom_id)
+            .order_by(ClassroomAuditLogModel.occurred_at.asc())
+        )
+        return [
+            ClassroomAuditEntry(
+                id=m.id,
+                classroom_id=m.classroom_id,
+                action=m.action,
+                actor_id=m.actor_id,
+                occurred_at=m.occurred_at,
+                student_count=m.student_count,
+                pending_count=m.pending_count,
+            )
+            for m in result.scalars().all()
+        ]

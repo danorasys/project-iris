@@ -9,6 +9,9 @@ from app.api.schemas import (
     AttemptOut,
     BlockInput,
     BlockResponse,
+    DbaEvidenceResponse,
+    DbaPointResponse,
+    DbaResponse,
     ExtraResponse,
     LessonDetailResponse,
     LessonProgressResponse,
@@ -21,13 +24,14 @@ from app.api.schemas import (
     PlayOptionResponse,
     PlayQuestionResponse,
     QuestionResponse,
+    UnitDbaResponse,
     UnitResponse,
     UnitWithLessonsResponse,
 )
 from app.application import dtos
 from app.application.dtos import LessonProgress, PartProgress, PlayableLesson
 from app.application.lesson_rules import decode_items, decode_rows, extra_missing, missing_to_publish
-from app.domain.entities import BLOCK_LIST, BLOCK_TABLE, Activity, ContentBlock, Extra, Lesson, Unit
+from app.domain.entities import BLOCK_LIST, BLOCK_TABLE, Activity, ContentBlock, Dba, DbaPoint, Extra, Lesson, Unit
 
 
 def to_block_inputs(blocks: list[BlockInput]) -> list[dtos.BlockInput]:
@@ -122,7 +126,11 @@ def lesson_response(lesson: Lesson) -> LessonResponse:
 
 # The teacher gets everything; a kid only the lesson and its pages, never
 # the activity with its right answers (phase B gives them their own routes).
-def lesson_detail_response(lesson: Lesson, for_teacher: bool) -> LessonDetailResponse:
+# missing: the full list from the service (with the unit and the DBA); without
+# it, only what the lesson itself lacks.
+def lesson_detail_response(
+    lesson: Lesson, for_teacher: bool, missing: list[str] | None = None
+) -> LessonDetailResponse:
     base = lesson_response(lesson).model_dump()
     if not for_teacher:
         return LessonDetailResponse(**base, blocks=_ordered(lesson.blocks))
@@ -131,7 +139,7 @@ def lesson_detail_response(lesson: Lesson, for_teacher: bool) -> LessonDetailRes
         blocks=_ordered(lesson.blocks),
         activity=activity_response(lesson.activity),
         extras=[extra_response(e) for e in sorted(lesson.extras, key=lambda e: e.order_index)],
-        missing=missing_to_publish(lesson),
+        missing=missing if missing is not None else missing_to_publish(lesson),
     )
 
 
@@ -141,6 +149,8 @@ def unit_response(unit: Unit) -> UnitResponse:
         classroom_id=unit.classroom_id,
         title=unit.title,
         guiding_question=unit.guiding_question,
+        learning_goal=unit.learning_goal,
+        dba=unit_dba_response(unit.dba, unit.own_dba_name, unit.dba_points),
         order_index=unit.order_index,
     )
 
@@ -215,5 +225,34 @@ def lesson_progress_response(progress: LessonProgress) -> LessonProgressResponse
         unit_title=progress.unit_title,
         main=_part_response(progress.main),
         extras=[_part_response(extra) for extra in progress.extras],
+        unit_guiding_question=progress.unit_guiding_question,
+        unit_learning_goal=progress.unit_learning_goal,
+        purpose=progress.purpose,
+        learning_goal=progress.learning_goal,
+        unit_dba=unit_dba_response(progress.unit_dba, progress.unit_own_dba_name, progress.unit_dba_points),
     )
+
+
+def dba_response(dba: Dba) -> DbaResponse:
+    return DbaResponse(
+        id=dba.id,
+        subject=dba.subject,
+        grade=dba.grade,
+        number=dba.number,
+        name=dba.name,
+        evidences=[DbaEvidenceResponse(id=e.id, text=e.text) for e in dba.evidences],
+    )
+
+
+# A unit's DBA with its Evidencias de Aprendizaje: one of the catalog, the
+# teacher's own (own_name), or none.
+def unit_dba_response(dba: Dba | None, own_name: str | None, points: list[DbaPoint]) -> UnitDbaResponse | None:
+    out = [DbaPointResponse(evidence_id=p.evidence_id, text=p.text) for p in points]
+    if dba is not None:
+        return UnitDbaResponse(
+            own=False, id=dba.id, subject=dba.subject, grade=dba.grade, number=dba.number, name=dba.name, points=out
+        )
+    if own_name is not None:
+        return UnitDbaResponse(own=True, id=None, subject=None, grade=None, number=None, name=own_name, points=out)
+    return None
 

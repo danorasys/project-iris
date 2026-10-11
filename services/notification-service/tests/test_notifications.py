@@ -230,11 +230,11 @@ async def test_a_long_message_is_cut_to_its_column(
 ) -> None:
     teacher_id = str(uuid.uuid4())
     fake_identity_client.register("token-docente", sub=teacher_id, role="teacher")
-    await _record("message.sent", teacher_id=teacher_id, subject="s" * 500, body="b" * 5000)
+    await _record("message.sent", teacher_id=teacher_id, subject="s" * 500, body="b" * 25000)
 
     [item] = (await client.get("/notifications/me", headers=_auth("token-docente"))).json()["items"]
 
-    assert (len(item["subject"]), len(item["body"])) == (120, 2000)
+    assert (len(item["subject"]), len(item["body"])) == (300, 20000)
 
 
 # HU-42: the space of one class shows only the notifications of that class

@@ -1,6 +1,8 @@
 import { useId, type ReactNode } from "react";
 import { formatArrival } from "@/features/utils/formatArrival";
 import { IconArrowLeft, IconArrowRight, IconChild, IconClassroom, IconTrash } from "@/shared/ui/icons";
+import logoIris from "@/assets/landing/logo-iris.png";
+import { initialsOf } from "./messageThreadRules";
 import styles from "./NotificationTray.module.css";
 
 /** Where this one is in the tray, to go to the one before or after. A
@@ -15,6 +17,9 @@ export interface MailPosition {
 interface NotificationMailProps {
   subject: string;
   sender: string;
+  /** IRIS wrote it by itself, nobody typed it: the IRIS mascot instead of
+   * initials and an "Aviso automático" tag. */
+  automatic?: boolean;
   /** "Peque" in the parents' portal, "Estudiante" in the teacher's. */
   kidLabel: string;
   kidName: string;
@@ -24,18 +29,11 @@ interface NotificationMailProps {
   onBack: () => void;
   onDelete: () => void;
   position?: MailPosition | null;
+  /** A message between a family and a teacher: its emails, one under the
+   * other like a mail thread, in place of the single sender and text. */
+  conversation?: ReactNode;
   /** Something to do with it, under the message (a request to answer). */
   children?: ReactNode;
-}
-
-// "Laura Gómez" -> "LG", "Sofía" -> "S".
-function senderInitials(sender: string): string {
-  return sender
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join("");
 }
 
 /** One notification read in full, laid out like an opened mail: a bar with
@@ -45,6 +43,7 @@ function senderInitials(sender: string): string {
 export function NotificationMail({
   subject,
   sender,
+  automatic = false,
   kidLabel,
   kidName,
   classroomName,
@@ -53,6 +52,7 @@ export function NotificationMail({
   onBack,
   onDelete,
   position,
+  conversation,
   children,
 }: NotificationMailProps) {
   const subjectId = useId();
@@ -121,23 +121,51 @@ export function NotificationMail({
           </div>
         </dl>
 
-        <div className={styles.mailFrom}>
-          <span className={styles.mailAvatar} aria-hidden="true">
-            {senderInitials(sender)}
-          </span>
-          <span className={styles.mailFromText}>
-            <span className={styles.mailSender}>
-              <span className={styles.visuallyHidden}>De parte de </span>
-              {sender}
-            </span>
-            <span className={styles.mailTo}>para ti</span>
-          </span>
-          <time className={styles.mailDate} dateTime={createdAt}>
-            {formatArrival(createdAt)}
-          </time>
-        </div>
+        {conversation ?? (
+          <>
+            <div className={styles.mailFrom}>
+              <span
+                className={automatic ? `${styles.mailAvatar} ${styles.mailAvatarIris}` : styles.mailAvatar}
+                aria-hidden="true"
+              >
+                {automatic ? <img src={logoIris} alt="" className={styles.mailAvatarImage} /> : initialsOf(sender)}
+              </span>
+              <span className={styles.mailFromText}>
+                <span className={styles.mailSender}>
+                  <span className={styles.visuallyHidden}>De parte de </span>
+                  {sender}
+                  {automatic && (
+                    <>
+                      {" "}
+                      <span className={styles.autoTag}>Aviso automático</span>
+                    </>
+                  )}
+                </span>
+                <span className={styles.mailTo}>para ti</span>
+              </span>
+              <time className={styles.mailDate} dateTime={createdAt}>
+                {formatArrival(createdAt)}
+              </time>
+            </div>
 
-        <p className={styles.mailMessage}>{message}</p>
+            <p className={styles.mailMessage}>{message}</p>
+
+            {/* What IRIS wrote by itself closes like an email, signed by the team
+            and saying it's automatic, so nobody waits for an answer. */}
+            {automatic && (
+              <footer className={styles.mailSignature}>
+                <p className={styles.mailClosing}>
+                  Cordialmente,
+                  <br />
+                  <strong>El equipo de IRIS</strong>
+                </p>
+                <p className={styles.mailAutoNote}>
+                  Este es un mensaje automático de IRIS. No es necesario responderlo.
+                </p>
+              </footer>
+            )}
+          </>
+        )}
 
         {children}
       </div>

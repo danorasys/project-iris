@@ -16,10 +16,12 @@ from app.api.schemas import (
     LessonDetailResponse,
     LessonResponse,
     OrderRequest,
+    UnitDbaInput,
     UnitResponse,
     UnitWithLessonsResponse,
     UpdateUnitRequest,
 )
+from app.application.dtos import UnitDbaChoice
 from app.application.lesson_service import LessonService
 from app.application.unit_service import UnitService
 from app.correlation import get_correlation_id
@@ -30,6 +32,12 @@ router = APIRouter(tags=["units"])
 TeacherUser = Annotated[ValidatedUser, Depends(require_role("teacher"))]
 ReaderUser = Annotated[ValidatedUser, Depends(require_role("teacher", "student"))]
 Units = Annotated[UnitService, Depends(get_unit_service)]
+
+
+def _unit_dba(payload: UnitDbaInput | None) -> UnitDbaChoice | None:
+    if payload is None:
+        return None
+    return UnitDbaChoice(payload.dba_id, payload.own_name, payload.evidence_ids, payload.own_points)
 Lessons = Annotated[LessonService, Depends(get_lesson_service)]
 
 
@@ -63,7 +71,15 @@ async def create_unit(
     classroom_id: UUID, payload: CreateUnitRequest, user: TeacherUser, units: Units
 ) -> UnitResponse:
     """A new unit at the end of the classroom (HU-101)."""
-    unit = await units.create_unit(classroom_id, user, payload.title, payload.guiding_question, get_correlation_id())
+    unit = await units.create_unit(
+        classroom_id,
+        user,
+        payload.title,
+        payload.guiding_question,
+        payload.learning_goal,
+        get_correlation_id(),
+        _unit_dba(payload.dba),
+    )
     return unit_response(unit)
 
 
@@ -78,7 +94,9 @@ async def reorder_units(
 
 @router.patch("/units/{unit_id}", response_model=UnitResponse)
 async def update_unit(unit_id: UUID, payload: UpdateUnitRequest, user: TeacherUser, units: Units) -> UnitResponse:
-    unit = await units.update_unit(unit_id, user, payload.title, payload.guiding_question)
+    unit = await units.update_unit(
+        unit_id, user, payload.title, payload.guiding_question, payload.learning_goal, _unit_dba(payload.dba)
+    )
     return unit_response(unit)
 
 
@@ -94,7 +112,7 @@ async def create_lesson(
 ) -> LessonDetailResponse:
     """A new lesson at the end of the unit, as a draft (HU-78, HU-102)."""
     lesson = await lessons.create_lesson(unit_id, user, payload.title, payload.purpose, payload.learning_goal)
-    return lesson_detail_response(lesson, for_teacher=True)
+    return lesson_detail_response(lesson, True, await lessons.missing_for(lesson, get_correlation_id()))
 
 
 @router.put("/units/{unit_id}/lessons/order", response_model=list[LessonResponse])

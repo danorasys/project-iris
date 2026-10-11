@@ -25,13 +25,21 @@ TEACHER_MESSAGE = "teacher.message"
 # guardians (HU-83).
 LESSON_PUBLISHED = "lesson.published"
 EXTRA_PUBLISHED = "extra.published"
+# The teacher archived, restored or deleted a class (HU-105, HU-85), for
+# the guardians of its kids (HU-106). When archiving, a request that was
+# waiting is closed and its notification says so.
+CLASSROOM_ARCHIVED = "classroom.archived"
+CLASSROOM_RESTORED = "classroom.restored"
+CLASSROOM_DELETED = "classroom.deleted"
+REQUEST_CLOSED_DECISION = "cerrada"
 # What a kid finished, for their teacher (HU-69).
 CONTENT_COMPLETED = "lesson.content_completed"
 ACTIVITY_COMPLETED = "lesson.activity_completed"
 
-# Sizes of what a guardian writes to a teacher, same as classroom-service.
-SUBJECT_MAX_LENGTH = 120
-BODY_MAX_LENGTH = 2000
+# Sizes of any message, family's or teacher's: long like an email, with a
+# top. Same as classroom-service.
+SUBJECT_MAX_LENGTH = 300
+BODY_MAX_LENGTH = 20000
 
 # Who a notification is for. The same event can make one for the teacher
 # of the classroom and another one for the guardian of the kid.

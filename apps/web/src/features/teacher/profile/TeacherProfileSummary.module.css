@@ -9,6 +9,15 @@
   text-align: left;
 }
 
+/* On the page, not in a dialog: white with a soft border and shadow, like
+   every other section of the parents' portal. */
+.card {
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
 .title {
   margin: 0;
   font-size: 0.95rem;

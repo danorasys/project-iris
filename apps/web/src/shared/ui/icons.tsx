@@ -158,11 +158,32 @@ export function IconSparkle(props: IconProps) {
   );
 }
 
+/** A box with its lid, for an archived class. */
+export function IconArchive(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3.5" y="4.5" width="17" height="4.5" rx="1" />
+      <path d="M5 9v9.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V9" />
+      <path d="M10 13h4" />
+    </svg>
+  );
+}
+
 export function IconUndo(props: IconProps) {
   return (
     <svg {...base} {...props}>
       <path d="M4 12a8 8 0 1 0 3-6.2" />
       <path d="M4 4v4.5H8.5" />
+    </svg>
+  );
+}
+
+// The arrow of "Responder" in a mail: back to the left, then curving down.
+export function IconReply(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9.5 6 4 11.5 9.5 17" />
+      <path d="M4 11.5h9.5a6.5 6.5 0 0 1 6.5 6.5v1" />
     </svg>
   );
 }

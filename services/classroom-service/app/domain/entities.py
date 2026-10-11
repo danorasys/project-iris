@@ -50,6 +50,15 @@ CODE_LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ"
 CODE_DIGITS = "23456789"
 CODE_SYMBOLS = "#$%&*+?@"
 
+# What can happen to a classroom, kept in its audit log (ADR 0021). Same
+# list as the CHECK in the database.
+AUDIT_CREATED = "created"
+AUDIT_ARCHIVED = "archived"
+AUDIT_RESTORED = "restored"
+AUDIT_DELETED = "deleted"
+AUDIT_TEACHER_LEFT = "teacher_left"
+AUDIT_ACTIONS = (AUDIT_CREATED, AUDIT_ARCHIVED, AUDIT_RESTORED, AUDIT_DELETED, AUDIT_TEACHER_LEFT)
+
 
 @dataclass
 class Classroom:
@@ -59,22 +68,28 @@ class Classroom:
     description: str
     enrollment_code: str
     created_at: datetime
+    # What it's about and who it's for, required for every class (HU-100).
+    area: str
+    grade: int
     # Where the logo lives inside the private bucket, never a public URL.
     logo_key: str | None = None
     color: str = DEFAULT_CLASSROOM_COLOR
-    # Required for every classroom since HU-100. Empty only in the ones
-    # created before, until the teacher edits them.
-    area: str | None = None
     # Only with area "other": the area written by the teacher.
     area_other: str | None = None
-    grade: int | None = None
     # When its teacher deleted their account (HU-92). The class stays for
     # its kids, but takes no new requests and nobody can change it.
     teacher_left_at: datetime | None = None
+    # When its teacher archived it (HU-105). It can be read, not changed,
+    # and its kids don't see it. Restoring it clears this.
+    archived_at: datetime | None = None
 
     @property
     def has_teacher(self) -> bool:
         return self.teacher_left_at is None
+
+    @property
+    def is_archived(self) -> bool:
+        return self.archived_at is not None
 
     @property
     def logo_file(self) -> str | None:
@@ -90,6 +105,20 @@ class Enrollment:
     status: str
     requested_at: datetime
     resolved_at: datetime | None = None
+
+
+# One line of a classroom's audit log: what happened, who did it and when,
+# with how many kids and requests it had then. Only ids and counts, never
+# names, so it can outlive the classroom without keeping anyone's data.
+@dataclass(frozen=True)
+class ClassroomAuditEntry:
+    id: UUID
+    classroom_id: UUID
+    action: str
+    actor_id: UUID
+    occurred_at: datetime
+    student_count: int = 0
+    pending_count: int = 0
 
 
 # How many students a classroom has (accepted) and how many requests wait

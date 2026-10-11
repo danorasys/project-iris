@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import type { LessonDetail, UnitWithLessons } from "@iris/shared-types";
+import type { ClassroomArea, LessonDetail, UnitWithLessons } from "@iris/shared-types";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { SelectField } from "@/features/auth/ui/SelectField";
 import { useClassroomDetail } from "@/shared/api/hooks/useClassroomsApi";
@@ -18,8 +18,10 @@ import { IconArrowLeft, IconBook, IconCheck, IconInfo, IconTrash } from "@/share
 import { usePortalTheme } from "@/shared/ui/portal/usePortalTheme";
 import { Toast } from "@/shared/ui/Toast";
 import { useEnterAnimation } from "@/shared/ui/enterAnimation";
+import { hasDba } from "../classrooms/classroomDetails";
 import type { TeacherPortalState } from "../portal/TeacherPortalPage";
 import { ActivityEditor } from "./editor/ActivityEditor";
+import { LessonUnitDba } from "./dba/LessonUnitDba";
 import {
   toActivity,
   toBlocks,
@@ -67,6 +69,14 @@ export default function LessonEditorPage() {
       </p>
     );
   }
+  // The editor saves by itself, and an archived class can't change (HU-105).
+  if (classroom.data?.archived_at) {
+    return (
+      <p role="alert" className={styles.loading}>
+        Esta clase está archivada, así que sus lecciones no se pueden editar. Restáurala para volver a cambiarlas.
+      </p>
+    );
+  }
 
   const students: ClassStudent[] = (classroom.data?.students ?? [])
     .filter((student) => student.status === "aceptada")
@@ -79,6 +89,7 @@ export default function LessonEditorPage() {
       units={units.data}
       students={students}
       classroomId={classroomId}
+      area={classroom.data?.area ?? null}
     />
   );
 }
@@ -88,9 +99,11 @@ interface EditorProps {
   units: UnitWithLessons[];
   students: ClassStudent[];
   classroomId: string;
+  /** The class's area, to ask for the DBA only where there are DBA. */
+  area: ClassroomArea | null;
 }
 
-function Editor({ lesson, units, students, classroomId }: EditorProps) {
+function Editor({ lesson, units, students, classroomId, area }: EditorProps) {
   const navigate = useNavigate();
   const update = useUpdateLesson();
   const saveActivity = useSetActivity();
@@ -311,6 +324,11 @@ function Editor({ lesson, units, students, classroomId }: EditorProps) {
               rows={2}
               hint="Lo que el peque podrá hacer al terminar, a partir del DBA de su grado y área."
             />
+            {/* Only the areas with DBA (mathematics, language, natural and
+                social sciences) have it: the one of its unit, to read. */}
+            {hasDba(area) && (
+              <LessonUnitDba unitDba={units.find((item) => item.id === details.unit_id)?.dba ?? null} />
+            )}
           </div>
         )}
         {tab === "content" && (

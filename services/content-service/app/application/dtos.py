@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from uuid import UUID
 
-from app.domain.entities import Attempt, Extra, Lesson
+from app.domain.entities import Attempt, Dba, DbaPoint, Extra, Lesson
 
 
 # One block of a page, as the editor sends it. Each type uses its own
@@ -49,6 +49,17 @@ class LessonChanges:
     title: str | None = None
     purpose: str | None = None
     learning_goal: str | None = None
+
+
+# The DBA of a unit: one of the catalog (dba_id) or one the teacher writes
+# (own_name), only one, with the catalog's evidences ticked (only with a
+# catalog DBA) and the teacher's own. Replaces the one saved.
+@dataclass
+class UnitDbaChoice:
+    dba_id: str | None = None
+    own_name: str | None = None
+    evidence_ids: list[str] = field(default_factory=list)
+    own_points: list[str] = field(default_factory=list)
 
 
 # What can change of an extra. None leaves it as it is.
@@ -103,3 +114,14 @@ class LessonProgress:
     unit_title: str
     main: PartProgress
     extras: list[PartProgress]
+    # What the class is about, so the family can see it too: the question
+    # and goal of its unit, what the lesson is for and what the kid should
+    # manage after it.
+    unit_guiding_question: str = ""
+    unit_learning_goal: str = ""
+    purpose: str = ""
+    learning_goal: str = ""
+    # The DBA of its unit (catalog or own) with its Evidencias de Aprendizaje.
+    unit_dba: Dba | None = None
+    unit_own_dba_name: str | None = None
+    unit_dba_points: list[DbaPoint] = field(default_factory=list)

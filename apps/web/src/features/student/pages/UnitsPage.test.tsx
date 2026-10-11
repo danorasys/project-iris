@@ -33,7 +33,15 @@ function lesson(id: string, title: string) {
 }
 
 function unit(id: string, title: string, lessons = [lesson(`${id}-l`, "Lección")]): UnitWithLessons {
-  return { id, classroom_id: "c1", title, guiding_question: `¿Qué hay en ${title}?`, order_index: 0, lessons };
+  return {
+    id,
+    classroom_id: "c1",
+    title,
+    guiding_question: `¿Qué hay en ${title}?`,
+    learning_goal: "Aprendo.",
+    order_index: 0,
+    lessons,
+  };
 }
 
 function renderAt(url: string) {
@@ -93,7 +101,20 @@ describe("the lessons of a unit (HU-60)", () => {
       attempts: [],
       percent: 20,
     };
-    progress = [{ lesson_id: "l1", title: "Animales terrestres", unit_title: "Animales", main, extras: [] }];
+    progress = [
+      {
+        lesson_id: "l1",
+        title: "Animales terrestres",
+        unit_title: "Animales",
+        main,
+        extras: [],
+        unit_guiding_question: "",
+        unit_learning_goal: "",
+        purpose: "",
+        learning_goal: "",
+        unit_dba: null,
+      },
+    ];
     renderAt("/student/classrooms/c1/units/u1");
 
     expect(screen.getByText("¿Qué hay en Animales?")).toBeTruthy();

@@ -582,6 +582,50 @@
   color: var(--color-surface);
 }
 
+/* IRIS wrote it by itself: the mascot instead of someone's initials. It's
+   already a round badge with its own border, so it fills the circle. */
+.mailAvatarIris {
+  overflow: hidden;
+  background: transparent;
+}
+
+.mailAvatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Before the subject, the kid and the class it's about (HU-43). */
+.contextTag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* An unread row is already pale blue, so its tag goes on white. */
+.rowUnread .contextTag {
+  background: var(--color-surface);
+}
+
+/* The small gray "Automático" tag beside IRIS, in the list and the mail. */
+.autoTag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink-soft) 12%, var(--color-surface));
+  color: var(--color-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
 .mailFromText {
   grid-area: who;
   min-width: 0;
@@ -606,9 +650,9 @@
   color: var(--color-ink-soft);
 }
 
-/* The body of the mail: plain text, comfortable to read. */
+/* The body of the mail: plain text across the whole card, like the line
+   above it. */
 .mailMessage {
-  max-width: 68ch;
   margin: 4px 0 0;
   font-size: 1.02rem;
   line-height: 1.75;
@@ -616,6 +660,34 @@
   /* A family's message keeps its line breaks. */
   white-space: pre-line;
   overflow-wrap: anywhere;
+}
+
+/* The sign-off of an automatic notice, under its message like in an email:
+   the closing in the same text, and a thin line before the small gray note. */
+.mailSignature {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.mailClosing {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: var(--color-ink);
+}
+
+.mailClosing strong {
+  color: var(--color-iris-deep);
+}
+
+.mailAutoNote {
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-iris-pale);
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -6,10 +6,7 @@ import { useSendFamilyMessage } from "@/shared/api/hooks/useClassroomsApi";
 import { CountedTextField } from "@/shared/ui/CountedTextField";
 import { FormDialog } from "@/shared/ui/FormDialog";
 import { IconMessage } from "@/shared/ui/icons";
-
-// Same sizes as a family's message (classroom-service checks them too).
-const SUBJECT_MAX = 120;
-const BODY_MAX = 2000;
+import { MESSAGE_BODY_MAX, MESSAGE_BODY_TOO_LONG, MESSAGE_SUBJECT_MAX } from "@/shared/ui/portal/messageThreadRules";
 
 type Field = "subject" | "body";
 
@@ -43,7 +40,7 @@ export function FamilyMessageDialog({ classroomId, members, enrollmentId, onClos
     const found: Partial<Record<Field, string>> = {};
     if (!subject.trim()) found.subject = "Escribe el asunto del mensaje.";
     if (!body.trim()) found.body = "Escribe tu mensaje.";
-    else if (body.trim().length > BODY_MAX) found.body = `El mensaje puede tener hasta ${BODY_MAX} caracteres.`;
+    else if (body.trim().length > MESSAGE_BODY_MAX) found.body = MESSAGE_BODY_TOO_LONG;
     setErrors(found);
     const first = (["subject", "body"] as const).find((field) => found[field]);
     if (first) {
@@ -112,7 +109,7 @@ export function FamilyMessageDialog({ classroomId, members, enrollmentId, onClos
           setSubject(value);
           setErrors((current) => ({ ...current, subject: undefined }));
         }}
-        max={SUBJECT_MAX}
+        max={MESSAGE_SUBJECT_MAX}
         error={errors.subject}
         required
         disabled={send.isPending}
@@ -125,7 +122,7 @@ export function FamilyMessageDialog({ classroomId, members, enrollmentId, onClos
           setBody(value);
           setErrors((current) => ({ ...current, body: undefined }));
         }}
-        max={BODY_MAX}
+        max={MESSAGE_BODY_MAX}
         multiline
         rows={6}
         error={errors.body}

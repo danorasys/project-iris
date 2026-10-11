@@ -1,0 +1,170 @@
+/* The DBA of a unit: in its form, a pale box with the DBA and the link to
+   the MEN's document, then the evidences to tick and the teacher's own
+   points; in the lesson editor's Datos, the same box only to read. */
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-iris-pale) 25%, var(--color-surface));
+}
+
+.legend {
+  margin: 0;
+  padding: 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.intro,
+.hint,
+.status {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.error {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+/* The unit's DBA and its evidences, as the lesson shows them. */
+.unitDba {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.unitPoints {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.5;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  color: var(--color-iris-deep);
+}
+
+.link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* The catalog's evidences and the own ones, each in a white card. */
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.pointsTitle {
+  margin: 0;
+  padding: 0;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.evidences {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.evidence {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.evidence input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: var(--color-iris-medium);
+}
+
+.ownPoint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.ownPoint > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.remove,
+.add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-medium);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.remove {
+  flex: none;
+  margin-top: 30px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-error) 35%, var(--color-surface));
+  background: var(--color-surface);
+  color: var(--color-error);
+}
+
+.add {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1.5px dashed color-mix(in srgb, var(--color-iris-medium) 60%, var(--color-surface));
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+}
+
+.add:hover {
+  border-color: var(--color-iris-medium);
+}
+
+.remove:focus-visible,
+.add:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}

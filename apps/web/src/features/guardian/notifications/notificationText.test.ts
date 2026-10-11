@@ -15,6 +15,27 @@ const base = {
 };
 
 describe("notification texts", () => {
+  it("signs as IRIS what it writes by itself, and keeps the teacher in a message they wrote", () => {
+    const lesson: NotificationItem = {
+      ...base,
+      event: "lesson.published",
+      lesson_id: "l1",
+      lesson_title: "Animales acuáticos",
+      extra_title: null,
+    };
+    const message: NotificationItem = {
+      ...base,
+      event: "teacher.message",
+      subject: "Tarea",
+      body: "Repasen la página 3.",
+      addressee: "guardian",
+    };
+
+    expect(senderOf(lesson)).toBe("IRIS");
+    expect(notificationMessage(lesson)).toContain('Carlos Ruiz publicó la lección "Animales acuáticos"');
+    expect(senderOf(message)).toBe("Carlos Ruiz");
+  });
+
   // Only older trays have these: the family now sends the request themselves.
   it("tells that a request was sent", () => {
     const n: NotificationItem = { ...base, event: "request.created", sender_name: "Sofía" };
@@ -83,6 +104,26 @@ describe("notification texts", () => {
     expect(notificationMessage(published)).toContain('Carlos Ruiz publicó la lección "Animales terrestres"');
     expect(notificationSubject(extra)).toBe("Nuevo material extra");
     expect(notificationMessage(extra)).toContain('dejó "La granja" para Sofía');
+  });
+
+  it("tells when the teacher archives, restores or deletes the class (HU-106)", () => {
+    const archived = { ...base, event: "classroom.archived" } as NotificationItem;
+    const closed = { ...base, event: "classroom.archived", decision: "cerrada" } as NotificationItem;
+    const restored = { ...base, event: "classroom.restored" } as NotificationItem;
+    const deleted = { ...base, event: "classroom.deleted" } as NotificationItem;
+
+    expect(notificationSubject(archived)).toBe("Clase archivada");
+    expect(notificationMessage(archived)).toBe(
+      'Carlos Ruiz archivó la clase "Matemáticas 3A". Sofía ya no la verá en su espacio, pero aquí puedes seguir consultando su progreso.',
+    );
+    expect(notificationSubject(closed)).toBe("Solicitud de ingreso cerrada");
+    expect(notificationMessage(closed)).toMatch(/cerramos la solicitud de Sofía/);
+    expect(notificationSubject(restored)).toBe("Clase restaurada");
+    expect(notificationMessage(restored)).toMatch(/volvió a abrir la clase "Matemáticas 3A"/);
+    expect(notificationSubject(deleted)).toBe("Clase eliminada");
+    expect(notificationMessage(deleted)).toMatch(
+      /eliminó la clase "Matemáticas 3A", con sus lecciones y el progreso de Sofía/,
+    );
   });
 
   it("shows the copy of a message the guardian wrote, as theirs (HU-51)", () => {

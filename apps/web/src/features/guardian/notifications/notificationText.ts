@@ -1,4 +1,5 @@
 import type { NotificationItem } from "@iris/shared-types";
+import { AUTOMATIC_SENDER, isAutomatic } from "@/features/utils/notificationKinds";
 
 // What a guardian reads for each kind of notification. The server only
 // keeps the facts (the event, the kid, the classroom, who it's from), the
@@ -19,8 +20,11 @@ export function classroomOf(n: NotificationItem): string {
   return n.classroom_name ?? FALLBACK.classroom;
 }
 
+/** Who it's from: IRIS for what it writes by itself (the teacher who did
+ * it is named in the text), the teacher in a message, "Tú" in the copy of
+ * one the guardian wrote (HU-51). */
 export function senderOf(n: NotificationItem): string {
-  // The copy of a message the guardian wrote themselves (HU-51).
+  if (isAutomatic(n)) return AUTOMATIC_SENDER;
   if (n.event === "message.sent") return "Tú";
   return n.sender_name ?? FALLBACK.sender;
 }
@@ -31,6 +35,11 @@ export function notificationSubject(n: NotificationItem): string {
   }
   if (n.event === "enrollment.removed") return "Retiro de una clase";
   if (n.event === "request.closed") return "Solicitud de ingreso cerrada";
+  if (n.event === "classroom.archived") {
+    return n.decision === "cerrada" ? "Solicitud de ingreso cerrada" : "Clase archivada";
+  }
+  if (n.event === "classroom.restored") return "Clase restaurada";
+  if (n.event === "classroom.deleted") return "Clase eliminada";
   if (n.event === "teacher.message") return n.subject ?? "Mensaje del docente";
   if (n.event === "message.sent") return n.subject ?? "Tu mensaje";
   if (n.event === "lesson.published") return "Nueva lección";
@@ -57,6 +66,19 @@ ${n.body ?? ""}`;
   }
   if (n.event === "request.closed") {
     return `${quoted(classroom)} ya no tiene un docente a cargo, así que cerramos la solicitud de ${student}. Si quieres, pide el código de otra clase a su docente.`;
+  }
+  // HU-106: the teacher archived, restored or deleted the whole class.
+  if (n.event === "classroom.archived" && n.decision === "cerrada") {
+    return `${teacher} archivó ${quoted(classroom)}, así que cerramos la solicitud de ${student}. Si vuelve a abrirla, puedes enviarla de nuevo con el mismo código.`;
+  }
+  if (n.event === "classroom.archived") {
+    return `${teacher} archivó ${quoted(classroom)}. ${student} ya no la verá en su espacio, pero aquí puedes seguir consultando su progreso.`;
+  }
+  if (n.event === "classroom.restored") {
+    return `${teacher} volvió a abrir ${quoted(classroom)}. ${student} ya puede entrar de nuevo y seguir con sus lecciones.`;
+  }
+  if (n.event === "classroom.deleted") {
+    return `${teacher} eliminó ${quoted(classroom)}, con sus lecciones y el progreso de ${student} en ella. Ya no aparece entre sus clases.`;
   }
   if (n.event === "enrollment.removed") {
     return `${teacher} retiró a ${student} de ${quoted(classroom)}. Si quieres que vuelva, puedes enviar de nuevo la solicitud de ingreso con el código de la clase.`;

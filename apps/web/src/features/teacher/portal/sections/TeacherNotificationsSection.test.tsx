@@ -30,11 +30,22 @@ const answered: NotificationItem = {
   read: true,
 };
 
+// A family's message: only what they wrote, so its row names the kid and class.
+const familyMessage: NotificationItem = {
+  ...request,
+  id: "n3",
+  event: "message.sent",
+  subject: "Una pregunta",
+  body: "¿Hay tarea?",
+  thread_id: null,
+  read: true,
+};
+
 let pending: EnrollmentRequest[] = [];
 
 vi.mock("@/shared/api/hooks/useNotifications", () => ({
   useNotificationTray: (): { data: NotificationPage; isLoading: boolean; isError: boolean } => ({
-    data: { items: [request, answered], total: 2, unread_count: 1, page: 1, page_size: 8 },
+    data: { items: [request, answered, familyMessage], total: 3, unread_count: 1, page: 1, page_size: 8 },
     isLoading: false,
     isError: false,
   }),
@@ -69,8 +80,21 @@ describe("Notificaciones del docente", { timeout: 20_000 }, () => {
     expect(screen.getByText("1 sin leer")).toBeTruthy();
     expect(screen.getByText("Nueva solicitud de ingreso")).toBeTruthy();
     // Who it's from comes first, and the unread one says so, not only with color.
-    expect(screen.getByRole("button", { name: /^No leída:\s*Ana Pérez\s*Nueva solicitud de ingreso/ })).toBeTruthy();
+    expect(
+      screen.getByRole("button", {
+        name: /^No leída:\s*IRIS\s*Automático\s*Sofía · Matemáticas Básicas\s*Nueva solicitud de ingreso/,
+      }),
+    ).toBeTruthy();
     expect(screen.getByText(/Ana Pérez pidió que Sofía se una a la clase "Matemáticas Básicas"/)).toBeTruthy();
+  });
+
+  it("says in every row which kid and class it's about, a family's message and a notice alike (HU-43)", () => {
+    render(<TeacherNotificationsSection />);
+
+    const rows = screen.getAllByText("Sofía · Matemáticas Básicas").map((tag) => tag.closest("li")?.textContent);
+    expect(rows).toHaveLength(3);
+    expect(rows.some((text) => text?.includes("Nueva solicitud de ingreso"))).toBe(true);
+    expect(rows.some((text) => text?.includes("Una pregunta"))).toBe(true);
   });
 
   it("opens a pending request with the kid and the guardian, and accepts it", async () => {
@@ -89,7 +113,11 @@ describe("Notificaciones del docente", { timeout: 20_000 }, () => {
     const user = userEvent.setup({ delay: null });
     render(<TeacherNotificationsSection />);
 
-    await user.click(screen.getByRole("button", { name: /^No leída:\s*Ana Pérez\s*Nueva solicitud de ingreso/ }));
+    await user.click(
+      screen.getByRole("button", {
+        name: /^No leída:\s*IRIS\s*Automático\s*Sofía · Matemáticas Básicas\s*Nueva solicitud de ingreso/,
+      }),
+    );
 
     expect(markRead).toHaveBeenCalledWith("n1");
     expect(screen.getByText("ana@example.com · 3001234567")).toBeTruthy();
@@ -102,7 +130,11 @@ describe("Notificaciones del docente", { timeout: 20_000 }, () => {
     const user = userEvent.setup({ delay: null });
     render(<TeacherNotificationsSection />);
 
-    await user.click(screen.getByRole("button", { name: /^No leída:\s*Ana Pérez\s*Nueva solicitud de ingreso/ }));
+    await user.click(
+      screen.getByRole("button", {
+        name: /^No leída:\s*IRIS\s*Automático\s*Sofía · Matemáticas Básicas\s*Nueva solicitud de ingreso/,
+      }),
+    );
 
     expect(screen.getByText("Esta solicitud ya fue respondida.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Aceptar" })).toBeNull();

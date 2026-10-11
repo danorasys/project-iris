@@ -307,6 +307,9 @@ export type ClassroomArea =
 export interface Classroom {
   /** False once its teacher deleted their account (HU-92). */
   has_teacher?: boolean;
+  /** When its teacher archived it (HU-105): only for reading, its kids
+   * don't see it, and only then can it be deleted. null while active. */
+  archived_at?: string | null;
   id: string;
   teacher_id: string;
   name: string;
@@ -315,12 +318,12 @@ export interface Classroom {
    * Without it, the avatar is the initials of the name on `color`. */
   logo_file?: string | null;
   color: ClassroomColor;
-  /** See `ClassroomArea`. Required since HU-100, null only in older classes. */
-  area?: ClassroomArea | null;
+  /** See `ClassroomArea`. Every class has one (HU-100). */
+  area: ClassroomArea;
   /** With area "other", which area it is, written by the teacher. */
   area_other?: string | null;
-  /** The grade it's for, 1 to 5 (primary school). Same as `area`. */
-  grade?: number | null;
+  /** The grade it's for, 1 to 5 (primary school). Every class has one. */
+  grade: number;
   enrollment_code: string;
   created_at: string;
 }
@@ -339,6 +342,9 @@ export interface FamilyClassroom {
   /** False once its teacher deleted their account (HU-92): the class stays
    * for the kids already in it, but has nobody to write to. */
   has_teacher?: boolean;
+  /** When its teacher archived it (HU-105): the family can still read it,
+   * not write to the teacher. null while active. */
+  archived_at?: string | null;
   enrollment_id: string;
   student_id: string;
   student_first_name: string;
@@ -353,9 +359,9 @@ export interface FamilyClassroom {
   /** The logo, asked with the portal open (`classroomLogoPath`). */
   logo_file: string | null;
   color: ClassroomColor;
-  area: ClassroomArea | null;
+  area: ClassroomArea;
   area_other: string | null;
-  grade: number | null;
+  grade: number;
   /** null when the service that knows it didn't answer. */
   teacher_name: string | null;
   published_lessons: number | null;
@@ -377,9 +383,9 @@ export interface ClassroomPreview {
   description: string;
   logo_file: string | null;
   color: ClassroomColor;
-  area: ClassroomArea | null;
+  area: ClassroomArea;
   area_other: string | null;
-  grade: number | null;
+  grade: number;
   teacher: TeacherPublicProfile | null;
   published_lessons: number | null;
   /** Units with at least one published lesson, null like the lessons. */
@@ -418,6 +424,12 @@ export interface Unit {
   classroom_id: string;
   title: string;
   guiding_question: string;
+  /** What the kids should manage after all its lessons (its expected
+   * performance). "" only in a unit from before it existed: its lessons
+   * can't be published until the teacher writes it. */
+  learning_goal: string;
+  /** The DBA its lessons work on with its Evidencias de Aprendizaje, null until it's chosen. */
+  dba?: UnitDba | null;
   order_index: number;
 }
 
@@ -433,6 +445,42 @@ export interface ClassroomContentSummary {
 /** `GET /content/classrooms/{id}/units`: each unit with its lessons, in order. */
 export interface UnitWithLessons extends Unit {
   lessons: Lesson[];
+}
+
+/** The subjects of the DBA catalog (humanities has language and English). */
+export type DbaSubject = "mathematics" | "language" | "english" | "natural_sciences" | "social_sciences";
+
+/** A Derecho Básico de Aprendizaje of the MEN catalog
+ * (`GET /content/classrooms/{id}/dba`). Name and evidences are IRIS's own
+ * summaries; the official text is on Colombia Aprende. */
+export interface Dba {
+  id: string;
+  subject: DbaSubject;
+  grade: number;
+  number: number;
+  name: string;
+  /** Empty in English: its MEN document has none. */
+  evidences: { id: string; text: string }[];
+}
+
+/** The DBA of a unit: one of the catalog, or one the teacher wrote (`own`),
+ * which has no id, subject, grade or number. With its Evidencias de
+ * Aprendizaje: the catalog's first (in its order), then the own ones. */
+export interface UnitDba {
+  own: boolean;
+  id: string | null;
+  subject: DbaSubject | null;
+  grade: number | null;
+  number: number | null;
+  name: string;
+  points: DbaPoint[];
+}
+
+/** One Evidencia de Aprendizaje of a unit: one of the catalog
+ * (`evidence_id`) or the teacher's own (`evidence_id` null). */
+export interface DbaPoint {
+  evidence_id: string | null;
+  text: string;
 }
 
 export interface Lesson {
@@ -613,6 +661,16 @@ export interface LessonProgress {
   unit_title: string;
   main: PartProgress;
   extras: PartProgress[];
+  /** What the class is about, for the family: the question and goal of its
+   * unit, what the lesson is for and what the kid should manage (from the
+   * DBA). Empty only if content-service is on an older version. */
+  unit_guiding_question: string;
+  unit_learning_goal: string;
+  purpose: string;
+  learning_goal: string;
+  /** The DBA of its unit with its Evidencias de Aprendizaje; null when its
+   * area has none (or older versions). */
+  unit_dba: UnitDba | null;
 }
 
 /* --- The statistics of a class for its teacher (HU-86, HU-87) --- */
@@ -686,6 +744,13 @@ export type NotificationItem =
   | (NotificationBase & { event: "enrollment.removed" })
   /** The teacher left IRIS and a request still waiting was closed (HU-92). */
   | (NotificationBase & { event: "request.closed" })
+  /** The teacher archived, restored or deleted a class of the kid (HU-106).
+   * Only the guardian gets it. When archiving closed their request,
+   * `decision` is "cerrada". */
+  | (NotificationBase & {
+      event: "classroom.archived" | "classroom.restored" | "classroom.deleted";
+      decision?: "cerrada" | null;
+    })
   /** What a family does from the portal (EP-07). Only the teacher gets them. */
   | (NotificationBase & { event: "request.cancelled" | "enrollment.withdrawn" })
   /** A guardian's message to the teacher of the class (HU-48). */

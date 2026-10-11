@@ -1,10 +1,11 @@
 import { Navigate } from "react-router-dom";
-import type { LessonProgress, PartProgress, ProgressAttempt } from "@iris/shared-types";
+import type { PartProgress, ProgressAttempt } from "@iris/shared-types";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { formatShortArrival } from "@/features/utils/formatArrival";
 import { useFamilyProgress } from "@/shared/api/hooks/useClassroomsApi";
 import { IconBook, IconCheck, IconSparkle } from "@/shared/ui/icons";
 import { isPortalAccessRequired } from "../portalAccess";
+import { lessonsByUnit } from "./lessonUnits";
 import styles from "./ClassProgress.module.css";
 
 /** HU-46 and HU-47: how far the kid got in each lesson of the class, unit
@@ -35,13 +36,7 @@ export function ClassProgress({ enrollmentId, firstName }: { enrollmentId: strin
   }
 
   const finished = lessons.filter((lesson) => lesson.main.percent === 100).length;
-  // The units in the order the lessons come, each with its lessons.
-  const units: { title: string; lessons: LessonProgress[] }[] = [];
-  for (const lesson of lessons) {
-    const last = units[units.length - 1];
-    if (last && last.title === lesson.unit_title) last.lessons.push(lesson);
-    else units.push({ title: lesson.unit_title, lessons: [lesson] });
-  }
+  const units = lessonsByUnit(lessons);
 
   return (
     <>

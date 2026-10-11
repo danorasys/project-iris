@@ -24,6 +24,19 @@ GUIDING_QUESTION_MAX = 300
 LESSON_TITLE_MAX = 200
 PURPOSE_MAX = 200
 LEARNING_GOAL_MAX = 300
+# The DBA (subjects of the catalog) each area of a class can use: the MEN
+# publishes DBA for mathematics, language and English (both inside
+# humanities) and natural and social sciences. Only those areas need a DBA.
+DBA_SUBJECTS_BY_AREA: dict[str, tuple[str, ...]] = {
+    "mathematics": ("mathematics",),
+    "humanities": ("language", "english"),
+    "natural_sciences": ("natural_sciences",),
+    "social_sciences": ("social_sciences",),
+}
+# A DBA the teacher writes, and the evidences of their own any DBA can have.
+DBA_OWN_NAME_MAX = 200
+DBA_OWN_POINTS_MAX = 5
+DBA_POINT_MAX = 300
 HEADING_MAX = 200
 PARAGRAPH_MAX = 5000
 LIST_ITEMS_MAX = 20

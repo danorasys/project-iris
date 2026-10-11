@@ -7,6 +7,7 @@ import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
 import { ConfirmModal } from "@/shared/ui/ConfirmModal";
 import { IconArrowLeft, IconTrash } from "@/shared/ui/icons";
 import { Mascot } from "@/shared/ui/Mascot";
+import { isAutomatic } from "@/features/utils/notificationKinds";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
 import { DwellArrow } from "../components/DwellArrow";
 import { PagedChoices } from "../components/PagedChoices";
@@ -211,7 +212,8 @@ function NotificationReader({ notification, dwellDurationMs, onBack, onDeleted }
           {notificationSubject(notification)}
         </h1>
         <p className={styles.readerMeta}>
-          De {senderOf(notification)} · {classroomOf(notification)} · {formatArrival(notification.created_at)}
+          {isAutomatic(notification) ? "Aviso de IRIS" : `De ${senderOf(notification)}`} · {classroomOf(notification)} ·{" "}
+          {formatArrival(notification.created_at)}
         </p>
         <ViewEnter view={page} level={page} className={styles.readerText}>
           <p>{pages[page]}</p>

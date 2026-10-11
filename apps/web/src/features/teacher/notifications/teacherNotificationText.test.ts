@@ -15,10 +15,10 @@ const base = {
 };
 
 describe("teacher notification texts", () => {
-  it("tells who asked to join", () => {
+  it("tells who asked to join, in a notice IRIS signs", () => {
     const n: NotificationItem = { ...base, event: "request.created" };
 
-    expect(senderOf(n)).toBe("Ana Pérez");
+    expect(senderOf(n)).toBe("IRIS");
     expect(notificationMessage(n)).toContain('Ana Pérez pidió que Sofía se una a la clase "Matemáticas 3A"');
   });
 
@@ -79,7 +79,7 @@ describe("teacher notification texts", () => {
     };
     const done: NotificationItem = { ...base, ...lesson, event: "lesson.activity_completed", correct: 2, total: 3 };
 
-    expect(senderOf(read)).toBe("Sofía");
+    expect(senderOf(read)).toBe("IRIS");
     expect(notificationSubject(read)).toBe("Terminó de leer una lección");
     expect(notificationMessage(read)).toContain(
       'Sofía terminó de leer todo el contenido de la lección "Animales terrestres"',

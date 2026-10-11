@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, DateTime, Index, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.domain.entities import BODY_MAX_LENGTH, SUBJECT_MAX_LENGTH
 from app.infrastructure.db import Base
 
 
@@ -45,8 +46,8 @@ class NotificationModel(Base):
     sender_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     decision: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # A guardian's message to a teacher (HU-48), see migration 0003.
-    subject: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    body: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    subject: Mapped[str | None] = mapped_column(String(SUBJECT_MAX_LENGTH), nullable=True)
+    body: Mapped[str | None] = mapped_column(String(BODY_MAX_LENGTH), nullable=True)
     # Lessons, reports and the teacher's messages, see migration 0004.
     lesson_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     lesson_title: Mapped[str | None] = mapped_column(String(200), nullable=True)

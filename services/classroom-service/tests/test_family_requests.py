@@ -374,8 +374,8 @@ async def test_solo_se_escribe_cuando_el_peque_ya_esta_en_la_clase(
     [
         {"subject": "", "body": "Mensaje"},
         {"subject": "Hola", "body": "   "},
-        {"subject": "x" * 121, "body": "Mensaje"},
-        {"subject": "Hola", "body": "x" * 2001},
+        {"subject": "x" * 301, "body": "Mensaje"},
+        {"subject": "Hola", "body": "x" * 20001},
         {"subject": "Ho\x07la", "body": "Mensaje"},
     ],
 )
@@ -447,6 +447,22 @@ PROGRESS = [
         "lesson_id": "6f1d2c1e-9a4b-4c33-9a57-1d2b3c4d5e6f",
         "title": "Animales terrestres",
         "unit_title": "Los animales",
+        "unit_guiding_question": "¿Dónde viven los animales?",
+        "unit_learning_goal": "Explico dónde viven algunos animales y por qué.",
+        "purpose": "Hoy vas a conocer animales que viven en la tierra.",
+        "learning_goal": "Identifico dónde viven algunos animales.",
+        "unit_dba": {
+            "own": False,
+            "id": "natural_sciences-1-3",
+            "subject": "natural_sciences",
+            "grade": 1,
+            "number": 3,
+            "name": "Seres vivos y objetos sin vida",
+            "points": [
+                {"evidence_id": "natural_sciences-1-3-3", "text": "Nombra las partes de una planta."},
+                {"evidence_id": None, "text": "Reconoce animales terrestres de su región."},
+            ],
+        },
         "main": {
             "extra_id": None,
             "title": "Animales terrestres",
@@ -481,7 +497,36 @@ async def test_el_progreso_del_peque_solo_cuando_ya_esta_en_la_clase(
     [lesson] = inside.json()
     assert (lesson["title"], lesson["main"]["percent"]) == ("Animales terrestres", 67)
     assert "something_else" not in lesson["main"]
+    # What the class is about reaches the family too.
+    assert (lesson["unit_guiding_question"], lesson["unit_learning_goal"], lesson["purpose"], lesson["learning_goal"]) == (
+        "¿Dónde viven los animales?",
+        "Explico dónde viven algunos animales y por qué.",
+        "Hoy vas a conocer animales que viven en la tierra.",
+        "Identifico dónde viven algunos animales.",
+    )
+    assert lesson["unit_dba"]["name"] == "Seres vivos y objetos sin vida"
+    assert [p["evidence_id"] for p in lesson["unit_dba"]["points"]] == ["natural_sciences-1-3-3", None]
     assert someone_else.status_code == 404
+
+
+async def test_el_progreso_de_un_content_service_de_antes_llega_sin_lo_nuevo(
+    client: AsyncClient, identity_gateway: FakeIdentityGateway, content_gateway: FakeContentGateway
+) -> None:
+    teacher_token, classroom, guardian_token, kid = await _family(client, identity_gateway)
+    enrollment_id = await _ask(client, guardian_token, kid, classroom["enrollment_code"])
+    await _answer(client, teacher_token, classroom, enrollment_id, "aceptar")
+    # As content-service answered before it sent the question, purpose and goal.
+    old = [
+        {k: v for k, v in PROGRESS[0].items() if k not in ("unit_guiding_question", "unit_learning_goal", "purpose", "learning_goal", "unit_dba")}
+    ]
+    content_gateway.progress[(UUID(classroom["id"]), UUID(kid))] = old  # type: ignore[assignment]
+
+    response = await client.get(f"/classrooms/family/{enrollment_id}/progress", headers=auth(guardian_token))
+
+    assert response.status_code == 200, response.text
+    [lesson] = response.json()
+    assert (lesson["unit_guiding_question"], lesson["unit_learning_goal"], lesson["purpose"]) == ("", "", "")
+    assert lesson["unit_dba"] is None
 
 
 async def test_sin_content_service_el_progreso_avisa(

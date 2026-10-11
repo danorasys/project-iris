@@ -5,7 +5,11 @@ from types import TracebackType
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db import SessionLocal
-from app.infrastructure.repositories import SqlAlchemyClassroomRepository, SqlAlchemyEnrollmentRepository
+from app.infrastructure.repositories import (
+    SqlAlchemyAuditLogRepository,
+    SqlAlchemyClassroomRepository,
+    SqlAlchemyEnrollmentRepository,
+)
 
 
 # Implements the UnitOfWork port. One transaction per use case.
@@ -13,11 +17,13 @@ class SqlAlchemyUnitOfWork:
     session: AsyncSession
     classrooms: SqlAlchemyClassroomRepository
     enrollments: SqlAlchemyEnrollmentRepository
+    audit_log: SqlAlchemyAuditLogRepository
 
     async def __aenter__(self) -> "SqlAlchemyUnitOfWork":
         self.session = SessionLocal()
         self.classrooms = SqlAlchemyClassroomRepository(self.session)
         self.enrollments = SqlAlchemyEnrollmentRepository(self.session)
+        self.audit_log = SqlAlchemyAuditLogRepository(self.session)
         return self
 
     async def __aexit__(

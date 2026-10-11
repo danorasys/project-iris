@@ -26,6 +26,11 @@ from app.application.dtos import (
 )
 from app.application.image_rules import EXTENSION_BY_CONTENT_TYPE, matches_declared_type
 from app.domain.entities import (
+    AUDIT_ARCHIVED,
+    AUDIT_CREATED,
+    AUDIT_DELETED,
+    AUDIT_RESTORED,
+    AUDIT_TEACHER_LEFT,
     CODE_DIGITS,
     CODE_LETTERS,
     CODE_SYMBOLS,
@@ -36,6 +41,7 @@ from app.domain.entities import (
     STATUS_PENDING,
     STATUS_REJECTED,
     Classroom,
+    ClassroomAuditEntry,
     Enrollment,
     EnrollmentCounts,
     PublishedContent,
@@ -46,12 +52,13 @@ from app.domain.entities import (
 from app.domain.exceptions import (
     AlreadyEnrolledOrPending,
     AttemptLimitExceeded,
+    ClassroomArchived,
+    ClassroomNotArchived,
     ClassroomNotFound,
     ClassroomWithoutTeacher,
     ContentServiceUnavailable,
     EnrollmentNotFound,
     IdentityServiceUnavailable,
-    IncompleteClassroom,
     InvalidEnrollmentCode,
     InvalidFile,
     KidNotInFamily,
@@ -109,6 +116,19 @@ def _written_area(area: str, area_other: str | None) -> str | None:
     if not area_other:
         raise MissingOtherArea()
     return area_other
+
+
+# One line of the audit log (ADR 0021), now.
+def _audit(classroom_id: UUID, action: str, actor_id: UUID, students: int = 0, pending: int = 0) -> ClassroomAuditEntry:
+    return ClassroomAuditEntry(
+        id=uuid.uuid4(),
+        classroom_id=classroom_id,
+        action=action,
+        actor_id=actor_id,
+        occurred_at=datetime.now(timezone.utc),
+        student_count=students,
+        pending_count=pending,
+    )
 
 
 # The conversation of a message (HU-51): a new one gets a fresh id; an answer
@@ -177,6 +197,7 @@ class ClassroomService:
                 grade=grade,
             )
             await uow.classrooms.add(classroom)
+            await uow.audit_log.add(_audit(classroom.id, AUDIT_CREATED, teacher_id))
             await uow.commit()
         return classroom
 
@@ -261,9 +282,17 @@ class ClassroomService:
         if classroom is None:
             raise ClassroomNotFound()
         if classroom.teacher_id != teacher_id:
-            raise PermissionDenied("No eres el docente dueño de esta aula.")
+            raise PermissionDenied("No eres el docente de esta clase.")
         if not classroom.has_teacher:
             raise ClassroomWithoutTeacher()
+        return classroom
+
+    # The same, for anything that changes the class: an archived one is
+    # only for reading (HU-105).
+    async def _get_editable_classroom(self, uow: UnitOfWork, classroom_id: UUID, teacher_id: UUID) -> Classroom:
+        classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+        if classroom.is_archived:
+            raise ClassroomArchived()
         return classroom
 
     async def get_classroom_with_students(self, classroom_id: UUID, teacher_id: UUID) -> ClassroomWithStudents:
@@ -312,7 +341,7 @@ class ClassroomService:
 
     async def update_classroom(self, classroom_id: UUID, teacher_id: UUID, data: UpdateClassroomData) -> Classroom:
         async with self._uow_factory() as uow:
-            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            classroom = await self._get_editable_classroom(uow, classroom_id, teacher_id)
             if data.name is not None:
                 classroom.name = data.name
             if data.description is not None:
@@ -323,9 +352,6 @@ class ClassroomService:
                 classroom.area = data.area
             if data.grade is not None:
                 classroom.grade = data.grade
-            # A classroom from before HU-100 can't be saved until it has both.
-            if classroom.area is None or classroom.grade is None:
-                raise IncompleteClassroom()
             classroom.area_other = _written_area(classroom.area, data.area_other or classroom.area_other)
             await uow.classrooms.update(classroom)
             await uow.commit()
@@ -344,7 +370,7 @@ class ClassroomService:
             raise InvalidFile("La imagen no puede superar 5MB.")
 
         async with self._uow_factory() as uow:
-            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            classroom = await self._get_editable_classroom(uow, classroom_id, teacher_id)
             old_key = classroom.logo_key
             # The extension comes from the checked type, never from the file name.
             key = f"classrooms/{classroom_id}/logo/{uuid.uuid4().hex}.{EXTENSION_BY_CONTENT_TYPE[content_type]}"
@@ -368,7 +394,7 @@ class ClassroomService:
     # Back to the initials on its color.
     async def remove_logo(self, classroom_id: UUID, teacher_id: UUID) -> Classroom:
         async with self._uow_factory() as uow:
-            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            classroom = await self._get_editable_classroom(uow, classroom_id, teacher_id)
             old_key = classroom.logo_key
             classroom.logo_key = None
             await uow.classrooms.update(classroom)
@@ -381,7 +407,7 @@ class ClassroomService:
     # enrollment goes away, so the guardian can ask to join again later.
     async def remove_student(self, classroom_id: UUID, enrollment_id: UUID, teacher_id: UUID) -> None:
         async with self._uow_factory() as uow:
-            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            classroom = await self._get_editable_classroom(uow, classroom_id, teacher_id)
             enrollment = await uow.enrollments.get_by_id(enrollment_id)
             if enrollment is None or enrollment.classroom_id != classroom_id or enrollment.status != STATUS_ACCEPTED:
                 raise EnrollmentNotFound("Ese estudiante no está inscrito en esta clase.")
@@ -402,22 +428,109 @@ class ClassroomService:
             logger.warning("No fue posible resolver el nombre del docente para el evento de retiro.")
         await self._publish_event_safely(REQUESTS_CHANNEL, event)
 
-    # HU-85: the classroom with its lessons, enrollments and logo. The
-    # lessons go first: if content-service can't delete them, nothing is
-    # deleted and the teacher can try again, so no lesson is ever left
-    # behind without its classroom.
+    # HU-105: the class stops: no new requests, no changes, its kids don't
+    # see it. The requests still waiting are closed (like when a teacher
+    # leaves), and every family in it or waiting hears why. Archiving one
+    # already archived changes nothing.
+    async def archive_classroom(self, classroom_id: UUID, teacher_id: UUID) -> Classroom:
+        async with self._uow_factory() as uow:
+            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            if classroom.is_archived:
+                return classroom
+            accepted = await uow.enrollments.list_accepted_by_classroom(classroom_id)
+            pending = await uow.enrollments.list_pending_by_classroom(classroom_id)
+            classroom.archived_at = datetime.now(timezone.utc)
+            await uow.classrooms.update(classroom)
+            for enrollment in pending:
+                await uow.enrollments.delete(enrollment.id)
+            await uow.audit_log.add(
+                _audit(classroom_id, AUDIT_ARCHIVED, teacher_id, students=len(accepted), pending=len(pending))
+            )
+            await uow.commit()
+
+        await self._tell_families("classroom.archived", classroom, accepted, closed=pending)
+        logger.info("Aula %s archivada por su docente.", classroom_id)
+        return classroom
+
+    # Back to the active classes with everything it had; its families hear it.
+    async def restore_classroom(self, classroom_id: UUID, teacher_id: UUID) -> Classroom:
+        async with self._uow_factory() as uow:
+            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            if not classroom.is_archived:
+                return classroom
+            accepted = await uow.enrollments.list_accepted_by_classroom(classroom_id)
+            classroom.archived_at = None
+            await uow.classrooms.update(classroom)
+            await uow.audit_log.add(_audit(classroom_id, AUDIT_RESTORED, teacher_id, students=len(accepted)))
+            await uow.commit()
+
+        await self._tell_families("classroom.restored", classroom, accepted)
+        logger.info("Aula %s restaurada por su docente.", classroom_id)
+        return classroom
+
+    # HU-85: the last step, only for an archived class. Its lessons go
+    # first: if content-service can't delete them, nothing is deleted and
+    # the teacher can try again, so no lesson is left without its class.
+    # The audit line goes in the same transaction as the delete, and the
+    # families of the kids who were in it hear about it.
     async def delete_classroom(self, classroom_id: UUID, teacher_id: UUID) -> None:
         async with self._uow_factory() as uow:
             classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            if not classroom.is_archived:
+                raise ClassroomNotArchived()
+            accepted = await uow.enrollments.list_accepted_by_classroom(classroom_id)
 
         await self._content.delete_classroom_lessons(classroom_id)
 
         async with self._uow_factory() as uow:
             await uow.classrooms.delete(classroom_id)
+            await uow.audit_log.add(_audit(classroom_id, AUDIT_DELETED, teacher_id, students=len(accepted)))
             await uow.commit()
         if classroom.logo_key:
             await self._delete_quietly(classroom.logo_key)
+
+        await self._tell_families("classroom.deleted", classroom, accepted)
         logger.info("Aula %s eliminada por su docente.", classroom_id)
+
+    # One notice for every family of the class (HU-106): the kids in it and,
+    # when archiving, the ones whose request was closed. Only their
+    # guardians hear it, notification-service makes one for each.
+    async def _tell_families(
+        self, kind: str, classroom: Classroom, accepted: list[Enrollment], closed: list[Enrollment] | None = None
+    ) -> None:
+        closed = closed or []
+        if not accepted and not closed:
+            return
+        members, teacher_name = await asyncio.gather(
+            self._members(accepted + closed), self._teacher_name(classroom.teacher_id)
+        )
+        closed_ids = {str(e.id) for e in closed}
+        for member in members:
+            if member["enrollment_id"] in closed_ids:
+                member["request_closed"] = True
+        event: dict[str, object] = {
+            "event": kind,
+            "classroom_id": str(classroom.id),
+            "classroom_name": classroom.name,
+            "teacher_id": str(classroom.teacher_id),
+            "members": members,
+        }
+        if teacher_name:
+            event["teacher_name"] = teacher_name
+        await self._publish_event_safely(REQUESTS_CHANNEL, event)
+
+    # Each enrollment with its kid and their guardian, for an event that
+    # goes to many families. A kid whose guardian isn't known still counts.
+    async def _members(self, enrollments: list[Enrollment]) -> list[dict[str, object]]:
+        families = await asyncio.gather(*(self._guardian_fields(e.student_id) for e in enrollments))
+        return [
+            {
+                "enrollment_id": str(e.id),
+                "student_id": str(e.student_id),
+                **{k: v for k, v in family.items() if k in ("student_name", "guardian_id")},
+            }
+            for e, family in zip(enrollments, families)
+        ]
 
     async def get_logo(self, classroom_id: UUID, file_name: str, subject_id: UUID, role: str) -> SignedDownload:
         # Same rule as the classroom: its teacher and its accepted students.
@@ -466,7 +579,7 @@ class ClassroomService:
         self, classroom_id: UUID, enrollment_id: UUID, teacher_id: UUID, decision: str
     ) -> Enrollment:
         async with self._uow_factory() as uow:
-            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            classroom = await self._get_editable_classroom(uow, classroom_id, teacher_id)
             enrollment = await uow.enrollments.get_by_id(enrollment_id)
             if enrollment is None or enrollment.classroom_id != classroom_id:
                 raise EnrollmentNotFound()
@@ -526,6 +639,8 @@ class ClassroomService:
             raise InvalidEnrollmentCode()
         if not classroom.has_teacher:
             raise ClassroomWithoutTeacher()
+        if classroom.is_archived:
+            raise ClassroomArchived()
         teacher, content = await asyncio.gather(
             self._teacher_profile(classroom.teacher_id), self._published_content([classroom.id])
         )
@@ -552,6 +667,8 @@ class ClassroomService:
                 raise InvalidEnrollmentCode()
             if not classroom.has_teacher:
                 raise ClassroomWithoutTeacher()
+            if classroom.is_archived:
+                raise ClassroomArchived()
 
             existing = await uow.enrollments.get_by_student_and_classroom(student_id, classroom.id)
             if existing is not None and existing.status in (STATUS_PENDING, STATUS_ACCEPTED):
@@ -642,6 +759,8 @@ class ClassroomService:
             raise NotInClassroomYet()
         if not classroom.has_teacher:
             raise ClassroomWithoutTeacher()
+        if classroom.is_archived:
+            raise ClassroomArchived()
 
         event = self._family_event("message.sent", classroom, enrollment, first_name)
         event |= await self._guardian_fields(enrollment.student_id)
@@ -670,7 +789,7 @@ class ClassroomService:
             f"teacher-message:{teacher_id}", self._limits.message_max, self._limits.message_window_sec
         )
         async with self._uow_factory() as uow:
-            classroom = await self._get_own_classroom(uow, classroom_id, teacher_id)
+            classroom = await self._get_editable_classroom(uow, classroom_id, teacher_id)
             enrollment = await uow.enrollments.get_by_id(enrollment_id)
         if enrollment is None or enrollment.classroom_id != classroom_id or enrollment.status != STATUS_ACCEPTED:
             raise EnrollmentNotFound("Ese estudiante no está inscrito en esta clase.")
@@ -751,16 +870,30 @@ class ClassroomService:
     # Student
     # ------------------------------------------------------------------
 
+    # An archived class isn't for the kid anymore (HU-105).
     async def list_my_classrooms(self, student_id: UUID) -> list[Classroom]:
         async with self._uow_factory() as uow:
             accepted = await uow.enrollments.list_accepted_by_student(student_id)
             classroom_ids = [enrollment.classroom_id for enrollment in accepted]
-            return await uow.classrooms.list_by_ids(classroom_ids)
+            classrooms = await uow.classrooms.list_by_ids(classroom_ids)
+        return [c for c in classrooms if not c.is_archived]
 
     # ------------------------------------------------------------------
     # Internal (used by content-service - §5.3, §5.2 punto 10)
     # ------------------------------------------------------------------
 
+    # Asked by content-service: the area and grade of a class, to know if its
+    # units need a DBA and which ones fit (only some areas have DBA).
+    async def subject_of(self, classroom_id: UUID) -> Classroom:
+        async with self._uow_factory() as uow:
+            classroom = await uow.classrooms.get_by_id(classroom_id)
+        if classroom is None:
+            raise ClassroomNotFound()
+        return classroom
+
+    # "teacher" reads the class, "editor" is the teacher changing it (no
+    # longer once it's archived or without teacher), "student" a kid in it
+    # (not once it's archived: it isn't for them anymore).
     async def verify_access(self, classroom_id: UUID, subject_id: UUID, role: str) -> bool:
         async with self._uow_factory() as uow:
             classroom = await uow.classrooms.get_by_id(classroom_id)
@@ -769,7 +902,11 @@ class ClassroomService:
 
             if role == "teacher":
                 return classroom.teacher_id == subject_id
+            if role == "editor":
+                return classroom.teacher_id == subject_id and classroom.has_teacher and not classroom.is_archived
             if role == "student":
+                if classroom.is_archived:
+                    return False
                 enrollment = await uow.enrollments.get_by_student_and_classroom(subject_id, classroom_id)
                 return enrollment is not None and enrollment.status == STATUS_ACCEPTED
             return False
@@ -794,21 +931,11 @@ class ClassroomService:
         if student_ids is not None:
             wanted = set(student_ids)
             accepted = [e for e in accepted if e.student_id in wanted]
-        if not accepted:
+        # Nothing can be published in an archived class, this is just in case.
+        if not accepted or classroom.is_archived:
             return
 
-        families, teacher_name = await asyncio.gather(
-            asyncio.gather(*(self._guardian_fields(e.student_id) for e in accepted)),
-            self._teacher_name(classroom.teacher_id),
-        )
-        members = [
-            {
-                "enrollment_id": str(e.id),
-                "student_id": str(e.student_id),
-                **{k: v for k, v in family.items() if k in ("student_name", "guardian_id")},
-            }
-            for e, family in zip(accepted, families)
-        ]
+        members, teacher_name = await asyncio.gather(self._members(accepted), self._teacher_name(classroom.teacher_id))
         event: dict[str, object] = {
             "event": kind,
             "classroom_id": str(classroom.id),
@@ -873,10 +1000,15 @@ class ClassroomService:
         closed: list[tuple[Classroom, Enrollment]] = []
         async with self._uow_factory() as uow:
             for classroom in await uow.classrooms.list_by_teacher(teacher_id):
+                pending = await uow.enrollments.list_pending_by_classroom(classroom.id)
                 if classroom.has_teacher:
                     classroom.teacher_left_at = now
                     await uow.classrooms.update(classroom)
-                for enrollment in await uow.enrollments.list_pending_by_classroom(classroom.id):
+                    students = len(await uow.enrollments.list_accepted_by_classroom(classroom.id))
+                    await uow.audit_log.add(
+                        _audit(classroom.id, AUDIT_TEACHER_LEFT, teacher_id, students=students, pending=len(pending))
+                    )
+                for enrollment in pending:
                     await uow.enrollments.delete(enrollment.id)
                     closed.append((classroom, enrollment))
             await uow.commit()

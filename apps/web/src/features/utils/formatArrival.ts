@@ -5,6 +5,13 @@ export function formatArrival(isoDate: string): string {
   return dateTime.format(new Date(isoDate));
 }
 
+const longDay = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "long", year: "numeric" });
+
+/** "9 de octubre de 2026", the day something happened, in local time. */
+export function formatDay(isoDate: string): string {
+  return longDay.format(new Date(isoDate));
+}
+
 const timeOnly = new Intl.DateTimeFormat("es-CO", { timeStyle: "short" });
 const dayAndMonth = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short" });
 const withYear = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", year: "numeric" });

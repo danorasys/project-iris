@@ -1,4 +1,5 @@
 import type { NotificationItem } from "@iris/shared-types";
+import { AUTOMATIC_SENDER, isAutomatic } from "@/features/utils/notificationKinds";
 
 // What a kid reads for each notification, in simple words. Same idea as the
 // parents' and the teacher's: the server keeps the facts, the words are here.
@@ -12,9 +13,11 @@ export function classroomOf(n: NotificationItem): string {
   return n.classroom_name ?? "tu clase";
 }
 
-/** Who it's from: their teacher, or IRIS when the name didn't come. */
+/** Who it's from: their teacher in a message, IRIS in what it writes by
+ * itself (a new lesson or extra, the teacher is named in the text). */
 export function senderOf(n: NotificationItem): string {
-  return n.sender_name ?? "IRIS";
+  if (isAutomatic(n)) return AUTOMATIC_SENDER;
+  return n.sender_name ?? "Tu profe";
 }
 
 export function notificationSubject(n: NotificationItem): string {

@@ -6,15 +6,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-from uuid import UUID
 
 import fakeredis.aioredis
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import update
 
-from app.infrastructure.db import SessionLocal
-from app.infrastructure.models import ClassroomModel
+from app.config import get_settings
+
 from tests.helpers import pedir_ingreso
 from tests.fakes import FakeContentGateway, FakeIdentityGateway, FakeObjectStorage
 
@@ -274,7 +272,7 @@ async def test_quitar_el_logo_vuelve_a_las_iniciales_y_borra_el_archivo(
     assert object_storage.archivos == {}
 
 
-# --- deleting a classroom (HU-85) -----------------------------------------
+# --- deleting a classroom (HU-85), once it's archived (HU-105) ----------
 
 
 async def test_eliminar_una_clase_borra_sus_lecciones_inscripciones_y_logo(
@@ -290,6 +288,7 @@ async def test_eliminar_una_clase_borra_sus_lecciones_inscripciones_y_logo(
     )
     token_student, _ = identity_gateway.registrar_estudiante_token()
     await _member(client, classroom, token, token_student)
+    await client.post(f"/classrooms/{classroom['id']}/archive", headers=_auth(token))
 
     response = await client.delete(f"/classrooms/{classroom['id']}", headers=_auth(token))
 
@@ -305,6 +304,7 @@ async def test_si_las_lecciones_no_se_pueden_borrar_la_clase_sigue_igual(
 ) -> None:
     token, _ = identity_gateway.registrar_docente()
     classroom = await _create(client, token)
+    await client.post(f"/classrooms/{classroom['id']}/archive", headers=_auth(token))
     content_gateway.unavailable = True
 
     response = await client.delete(f"/classrooms/{classroom['id']}", headers=_auth(token))
@@ -383,25 +383,21 @@ async def test_editar_cambia_area_y_grado_pero_no_los_deja_vacios(
     assert cleared.status_code == 422
 
 
-async def test_una_clase_de_antes_se_completa_al_editarla(
+async def test_content_service_pregunta_el_area_y_el_grado_de_una_clase(
     client: AsyncClient, identity_gateway: FakeIdentityGateway
 ) -> None:
     token, _ = identity_gateway.registrar_docente()
-    classroom = await _create(client, token)
-    # As if it had been created before area and grade existed.
-    async with SessionLocal() as session:
-        await session.execute(
-            update(ClassroomModel).where(ClassroomModel.id == UUID(classroom["id"])).values(area=None, grade=None)
-        )
-        await session.commit()
-    url = f"/classrooms/{classroom['id']}"
+    classroom = await _create(client, token, area="natural_sciences", grade=3)
+    url = f"/internal/classrooms/{classroom['id']}/subject"
+    key = {"X-Internal-Key": get_settings().internal_service_key}
 
-    without_them = await client.patch(url, json={"name": "Matemáticas"}, headers=_auth(token))
-    with_them = await client.patch(url, json={"area": "mathematics", "grade": 4}, headers=_auth(token))
+    subject = await client.get(url, headers=key)
+    without_key = await client.get(url)
+    missing = await client.get("/internal/classrooms/00000000-0000-0000-0000-000000000000/subject", headers=key)
 
-    assert without_them.status_code == 422
-    assert without_them.json()["error"]["code"] == "clase_incompleta"
-    assert (with_them.json()["area"], with_them.json()["grade"]) == ("mathematics", 4)
+    assert subject.json() == {"area": "natural_sciences", "grade": 3}
+    assert without_key.status_code == 401
+    assert missing.status_code == 404
 
 
 # Transición (0) isn't a primary school grade, and only one grade is taken.

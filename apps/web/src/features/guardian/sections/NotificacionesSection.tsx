@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import type { NotificationItem } from "@iris/shared-types";
 import {
   useBandejaNotificaciones,
+  useClassNotifications,
   useEliminarNotificacion,
   useEliminarNotificaciones,
   useMarcarNotificacionLeida,
@@ -22,7 +23,9 @@ import { Toast } from "@/shared/ui/Toast";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
 import { useSendTeacherMessage } from "@/shared/api/hooks/useClassroomsApi";
 import { MessageThread } from "@/shared/ui/portal/MessageThread";
+import { threadSubject } from "@/shared/ui/portal/messageThreadRules";
 import { NotificationMail, type MailPosition } from "@/shared/ui/portal/NotificationMail";
+import { isAutomatic, notificationContext } from "@/features/utils/notificationKinds";
 import { Highlight, PortalBanner } from "@/shared/ui/portal/PortalBanner";
 import { TrayPager } from "@/shared/ui/portal/TrayPager";
 import { TrayToolbar } from "@/shared/ui/portal/TraySelection";
@@ -32,22 +35,30 @@ import styles from "@/shared/ui/portal/NotificationTray.module.css";
 
 const PAGE_SIZE = 8;
 
-/** "Notificaciones": the guardian's tray. The newest first and a page at a
- * time, the unread ones stand out, each one says which kid, which class and
- * who it's from, and it can be opened to read in full or deleted. */
-export function NotificacionesSection({
-  initialNotification = null,
-}: {
+interface NotificacionesSectionProps {
   /** Opened right away, like when it's clicked in Inicio. */
   initialNotification?: NotificationItem | null;
-}) {
+  /** Only the ones of one class about one kid, for the space of that class
+   * (HU-42). It goes under the class header, so `heading` takes the place of
+   * the big banner. */
+  ofClass?: { classroomId: string; studentId: string; heading: ReactNode };
+}
+
+/** "Notificaciones": the guardian's tray. The newest first and a page at a
+ * time, the unread ones stand out, each one says which kid, which class and
+ * who it's from, and it can be opened to read in full or deleted. The space
+ * of a class uses this same tray, with only that class. */
+export function NotificacionesSection({ initialNotification = null, ofClass }: NotificacionesSectionProps) {
   const [page, setPage] = useState(1);
   const [opened, setOpened] = useState<NotificationItem | null>(initialNotification);
   const [toDelete, setToDelete] = useState<NotificationItem | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const tray = useBandejaNotificaciones(page, PAGE_SIZE);
+  // Only one of the two asks the server: the whole tray or the class one.
+  const wholeTray = useBandejaNotificaciones(page, PAGE_SIZE, !ofClass);
+  const classTray = useClassNotifications(ofClass?.classroomId, ofClass?.studentId, page, PAGE_SIZE);
+  const tray = ofClass ? classTray : wholeTray;
   const markRead = useMarcarNotificacionLeida();
   const remove = useEliminarNotificacion();
   const removeMany = useEliminarNotificaciones();
@@ -147,13 +158,15 @@ export function NotificacionesSection({
     inbox.current?.scrollIntoView?.({ block: "start" });
   }
 
-  if (tray.isLoading) return <p className={styles.status}>Cargando tus notificaciones…</p>;
+  if (tray.isLoading) return <p className={styles.status}>Cargando las notificaciones…</p>;
   // Nothing typed to keep here, a closed portal just goes to the code screen.
   if (isPortalAccessRequired(tray.error)) return <Navigate to="/guardian/verify-2fa" replace />;
   if (tray.isError) {
     return (
       <p role="alert" className={`${styles.status} ${styles.error}`}>
-        No pudimos cargar tus notificaciones. Intenta recargar la página.
+        {ofClass
+          ? "No pudimos cargar las notificaciones de esta clase. Intenta de nuevo en un momento."
+          : "No pudimos cargar tus notificaciones. Intenta recargar la página."}
       </p>
     );
   }
@@ -175,27 +188,35 @@ export function NotificacionesSection({
           />
         ) : (
           <>
-            <PortalBanner
-              label="Notificaciones"
-              eyebrow="Notificaciones"
-              title={
-                <>
-                  Tus <Highlight>notificaciones</Highlight>
-                </>
-              }
-              chips={[
-                total === 1 ? "1 notificación" : `${total} notificaciones`,
-                unread === 1 ? "1 sin leer" : `${unread} sin leer`,
-              ]}
-              icon={<IconBell width={40} height={40} />}
-            />
+            {ofClass ? (
+              ofClass.heading
+            ) : (
+              <PortalBanner
+                label="Notificaciones"
+                eyebrow="Notificaciones"
+                title={
+                  <>
+                    Tus <Highlight>notificaciones</Highlight>
+                  </>
+                }
+                chips={[
+                  total === 1 ? "1 notificación" : `${total} notificaciones`,
+                  unread === 1 ? "1 sin leer" : `${unread} sin leer`,
+                ]}
+                icon={<IconBell width={40} height={40} />}
+              />
+            )}
 
             {items.length === 0 ? (
               <div className={styles.empty}>
                 <span className={styles.emptyIcon} aria-hidden="true">
                   <IconBell width={26} height={26} />
                 </span>
-                <p className={styles.emptyTitle}>No tienes notificaciones por ahora</p>
+                <p className={styles.emptyTitle}>
+                  {ofClass
+                    ? "Esta clase todavía no te ha enviado notificaciones"
+                    : "No tienes notificaciones por ahora"}
+                </p>
               </div>
             ) : (
               <div ref={inbox} className={styles.inbox}>
@@ -222,6 +243,7 @@ export function NotificacionesSection({
                       onToggle={() => selection.toggle(n.id)}
                       onOpen={() => open(n)}
                       onDelete={() => setToDelete(n)}
+                      inClass={Boolean(ofClass)}
                     />
                   ))}
                 </ul>
@@ -278,10 +300,14 @@ interface RowProps {
   onToggle: () => void;
   onOpen: () => void;
   onDelete: () => void;
+  /** It's the tray of one class and kid (HU-42). */
+  inClass: boolean;
 }
 
-function NotificationRow({ notification: n, selected, onToggle, onOpen, onDelete }: RowProps) {
+function NotificationRow({ notification: n, selected, onToggle, onOpen, onDelete, inClass }: RowProps) {
   const subject = notificationSubject(n);
+  // Inside a class's own tray the kid and the class are already known.
+  const context = inClass ? null : notificationContext(n);
   const classes = [styles.row, !n.read && styles.rowUnread, selected && styles.rowSelected].filter(Boolean).join(" ");
   return (
     <li className={classes}>
@@ -300,8 +326,15 @@ function NotificationRow({ notification: n, selected, onToggle, onOpen, onDelete
         <span className={styles.rowSender}>
           {!n.read && <span className={styles.visuallyHidden}>No leída: </span>}
           {senderOf(n)}
+          {isAutomatic(n) && (
+            <>
+              {" "}
+              <span className={styles.autoTag}>Automático</span>
+            </>
+          )}
         </span>
         <span className={styles.rowText}>
+          {context && <span className={styles.contextTag}>{context}</span>}
           <span className={styles.rowSubject}>{subject}</span> — {notificationMessage(n)}
         </span>
         <time className={styles.rowTime} dateTime={n.created_at} title={formatArrival(n.created_at)}>
@@ -323,10 +356,14 @@ interface DetailProps {
 }
 
 function NotificationDetail({ notification: n, position, onBack, onDelete }: DetailProps) {
+  // Only what a person wrote has a conversation to answer, never what IRIS
+  // wrote by itself. It's named like a mail thread, without the "Re:".
+  const isMessage = n.event === "teacher.message" || n.event === "message.sent";
   return (
     <NotificationMail
-      subject={notificationSubject(n)}
+      subject={isMessage ? threadSubject(n.subject) : notificationSubject(n)}
       sender={senderOf(n)}
+      automatic={isAutomatic(n)}
       kidLabel="Peque"
       kidName={studentOf(n)}
       classroomName={n.classroom_name ?? "Sin nombre"}
@@ -335,14 +372,15 @@ function NotificationDetail({ notification: n, position, onBack, onDelete }: Det
       onBack={onBack}
       onDelete={onDelete}
       position={position}
-    >
-      {(n.event === "teacher.message" || n.event === "message.sent") && n.thread_id && <GuardianReply message={n} />}
-    </NotificationMail>
+      conversation={isMessage ? <GuardianReply message={n} /> : undefined}
+    />
   );
 }
 
 // HU-51: the teacher's message, or the copy of one the guardian wrote,
 // answered in its conversation. It always goes to the teacher of the class.
+// A message from before the conversations has no thread, so its answer
+// starts a new one.
 function GuardianReply({
   message,
 }: {

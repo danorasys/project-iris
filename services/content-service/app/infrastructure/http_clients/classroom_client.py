@@ -1,5 +1,6 @@
-# Client for classroom-service's internal routes: /access, and the notices
-# about new lessons (/announcements) and what a kid finished (/reports).
+# Client for classroom-service's internal routes: /access, the area of a class
+# (/subject), and the notices about new lessons (/announcements) and what a
+# kid finished (/reports).
 #
 # Unlike identity_client, this is an AUTHORIZATION check, not authentication.
 # If classroom-service doesn't respond, this fails closed to "denied" and
@@ -17,6 +18,7 @@ from uuid import UUID
 import httpx
 from cachetools import TTLCache
 
+from app.domain.entities import ClassSubject
 from app.infrastructure.http_clients.circuit_breaker import CircuitBreaker
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,8 @@ class HttpClassroomClient:
         self._internal_key = internal_key
         self._breaker = breaker or CircuitBreaker()
         self._cache: TTLCache[tuple[UUID, UUID, str], bool] = TTLCache(maxsize=2000, ttl=cache_ttl_seconds)
+        # The editor asks for it on every save, and they rarely change.
+        self._subjects: TTLCache[UUID, ClassSubject] = TTLCache(maxsize=2000, ttl=cache_ttl_seconds)
 
     async def verify_access(self, classroom_id: UUID, subject_id: UUID, role: str, correlation_id: str | None) -> bool:
         cache_key = (classroom_id, subject_id, role)
@@ -69,6 +73,41 @@ class HttpClassroomClient:
         authorized = bool(response.json().get("authorized", False))
         self._cache[cache_key] = authorized
         return authorized
+
+    async def subject_of(self, classroom_id: UUID, correlation_id: str | None) -> ClassSubject | None:
+        cached = self._subjects.get(classroom_id)
+        if cached is not None:
+            return cached
+        if not self._breaker.allow():
+            return None
+
+        headers = {"X-Internal-Key": self._internal_key}
+        if correlation_id:
+            headers["X-Correlation-Id"] = correlation_id
+        try:
+            response = await self._http.get(
+                f"{self._base_url}/internal/classrooms/{classroom_id}/subject",
+                headers=headers,
+                timeout=httpx.Timeout(2.0),
+            )
+        except httpx.HTTPError:
+            self._breaker.record_failure()
+            return None
+        if response.status_code != 200:
+            self._breaker.record_failure()
+            return None
+
+        self._breaker.record_success()
+        try:
+            body = response.json()
+        except ValueError:
+            return None
+        area, grade = body.get("area"), body.get("grade")
+        if not isinstance(area, str) or not isinstance(grade, int):
+            return None
+        subject = ClassSubject(area=area, grade=grade)
+        self._subjects[classroom_id] = subject
+        return subject
 
     async def announce(
         self,

@@ -12,7 +12,6 @@ from fastapi.responses import JSONResponse
 
 from app.domain.exceptions import (
     UnauthorizedInternalAccess,
-    IncompleteClassroom,
     InvalidFile,
     MissingOtherArea,
     ClassroomNotFound,
@@ -36,6 +35,8 @@ from app.domain.exceptions import (
     ProgressUnavailable,
     StatisticsUnavailable,
     ClassroomWithoutTeacher,
+    ClassroomArchived,
+    ClassroomNotArchived,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,8 @@ _STATUS_POR_ERROR: dict[type[DomainError], int] = {
     ProgressUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
     StatisticsUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
     ClassroomWithoutTeacher: status.HTTP_409_CONFLICT,
+    ClassroomArchived: status.HTTP_409_CONFLICT,
+    ClassroomNotArchived: status.HTTP_409_CONFLICT,
     RequestAlreadyResolved: status.HTTP_409_CONFLICT,
     PermissionDenied: status.HTTP_403_FORBIDDEN,
     TwoFactorRequired: status.HTTP_403_FORBIDDEN,
@@ -61,7 +64,6 @@ _STATUS_POR_ERROR: dict[type[DomainError], int] = {
     IdentityServiceUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
     ContentServiceUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
     InvalidFile: status.HTTP_422_UNPROCESSABLE_CONTENT,
-    IncompleteClassroom: status.HTTP_422_UNPROCESSABLE_CONTENT,
     MissingOtherArea: status.HTTP_422_UNPROCESSABLE_CONTENT,
     StorageFull: status.HTTP_507_INSUFFICIENT_STORAGE,
     UnauthorizedInternalAccess: status.HTTP_401_UNAUTHORIZED,

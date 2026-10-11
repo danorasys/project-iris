@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import type { LessonDetail } from "@iris/shared-types";
+import type { LessonDetail, UnitDba } from "@iris/shared-types";
 import { ApiError } from "@/shared/api/httpClient";
 import LessonEditorPage from "./LessonEditorPage";
 
@@ -33,7 +33,16 @@ vi.mock("@/shared/api/hooks/useLessonsApi", () => ({
   useLessonDetail: () => ({ data: lesson, isLoading: false, isError: false }),
   useClassroomUnits: () => ({
     data: [
-      { id: "u1", classroom_id: "c1", title: "Los animales", guiding_question: "¿Dónde?", order_index: 0, lessons: [] },
+      {
+        id: "u1",
+        classroom_id: "c1",
+        title: "Los animales",
+        guiding_question: "¿Dónde?",
+        learning_goal: "Explico dónde viven.",
+        dba: unitDba,
+        order_index: 0,
+        lessons: [],
+      },
     ],
     isLoading: false,
     isError: false,
@@ -49,8 +58,26 @@ vi.mock("@/shared/api/hooks/useLessonsApi", () => ({
   useDeleteExtra: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
+const LIVING_THINGS: UnitDba = {
+  own: false,
+  id: "natural_sciences-1-3",
+  subject: "natural_sciences",
+  grade: 1,
+  number: 3,
+  name: "Seres vivos y objetos sin vida",
+  points: [
+    { evidence_id: "natural_sciences-1-3-3", text: "Nombra las partes de una planta y de los animales que conoce." },
+    { evidence_id: null, text: "Reconoce animales de su región." },
+  ],
+};
+// The DBA of the lesson's unit, none unless a test says otherwise.
+let unitDba: UnitDba | null = null;
+
+// The class, with an area without DBA unless a test says otherwise.
+let classroom: { students: never[]; area: string; grade: number } = { students: [], area: "arts", grade: 1 };
+
 vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
-  useClassroomDetail: () => ({ data: { students: [] } }),
+  useClassroomDetail: () => ({ data: classroom }),
 }));
 
 function renderEditor() {
@@ -66,10 +93,61 @@ function renderEditor() {
 afterEach(() => {
   cleanup();
   lesson = draft;
+  classroom = { students: [], area: "arts", grade: 1 };
+  unitDba = null;
   for (const mock of [updateLesson, setActivity, publish, uploadImage]) mock.mockReset();
 });
 
 describe("LessonEditorPage", { timeout: 20_000 }, () => {
+  it("shows its unit's DBA with its points, only to read", () => {
+    classroom = { students: [], area: "natural_sciences", grade: 1 };
+    unitDba = LIVING_THINGS;
+    renderEditor();
+
+    const box = screen.getByRole("region", { name: "DBA de la unidad" });
+    expect(within(box).getByText("DBA 3 · Ciencias naturales · 1.°: Seres vivos y objetos sin vida")).toBeTruthy();
+    expect(within(box).getByText("Nombra las partes de una planta y de los animales que conoce.")).toBeTruthy();
+    expect(within(box).getByText("Reconoce animales de su región.")).toBeTruthy();
+    expect(
+      within(box).getByRole("link", { name: /Ver el texto oficial de los DBA de Ciencias naturales/ }),
+    ).toBeTruthy();
+    // They're chosen in the unit: nothing to tick or write here.
+    expect(within(box).queryByRole("checkbox")).toBeNull();
+    expect(within(box).queryByRole("textbox")).toBeNull();
+  });
+
+  it("with an own DBA in its unit has no link to the MEN", () => {
+    classroom = { students: [], area: "natural_sciences", grade: 1 };
+    unitDba = {
+      own: true,
+      id: null,
+      subject: null,
+      grade: null,
+      number: null,
+      name: "Cuido los animales de mi casa.",
+      points: [],
+    };
+    renderEditor();
+
+    const box = screen.getByRole("region", { name: "DBA de la unidad" });
+    expect(within(box).getByText("DBA propio de la unidad: Cuido los animales de mi casa.")).toBeTruthy();
+    expect(within(box).queryByRole("link")).toBeNull();
+    expect(within(box).getByText(/La unidad todavía no tiene Evidencias de Aprendizaje/)).toBeTruthy();
+  });
+
+  it("says to choose the DBA in the unit when it has none yet", () => {
+    classroom = { students: [], area: "natural_sciences", grade: 1 };
+    renderEditor();
+
+    expect(screen.getByText(/La unidad de esta lección todavía no tiene DBA/)).toBeTruthy();
+  });
+
+  it("in an area without DBA doesn't show it", () => {
+    renderEditor();
+
+    expect(screen.queryByRole("region", { name: "DBA de la unidad" })).toBeNull();
+  });
+
   it("says what's missing and doesn't let publish until it's complete", () => {
     renderEditor();
 

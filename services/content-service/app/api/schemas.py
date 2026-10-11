@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.application import lesson_rules as rules
 
@@ -91,15 +91,21 @@ def _check_pages(blocks: list[BlockInput] | None) -> None:
 class CreateUnitRequest(_Strict):
     title: str = Field(min_length=1, max_length=rules.UNIT_TITLE_MAX)
     guiding_question: str = Field(min_length=1, max_length=rules.GUIDING_QUESTION_MAX)
+    # What the kids should manage after the whole unit (its expected performance).
+    learning_goal: str = Field(min_length=1, max_length=rules.LEARNING_GOAL_MAX)
+    # Its DBA, needed to publish its lessons in the areas with DBA.
+    dba: UnitDbaInput | None = None
 
 
 class UpdateUnitRequest(_Strict):
     title: str | None = Field(default=None, min_length=1, max_length=rules.UNIT_TITLE_MAX)
     guiding_question: str | None = Field(default=None, min_length=1, max_length=rules.GUIDING_QUESTION_MAX)
+    learning_goal: str | None = Field(default=None, min_length=1, max_length=rules.LEARNING_GOAL_MAX)
+    dba: UnitDbaInput | None = None
 
     @model_validator(mode="after")
     def _required_stay_required(self) -> UpdateUnitRequest:
-        _not_null(self, "title", "guiding_question")
+        _not_null(self, "title", "guiding_question", "learning_goal", "dba")
         return self
 
 
@@ -114,6 +120,39 @@ class CreateLessonRequest(_Strict):
     title: str = Field(min_length=1, max_length=rules.LESSON_TITLE_MAX)
     purpose: str = Field(min_length=1, max_length=rules.PURPOSE_MAX)
     learning_goal: str = Field(min_length=1, max_length=rules.LEARNING_GOAL_MAX)
+
+
+# The DBA of a unit: one of the catalog (dba_id) or one the teacher writes
+# (own_name), only one, with its Evidencias de Aprendizaje: the catalog's ones
+# ticked (only with a catalog DBA) and the teacher's own.
+class UnitDbaInput(_Strict):
+    dba_id: str | None = Field(default=None, min_length=1, max_length=40)
+    own_name: str | None = Field(default=None, max_length=rules.DBA_OWN_NAME_MAX)
+    evidence_ids: list[Annotated[str, Field(min_length=1, max_length=48)]] = Field(
+        default_factory=list, max_length=10
+    )
+    own_points: list[str] = Field(default_factory=list, max_length=rules.DBA_OWN_POINTS_MAX)
+
+    @field_validator("own_name")
+    @classmethod
+    def _name_with_text(cls, name: str | None) -> str | None:
+        if name is not None and not name.strip():
+            raise ValueError("Escribe tu DBA propio.")
+        return name.strip() if name is not None else None
+
+    @field_validator("own_points")
+    @classmethod
+    def _points_with_text(cls, points: list[str]) -> list[str]:
+        cleaned = [point.strip() for point in points]
+        if any(not point or len(point) > rules.DBA_POINT_MAX for point in cleaned):
+            raise ValueError(f"Cada evidencia propia debe tener entre 1 y {rules.DBA_POINT_MAX} caracteres.")
+        return cleaned
+
+    @model_validator(mode="after")
+    def _one_dba(self) -> UnitDbaInput:
+        if (self.dba_id is None) == (self.own_name is None):
+            raise ValueError("Elige un DBA del catálogo o escribe uno propio, solo uno.")
+        return self
 
 
 class UpdateLessonRequest(_Strict):
@@ -243,6 +282,10 @@ class UnitResponse(BaseModel):
     classroom_id: UUID
     title: str
     guiding_question: str
+    # Empty only in a unit from before it existed, until its teacher writes it.
+    learning_goal: str
+    # Its DBA, null until it's chosen.
+    dba: UnitDbaResponse | None = None
     order_index: int
 
 
@@ -256,6 +299,40 @@ class LessonResponse(BaseModel):
     learning_goal: str
     order_index: int
     status: str
+
+
+# A DBA of the catalog, with its evidences (GET /classrooms/{id}/dba).
+class DbaEvidenceResponse(BaseModel):
+    id: str
+    text: str
+
+
+class DbaResponse(BaseModel):
+    id: str
+    subject: str
+    grade: int
+    number: int
+    name: str
+    evidences: list[DbaEvidenceResponse]
+
+
+# One Evidencia de Aprendizaje of a unit: the catalog's (with its id) or the
+# teacher's own (evidence_id null).
+class DbaPointResponse(BaseModel):
+    evidence_id: str | None
+    text: str
+
+
+# The DBA of a unit with its Evidencias de Aprendizaje. own: the teacher
+# wrote it, so it has no id, subject, grade or number.
+class UnitDbaResponse(BaseModel):
+    own: bool
+    id: str | None
+    subject: str | None
+    grade: int | None
+    number: int | None
+    name: str
+    points: list[DbaPointResponse] = []
 
 
 class UnitWithLessonsResponse(UnitResponse):
@@ -446,3 +523,11 @@ class LessonProgressResponse(BaseModel):
     unit_title: str
     main: PartProgressResponse
     extras: list[PartProgressResponse]
+    # So the family sees what the class is about (HU-46): the question and
+    # goal of its unit, what the lesson is for and what the kid should manage.
+    unit_guiding_question: str
+    unit_learning_goal: str
+    purpose: str
+    learning_goal: str
+    # The DBA of its unit with its Evidencias de Aprendizaje.
+    unit_dba: UnitDbaResponse | None

@@ -28,9 +28,11 @@
   padding: 0 12px 6px;
 }
 
-/* The avatar hangs from the band, with a white ring around it. */
+/* The avatar hangs from the band, with a white ring around it, and stays on
+   top of it even when an archived one fades. */
 .headerAvatar {
   flex: none;
+  position: relative;
   margin-top: -40px;
   padding: 5px;
   border-radius: 26%;
@@ -80,6 +82,37 @@
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--color-iris-medium);
+}
+
+/* The teacher archived the class (HU-106): its band fades and a quiet
+   gray chip says so, never alarming. */
+.faded {
+  filter: grayscale(0.75);
+  opacity: 0.7;
+}
+
+.archived {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink-soft) 12%, var(--color-surface));
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+
+/* What an archived class means, above its options, in a quiet gray box. */
+.archivedNote {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-ink-soft) 22%, var(--color-surface));
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-ink-soft) 6%, var(--color-surface));
+  line-height: 1.5;
+  color: var(--color-ink);
 }
 
 /* How many notifications wait, amber like the rest of what needs a look. */
@@ -144,8 +177,7 @@
   color: var(--color-surface);
 }
 
-.leaveButton:focus-visible,
-.noticeHead:focus-visible {
+.leaveButton:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
@@ -155,7 +187,7 @@
   cursor: not-allowed;
 }
 
-/* The notifications and the message form go on the same white panel. */
+/* The message form goes on a white panel. */
 .panel {
   display: flex;
   flex-direction: column;
@@ -167,77 +199,6 @@
   box-shadow: var(--shadow-soft);
 }
 
-.empty {
-  margin: 0;
-  color: var(--color-ink-soft);
-}
-
-.notices {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.notice + .notice {
-  border-top: 1px solid var(--color-iris-pale);
-}
-
-.noticeHead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding: 14px 10px;
-  border: none;
-  border-radius: 12px;
-  background: none;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.noticeHead:hover {
-  background: var(--color-canvas);
-}
-
-/* Unread: a blue dot and the subject in bold, like the tray. */
-.dot {
-  flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: transparent;
-}
-
-.unread .dot {
-  background: var(--color-iris-medium);
-}
-
-.noticeSubject {
-  flex: 1;
-  min-width: 0;
-  color: var(--color-ink);
-}
-
-.unread .noticeSubject {
-  font-weight: 700;
-  color: var(--color-iris-deep);
-}
-
-.noticeDate {
-  flex: none;
-  font-size: 0.82rem;
-  color: var(--portal-muted);
-}
-
-.noticeBody {
-  margin: 0 10px 14px 27px;
-  line-height: 1.6;
-  color: var(--color-ink);
-}
-
 .formIntro {
   margin: 0;
   color: var(--color-ink-soft);
@@ -246,15 +207,6 @@
 .formActions {
   display: flex;
   justify-content: flex-end;
-}
-
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }
 
 @media (max-width: 640px) {

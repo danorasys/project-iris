@@ -1,4 +1,5 @@
 import type { NotificationItem } from "@iris/shared-types";
+import { AUTOMATIC_SENDER, isAutomatic } from "@/features/utils/notificationKinds";
 
 // What a teacher reads for each kind of notification. Same idea as the
 // guardian's (features/guardian/notifications/notificationText.ts): the
@@ -14,15 +15,17 @@ export function studentOf(n: NotificationItem): string {
   return n.student_name ?? FALLBACK.student;
 }
 
-/** Who it comes from: the family that asked, wrote or took the kid out,
- * the kid in a report, or the teacher themselves (IRIS, or "Tú" for a
- * message they sent). */
+/** Who it's from: IRIS for what it writes by itself (a request, a kid's
+ * progress…), the family in their message, "Tú" in the copy of one the
+ * teacher sent. */
 export function senderOf(n: NotificationItem): string {
-  if (n.event === "request.resolved" || n.event === "enrollment.removed") return "IRIS";
+  if (isAutomatic(n)) return AUTOMATIC_SENDER;
   if (n.event === "teacher.message") return "Tú";
-  if (n.event === "lesson.content_completed" || n.event === "lesson.activity_completed") {
-    return n.sender_name ?? studentOf(n);
-  }
+  return familyOf(n);
+}
+
+// The guardian who asked, cancelled or took the kid out, for the text.
+function familyOf(n: NotificationItem): string {
   return n.sender_name ?? FALLBACK.guardian;
 }
 
@@ -44,13 +47,13 @@ export function notificationMessage(n: NotificationItem): string {
   const student = studentOf(n);
   const classroom = quoted(n.classroom_name);
   if (n.event === "request.created") {
-    return `${senderOf(n)} pidió que ${student} se una a ${classroom}. Abre la notificación para aceptar o rechazar la solicitud.`;
+    return `${familyOf(n)} pidió que ${student} se una a ${classroom}. Abre la notificación para aceptar o rechazar la solicitud.`;
   }
   if (n.event === "request.cancelled") {
-    return `${senderOf(n)} canceló la solicitud de ${student} para unirse a ${classroom}. Ya no tienes que responderla.`;
+    return `${familyOf(n)} canceló la solicitud de ${student} para unirse a ${classroom}. Ya no tienes que responderla.`;
   }
   if (n.event === "enrollment.withdrawn") {
-    return `${senderOf(n)} retiró a ${student} de ${classroom}. Ya no aparece entre los estudiantes de la clase.`;
+    return `${familyOf(n)} retiró a ${student} de ${classroom}. Ya no aparece entre los estudiantes de la clase.`;
   }
   // What the guardian wrote, as they wrote it.
   if (n.event === "message.sent") return n.body ?? "";

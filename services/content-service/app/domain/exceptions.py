@@ -28,6 +28,18 @@ class IdentityServiceUnavailable(DomainError):
     message = "No se pudo confirmar tu identidad en este momento. Intenta de nuevo en unos segundos."
 
 
+class ClassroomServiceUnavailable(DomainError):
+    # classroom-service didn't say the area and grade of the class, so which
+    # DBA the lesson needs can't be known: nothing is published or guessed.
+    code = "clase_no_disponible"
+    message = "No pudimos revisar el área y el grado de la clase. Intenta de nuevo en un momento."
+
+
+class InvalidDba(DomainError):
+    code = "dba_invalido"
+    message = "El DBA elegido no es válido."
+
+
 class PermissionDenied(DomainError):
     # Used both for the local check (teacher isn't the author, role not
     # allowed) and for the fail-closed fallback when classroom-service is down.
@@ -61,6 +73,13 @@ class UnauthorizedInternalAccess(DomainError):
 class TwoFactorRequired(DomainError):
     code = "verificacion_2fa_requerida"
     message = "Confirma tu identidad con el código de verificación para entrar a tu panel docente."
+
+
+# The class can't be changed: archived (HU-105), without its teacher, or
+# classroom-service couldn't confirm it (the check fails closed).
+class ClassroomNotEditable(DomainError):
+    code = "clase_no_editable"
+    message = "No puedes cambiar esta clase: está archivada o no pudimos confirmarlo en este momento."
 
 
 class UnitNotEmpty(DomainError):

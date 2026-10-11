@@ -12,7 +12,9 @@ from fastapi.responses import JSONResponse
 
 from app.domain.exceptions import (
     DomainError,
+    ClassroomServiceUnavailable,
     IdentityServiceUnavailable,
+    InvalidDba,
     ActivityChanged,
     InvalidAudience,
     InvalidFile,
@@ -25,6 +27,7 @@ from app.domain.exceptions import (
     ResourceNotFound,
     StorageFull,
     UnitNotEmpty,
+    ClassroomNotEditable,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,6 +35,8 @@ logger = logging.getLogger(__name__)
 _STATUS_BY_ERROR: dict[type[DomainError], int] = {
     InvalidToken: status.HTTP_401_UNAUTHORIZED,
     IdentityServiceUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
+    ClassroomServiceUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
+    InvalidDba: status.HTTP_422_UNPROCESSABLE_CONTENT,
     PermissionDenied: status.HTTP_403_FORBIDDEN,
     TwoFactorRequired: status.HTTP_403_FORBIDDEN,
     UnauthorizedInternalAccess: status.HTTP_401_UNAUTHORIZED,
@@ -39,6 +44,7 @@ _STATUS_BY_ERROR: dict[type[DomainError], int] = {
     InvalidFile: status.HTTP_422_UNPROCESSABLE_CONTENT,
     StorageFull: status.HTTP_507_INSUFFICIENT_STORAGE,
     UnitNotEmpty: status.HTTP_409_CONFLICT,
+    ClassroomNotEditable: status.HTTP_409_CONFLICT,
     InvalidOrder: status.HTTP_422_UNPROCESSABLE_CONTENT,
     LessonIncomplete: status.HTTP_422_UNPROCESSABLE_CONTENT,
     InvalidAudience: status.HTTP_422_UNPROCESSABLE_CONTENT,

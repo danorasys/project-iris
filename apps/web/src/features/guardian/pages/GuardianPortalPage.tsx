@@ -59,6 +59,9 @@ export default function GuardianPortalPage() {
   const unreadCount = useNotificacionesSinLeer().data ?? 0;
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
+  // Goes up when the guardian clicks the section they're already in, so it
+  // starts over from its top, like going from a kid's classes back to the list.
+  const [visit, setVisit] = useState(0);
 
   // Any way of leaving a form with unsaved changes (Mi perfil or the data of
   // a kid) — another sidebar tab, regresar, cerrar sesión — goes through this
@@ -85,11 +88,11 @@ export default function GuardianPortalPage() {
   );
 
   function selectSection(section: SectionId, student: { id: string; option: StudentOption | null } | null = null) {
-    if (section === activeSection && student === null) return;
     guardWithDirtyCheck(() => {
       setConfirm(null);
       setOpenStudent(student);
       setOpenedNotification(null);
+      if (section === activeSection) setVisit((n) => n + 1);
       setActiveSection(section);
     });
   }
@@ -198,9 +201,9 @@ export default function GuardianPortalPage() {
           </div>
         )}
         {/* The key makes this box new on every change of section, so its
-            entrance animation plays again. */}
+            entrance animation plays again, and on a click on the open one. */}
         <PortalSection
-          key={`${activeSection}-${openStudent?.id ?? ""}-${openStudent?.option ?? ""}-${openedNotification?.id ?? ""}`}
+          key={`${activeSection}-${visit}-${openStudent?.id ?? ""}-${openStudent?.option ?? ""}-${openedNotification?.id ?? ""}`}
         >
           {activeSection === "inicio" && (
             <GuardianHomeSection

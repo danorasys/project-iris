@@ -11,6 +11,9 @@ from uuid import UUID
 from app.domain.entities import (
     ACTIVITY_COMPLETED,
     BODY_MAX_LENGTH,
+    CLASSROOM_ARCHIVED,
+    CLASSROOM_DELETED,
+    CLASSROOM_RESTORED,
     CONTENT_COMPLETED,
     ENROLLMENT_REMOVED,
     ENROLLMENT_WITHDRAWN,
@@ -19,6 +22,7 @@ from app.domain.entities import (
     MESSAGE_SENT,
     REQUEST_CANCELLED,
     REQUEST_CLOSED,
+    REQUEST_CLOSED_DECISION,
     REQUEST_CREATED,
     REQUEST_RESOLVED,
     ROLE_GUARDIAN,
@@ -65,6 +69,8 @@ _KNOWN_EVENTS = (
 )
 # A new lesson or extra comes as one event with every kid it's for.
 _ANNOUNCEMENTS = (LESSON_PUBLISHED, EXTRA_PUBLISHED)
+# So does a change of the whole class, only for the guardians.
+_CLASSROOM_CHANGES = (CLASSROOM_ARCHIVED, CLASSROOM_RESTORED, CLASSROOM_DELETED)
 # The most kids one notice goes to, way more than a class has.
 _MEMBERS_MAX = 500
 # Who hears about each event. The teacher, about everything a family does
@@ -94,7 +100,7 @@ class NotificationService:
     # who they are. Unknown event types are ignored.
     async def record_event(self, payload: dict[str, object]) -> None:
         event = payload.get("event")
-        if event in _ANNOUNCEMENTS:
+        if event in _ANNOUNCEMENTS or event in _CLASSROOM_CHANGES:
             await self._save(self._announcement(payload))
             return
         teacher_id = _uuid_or_none(payload.get("teacher_id"))
@@ -200,6 +206,8 @@ class NotificationService:
     # A new lesson or a new extra (HU-83): one for each kid it's for and
     # one for their guardian, from the teacher. A member without a valid
     # enrollment or kid is skipped; without a guardian, only the kid's.
+    # A change of the class (HU-106) is the same, but only for guardians:
+    # the kid just stops seeing it.
     def _announcement(self, payload: dict[str, object]) -> list[Notification]:
         classroom_id = _uuid_or_none(payload.get("classroom_id"))
         members = payload.get("members")
@@ -216,6 +224,7 @@ class NotificationService:
             "lesson_title": _text_or_none(payload.get("lesson_title"), 200),
             "extra_title": _text_or_none(payload.get("extra_title"), 200) if event == EXTRA_PUBLISHED else None,
         }
+        for_kids = event in _ANNOUNCEMENTS
         notifications: list[Notification] = []
         for member in members[:_MEMBERS_MAX]:
             if not isinstance(member, dict):
@@ -226,7 +235,10 @@ class NotificationService:
                 continue
             student_name = _text_or_none(member.get("student_name"), 120)
             guardian_id = _uuid_or_none(member.get("guardian_id"))
-            recipients = [(student_id, ROLE_STUDENT)] + ([(guardian_id, ROLE_GUARDIAN)] if guardian_id else [])
+            # Archiving closed this family's request, the notice says so.
+            closed = event == CLASSROOM_ARCHIVED and member.get("request_closed") is True
+            recipients = [(student_id, ROLE_STUDENT)] if for_kids else []
+            recipients += [(guardian_id, ROLE_GUARDIAN)] if guardian_id else []
             for recipient_id, role in recipients:
                 notifications.append(
                     Notification(
@@ -236,7 +248,7 @@ class NotificationService:
                         enrollment_id=enrollment_id,
                         student_id=student_id,
                         student_name=student_name,
-                        decision=None,
+                        decision=REQUEST_CLOSED_DECISION if closed else None,
                         read=False,
                         created_at=now,
                         **common,  # type: ignore[arg-type]

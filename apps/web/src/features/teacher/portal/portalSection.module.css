@@ -117,6 +117,42 @@
   font-weight: 700;
 }
 
+/* An archived class (HU-105): a quiet gray chip, never alarming. */
+.archivedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink-soft) 14%, var(--color-surface));
+  color: var(--color-ink-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* What an archived class means, under its header. */
+.archivedNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-ink-soft) 22%, var(--color-surface));
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-ink-soft) 6%, var(--color-surface));
+  color: var(--color-ink);
+  line-height: 1.5;
+}
+
+.archivedNotice p {
+  margin: 0;
+}
+
+.archivedNotice svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-ink-soft);
+}
+
 /* Editar and Eliminar, on the right of the classroom's header. */
 .heroActions {
   flex: none;
@@ -238,8 +274,54 @@
   height: 86px;
 }
 
+/* An archived class keeps its color, faded, so it reads as put away. */
+.classCard[data-archived="true"] .cardBanner,
+.spaceHeader[data-archived="true"] .spaceBanner {
+  filter: grayscale(0.75);
+  opacity: 0.7;
+}
+
+/* "Ver clases archivadas": a quiet row that opens the archived ones. */
+.disclosure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--color-iris-deep);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.disclosure:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+  border-radius: var(--radius-small);
+}
+
+.disclosure svg {
+  transition: transform 200ms ease;
+}
+
+.disclosure[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disclosure svg {
+    transition: none;
+  }
+}
+
+/* On top of the band, also when an archived one fades. */
 .cardAvatar {
   margin: -38px 0 8px;
+  position: relative;
   padding: 4px;
   border-radius: 26%;
   background: var(--color-surface);
@@ -304,8 +386,10 @@
   padding: 0 12px 6px;
 }
 
+/* On top of the band, also when an archived one fades. */
 .spaceAvatar {
   flex: none;
+  position: relative;
   margin-top: -42px;
   padding: 5px;
   border-radius: 26%;

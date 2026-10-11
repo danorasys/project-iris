@@ -9,6 +9,7 @@ import type {
   AttemptResult,
   ClassroomContentSummary,
   ContentBlockInput,
+  Dba,
   Extra,
   ExtraKind,
   Lesson,
@@ -25,6 +26,7 @@ export const lessonKeys = {
   summary: ["content", "summary"] as const,
   units: (classroomId: string) => ["units", "classroom", classroomId] as const,
   detail: (lessonId: string) => ["lessons", lessonId] as const,
+  dba: (classroomId: string) => ["dba", "classroom", classroomId] as const,
   play: (lessonId: string) => ["lessons", lessonId, "play"] as const,
   // The kid's own progress in each class (notes on their list of lessons).
   myProgress: (classroomId: string) => ["progress", "me", classroomId] as const,
@@ -46,6 +48,18 @@ export function useClassroomUnits(classroomId: string | undefined) {
     queryKey: lessonKeys.units(classroomId ?? ""),
     queryFn: () => apiFetch<UnitWithLessons[]>(`/content/classrooms/${classroomId}/units`),
     enabled: Boolean(classroomId),
+  });
+}
+
+/** `GET /content/classrooms/{classroom_id}/dba`: the DBA a lesson of this class
+ * can use, with their evidences. Only asked where the area has DBA; the
+ * catalog doesn't change, so it's kept for the session. */
+export function useClassroomDba(classroomId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: lessonKeys.dba(classroomId),
+    queryFn: () => apiFetch<Dba[]>(`/content/classrooms/${classroomId}/dba`),
+    enabled: enabled && Boolean(classroomId),
+    staleTime: Infinity,
   });
 }
 
@@ -161,9 +175,20 @@ function useStoreLesson() {
 
 // --- units ------------------------------------------------------------------------
 
+/** The Evidencias de Aprendizaje of a unit's DBA: the catalog's ticked and the own ones. */
+export interface DbaPointsChoice {
+  evidence_ids: string[];
+  own_points: string[];
+}
+
 export interface UnitBody {
   title: string;
   guiding_question: string;
+  learning_goal: string;
+  /** Its DBA, one of the catalog (`dba_id`) or the teacher's own
+   * (`own_name`), with its evidences, replaced whole: the catalog's (only
+   * with a catalog DBA) and the own ones. */
+  dba?: ({ dba_id: string } | { own_name: string }) & DbaPointsChoice;
 }
 
 /** `POST /content/classrooms/{classroom_id}/units` */

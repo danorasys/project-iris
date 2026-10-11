@@ -153,7 +153,34 @@ export function useRemoveClassroomLogo() {
   });
 }
 
-/** `DELETE /classrooms/{classroom_id}`. The classroom with its lessons and enrollments. */
+/** `POST /classrooms/{classroom_id}/archive` (HU-105). It stops taking
+ * requests and changes, its kids stop seeing it, and only then can it be
+ * deleted. */
+export function useArchiveClassroom() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (classroomId: string) => apiFetch<Classroom>(`/classrooms/${classroomId}/archive`, { method: "POST" }),
+    onSuccess: (_aula, classroomId) => {
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.todas });
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.detail(classroomId) });
+    },
+  });
+}
+
+/** `POST /classrooms/{classroom_id}/restore`. Back to the active classes. */
+export function useRestoreClassroom() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (classroomId: string) => apiFetch<Classroom>(`/classrooms/${classroomId}/restore`, { method: "POST" }),
+    onSuccess: (_aula, classroomId) => {
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.todas });
+      void queryClient.invalidateQueries({ queryKey: classroomKeys.detail(classroomId) });
+    },
+  });
+}
+
+/** `DELETE /classrooms/{classroom_id}`. Only an archived classroom (HU-85),
+ * with its lessons and enrollments. */
 export function useDeleteClassroom() {
   const queryClient = useQueryClient();
   return useMutation({

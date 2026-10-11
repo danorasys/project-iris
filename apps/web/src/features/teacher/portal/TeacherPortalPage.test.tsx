@@ -15,6 +15,8 @@ function classroom(id: string, pending: number): TeacherClassroom {
     description: "d",
     logo_file: null,
     color: "blue",
+    area: "mathematics",
+    grade: 2,
     enrollment_code: "1234567",
     created_at: "2026-10-04T10:00:00Z",
     pending_requests: pending,

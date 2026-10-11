@@ -1,0 +1,342 @@
+/* How a class is organized, for the family: a card on top with what each
+   part tells, then a white panel per unit with its facts in a pale box and
+   its lessons one under the other, each with its facts and its moments. */
+.status {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.error {
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+/* The card on top: its icon on a lavender circle, like the counts of
+   Inicio, then what each unit and each lesson tells, in two columns. */
+.overviewHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.overviewIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+.overviewTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--color-iris-deep);
+}
+
+.overviewText {
+  margin: 2px 0 0;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.overviewText strong {
+  color: var(--color-iris-deep);
+}
+
+.overviewGuide {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.guideColumn {
+  padding: var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-iris-pale) 25%, var(--color-surface));
+}
+
+.guideTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.guideList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guideList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+
+.guideList svg,
+.guideTitle svg {
+  flex: none;
+  color: var(--color-iris-medium);
+}
+
+.guideList svg {
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .overviewGuide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+/* "Unidad 1" and "Lección 2": small, gray and in capitals. */
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.unitHead {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.unitTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--color-iris-deep);
+}
+
+/* The question, the goal and the DBA of the unit together in one pale box,
+   split only by thin lines, so they read as one block. */
+.unitFacts {
+  margin-top: 6px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-iris-pale) 25%, var(--color-surface));
+}
+
+.question {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: var(--space-3) 0;
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+.question + .question {
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.question > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-iris-medium);
+}
+
+.questionLabel {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+.lessons {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lesson {
+  display: flex;
+  gap: 12px;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.lessonIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-medium);
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+.lessonBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lessonTitle {
+  margin: 0;
+  font-size: 1.02rem;
+  color: var(--color-iris-deep);
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 0;
+}
+
+.fact dt {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+
+.fact dd {
+  margin: 2px 0 0;
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+/* Its DBA: the label, what it says and the link to the MEN's document. */
+.dba {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dbaLabel {
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+/* Its Evidencias de Aprendizaje: the catalog's and the teacher's own. */
+.dbaPointsBlock {
+  margin-top: 6px;
+}
+
+.dbaPointsTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+
+.dbaPoints {
+  margin: 4px 0 2px;
+  padding-left: 20px;
+  line-height: 1.5;
+}
+
+/* The link to the MEN's document: a soft blue button, tinted with the
+   main blue of IRIS, that darkens a bit on hover. */
+.dbaLink {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-action) 28%, var(--color-surface));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-action) 10%, var(--color-surface));
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-action);
+  text-decoration: none;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.dbaLink:hover {
+  border-color: color-mix(in srgb, var(--color-action) 45%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-action) 18%, var(--color-surface));
+}
+
+.dbaLink svg {
+  flex: none;
+  transition: transform 200ms var(--ease-out);
+}
+
+.dbaLink:hover svg {
+  transform: translateX(2px);
+}
+
+.dbaLink:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dbaLink svg {
+    transition: none;
+  }
+}
+
+/* Its moments in order, as small pills. */
+.moments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.moment {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-canvas);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+.momentExtra {
+  background: color-mix(in srgb, var(--color-amber) 14%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-amber) 55%, var(--color-ink));
+}

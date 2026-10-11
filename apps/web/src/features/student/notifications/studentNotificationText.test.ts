@@ -37,6 +37,13 @@ describe("the kid's notification texts", () => {
     expect(senderOf(n)).toBe("Laura Gómez");
   });
 
+  it("signs a new lesson as IRIS, with the teacher in the text", () => {
+    const n: NotificationItem = { ...base, ...lesson, event: "lesson.published" };
+
+    expect(senderOf(n)).toBe("IRIS");
+    expect(notificationMessage(n)).toContain('Laura Gómez publicó la lección "Animales acuáticos"');
+  });
+
   it("tells about a new lesson and a new extra in simple words", () => {
     const published: NotificationItem = { ...base, ...lesson, event: "lesson.published" };
     const extra: NotificationItem = { ...base, ...lesson, event: "extra.published", extra_title: "La granja" };

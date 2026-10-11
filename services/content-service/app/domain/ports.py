@@ -11,7 +11,9 @@ from uuid import UUID
 from app.domain.entities import (
     Activity,
     Attempt,
+    ClassSubject,
     ContentBlock,
+    Dba,
     Extra,
     Lesson,
     PageProgress,
@@ -119,6 +121,14 @@ class ProgressRepository(Protocol):
     async def erase_kids(self, student_ids: list[UUID]) -> int: ...
 
 
+class DbaRepository(Protocol):
+    # The DBA of some subjects for one grade, by subject and number, each with
+    # its evidences.
+    async def list_for(self, subjects: tuple[str, ...], grade: int) -> list[Dba]: ...
+
+    async def get_by_id(self, dba_id: str) -> Dba | None: ...
+
+
 class UnitOfWork(Protocol):
     @property
     def lessons(self) -> LessonRepository: ...
@@ -128,6 +138,9 @@ class UnitOfWork(Protocol):
 
     @property
     def units(self) -> UnitRepository: ...
+
+    @property
+    def dba(self) -> DbaRepository: ...
 
     async def __aenter__(self) -> "UnitOfWork": ...
     async def __aexit__(
@@ -167,6 +180,11 @@ class ClassroomClient(Protocol):
     async def verify_access(
         self, classroom_id: UUID, subject_id: UUID, role: str, correlation_id: str | None
     ) -> bool: ...
+
+    # The area (classroom-service's code) and grade of the class, to know
+    # whether its units need a DBA and which ones fit. None when
+    # classroom-service doesn't answer: the caller decides, it never guesses.
+    async def subject_of(self, classroom_id: UUID, correlation_id: str | None) -> ClassSubject | None: ...
 
     # A new lesson, or a new extra of a published one, for the kids of the
     # class and their guardians (HU-83). Without student_ids it's for

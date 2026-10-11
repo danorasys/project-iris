@@ -1,4 +1,4 @@
-import type { ClassroomArea } from "@iris/shared-types";
+import type { ClassroomArea, DbaSubject, UnitDba } from "@iris/shared-types";
 
 /** The areas a classroom can be about: the nine mandatory areas of basic
  * education (Ley 115 de 1994, art. 23) plus "Otra". Same list and order as
@@ -26,12 +26,66 @@ export const CLASSROOM_GRADES: { value: number; label: string }[] = [
   { value: 5, label: "5.°" },
 ];
 
+/** The MEN's document of each subject of DBA: its name and its page on
+ * Colombia Aprende (the page, not the PDF, whose address changes with every
+ * upload). IRIS keeps its own summaries of the DBA; the official text is there. */
+export const DBA_DOCUMENTS: Record<DbaSubject, { name: string; url: string }> = {
+  mathematics: {
+    name: "Matemáticas",
+    url: "https://colombiaaprende.edu.co/recurso-coleccion/derechos-basicos-de-aprendizaje-matematicas",
+  },
+  language: {
+    name: "Lenguaje",
+    url: "https://colombiaaprende.edu.co/recurso-coleccion/derechos-basicos-de-aprendizaje-dba-lenguaje",
+  },
+  english: {
+    name: "Inglés",
+    url: "https://colombiaaprende.edu.co/recurso-coleccion/derechos-basicos-de-aprendizaje-dba-ingles-primaria",
+  },
+  natural_sciences: {
+    name: "Ciencias naturales",
+    url: "https://colombiaaprende.edu.co/recurso-coleccion/derechos-basicos-de-aprendizaje-dba-ciencias-naturales",
+  },
+  social_sciences: {
+    name: "Ciencias sociales",
+    url: "https://colombiaaprende.edu.co/recurso-coleccion/derechos-basicos-de-aprendizaje-dba-ciencias-sociales",
+  },
+};
+
+/** How long a DBA the teacher writes can be. Same as the server. */
+export const DBA_OWN_NAME_MAX = 200;
+
+/** The evidences a teacher can add of their own, and how long each. Same as the server. */
+export const DBA_OWN_POINTS_MAX = 5;
+export const DBA_POINT_MAX = 300;
+
+/** Whether the units of a class of this area need a DBA. Same areas as
+ * content-service (DBA_SUBJECTS_BY_AREA). */
+export function hasDba(area: ClassroomArea | null | undefined): boolean {
+  return area === "mathematics" || area === "natural_sciences" || area === "social_sciences" || area === "humanities";
+}
+
+/** "DBA 3 · Ciencias naturales · 1.°" */
+export function dbaLabel(dba: { subject: DbaSubject; grade: number; number: number }): string {
+  const gradeLabel = CLASSROOM_GRADES.find((option) => option.value === dba.grade)?.label;
+  return [`DBA ${dba.number}`, DBA_DOCUMENTS[dba.subject].name, gradeLabel].filter(Boolean).join(" · ");
+}
+
+/** A unit's DBA in one line: "DBA 3 · Ciencias naturales · 1.°: name", or
+ * "<ownLabel>: name" for one the teacher wrote. */
+export function unitDbaText(dba: UnitDba, ownLabel = "DBA propio"): string {
+  if (!dba.own && dba.subject && dba.grade && dba.number) {
+    return `${dbaLabel({ subject: dba.subject, grade: dba.grade, number: dba.number })}: ${dba.name}`;
+  }
+  return `${ownLabel}: ${dba.name}`;
+}
+
 /** How long the area written with "Otra" can be. Same as the server. */
 export const AREA_OTHER_MAX = 60;
 
 /** The short line under a classroom's name, like "Matemáticas · 2.°", or
- * "Música · 2.°" when the teacher wrote the area with "Otra". Empty for an
- * older class that doesn't have them yet. */
+ * "Música · 2.°" when the teacher wrote the area with "Otra". Every class has
+ * both, they're only missing in the form's preview before they're picked. */
 export function classroomAudience(
   area: ClassroomArea | null | undefined,
   grade: number | null | undefined,

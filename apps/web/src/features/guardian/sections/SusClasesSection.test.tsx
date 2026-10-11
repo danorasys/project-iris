@@ -85,6 +85,8 @@ afterEach(() => {
   familyError = null;
   leave.mockReset();
   onOpen.mockReset();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("SusClasesSection", () => {
@@ -134,11 +136,33 @@ describe("SusClasesSection", () => {
     expect(screen.getByRole("button", { name: /^Clase 7,/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Clase 8,/ })).toBeNull();
 
-    await userEvent.click(screen.getByRole("button", { name: "Página 2" }));
+    const pager = screen.getByRole("navigation", { name: "Páginas de clases" });
+    await userEvent.click(within(pager).getByRole("button", { name: "Página 2" }));
 
     expect(screen.getByRole("button", { name: /^Clase 8,/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^Clase 9,/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Agregar clase" })).toBeNull();
+  });
+
+  it("fills the last row on wide screens: six columns give twelve tiles", () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const realStyle = window.getComputedStyle;
+    vi.spyOn(window, "getComputedStyle").mockImplementation((el) =>
+      el.tagName === "UL"
+        ? ({ gridTemplateColumns: "150px 150px 150px 150px 150px 150px" } as CSSStyleDeclaration)
+        : realStyle(el),
+    );
+    classes = Array.from({ length: 13 }, (_, i) => classOf(`Clase ${i + 1}`));
+    renderClasses();
+
+    expect(screen.getByRole("button", { name: /^Clase 11,/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Clase 12,/ })).toBeNull();
   });
 
   it("lists every request with how it went", () => {
@@ -158,7 +182,68 @@ describe("SusClasesSection", () => {
     ]);
   });
 
-  it("cancels a request still waiting after confirming, and clears a rejected one", async () => {
+  it("pages the requests five at a time", async () => {
+    classes = Array.from({ length: 12 }, (_, i) => classOf(`Clase ${i + 1}`));
+    renderClasses();
+
+    const requests = screen.getByRole("heading", { name: "Solicitudes enviadas" }).closest("section") as HTMLElement;
+    const names = () =>
+      within(requests)
+        .getAllByText(/^Clase \d+$/)
+        .map((n) => n.textContent);
+    expect(names()).toEqual(["Clase 1", "Clase 2", "Clase 3", "Clase 4", "Clase 5"]);
+
+    const pager = screen.getByRole("navigation", { name: "Páginas de solicitudes" });
+    await userEvent.click(within(pager).getByRole("button", { name: "Página 3" }));
+    expect(names()).toEqual(["Clase 11", "Clase 12"]);
+  });
+
+  it("filters the requests by state, with how many each one has", async () => {
+    classes = [
+      classOf("Ciencias", { status: "pendiente", resolved_at: null }),
+      classOf("Matemáticas"),
+      classOf("Arte"),
+      ...Array.from({ length: 6 }, (_, i) => classOf(`Clase ${i + 1}`, { status: "rechazada" })),
+    ];
+    renderClasses();
+
+    const filters = screen.getByRole("group", { name: "Ver las solicitudes por estado" });
+    expect(within(filters).getByRole("button", { name: "Todas 9" }).getAttribute("aria-pressed")).toBe("true");
+
+    await userEvent.click(within(filters).getByRole("button", { name: "Aceptadas 2" }));
+    const requests = screen.getByRole("heading", { name: "Solicitudes enviadas" }).closest("section") as HTMLElement;
+    expect(within(requests).getAllByRole("button", { name: "Ver clase" })).toHaveLength(2);
+    expect(within(requests).queryByText("Ciencias")).toBeNull();
+
+    // Changing the filter goes back to its first page.
+    await userEvent.click(within(filters).getByRole("button", { name: "No aceptadas 6" }));
+    const pager = screen.getByRole("navigation", { name: "Páginas de solicitudes" });
+    await userEvent.click(within(pager).getByRole("button", { name: "Página 2" }));
+    await userEvent.click(within(filters).getByRole("button", { name: "Esperando respuesta 1" }));
+    expect(within(requests).getByText("Ciencias")).toBeTruthy();
+    expect(screen.queryByRole("navigation", { name: "Páginas de solicitudes" })).toBeNull();
+  });
+
+  it("can't pick a state with no requests", () => {
+    classes = [classOf("Matemáticas")];
+    renderClasses();
+
+    const filters = screen.getByRole("group", { name: "Ver las solicitudes por estado" });
+    expect((within(filters).getByRole("button", { name: "No aceptadas 0" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("marks a class its teacher archived, in its tile and in its request", () => {
+    classes = [classOf("Arte", { archived_at: "2026-10-09T15:00:00Z" }), classOf("Matemáticas")];
+    renderClasses();
+
+    expect(screen.getByRole("button", { name: "Arte, con Laura Gómez, archivada. Ver la clase" })).toBeTruthy();
+    // Counted apart, like the kid's header that leaves it out.
+    expect(screen.getByRole("heading", { name: "1 clase · 1 archivada" })).toBeTruthy();
+    const requests = screen.getByRole("heading", { name: "Solicitudes enviadas" }).closest("section") as HTMLElement;
+    expect(within(requests).getByText("Clase archivada")).toBeTruthy();
+  });
+
+  it("cancels a request still waiting and clears a rejected one, both after confirming", async () => {
     classes = [classOf("Ciencias", { status: "pendiente" }), classOf("Arte", { status: "rechazada" })];
     leave.mockResolvedValue(undefined);
     renderClasses();
@@ -166,7 +251,18 @@ describe("SusClasesSection", () => {
     await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     const dialog = screen.getByRole("dialog", { name: "Cancelar la solicitud" });
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancelar solicitud" }));
+
+    // Going back from the dialog keeps the rejected one.
     await userEvent.click(screen.getByRole("button", { name: 'Quitar "Arte" de la lista' }));
+    await userEvent.click(
+      within(screen.getByRole("dialog", { name: "Quitar la solicitud" })).getByRole("button", { name: "Volver" }),
+    );
+    expect(leave.mock.calls).toEqual([["e-Ciencias"]]);
+
+    await userEvent.click(screen.getByRole("button", { name: 'Quitar "Arte" de la lista' }));
+    const remove = screen.getByRole("dialog", { name: "Quitar la solicitud" });
+    expect(within(remove).getByText(/El docente no recibirá ningún aviso/)).toBeTruthy();
+    await userEvent.click(within(remove).getByRole("button", { name: "Quitar solicitud" }));
 
     expect(leave.mock.calls).toEqual([["e-Ciencias"], ["e-Arte"]]);
   });

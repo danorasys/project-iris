@@ -10,7 +10,13 @@ from uuid import UUID
 
 from app.application.dtos import ActivityInput, BlockInput, ExtraChanges, LessonChanges
 from app.application.image_rules import EXTENSION_BY_CONTENT_TYPE, matches_declared_type
-from app.application.lesson_rules import encode_items, encode_rows, extra_missing, missing_to_publish
+from app.application.lesson_rules import (
+    DBA_SUBJECTS_BY_AREA,
+    encode_items,
+    encode_rows,
+    extra_missing,
+    missing_to_publish,
+)
 from app.domain.entities import (
     BLOCK_IMAGE,
     BLOCK_LIST,
@@ -21,6 +27,7 @@ from app.domain.entities import (
     STATUS_PUBLISHED,
     Activity,
     ContentBlock,
+    Dba,
     Extra,
     Lesson,
     PublishedContent,
@@ -31,6 +38,8 @@ from app.domain.entities import (
     ValidatedUser,
 )
 from app.domain.exceptions import (
+    ClassroomNotEditable,
+    ClassroomServiceUnavailable,
     InvalidAudience,
     InvalidFile,
     InvalidOrder,
@@ -133,6 +142,7 @@ class LessonService:
             raise ResourceNotFound("La lección solicitada no existe.")
         if lesson.teacher_id != user.subject_id:
             raise PermissionDenied("No eres el autor de esta lección.")
+        await self._require_editable(lesson.classroom_id, user)
         return lesson
 
     async def _own_unit(self, uow: UnitOfWork, unit_id: UUID, user: ValidatedUser) -> Unit:
@@ -141,7 +151,14 @@ class LessonService:
             raise ResourceNotFound("La unidad no existe.")
         if unit.teacher_id != user.subject_id:
             raise PermissionDenied("No eres el docente de esta unidad.")
+        await self._require_editable(unit.classroom_id, user)
         return unit
+
+    # Both helpers above are only used to change things, and an archived
+    # class can't change (HU-105). Asked to classroom-service, cached ~30 s.
+    async def _require_editable(self, classroom_id: UUID, user: ValidatedUser) -> None:
+        if not await self._classroom.verify_access(classroom_id, user.subject_id, "editor", None):
+            raise ClassroomNotEditable()
 
     @staticmethod
     def _find_extra(lesson: Lesson, extra_id: UUID) -> Extra:
@@ -149,6 +166,59 @@ class LessonService:
             if extra.id == extra_id:
                 return extra
         raise ResourceNotFound("El extra no existe.")
+
+    # Everything still missing to publish the lesson, the same list its
+    # editor shows: its own fields, pages and activity, plus what depends on
+    # the rest of the class.
+    async def missing_for(self, lesson: Lesson, correlation_id: str | None) -> list[str]:
+        async with self._uow_factory() as uow:
+            return await self._missing_with_context(uow, lesson, correlation_id, strict=False)
+
+    # The expected performance of its unit (one from before it existed has
+    # to get it first) and, in the areas that have DBA, the DBA of its unit
+    # (of the class's area and grade, or the teacher's own) with at least one
+    # Evidencia de Aprendizaje. strict: when publishing, not knowing the class
+    # stops it (503); in the editor's list it just isn't shown.
+    async def _missing_with_context(
+        self, uow: UnitOfWork, lesson: Lesson, correlation_id: str | None, *, strict: bool
+    ) -> list[str]:
+        missing = missing_to_publish(lesson)
+        unit = await uow.units.get_by_id(lesson.unit_id)
+        if unit is not None and not unit.learning_goal.strip():
+            missing.insert(0, f"Escribe el desempeño esperado de la unidad “{unit.title}”.")
+        subject = await self._classroom.subject_of(lesson.classroom_id, correlation_id)
+        if subject is None:
+            if strict:
+                raise ClassroomServiceUnavailable()
+            return missing
+        subjects = DBA_SUBJECTS_BY_AREA.get(subject.area)
+        if not subjects:
+            return missing
+        if unit is not None and unit.dba is None and unit.own_dba_name is None:
+            missing.append(f"Elige el DBA de la unidad “{unit.title}” o escribe uno propio.")
+        elif unit is not None and unit.dba is not None and (
+            unit.dba.subject not in subjects or unit.dba.grade != subject.grade
+        ):
+            missing.append(f"El DBA de la unidad “{unit.title}” no es del área o del grado de la clase: elige otro.")
+        elif unit is not None and not unit.dba_points:
+            missing.append(f"Marca al menos una evidencia de aprendizaje del DBA de la unidad “{unit.title}” o escribe una propia.")
+        return missing
+
+    # GET /classrooms/{classroom_id}/dba: the DBA a unit of this class can use
+    # (its area and grade; both of language and English in humanities), each
+    # with its evidences. Empty in the areas without DBA.
+    async def classroom_dba(self, classroom_id: UUID, user: ValidatedUser, correlation_id: str | None) -> list[Dba]:
+        self._require_role(user, "teacher")
+        if not await self._classroom.verify_access(classroom_id, user.subject_id, "teacher", correlation_id):
+            raise PermissionDenied("No eres el docente de esta clase.")
+        subject = await self._classroom.subject_of(classroom_id, correlation_id)
+        if subject is None:
+            raise ClassroomServiceUnavailable()
+        subjects = DBA_SUBJECTS_BY_AREA.get(subject.area)
+        if not subjects:
+            return []
+        async with self._uow_factory() as uow:
+            return await uow.dba.list_for(subjects, subject.grade)
 
     @staticmethod
     def _keep_complete_if_published(lesson: Lesson) -> None:
@@ -200,7 +270,7 @@ class LessonService:
                 return await uow.lessons.list_by_classroom(classroom_id, published_only=False)
         if user.role == "student":
             if not await self._classroom.verify_access(classroom_id, user.subject_id, "student", correlation_id):
-                raise PermissionDenied("No estás inscrito en esta aula.")
+                raise PermissionDenied("No estás en esta clase.")
             async with self._uow_factory() as uow:
                 return await uow.lessons.list_by_classroom(classroom_id, published_only=True)
         raise PermissionDenied("Tu tipo de cuenta no tiene acceso a esta operación.")
@@ -222,7 +292,7 @@ class LessonService:
                 lesson.classroom_id, user.subject_id, "student", correlation_id
             )
             if not authorized:
-                raise PermissionDenied("No estás inscrito en el aula de esta lección.")
+                raise PermissionDenied("No estás en la clase de esta lección.")
             if lesson.status != STATUS_PUBLISHED:
                 # "doesn't exist" and "not published" look the same on purpose, so a
                 # student can't infer the state of a lesson they can't access.
@@ -234,7 +304,12 @@ class LessonService:
     # POST /units/{unit_id}/lessons (HU-78). Created as a draft at the end of
     # its unit, with its title, purpose and learning goal from the start.
     async def create_lesson(
-        self, unit_id: UUID, user: ValidatedUser, title: str, purpose: str, learning_goal: str
+        self,
+        unit_id: UUID,
+        user: ValidatedUser,
+        title: str,
+        purpose: str,
+        learning_goal: str,
     ) -> Lesson:
         self._require_role(user, "teacher")
         async with self._uow_factory() as uow:
@@ -304,7 +379,7 @@ class LessonService:
     async def publish(self, lesson_id: UUID, user: ValidatedUser, correlation_id: str | None = None) -> Lesson:
         async with self._uow_factory() as uow:
             lesson = await self._own_lesson(uow, lesson_id, user)
-            missing = missing_to_publish(lesson)
+            missing = await self._missing_with_context(uow, lesson, correlation_id, strict=True)
             if missing:
                 raise LessonIncomplete(missing=missing)
             is_new = lesson.status != STATUS_PUBLISHED

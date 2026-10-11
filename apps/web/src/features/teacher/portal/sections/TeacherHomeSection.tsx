@@ -63,7 +63,8 @@ export function TeacherHomeSection({
   const summary = useContentSummary();
   const tray = useNotificationTray("teacher", 1, NOTICES_SHOWN);
 
-  const list = classrooms.data ?? [];
+  // The archived classes (HU-105) don't count in what's going on now.
+  const list = (classrooms.data ?? []).filter((c) => !c.archived_at);
   const content = new Map((summary.data ?? []).map((item) => [item.classroom_id, item]));
   const students = list.reduce((total, c) => total + c.student_count, 0);
   const pending = list.reduce((total, c) => total + c.pending_requests, 0);
@@ -263,9 +264,8 @@ function buildTasks(
 
 // "Grados 1.° a 3.°" from the classes, or a nudge when there are none.
 function gradesHint(list: TeacherClassroom[]): string {
-  const grades = list.map((c) => c.grade).filter((grade): grade is number => typeof grade === "number");
   if (list.length === 0) return "crea la primera";
-  if (grades.length === 0) return list.length === 1 ? "1 clase activa" : `${list.length} clases activas`;
+  const grades = list.map((c) => c.grade);
   const low = Math.min(...grades);
   const high = Math.max(...grades);
   return low === high ? `de ${low}.° grado` : `de ${low}.° a ${high}.° grado`;

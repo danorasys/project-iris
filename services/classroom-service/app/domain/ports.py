@@ -10,6 +10,7 @@ from uuid import UUID
 
 from app.domain.entities import (
     Classroom,
+    ClassroomAuditEntry,
     Enrollment,
     EnrollmentCounts,
     GuardianStudent,
@@ -51,12 +52,21 @@ class EnrollmentRepository(Protocol):
     async def delete_by_students(self, student_ids: list[UUID]) -> int: ...
 
 
+# The audit log of the classrooms (ADR 0021): lines are only added.
+class AuditLogRepository(Protocol):
+    async def add(self, entry: ClassroomAuditEntry) -> None: ...
+    async def list_by_classroom(self, classroom_id: UUID) -> list[ClassroomAuditEntry]: ...
+
+
 class UnitOfWork(Protocol):
     @property
     def classrooms(self) -> ClassroomRepository: ...
 
     @property
     def enrollments(self) -> EnrollmentRepository: ...
+
+    @property
+    def audit_log(self) -> AuditLogRepository: ...
 
     async def __aenter__(self) -> "UnitOfWork": ...
     async def __aexit__(

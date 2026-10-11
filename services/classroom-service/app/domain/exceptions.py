@@ -17,7 +17,7 @@ class DomainError(Exception):
 
 class ClassroomNotFound(DomainError):
     code = "aula_no_encontrada"
-    message = "El aula solicitada no existe."
+    message = "La clase no existe."
 
 
 class ResourceNotFound(DomainError):
@@ -37,7 +37,7 @@ class InvalidEnrollmentCode(DomainError):
 
 class AlreadyEnrolledOrPending(DomainError):
     code = "ya_inscrito_o_pendiente"
-    message = "Ya existe una inscripción pendiente o aceptada para esta aula."
+    message = "Tu peque ya está en esta clase o ya tiene una solicitud esperando respuesta."
 
 
 # The kid isn't one of the guardian's. Same 404 as a kid that doesn't exist.
@@ -56,6 +56,18 @@ class NotInClassroomYet(DomainError):
 class ClassroomWithoutTeacher(DomainError):
     code = "clase_sin_docente"
     message = "Esta clase ya no tiene un docente a cargo, así que no recibe solicitudes ni cambios."
+
+
+# An archived class can be read but not changed (HU-105).
+class ClassroomArchived(DomainError):
+    code = "clase_archivada"
+    message = "Esta clase está archivada, así que no recibe solicitudes ni cambios."
+
+
+# Deleting is the last step, only for a class already archived (HU-85).
+class ClassroomNotArchived(DomainError):
+    code = "clase_no_archivada"
+    message = "Primero archiva la clase. Solo una clase archivada se puede eliminar."
 
 
 class StatisticsUnavailable(DomainError):
@@ -102,11 +114,6 @@ class IdentityServiceUnavailable(DomainError):
 class InvalidFile(DomainError):
     code = "archivo_invalido"
     message = "El archivo enviado no es válido."
-
-
-class IncompleteClassroom(DomainError):
-    code = "clase_incompleta"
-    message = "Elige el área y el grado de la clase."
 
 
 class MissingOtherArea(DomainError):

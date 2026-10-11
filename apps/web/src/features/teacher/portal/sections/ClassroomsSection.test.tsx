@@ -8,6 +8,8 @@ import { ClassroomsSection } from "./ClassroomsSection";
 const createClassroom = vi.fn();
 const updateClassroom = vi.fn();
 const deleteClassroom = vi.fn();
+const archiveClassroom = vi.fn();
+const restoreClassroom = vi.fn();
 const removeStudent = vi.fn();
 const resolveRequest = vi.fn();
 
@@ -43,10 +45,12 @@ const detail: ClassroomWithStudents = {
 };
 
 let classrooms: TeacherClassroom[] = [math];
+let classroomDetail: ClassroomWithStudents = detail;
+const archivedAt = "2026-10-09T15:00:00Z";
 
 vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
   useTeacherClassrooms: () => ({ data: classrooms, isLoading: false, isError: false }),
-  useClassroomDetail: () => ({ data: detail, isLoading: false, isError: false }),
+  useClassroomDetail: () => ({ data: classroomDetail, isLoading: false, isError: false }),
   useClassroomRequests: () => ({
     data: [
       {
@@ -65,6 +69,8 @@ vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
   useUploadClassroomLogo: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useRemoveClassroomLogo: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteClassroom: () => ({ mutateAsync: deleteClassroom, isPending: false }),
+  useArchiveClassroom: () => ({ mutateAsync: archiveClassroom, isPending: false }),
+  useRestoreClassroom: () => ({ mutateAsync: restoreClassroom, isPending: false }),
   useRemoveStudent: () => ({ mutateAsync: removeStudent, isPending: false }),
   useResolveRequest: () => ({ mutateAsync: resolveRequest, isPending: false }),
 }));
@@ -98,7 +104,16 @@ function renderSection() {
 afterEach(() => {
   cleanup();
   classrooms = [math];
-  for (const mock of [createClassroom, updateClassroom, deleteClassroom, removeStudent, resolveRequest])
+  classroomDetail = detail;
+  for (const mock of [
+    createClassroom,
+    updateClassroom,
+    deleteClassroom,
+    archiveClassroom,
+    restoreClassroom,
+    removeStudent,
+    resolveRequest,
+  ])
     mock.mockReset();
 });
 
@@ -237,24 +252,73 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     expect(screen.getByRole("button", { name: "Nueva clase" })).toBeTruthy();
   });
 
-  it("deletes a classroom only after confirming, warning about its lessons", async () => {
-    deleteClassroom.mockResolvedValue(undefined);
+  it("archives an active classroom after confirming, instead of deleting it", async () => {
+    archiveClassroom.mockResolvedValue({ ...math, archived_at: archivedAt });
     const user = userEvent.setup({ delay: null });
     renderSection();
 
     await user.click(screen.getByRole("button", { name: /Matemáticas Básicas/ }));
-    await user.click(screen.getByRole("button", { name: "Eliminar" }));
+    expect(screen.queryByRole("button", { name: "Eliminar" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Archivar" }));
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText(/También se eliminarán sus lecciones y las inscripciones/)).toBeTruthy();
+    expect(within(dialog).getByText(/se cerrarán las 2 solicitudes que esperan respuesta/)).toBeTruthy();
     await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
-    expect(deleteClassroom).not.toHaveBeenCalled();
+    expect(archiveClassroom).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Archivar" }));
+    await user.click(screen.getByRole("button", { name: "Sí, archivar la clase" }));
+
+    expect(archiveClassroom).toHaveBeenCalledWith("c1");
+    expect(await screen.findByText('La clase "Matemáticas Básicas" se archivó.')).toBeTruthy();
+  });
+
+  it("shows an archived classroom only for reading, to restore or delete it", async () => {
+    classroomDetail = { ...detail, archived_at: archivedAt };
+    deleteClassroom.mockResolvedValue(undefined);
+    restoreClassroom.mockResolvedValue({ ...math, archived_at: null });
+    const user = userEvent.setup({ delay: null });
+    renderSection();
+
+    await user.click(screen.getByRole("button", { name: /Matemáticas Básicas/ }));
+    expect(screen.getByText(/Archivaste esta clase el/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Editar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Mensajes/ })).toBeNull();
+    expect(screen.queryByText(/Código de ingreso/)).toBeNull();
+
+    // Its members are only listed.
+    await user.click(screen.getByRole("button", { name: /^Miembros/ }));
+    expect(screen.getByText("Sofía")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Retirar a Sofía de la clase" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Regresar a la clase" }));
+
+    await user.click(screen.getByRole("button", { name: "Restaurar" }));
+    expect(restoreClassroom).toHaveBeenCalledWith("c1");
+    expect(await screen.findByText('La clase "Matemáticas Básicas" volvió a tus clases.')).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Eliminar" }));
-    await user.click(screen.getByRole("button", { name: "Sí, eliminar la clase" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(/su estudiante perderá su progreso/)).toBeTruthy();
+    await user.click(within(dialog).getByRole("button", { name: "Sí, eliminar la clase" }));
 
     expect(deleteClassroom).toHaveBeenCalledWith("c1");
     expect(await screen.findByText('La clase "Matemáticas Básicas" se eliminó.')).toBeTruthy();
     expect(screen.getByRole("button", { name: "Nueva clase" })).toBeTruthy();
+  });
+
+  it("keeps the archived classrooms folded under the active ones", async () => {
+    classrooms = [math, { ...math, id: "c9", name: "Arte 2023", pending_requests: 0, archived_at: archivedAt }];
+    const user = userEvent.setup({ delay: null });
+    renderSection();
+
+    expect(screen.getByText("1 clase")).toBeTruthy();
+    expect(screen.getByText("1 archivada")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Arte 2023/ })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Ver clases archivadas (1)" }));
+
+    const card = screen.getByRole("button", { name: /Arte 2023/ });
+    expect(within(card).getByText("Archivada")).toBeTruthy();
+    expect(within(card).getByText("Ver la clase")).toBeTruthy();
   });
 
   it("edits a classroom from its space", async () => {

@@ -10,12 +10,31 @@ const trayQuery = vi.fn();
 const markRead = vi.fn();
 const remove = vi.fn();
 const removeMany = vi.fn();
+// The tray of one class (HU-42): empty unless a test fills it.
+const noClassTray = { data: undefined, isLoading: false, isError: false };
+const classTray = vi.fn();
 
 vi.mock("@/shared/api/hooks/useNotifications", () => ({
   useBandejaNotificaciones: (page: number, pageSize: number) => trayQuery(page, pageSize),
+  // Only used inside the space of a class, off here.
+  useClassNotifications: () => classTray() ?? noClassTray,
   useMarcarNotificacionLeida: () => ({ mutateAsync: markRead }),
   useEliminarNotificacion: () => ({ mutateAsync: remove }),
   useEliminarNotificaciones: () => ({ mutateAsync: removeMany, isPending: false }),
+}));
+
+const sendMessage = vi.fn();
+vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
+  useSendTeacherMessage: () => ({ mutateAsync: sendMessage }),
+}));
+// The conversation has its own tests: here only whether it's there and what
+// its answer sends.
+vi.mock("@/shared/ui/portal/MessageThread", () => ({
+  MessageThread: ({ onReply }: { onReply: (subject: string, body: string) => Promise<unknown> }) => (
+    <button type="button" onClick={() => void onReply("Re: Tarea", "Gracias, la hacemos hoy.")}>
+      Responder
+    </button>
+  ),
 }));
 
 const accepted: NotificationItem = {
@@ -73,6 +92,8 @@ afterEach(() => {
   markRead.mockReset();
   remove.mockReset();
   removeMany.mockReset();
+  sendMessage.mockReset();
+  classTray.mockReset();
 });
 
 describe("NotificacionesSection", () => {
@@ -96,15 +117,55 @@ describe("NotificacionesSection", () => {
     expect(screen.getByText("1 sin leer")).toBeTruthy();
   });
 
+  it("says in every row which kid and class it's about, a message and a notice alike (HU-43)", () => {
+    const message: NotificationItem = {
+      ...accepted,
+      id: "n3",
+      event: "teacher.message",
+      subject: "Tarea",
+      body: "Repasen la lección.",
+      addressee: "guardian",
+      thread_id: null,
+    };
+    trayReturns(page([message, accepted]));
+
+    renderSection();
+
+    const [messageRow, noticeRow] = within(screen.getByRole("list", { name: "Lista de notificaciones" })).getAllByRole(
+      "listitem",
+    );
+    expect(within(messageRow).getByText("Sofía · Matemáticas 3A")).toBeTruthy();
+    expect(within(noticeRow).getByText("Sofía · Matemáticas 3A")).toBeTruthy();
+  });
+
+  it("leaves the tag out in the tray of one class, where the kid and the class are known", () => {
+    classTray.mockReturnValue({ data: page([accepted]), isLoading: false, isError: false });
+
+    render(
+      <MemoryRouter>
+        <NotificacionesSection ofClass={{ classroomId: "c1", studentId: "s1", heading: <h3>De la clase</h3> }} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Solicitud de ingreso aceptada")).toBeTruthy();
+    expect(screen.queryByText("Sofía · Matemáticas 3A")).toBeNull();
+  });
+
   it("says which ones are unread, not only with color", () => {
     trayReturns(page([accepted, sent]));
 
     renderSection();
 
     expect(
-      screen.getByRole("button", { name: /^No leída:\s*Carlos Ruiz\s*Solicitud de ingreso aceptada/ }),
+      screen.getByRole("button", {
+        name: /^No leída:\s*IRIS\s*Automático\s*Sofía · Matemáticas 3A\s*Solicitud de ingreso aceptada/,
+      }),
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^Sofía\s*Solicitud de ingreso enviada/ })).toBeTruthy();
+    expect(
+      screen.getByRole("button", {
+        name: /^IRIS\s*Automático\s*Sofía · Matemáticas 3A\s*Solicitud de ingreso enviada/,
+      }),
+    ).toBeTruthy();
   });
 
   it("opens one to read it in full and marks it as read", async () => {
@@ -113,16 +174,64 @@ describe("NotificacionesSection", () => {
     const user = userEvent.setup();
     renderSection();
 
-    await user.click(screen.getByRole("button", { name: /^No leída:\s*Carlos Ruiz\s*Solicitud de ingreso aceptada/ }));
+    await user.click(
+      screen.getByRole("button", {
+        name: /^No leída:\s*IRIS\s*Automático\s*Sofía · Matemáticas 3A\s*Solicitud de ingreso aceptada/,
+      }),
+    );
 
     expect(markRead).toHaveBeenCalledWith("n1");
     const detail = screen.getByRole("article");
     expect(within(detail).getByRole("heading", { name: "Solicitud de ingreso aceptada" })).toBeTruthy();
     expect(detail.textContent).toContain("Desde ahora Sofía ya puede entrar a la clase y ver sus lecciones.");
-    expect(detail.textContent).toContain("De parte de Carlos Ruiz");
+    // IRIS signs what it writes by itself, the teacher who did it is in the text.
+    expect(detail.textContent).toContain("De parte de IRIS Aviso automático");
+    expect(detail.textContent).toContain("Carlos Ruiz aceptó la solicitud de Sofía");
+    // And it closes like an email from the team.
+    expect(detail.textContent).toContain("Cordialmente,El equipo de IRIS");
+    expect(detail.textContent).toContain("Este es un mensaje automático de IRIS. No es necesario responderlo.");
 
     await user.click(screen.getByRole("button", { name: "Regresar a notificaciones" }));
     expect(screen.getByRole("list", { name: "Lista de notificaciones" })).toBeTruthy();
+  });
+
+  it("only a message someone wrote can be answered, not what IRIS wrote by itself", () => {
+    const read = { ...accepted, read: true };
+    trayReturns(page([read]));
+    renderSection(read);
+
+    expect(screen.getByRole("article")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Responder" })).toBeNull();
+  });
+
+  it("answers a teacher's message from before the conversations, starting a new one", async () => {
+    const old: NotificationItem = {
+      ...accepted,
+      id: "n3",
+      event: "teacher.message",
+      sender_name: "Carlos Ruiz",
+      subject: "Tarea",
+      body: "Repasen la lección.",
+      addressee: "guardian",
+      thread_id: null,
+      read: true,
+    };
+    trayReturns(page([old]));
+    sendMessage.mockResolvedValue(undefined);
+    renderSection(old);
+
+    // Read as a mail thread: its conversation takes the place of the single text.
+    expect(screen.getByRole("heading", { name: "Tarea" })).toBeTruthy();
+    // Someone wrote it: no sign-off from IRIS.
+    expect(screen.getByRole("article").textContent).not.toContain("El equipo de IRIS");
+    await userEvent.click(screen.getByRole("button", { name: "Responder" }));
+
+    expect(sendMessage).toHaveBeenCalledWith({
+      enrollmentId: "e1",
+      subject: "Re: Tarea",
+      body: "Gracias, la hacemos hoy.",
+      threadId: null,
+    });
   });
 
   it("opens right on the one clicked in Inicio and marks it as read once", async () => {
@@ -147,7 +256,11 @@ describe("NotificacionesSection", () => {
     const user = userEvent.setup();
     renderSection();
 
-    await user.click(screen.getByRole("button", { name: /^No leída:\s*Carlos Ruiz\s*Solicitud de ingreso aceptada/ }));
+    await user.click(
+      screen.getByRole("button", {
+        name: /^No leída:\s*IRIS\s*Automático\s*Sofía · Matemáticas 3A\s*Solicitud de ingreso aceptada/,
+      }),
+    );
     expect(screen.getByText("1 de 2")).toBeTruthy();
     expect((screen.getByRole("button", { name: "Notificación anterior" }) as HTMLButtonElement).disabled).toBe(true);
 
@@ -174,7 +287,9 @@ describe("NotificacionesSection", () => {
     const user = userEvent.setup();
     renderSection();
 
-    const rows = screen.getAllByRole("button", { name: /^Sofía\s*Solicitud de ingreso enviada/ });
+    const rows = screen.getAllByRole("button", {
+      name: /^IRIS\s*Automático\s*Sofía · Matemáticas 3A\s*Solicitud de ingreso enviada/,
+    });
     await user.click(rows[rows.length - 1]);
     expect(screen.getByText("8 de 9")).toBeTruthy();
 
@@ -188,7 +303,11 @@ describe("NotificacionesSection", () => {
     const user = userEvent.setup();
     renderSection();
 
-    await user.click(screen.getByRole("button", { name: /^Sofía\s*Solicitud de ingreso enviada/ }));
+    await user.click(
+      screen.getByRole("button", {
+        name: /^IRIS\s*Automático\s*Sofía · Matemáticas 3A\s*Solicitud de ingreso enviada/,
+      }),
+    );
 
     expect(markRead).not.toHaveBeenCalled();
   });

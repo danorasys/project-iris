@@ -60,7 +60,7 @@ export function CountedTextField({
         />
       )}
       <span className={length > max ? `${styles.counter} ${styles.counterOver}` : styles.counter} aria-hidden="true">
-        {length}/{max}
+        {length.toLocaleString("es-CO")}/{max.toLocaleString("es-CO")}
       </span>
       {hint && <p className={styles.hint}>{hint}</p>}
     </div>

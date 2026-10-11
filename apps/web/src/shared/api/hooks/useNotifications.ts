@@ -33,9 +33,10 @@ const MESSAGE_EVENTS = ["message.sent", "teacher.message"] as const;
 
 /** One page of a tray, newest first. For the guardian the server needs the
  * portal's 2FA access open, a closed one comes back as `acceso_portal_requerido`. */
-export function useNotificationTray(role: TrayRole, page: number, pageSize: number) {
+export function useNotificationTray(role: TrayRole, page: number, pageSize: number, enabled = true) {
   return useQuery({
     queryKey: trayKeys.page(role, page, pageSize),
+    enabled,
     queryFn: () =>
       apiFetch<NotificationPage>(`/notifications/me?page=${page}&page_size=${pageSize}`, { background: true }),
     refetchInterval: INTERVALO_BANDEJA_MS,
@@ -168,8 +169,8 @@ export function useThread(role: TrayRole, threadId: string | null | undefined) {
 }
 
 // The guardian's portal uses these names.
-export const useBandejaNotificaciones = (page: number, pageSize: number) =>
-  useNotificationTray("guardian", page, pageSize);
+export const useBandejaNotificaciones = (page: number, pageSize: number, enabled = true) =>
+  useNotificationTray("guardian", page, pageSize, enabled);
 export const useNotificacionesSinLeer = () => useUnreadNotifications("guardian");
 export const useMarcarNotificacionLeida = () => useMarkNotificationRead("guardian");
 export const useEliminarNotificacion = () => useDeleteNotification("guardian");

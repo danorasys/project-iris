@@ -16,7 +16,9 @@ import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
 import { Toast } from "@/shared/ui/Toast";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
 import { MessageThread } from "@/shared/ui/portal/MessageThread";
+import { threadSubject } from "@/shared/ui/portal/messageThreadRules";
 import { NotificationMail, type MailPosition } from "@/shared/ui/portal/NotificationMail";
+import { isAutomatic, notificationContext } from "@/features/utils/notificationKinds";
 import { Highlight, PortalBanner } from "@/shared/ui/portal/PortalBanner";
 import { TrayPager } from "@/shared/ui/portal/TrayPager";
 import { TrayToolbar } from "@/shared/ui/portal/TraySelection";
@@ -280,6 +282,7 @@ interface RowProps {
 
 function NotificationRow({ notification: n, selected, onToggle, onOpen, onDelete }: RowProps) {
   const subject = notificationSubject(n);
+  const context = notificationContext(n);
   const classes = [styles.row, !n.read && styles.rowUnread, selected && styles.rowSelected].filter(Boolean).join(" ");
   return (
     <li className={classes}>
@@ -298,8 +301,15 @@ function NotificationRow({ notification: n, selected, onToggle, onOpen, onDelete
         <span className={styles.rowSender}>
           {!n.read && <span className={styles.visuallyHidden}>No leída: </span>}
           {senderOf(n)}
+          {isAutomatic(n) && (
+            <>
+              {" "}
+              <span className={styles.autoTag}>Automático</span>
+            </>
+          )}
         </span>
         <span className={styles.rowText}>
+          {context && <span className={styles.contextTag}>{context}</span>}
           <span className={styles.rowSubject}>{subject}</span> — {notificationMessage(n)}
         </span>
         <time className={styles.rowTime} dateTime={n.created_at} title={formatArrival(n.created_at)}>
@@ -322,10 +332,14 @@ interface DetailProps {
 }
 
 function NotificationDetail({ notification: n, position, onBack, onDelete, onToast }: DetailProps) {
+  // A family's message or the teacher's copy is read as a mail thread, named
+  // without the "Re:". What IRIS wrote by itself has nothing to answer.
+  const isMessage = n.event === "message.sent" || n.event === "teacher.message";
   return (
     <NotificationMail
-      subject={notificationSubject(n)}
+      subject={isMessage ? threadSubject(n.subject) : notificationSubject(n)}
       sender={senderOf(n)}
+      automatic={isAutomatic(n)}
       kidLabel="Estudiante"
       kidName={studentOf(n)}
       classroomName={n.classroom_name ?? "Sin nombre"}
@@ -334,18 +348,16 @@ function NotificationDetail({ notification: n, position, onBack, onDelete, onToa
       onBack={onBack}
       onDelete={onDelete}
       position={position}
+      conversation={isMessage ? <TeacherReply message={n} onToast={onToast} /> : undefined}
     >
       {n.event === "request.created" && <RequestDecision notification={n} onToast={onToast} />}
-      {(n.event === "message.sent" || n.event === "teacher.message") && n.thread_id && (
-        <TeacherReply message={n} onToast={onToast} />
-      )}
     </NotificationMail>
   );
 }
 
 // HU-51: a family's message, or the copy of one the teacher sent, answered
 // in its conversation. A family's answer goes to that family; the copy's,
-// to whoever it went to.
+// to whoever it went to. One from before the conversations starts a new one.
 function TeacherReply({
   message,
   onToast,

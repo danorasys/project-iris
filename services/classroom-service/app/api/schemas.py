@@ -101,8 +101,9 @@ class FamilyEnrollmentRequest(BaseModel):
 class TeacherMessageRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    subject: str = Field(min_length=1, max_length=120)
-    body: str = Field(min_length=1, max_length=2000)
+    # Long like an email, but with a top (notification-service keeps the same sizes).
+    subject: str = Field(min_length=1, max_length=300)
+    body: str = Field(min_length=1, max_length=20000)
     # To answer a message inside its conversation (HU-51).
     thread_id: UUID | None = None
 
@@ -149,15 +150,16 @@ class ClassroomResponse(BaseModel):
     logo_file: str | None = None
     # The avatar's color, used when there's no logo (initials on this color).
     color: ClassroomColor
-    # What it's about and who it's for (see ClassroomArea). Empty only in
-    # classrooms created before they were required.
-    area: ClassroomArea | None = None
+    # What it's about and who it's for (see ClassroomArea), every class has them.
+    area: ClassroomArea
     area_other: str | None = None
-    grade: int | None = None
+    grade: int
     enrollment_code: str
     created_at: datetime
     # False once its teacher deleted their account (HU-92).
     has_teacher: bool = True
+    # When its teacher archived it (HU-105), null while it's active.
+    archived_at: datetime | None = None
 
 
 # A classroom in the teacher's own list, with its waiting requests (HU-69)
@@ -202,9 +204,9 @@ class ClassroomPreviewResponse(BaseModel):
     description: str
     logo_file: str | None
     color: ClassroomColor
-    area: ClassroomArea | None = None
+    area: ClassroomArea
     area_other: str | None = None
-    grade: int | None = None
+    grade: int
     # None when identity-service didn't answer.
     teacher: TeacherProfileOut | None
     published_lessons: int | None
@@ -229,9 +231,9 @@ class FamilyClassroomResponse(BaseModel):
     # The logo can be asked with the portal open (GET /classrooms/{id}/logo/...).
     logo_file: str | None = None
     color: ClassroomColor
-    area: ClassroomArea | None = None
+    area: ClassroomArea
     area_other: str | None = None
-    grade: int | None = None
+    grade: int
     # None when identity-service or content-service didn't answer.
     teacher_name: str | None
     published_lessons: int | None
@@ -239,6 +241,8 @@ class FamilyClassroomResponse(BaseModel):
     published_units: int | None = None
     # False once its teacher deleted their account (HU-92).
     has_teacher: bool = True
+    # When its teacher archived it (HU-105): the family can still read it.
+    archived_at: datetime | None = None
 
 
 # A kid's progress in the lessons of a class (HU-46, HU-47), the shape
@@ -262,12 +266,40 @@ class PartProgressOut(BaseModel):
     percent: int = Field(ge=0, le=100)
 
 
+# The DBA of a unit, from content-service's catalog or the teacher's own,
+# and its Evidencias de Aprendizaje (the catalog's or the teacher's own).
+class DbaPointOut(BaseModel):
+    evidence_id: str | None = None
+    text: str
+
+
+# own: the teacher wrote it, so it has no id, subject, grade or number.
+class UnitDbaOut(BaseModel):
+    own: bool = False
+    id: str | None = None
+    subject: str | None = None
+    grade: int | None = None
+    number: int | None = None
+    name: str
+    points: list[DbaPointOut] = []
+
+
 class LessonProgressOut(BaseModel):
     lesson_id: UUID
     title: str
     unit_title: str
     main: PartProgressOut
     extras: list[PartProgressOut]
+    # What the class is about, for the family: the question and goal of its
+    # unit, what the lesson is for and what the kid should manage. Empty
+    # while content-service is on a version from before it sent them.
+    unit_guiding_question: str = ""
+    unit_learning_goal: str = ""
+    purpose: str = ""
+    learning_goal: str = ""
+    # The DBA of its unit with its Evidencias de Aprendizaje, where the class's
+    # area has DBA and the teacher chose them.
+    unit_dba: UnitDbaOut | None = None
 
 
 # The statistics of a class for its teacher (HU-86, HU-87), each kid with
@@ -366,3 +398,9 @@ class EraseStudentsResponse(BaseModel):
 
 class InternalAccessResponse(BaseModel):
     authorized: bool
+
+
+# What a class is about, for content-service (which DBA its units can use).
+class InternalSubjectResponse(BaseModel):
+    area: ClassroomArea
+    grade: int

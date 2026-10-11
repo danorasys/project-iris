@@ -11,6 +11,9 @@ interface TeacherProfileSummaryProps {
   institution?: string | null;
   /** A small line under everything, like who declared it. */
   note?: string;
+  /** On the page itself instead of inside a dialog: a white card like the
+   * other sections of the parents' portal. */
+  card?: boolean;
 }
 
 /** The teacher's profile to read, not to edit: their presentation, studies
@@ -22,9 +25,10 @@ export function TeacherProfileSummary({
   title = "Tu perfil docente",
   institution,
   note,
+  card = false,
 }: TeacherProfileSummaryProps) {
   return (
-    <section className={styles.summary} aria-label={title}>
+    <section className={card ? `${styles.summary} ${styles.card}` : styles.summary} aria-label={title}>
       <h3 className={styles.title}>{title}</h3>
 
       {institution !== undefined && (

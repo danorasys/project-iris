@@ -111,6 +111,8 @@ describe("reading one (HU-55) and deleting it (HU-56)", () => {
     await userEvent.click(screen.getByRole("button", { name: /Hay una lección nueva/ }));
 
     expect(markRead).not.toHaveBeenCalled();
+    // Nobody typed it, IRIS did: it says so instead of the teacher's name.
+    expect(screen.getByText(/^Aviso de IRIS · Ciencias naturales/)).toBeTruthy();
   });
 
   it("asks before deleting: cancel leaves it, confirm deletes it", async () => {

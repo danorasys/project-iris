@@ -123,8 +123,10 @@
   background: var(--color-surface);
 }
 
-/* The avatar hangs from the band, with a ring of the tile's background. */
+/* The avatar hangs from the band, with a ring of the tile's background, and
+   stays on top of it even when an archived one fades. */
 .tileAvatar {
+  position: relative;
   margin-top: -34px;
   padding: 4px;
   border-radius: 26%;
@@ -195,6 +197,71 @@
 }
 
 /* --- The requests sent (HU-41) --- */
+/* The filters by state: soft pills like the search box, the chosen one in
+   the blue of the main buttons, each with how many it has. */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 14px;
+  border: 1.5px solid var(--color-iris-pale);
+  border-radius: 999px;
+  background: var(--color-canvas);
+  color: var(--color-ink-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.filter:hover:not(:disabled):not([aria-pressed="true"]) {
+  border-color: var(--color-iris-medium);
+  color: var(--color-iris-deep);
+}
+
+.filter:focus-visible {
+  outline: none;
+  border-color: var(--color-focus);
+  box-shadow: var(--focus-halo);
+}
+
+.filter[aria-pressed="true"] {
+  border-color: var(--color-iris-medium);
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+}
+
+.filter:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.filterCount {
+  min-width: 24px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.filter[aria-pressed="true"] .filterCount {
+  background: color-mix(in srgb, var(--color-surface) 22%, transparent);
+  color: var(--color-surface);
+}
+
 .requests {
   display: flex;
   flex-direction: column;
@@ -227,6 +294,31 @@
   font-weight: 700;
   color: var(--color-iris-deep);
   overflow-wrap: anywhere;
+}
+
+/* A class its teacher archived (HU-106): its band fades, like in the
+   teacher's portal, and a quiet gray tag says so. */
+.faded {
+  filter: grayscale(0.75);
+  opacity: 0.7;
+}
+
+.archivedTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink-soft) 12%, var(--color-surface));
+  color: var(--color-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.tile .archivedTag {
+  margin: 6px 0 0;
 }
 
 .requestMeta {
@@ -308,6 +400,10 @@
     width: 100%;
   }
 
+  .filters {
+    justify-content: flex-start;
+  }
+
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -333,7 +429,8 @@
 @media (prefers-reduced-motion: reduce) {
   .tile,
   .addTile,
-  .search {
+  .search,
+  .filter {
     transition: none;
   }
 

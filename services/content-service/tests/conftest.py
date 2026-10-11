@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import uuid
 from collections.abc import AsyncIterator, Iterator
@@ -21,16 +22,33 @@ from httpx import ASGITransport, AsyncClient
 
 from app.api import deps
 from app.infrastructure.db import Base, engine
+from app.infrastructure.models import DbaEvidenceModel, DbaModel
 from app.main import app
 from tests.fakes import FakeClassroomClient, FakeIdentityClient, FakeObjectStorage
 
 _TEST_DB_FILE = os.environ["DATABASE_URL"].removeprefix("sqlite+aiosqlite:///")
+# The same catalog migration 0009 loads, so the tests use the real DBA.
+_DBA_CATALOG = json.loads(
+    (Path(__file__).parent.parent / "alembic" / "versions" / "data" / "dba_catalog_2016.json").read_text(encoding="utf-8")
+)["dba"]
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def _prepare_database() -> AsyncIterator[None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(
+            DbaModel.__table__.insert(),
+            [{k: item[k] for k in ("id", "subject", "grade", "number", "name")} for item in _DBA_CATALOG],
+        )
+        await conn.execute(
+            DbaEvidenceModel.__table__.insert(),
+            [
+                {"id": f"{item['id']}-{i}", "dba_id": item["id"], "order_index": i, "text": text}
+                for item in _DBA_CATALOG
+                for i, text in enumerate(item["evidences"], start=1)
+            ],
+        )
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

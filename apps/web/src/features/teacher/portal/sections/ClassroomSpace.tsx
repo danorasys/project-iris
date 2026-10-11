@@ -1,10 +1,18 @@
 import { useState, type ComponentType, type SVGProps } from "react";
 import type { Classroom } from "@iris/shared-types";
 import { getAuthErrorMessage } from "@/features/auth/errors";
-import { useClassroomDetail, useDeleteClassroom, useTeacherClassrooms } from "@/shared/api/hooks/useClassroomsApi";
+import {
+  useArchiveClassroom,
+  useClassroomDetail,
+  useDeleteClassroom,
+  useRestoreClassroom,
+  useTeacherClassrooms,
+} from "@/shared/api/hooks/useClassroomsApi";
+import { formatDay } from "@/features/utils/formatArrival";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
 import {
+  IconArchive,
   IconArrowLeft,
   IconArrowRight,
   IconBook,
@@ -13,6 +21,7 @@ import {
   IconMessage,
   IconPencil,
   IconTrash,
+  IconUndo,
 } from "@/shared/ui/icons";
 import { ClassroomAvatar } from "../../classrooms/ClassroomAvatar";
 import { classroomAudience } from "../../classrooms/classroomDetails";
@@ -47,30 +56,52 @@ const OPTIONS: Option[] = [
   { view: "estadisticas", title: "Estadísticas", hint: "El avance de la clase", Icon: IconChart },
 ];
 
+// What each button of the header asks before doing it.
+type Confirming = "archive" | "delete" | null;
+
 /** The space of one classroom (HU-74): a header with a band of its color,
- * its avatar, name, code and students, "Editar" (HU-90) and "Eliminar"
- * (HU-85), and its options as cards like a kid's space in the Portal de
- * Padres (members, lessons, messages and statistics). */
+ * its avatar, name, code and students, "Editar" (HU-90) and "Archivar"
+ * (HU-105), and its options as cards like a kid's space in the Portal de
+ * Padres (members, lessons, messages and statistics). An archived class is
+ * only for reading: it says so, and offers "Restaurar" and "Eliminar"
+ * (HU-85), the only way to delete one. */
 export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, onToast }: ClassroomSpaceProps) {
   const detail = useClassroomDetail(classroomId);
   // The pending count comes with the list, already cached.
   const listed = useTeacherClassrooms().data?.find((c) => c.id === classroomId);
+  const archiveClassroom = useArchiveClassroom();
+  const restoreClassroom = useRestoreClassroom();
   const deleteClassroom = useDeleteClassroom();
   const [view, setView] = useState<ClassroomView>(initialView);
   const [editing, setEditing] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [confirming, setConfirming] = useState<Confirming>(null);
   const [error, setError] = useState<string | null>(null);
+  const busy = archiveClassroom.isPending || restoreClassroom.isPending || deleteClassroom.isPending;
 
-  async function remove(classroom: Classroom) {
-    setConfirmingDelete(false);
+  // The three do the same: run it, say how it went, and on deleting go back.
+  async function run(action: () => Promise<unknown>, done: string, leave = false) {
+    setConfirming(null);
     setError(null);
     try {
-      await deleteClassroom.mutateAsync(classroom.id);
-      onToast(`La clase "${classroom.name}" se eliminó.`);
-      onBack();
+      await action();
+      onToast(done);
+      if (leave) onBack();
+      else setView("inicio");
     } catch (failure) {
       setError(getAuthErrorMessage(failure));
     }
+  }
+
+  function archive(classroom: Classroom) {
+    void run(() => archiveClassroom.mutateAsync(classroom.id), `La clase "${classroom.name}" se archivó.`);
+  }
+
+  function restore(classroom: Classroom) {
+    void run(() => restoreClassroom.mutateAsync(classroom.id), `La clase "${classroom.name}" volvió a tus clases.`);
+  }
+
+  function remove(classroom: Classroom) {
+    void run(() => deleteClassroom.mutateAsync(classroom.id), `La clase "${classroom.name}" se eliminó.`, true);
   }
 
   if (detail.isLoading) return <p className={styles.status}>Cargando la clase…</p>;
@@ -92,7 +123,10 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
   const students = classroom.students.length;
   const pending = listed?.pending_requests ?? 0;
   const audience = classroomAudience(classroom.area, classroom.grade, classroom.area_other);
-  const current = OPTIONS.find((option) => option.view === view) ?? null;
+  const archived = Boolean(classroom.archived_at);
+  // Nothing can be sent from an archived class, so its messages are out.
+  const options = archived ? OPTIONS.filter((option) => option.view !== "mensajes") : OPTIONS;
+  const current = options.find((option) => option.view === view) ?? null;
 
   return (
     <div className={styles.section}>
@@ -103,7 +137,7 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
 
       {/* The classroom's header: a band of its color with the avatar hanging
           from it, the name, the chips and, on the space itself, its actions. */}
-      <header className={styles.spaceHeader} data-color={classroom.color}>
+      <header className={styles.spaceHeader} data-color={classroom.color} data-archived={archived}>
         <span className={styles.spaceBanner} aria-hidden="true" />
         <div className={styles.spaceRow}>
           <span className={styles.spaceAvatar}>
@@ -114,7 +148,14 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
             <h1 className={styles.heroTitle}>{classroom.name}</h1>
             <p className={styles.heroMeta}>
               {audience && <span className={styles.chip}>{audience}</span>}
-              <span className={styles.chip}>Código de ingreso: {classroom.enrollment_code}</span>
+              {archived ? (
+                <span className={styles.archivedChip}>
+                  <IconArchive width={14} height={14} />
+                  Archivada
+                </span>
+              ) : (
+                <span className={styles.chip}>Código de ingreso: {classroom.enrollment_code}</span>
+              )}
               <span className={styles.chip}>{students === 1 ? "1 estudiante" : `${students} estudiantes`}</span>
               {pending > 0 && (
                 <span className={styles.pendingChip}>
@@ -124,7 +165,7 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
             </p>
             {!current && classroom.description && <p className={styles.heroDescription}>{classroom.description}</p>}
           </div>
-          {!current && (
+          {!current && !archived && (
             <div className={styles.heroActions}>
               <button type="button" className={styles.secondaryButton} onClick={() => setEditing(true)}>
                 <IconPencil width={16} height={16} />
@@ -132,9 +173,31 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
               </button>
               <button
                 type="button"
+                className={styles.secondaryButton}
+                onClick={() => setConfirming("archive")}
+                disabled={busy}
+              >
+                <IconArchive width={16} height={16} />
+                {archiveClassroom.isPending ? "Archivando…" : "Archivar"}
+              </button>
+            </div>
+          )}
+          {!current && archived && (
+            <div className={styles.heroActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => restore(classroom)}
+                disabled={busy}
+              >
+                <IconUndo width={16} height={16} />
+                {restoreClassroom.isPending ? "Restaurando…" : "Restaurar"}
+              </button>
+              <button
+                type="button"
                 className={styles.dangerButton}
-                onClick={() => setConfirmingDelete(true)}
-                disabled={deleteClassroom.isPending}
+                onClick={() => setConfirming("delete")}
+                disabled={busy}
               >
                 <IconTrash width={16} height={16} />
                 {deleteClassroom.isPending ? "Eliminando…" : "Eliminar"}
@@ -143,6 +206,16 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
           )}
         </div>
       </header>
+
+      {archived && classroom.archived_at && (
+        <div className={styles.archivedNotice} role="status">
+          <IconArchive width={20} height={20} />
+          <p>
+            Archivaste esta clase el {formatDay(classroom.archived_at)}. Puedes consultar sus miembros, lecciones y
+            estadísticas, pero no cambiarla. Sus estudiantes ya no la ven y su código no recibe solicitudes.
+          </p>
+        </div>
+      )}
 
       {error && (
         <p role="alert" className={`${styles.status} ${styles.error}`}>
@@ -155,7 +228,7 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
       <ViewEnter view={view} level={current ? 1 : 0} className={styles.section}>
         {!current && (
           <div className={styles.options}>
-            {OPTIONS.map(({ view: target, title, hint, Icon }) => (
+            {options.map(({ view: target, title, hint, Icon }) => (
               <button key={target} type="button" className={styles.optionCard} onClick={() => setView(target)}>
                 <span className={styles.optionIcon} aria-hidden="true">
                   <Icon width={20} height={20} />
@@ -169,8 +242,10 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
           </div>
         )}
 
-        {view === "miembros" && <MembersPanel classroom={classroom} onToast={onToast} />}
-        {view === "lecciones" && <UnitsPanel classroomId={classroom.id} onToast={onToast} />}
+        {view === "miembros" && <MembersPanel classroom={classroom} onToast={onToast} readOnly={archived} />}
+        {view === "lecciones" && (
+          <UnitsPanel classroomId={classroom.id} area={classroom.area} onToast={onToast} readOnly={archived} />
+        )}
         {view === "mensajes" && <MessagesPanel classroom={classroom} onToast={onToast} />}
         {view === "estadisticas" && <StatisticsPanel classroomId={classroom.id} />}
       </ViewEnter>
@@ -186,17 +261,47 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
         />
       )}
 
-      {confirmingDelete && (
+      {confirming === "archive" && (
+        <ConfirmDialog
+          title="Archivar clase"
+          message={archiveQuestion(classroom.name, pending)}
+          acceptLabel="Sí, archivar la clase"
+          cancelLabel="Cancelar"
+          onAccept={() => archive(classroom)}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
+
+      {confirming === "delete" && (
         <ConfirmDialog
           title="Eliminar clase"
-          message={`¿Seguro que quieres eliminar la clase "${classroom.name}"? También se eliminarán sus lecciones y las inscripciones de sus estudiantes. No se puede deshacer.`}
+          message={deleteQuestion(classroom.name, students)}
           acceptLabel="Sí, eliminar la clase"
           cancelLabel="Cancelar"
           danger
-          onAccept={() => void remove(classroom)}
-          onCancel={() => setConfirmingDelete(false)}
+          onAccept={() => remove(classroom)}
+          onCancel={() => setConfirming(null)}
         />
       )}
     </div>
   );
+}
+
+// What archiving does, said before it happens: the requests still waiting
+// are closed, so it says how many.
+function archiveQuestion(name: string, pending: number): string {
+  const closed =
+    pending === 0
+      ? ""
+      : ` y se cerrarán ${pending === 1 ? "la solicitud que espera" : `las ${pending} solicitudes que esperan`} respuesta`;
+  return `¿Quieres archivar la clase "${name}"? Sus estudiantes dejarán de verla, su código no recibirá solicitudes${closed}. Les avisaremos a sus familias. Podrás restaurarla cuando quieras.`;
+}
+
+// Deleting can't be undone, so it says how many kids lose their progress.
+function deleteQuestion(name: string, students: number): string {
+  const lost =
+    students === 0
+      ? ""
+      : `, y ${students === 1 ? "su estudiante perderá su progreso" : `sus ${students} estudiantes perderán su progreso`}`;
+  return `¿Seguro que quieres eliminar la clase "${name}"? Se borrarán sus unidades, lecciones y archivos${lost}. Les avisaremos a sus familias. No se puede deshacer.`;
 }

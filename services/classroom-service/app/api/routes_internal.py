@@ -19,6 +19,7 @@ from app.api.schemas import (
     EraseStudentsRequest,
     EraseStudentsResponse,
     InternalAccessResponse,
+    InternalSubjectResponse,
     StudentReportRequest,
 )
 from app.application.classroom_service import ClassroomService
@@ -34,11 +35,25 @@ router = APIRouter(prefix="/internal", tags=["internal"])
 async def verify_access(
     classroom_id: UUID,
     subject_id: UUID,
-    role: Literal["teacher", "student"],
+    role: Literal["teacher", "editor", "student"],
     classrooms: Annotated[ClassroomService, Depends(get_classroom_service)],
 ) -> InternalAccessResponse:
     authorized = await classrooms.verify_access(classroom_id, subject_id, role)
     return InternalAccessResponse(authorized=authorized)
+
+
+@router.get(
+    "/classrooms/{classroom_id}/subject",
+    response_model=InternalSubjectResponse,
+    dependencies=[Depends(verify_internal_key)],
+)
+async def subject_of(
+    classroom_id: UUID, classrooms: Annotated[ClassroomService, Depends(get_classroom_service)]
+) -> InternalSubjectResponse:
+    """The area and grade of the class, so content-service knows whether its
+    units need a DBA and which ones fit. 404 if the class doesn't exist."""
+    classroom = await classrooms.subject_of(classroom_id)
+    return InternalSubjectResponse(area=classroom.area, grade=classroom.grade)  # type: ignore[arg-type]  # ck_classrooms_area
 
 
 @router.post(

@@ -302,6 +302,20 @@ async def test_el_progreso_de_un_peque_en_su_clase(
     assert (extra_progress["kind"], extra_progress["percent"], len(extra_progress["attempts"])) == ("actividad", 100, 1)
     assert (plants_progress["main"]["pages_seen"], plants_progress["main"]["percent"]) == (0, 0)
     assert main["extra_id"] is None and main["kind"] == "leccion"
+    # And what the class is about, for the family: unit question, purpose and goal.
+    assert (
+        animals_progress["unit_guiding_question"],
+        animals_progress["unit_learning_goal"],
+        animals_progress["purpose"],
+        animals_progress["learning_goal"],
+    ) == (
+        "¿Dónde viven los animales?",
+        "Explico dónde viven algunos animales y por qué.",
+        "Hoy vas a aprender qué animales viven en la tierra.",
+        "Identifico dónde viven algunos animales.",
+    )
+    # No DBA chosen in its unit (the area has none in the fake), no points.
+    assert animals_progress["unit_dba"] is None
 
 
 async def test_editar_la_actividad_no_borra_los_intentos(

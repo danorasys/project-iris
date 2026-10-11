@@ -72,6 +72,7 @@ def _classroom_response(classroom: Classroom) -> ClassroomResponse:
         enrollment_code=classroom.enrollment_code,
         created_at=classroom.created_at,
         has_teacher=classroom.has_teacher,
+        archived_at=classroom.archived_at,
     )
 
 
@@ -108,6 +109,7 @@ def _family_response(f: FamilyClassroom) -> FamilyClassroomResponse:
         published_lessons=f.published_lessons,
         published_units=f.published_units,
         has_teacher=f.classroom.has_teacher,
+        archived_at=f.classroom.archived_at,
     )
 
 
@@ -273,10 +275,26 @@ async def update_classroom(
     return _classroom_response(classroom)
 
 
+@router.post("/{classroom_id}/archive", response_model=ClassroomResponse)
+async def archive_classroom(classroom_id: UUID, user: TeacherDep, classrooms: ClassroomServiceDep) -> ClassroomResponse:
+    """Archives the classroom (HU-105): it takes no requests or changes, its
+    students stop seeing it and the requests still waiting are closed. Its
+    families get a notification. Archiving it again changes nothing."""
+    return _classroom_response(await classrooms.archive_classroom(classroom_id, user.subject_id))
+
+
+@router.post("/{classroom_id}/restore", response_model=ClassroomResponse)
+async def restore_classroom(classroom_id: UUID, user: TeacherDep, classrooms: ClassroomServiceDep) -> ClassroomResponse:
+    """Brings an archived classroom back with everything it had. Its
+    families get a notification."""
+    return _classroom_response(await classrooms.restore_classroom(classroom_id, user.subject_id))
+
+
 @router.delete("/{classroom_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_classroom(classroom_id: UUID, user: TeacherDep, classrooms: ClassroomServiceDep) -> None:
-    """Deletes the classroom with its lessons, enrollments and logo. 503 if
-    the lessons couldn't be deleted, then nothing is deleted."""
+    """Deletes an archived classroom with its lessons, enrollments and logo
+    (HU-85). 409 `clase_no_archivada` if it's still active. 503 if the
+    lessons couldn't be deleted, then nothing is deleted."""
     await classrooms.delete_classroom(classroom_id, user.subject_id)
 
 
