@@ -112,16 +112,19 @@ describe("TeacherHomeSection", () => {
     expect(handlers.onCreateClassroom).toHaveBeenCalledTimes(1);
   });
 
-  it("each class shows how many of its lessons are published", async () => {
+  it("each class shows its students and its units, not its lessons", async () => {
     const user = userEvent.setup({ delay: null });
-    classrooms = [classroom("a", "Matemáticas", { student_count: 1 })];
-    summary = [{ classroom_id: "a", units: 1, published_lessons: 1, draft_lessons: 2 }];
+    classrooms = [classroom("a", "Matemáticas", { student_count: 1 }), classroom("b", "Ciencias")];
+    summary = [{ classroom_id: "a", units: 2, published_lessons: 1, draft_lessons: 2 }];
     render(<TeacherHomeSection {...handlers} />);
 
     const classes = within(screen.getByRole("region", { name: "Tus clases" }));
-    const row = classes.getByRole("button", { name: /Matemáticas/ });
+    const row = classes.getByRole("button", { name: /^Matemáticas/ });
     expect(row.textContent).toContain("1 estudiante");
-    expect(within(row).getByText("1 de 3 publicadas")).toBeTruthy();
+    expect(row.textContent).toContain("2 unidades");
+    expect(row.textContent).not.toMatch(/publicada|lecci/i);
+    // A class with nothing yet says 0.
+    expect(classes.getByRole("button", { name: /^Ciencias/ }).textContent).toContain("0 unidades");
     await user.click(row);
     expect(handlers.onOpenClassroom).toHaveBeenCalledWith("a");
   });

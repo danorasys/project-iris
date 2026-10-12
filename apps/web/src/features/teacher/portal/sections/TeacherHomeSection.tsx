@@ -49,7 +49,7 @@ interface Task {
 
 /** "Inicio" of the Portal Docente: what's going on in the teacher's classes
  * at a glance. Four counts on top (classes, students, requests, lessons),
- * then the classes with how far their lessons are, what needs the
+ * then the classes with their students and units, what needs the
  * teacher, and the latest notifications. Everything is real data. */
 export function TeacherHomeSection({
   firstName,
@@ -140,7 +140,7 @@ export function TeacherHomeSection({
               <li className={styles.tableHead} aria-hidden="true">
                 <span>Clase</span>
                 <span>Estudiantes</span>
-                <span>Lecciones</span>
+                <span>Unidades</span>
               </li>
               {list.slice(0, CLASSES_SHOWN).map((classroom) => (
                 <ClassRow
@@ -271,8 +271,7 @@ function gradesHint(list: TeacherClassroom[]): string {
   return low === high ? `de ${low}.° grado` : `de ${low}.° a ${high}.° grado`;
 }
 
-// One class: who it's for, students, and a bar with how many of its lessons
-// are already published.
+// One class: who it's for, how many students and how many units it has.
 function ClassRow({
   classroom,
   content,
@@ -282,8 +281,7 @@ function ClassRow({
   content: ClassroomContentSummary | undefined;
   onOpen: () => void;
 }) {
-  const published = content?.published_lessons ?? 0;
-  const total = published + (content?.draft_lessons ?? 0);
+  const units = content?.units ?? 0;
   const audience = classroomAudience(classroom.area, classroom.grade, classroom.area_other);
 
   return (
@@ -294,19 +292,17 @@ function ClassRow({
           <span className={styles.classTitle}>{classroom.name}</span>
           {audience && <span className={styles.classAudience}>{audience}</span>}
         </span>
-        <span className={styles.classStudents}>
+        {/* The word after each number: on a computer only screen readers get
+            it (the table heading says it), a phone shows it. */}
+        <span className={styles.classCount}>
           <IconChild width={16} height={16} aria-hidden="true" />
           {classroom.student_count}
-          {/* On a computer only screen readers get it (the table heading says it); a phone shows it. */}
-          <span className={styles.studentsWord}>{classroom.student_count === 1 ? " estudiante" : " estudiantes"}</span>
+          <span className={styles.countWord}>{classroom.student_count === 1 ? " estudiante" : " estudiantes"}</span>
         </span>
-        <span className={styles.classProgress}>
-          <span className={styles.progressText}>
-            {total === 0 ? "Sin lecciones" : `${published} de ${total} ${total === 1 ? "publicada" : "publicadas"}`}
-          </span>
-          <span className={styles.progressTrack} aria-hidden="true">
-            <span className={styles.progressFill} style={{ width: total ? `${(published / total) * 100}%` : "0%" }} />
-          </span>
+        <span className={`${styles.classCount} ${styles.classUnits}`}>
+          <IconLayers width={16} height={16} aria-hidden="true" />
+          {units}
+          <span className={styles.countWord}>{units === 1 ? " unidad" : " unidades"}</span>
         </span>
         {classroom.pending_requests > 0 ? (
           <span className={styles.pendingPill}>

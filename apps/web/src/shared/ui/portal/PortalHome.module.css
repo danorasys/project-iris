@@ -162,7 +162,7 @@
 .classRow,
 .tableHead {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr) minmax(0, 1fr) 28px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr) minmax(0, 0.8fr) 28px;
   align-items: center;
   gap: var(--space-3);
 }
@@ -220,7 +220,8 @@
   color: var(--portal-muted);
 }
 
-.classStudents {
+/* Students and units, each a number with its icon. */
+.classCount {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -229,45 +230,18 @@
   color: var(--color-iris-deep);
 }
 
-.classStudents svg {
+.classCount svg {
   flex: none;
   color: var(--color-iris-medium);
 }
 
-.studentsWord {
+.countWord {
   position: absolute;
   width: 1px;
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
   white-space: pre;
-}
-
-.classProgress {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.progressText {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-iris-deep);
-}
-
-.progressTrack {
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--color-canvas);
-}
-
-.progressFill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-iris-medium), var(--landing-sky));
-  transition: width 600ms var(--ease-out);
 }
 
 .pendingPill {
@@ -574,7 +548,7 @@
     grid-template-areas:
       "name end"
       "students end"
-      "progress end";
+      "units end";
     row-gap: 8px;
   }
 
@@ -582,22 +556,21 @@
     grid-area: name;
   }
 
-  .classStudents {
+  .classCount {
     grid-area: students;
     padding-left: 56px;
   }
 
-  .studentsWord {
+  .classUnits {
+    grid-area: units;
+  }
+
+  .countWord {
     position: static;
     width: auto;
     height: auto;
     clip-path: none;
     font-weight: 500;
-  }
-
-  .classProgress {
-    grid-area: progress;
-    padding-left: 56px;
   }
 
   .pendingPill,
@@ -611,7 +584,6 @@
     animation: none;
   }
 
-  .progressFill,
   .primaryButton,
   .linkButton,
   .linkButton svg,
