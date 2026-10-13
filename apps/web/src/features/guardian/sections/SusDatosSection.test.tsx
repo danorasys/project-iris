@@ -17,9 +17,6 @@ const sofia = {
   last_name: "Pérez",
   date_of_birth: "2018-05-10",
   avatar_id: 1,
-  support_condition_ids: [15],
-  support_condition_other: null,
-  additional_support_need: null,
 };
 
 vi.mock("@/shared/auth/useAuth", () => ({
@@ -35,14 +32,6 @@ vi.mock("@/shared/api/hooks/useAuthApi", () => ({
     data: [
       { id: 1, name: "Violeta", accent_color: "#804890" },
       { id: 2, name: "Coral", accent_color: "#c06048" },
-    ],
-  }),
-  useSupportConditions: () => ({
-    data: [
-      { id: 1, name: "Parálisis cerebral" },
-      { id: 3, name: "Mielomeningocele" },
-      { id: 14, name: "Otra condición (especificar)" },
-      { id: 15, name: "Prefiero no especificar" },
     ],
   }),
 }));
@@ -78,8 +67,8 @@ describe("SusDatosSection", { timeout: 20_000 }, () => {
     expect(screen.getByText("Sofía")).toBeTruthy();
     expect(screen.getByText("Pérez")).toBeTruthy();
     expect(screen.getByText("10 de mayo de 2018")).toBeTruthy();
-    expect(screen.getByText("Prefiero no especificar")).toBeTruthy();
-    expect(screen.getByText("No indicada")).toBeTruthy();
+    // IRIS keeps no health data of the kids, so there's nothing about it here.
+    expect(screen.queryByText(/condici/i)).toBeNull();
     // The avatar is only its picture, without a visible name.
     expect(screen.getByRole("img", { name: "Violeta" })).toBeTruthy();
     expect(screen.queryByText("Violeta")).toBeNull();
@@ -113,88 +102,11 @@ describe("SusDatosSection", { timeout: 20_000 }, () => {
         last_name: "Gómez",
         date_of_birth: "2018-05-10",
         avatar_id: 1,
-        support_condition_ids: [15],
-        support_condition_other: null,
-        additional_support_need: null,
         truthful_declaration: true,
       }),
     );
     expect(await screen.findByText("Los datos de Sofía se guardaron correctamente.")).toBeTruthy();
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
-  });
-
-  it("asks which condition when 'Otra condición' is chosen, and sends it", async () => {
-    studentQuery.mockReturnValue({ data: sofia, isLoading: false, isError: false });
-    updateStudent.mockResolvedValue({ ...sofia, support_condition_ids: [14], support_condition_other: "Baja visión" });
-    const user = userEvent.setup();
-    renderSection();
-
-    await user.click(screen.getByRole("button", { name: "Editar condición" }));
-    // Marking another one unmarks "Prefiero no especificar" by itself.
-    await user.click(screen.getByRole("checkbox", { name: "Otra condición (especificar)" }));
-    expect((screen.getByRole("checkbox", { name: "Prefiero no especificar" }) as HTMLInputElement).checked).toBe(false);
-    await user.keyboard("{Enter}");
-
-    // It can't be saved until the condition is written.
-    expect(screen.getByText("Especifica la condición.")).toBeTruthy();
-    await user.click(screen.getByLabelText(/correcta y veraz/));
-    expect((screen.getByRole("button", { name: "Guardar cambios" }) as HTMLButtonElement).disabled).toBe(true);
-
-    await user.click(screen.getByRole("button", { name: "Editar cuál condición" }));
-    await user.type(screen.getByLabelText(/Cuál condición/), "Baja visión");
-    await user.tab();
-    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
-
-    await waitFor(() =>
-      expect(updateStudent).toHaveBeenCalledWith(
-        expect.objectContaining({ support_condition_ids: [14], support_condition_other: "Baja visión" }),
-      ),
-    );
-  });
-
-  it("lets a kid have several conditions, and shows them all", async () => {
-    studentQuery.mockReturnValue({ data: sofia, isLoading: false, isError: false });
-    updateStudent.mockResolvedValue({ ...sofia, support_condition_ids: [1, 3] });
-    const user = userEvent.setup();
-    renderSection();
-
-    await user.click(screen.getByRole("button", { name: "Editar condición" }));
-    await user.click(screen.getByRole("checkbox", { name: "Mielomeningocele" }));
-    await user.click(screen.getByRole("checkbox", { name: "Parálisis cerebral" }));
-    await user.keyboard("{Enter}");
-
-    // Closed, the row lists them in the order of the catalog.
-    expect(screen.getByText("Parálisis cerebral, Mielomeningocele")).toBeTruthy();
-    expect(screen.getByText("Condiciones")).toBeTruthy();
-    await user.click(screen.getByLabelText(/correcta y veraz/));
-    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
-
-    await waitFor(() =>
-      expect(updateStudent).toHaveBeenCalledWith(
-        expect.objectContaining({ support_condition_ids: [1, 3], support_condition_other: null }),
-      ),
-    );
-  });
-
-  it("'Prefiero no especificar' clears the others, and none at all can't be saved", async () => {
-    studentQuery.mockReturnValue({
-      data: { ...sofia, support_condition_ids: [1, 3] },
-      isLoading: false,
-      isError: false,
-    });
-    const user = userEvent.setup();
-    renderSection();
-
-    await user.click(screen.getByRole("button", { name: "Editar condiciones" }));
-    await user.click(screen.getByRole("checkbox", { name: "Prefiero no especificar" }));
-    expect((screen.getByRole("checkbox", { name: "Parálisis cerebral" }) as HTMLInputElement).checked).toBe(false);
-    expect((screen.getByRole("checkbox", { name: "Mielomeningocele" }) as HTMLInputElement).checked).toBe(false);
-
-    await user.click(screen.getByRole("checkbox", { name: "Prefiero no especificar" }));
-    expect(screen.getByText("Marca al menos una condición.")).toBeTruthy();
-    await user.keyboard("{Enter}");
-    await user.click(screen.getByLabelText(/correcta y veraz/));
-    expect((screen.getByRole("button", { name: "Guardar cambios" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("discarding puts back the saved values", async () => {
@@ -397,14 +309,10 @@ describe("SusDatosSection", { timeout: 20_000 }, () => {
     const user = userEvent.setup();
     renderSection();
 
-    // A name, the conditions and the avatar, and one more field left open.
+    // A name and the avatar, and one more field left open.
     await user.click(screen.getByRole("button", { name: "Editar nombres" }));
     await user.clear(screen.getByLabelText(/Nombres/));
     await user.type(screen.getByLabelText(/Nombres/), "Lucía");
-    await user.keyboard("{Enter}");
-    await user.click(screen.getByRole("button", { name: "Editar condición" }));
-    await user.click(screen.getByRole("checkbox", { name: "Mielomeningocele" }));
-    await user.click(screen.getByRole("checkbox", { name: "Parálisis cerebral" }));
     await user.keyboard("{Enter}");
     await user.click(screen.getByRole("button", { name: "Editar avatar" }));
     await user.click(screen.getByRole("radio", { name: "Coral" }));
@@ -417,7 +325,6 @@ describe("SusDatosSection", { timeout: 20_000 }, () => {
 
     expect(screen.getByText("Sofía")).toBeTruthy();
     expect(screen.getByText("Pérez")).toBeTruthy();
-    expect(screen.getByText("Prefiero no especificar")).toBeTruthy();
     expect(screen.getByRole("img", { name: "Violeta" })).toBeTruthy();
     expect(screen.queryByText("Lucía")).toBeNull();
     expect(screen.queryByLabelText(/Apellidos/)).toBeNull();

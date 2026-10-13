@@ -26,8 +26,7 @@ interface TextareaFieldProps
 
 /** Labeled text field with an inline error announced to screen readers
  * (`role="alert"` plus `aria-describedby`), used across every auth form.
- * `multiline` switches it to a `<textarea>` for the optional support
- * condition field. */
+ * `multiline` switches it to a `<textarea>` for the longer texts. */
 export function TextField(props: TextFieldProps | TextareaFieldProps) {
   const { id, label, value, onChange, error, required, hideLabel } = props;
   const errorId = `${id}-error`;

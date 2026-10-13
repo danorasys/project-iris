@@ -32,9 +32,6 @@ class FirstStudentData:
     date_of_birth: date
     avatar_id: int
     pin: str
-    support_condition_ids: list[int]
-    support_condition_other: str | None = None
-    additional_support_need: str | None = None
 
 
 # The data of a kid a guardian can change later. The PIN is not here, it
@@ -45,16 +42,12 @@ class UpdateStudentData:
     last_name: str
     date_of_birth: date
     avatar_id: int
-    support_condition_ids: list[int]
-    support_condition_other: str | None = None
-    additional_support_need: str | None = None
 
 
 @dataclass
 class ConsentData:
     policy_version: str
     accepts_data_processing: bool
-    authorizes_support_condition: bool
 
 
 @dataclass

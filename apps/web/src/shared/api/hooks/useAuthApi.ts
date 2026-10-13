@@ -12,7 +12,6 @@ import type {
   StudentProfileLoginRequest,
   LoginRequest,
   PortalChallengeResponse,
-  SupportCondition,
   TeacherRegistrationRequest,
   TokensAuth,
   TotpSetupResponse,
@@ -83,9 +82,6 @@ export interface CreateAdditionalStudentBody {
   date_of_birth: string;
   avatar_id: number;
   pin: string;
-  support_condition_ids: number[];
-  support_condition_other: string | null;
-  additional_support_need: string | null;
 }
 
 /** `DELETE /guardians/me` (HU-91): the guardian, their kids and their
@@ -162,14 +158,6 @@ export function useRelationshipTypes() {
   return useQuery({
     queryKey: ["relationship-types"],
     queryFn: () => apiFetch<RelationshipType[]>("/identity/catalogs/relationship-types", { auth: false }),
-    staleTime: Infinity,
-  });
-}
-
-export function useSupportConditions() {
-  return useQuery({
-    queryKey: ["support-conditions"],
-    queryFn: () => apiFetch<SupportCondition[]>("/identity/catalogs/support-conditions", { auth: false }),
     staleTime: Infinity,
   });
 }

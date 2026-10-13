@@ -130,13 +130,16 @@ describe("GuardianHomeSection", () => {
     expect(handlers.onOpenStudent).toHaveBeenCalledWith("s1", "clases");
   });
 
-  it("shows three kids at most and a link to all of them", async () => {
+  it("shows three kids at most and one Ver todos for all of them", async () => {
     const user = userEvent.setup({ delay: null });
     kids = ["a", "b", "c", "d", "e", "f", "g"].map((id) => kid(id, `Peque ${id}`));
     renderHome();
 
     expect(screen.getAllByRole("button", { name: /^Clases de Peque/ })).toHaveLength(3);
-    await user.click(screen.getByRole("button", { name: "Ver todos los 7 peques" }));
+    // Only the panel's own link, no second one under the list.
+    const panel = within(screen.getByRole("region", { name: "Tus peques" }));
+    expect(panel.getAllByRole("button", { name: /^Ver todos/ })).toHaveLength(1);
+    await user.click(panel.getByRole("button", { name: "Ver todos" }));
     expect(handlers.onOpenStudents).toHaveBeenCalled();
   });
 

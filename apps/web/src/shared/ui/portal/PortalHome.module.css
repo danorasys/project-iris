@@ -3,7 +3,8 @@
    shadow; small gray labels, big bold numbers; tables with gray uppercase
    headings and rows without lines. Four counts on top, then the main list
    on the left and what needs attention and the latest notices on the
-   right. The rows of classes (classRow and the rest) are the teacher's. */
+   right. The rows of the main list (item...) are the same in both: a kid
+   or a class each. */
 
 .home {
   display: flex;
@@ -47,13 +48,6 @@
   color: var(--color-iris-medium);
 }
 
-/* When the number needs the teacher: white icon on a blue gradient. */
-.statIconStrong {
-  background: linear-gradient(90deg, var(--color-iris-medium) 0%, var(--landing-sky) 100%);
-  color: var(--color-surface);
-  box-shadow: 0 10px 20px -10px color-mix(in srgb, var(--color-iris-medium) 80%, transparent);
-}
-
 .statBody {
   min-width: 0;
 }
@@ -76,24 +70,34 @@
   color: var(--color-iris-deep);
 }
 
-.statHint {
-  margin: 4px 0 0;
-  font-size: 0.78rem;
-  color: var(--portal-muted);
-}
-
-/* --- The two columns --- */
+/* --- The teacher's panels, like the parents' (GuardianHomeSection):
+   the classes next to what to keep in mind, the tips next to the
+   notifications, the panels of a row stretched to the same height so
+   their edges line up. --- */
 .columns {
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
-  align-items: start;
+  grid-template-areas:
+    "classes tasks"
+    "tips notices";
+  align-items: stretch;
   gap: 20px;
 }
 
-.side {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.classesArea {
+  grid-area: classes;
+}
+
+.tasksArea {
+  grid-area: tasks;
+}
+
+.noticesArea {
+  grid-area: notices;
+}
+
+.tipsArea {
+  grid-area: tips;
 }
 
 .panel {
@@ -148,8 +152,11 @@
   transform: translateX(2px);
 }
 
-/* --- Classes, as a table --- */
-.classList,
+/* --- Rows of the main list: a kid (padres) or a class (docente) ---
+   A soft lavender row each, so they read apart: on the left what it is
+   (avatar, name and a gray line, opens it, with a white "Ver ..." pill),
+   on the right a white button with a count that opens its people. */
+.itemList,
 .tasks,
 .notices {
   display: flex;
@@ -159,106 +166,220 @@
   list-style: none;
 }
 
-.classRow,
-.tableHead {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr) minmax(0, 0.8fr) 28px;
+.itemList {
+  gap: 10px;
+}
+
+.item {
+  display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: var(--color-canvas);
 }
 
-.tableHead {
-  margin-bottom: 6px;
-  padding: 0 10px 12px;
-  border-bottom: 1px solid var(--portal-line);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--portal-muted);
-}
-
-.classRow {
-  width: 100%;
-  padding: 10px;
+.itemHead {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 10px 6px 6px;
   border: none;
-  border-radius: 14px;
+  border-radius: 16px;
   background: transparent;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background-color 160ms ease;
 }
 
-.classRow:hover {
-  background: var(--color-canvas);
+.itemHead:focus-visible,
+.itemButton:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
 }
 
-/* The avatar and the name share the first column. */
-.className {
+/* The avatar (the kid's round one, the class's rounded square) gets a
+   white ring, like on the kids' cards. A kid without an avatar has none. */
+.itemHead > :not(.itemText, .itemLink) {
+  flex: none;
+  box-shadow: 0 0 0 3px var(--color-surface);
+}
+
+.itemText {
+  flex: 1;
   min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: 12px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
 }
 
-.className > :first-child {
-  grid-row: span 2;
-}
-
-.classTitle {
+/* Name and gray line take one line each, cut with "…" when they don't
+   fit, so every row has the same height. */
+.itemName,
+.itemMeta {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.itemName {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--color-iris-deep);
 }
 
-.classAudience {
-  font-size: 0.8rem;
+.itemMeta {
+  font-size: 0.86rem;
   color: var(--portal-muted);
 }
 
-/* Students and units, each a number with its icon. */
-.classCount {
+/* "Ver su espacio" / "Ver la clase" looks like "Ver todos" of the panel
+   title: a small rounded pill with blue text that turns sky blue under the
+   mouse. It's white here because the row is already lavender. */
+.itemLink {
+  flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.88rem;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--color-surface);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  transition: background-color 160ms ease;
+}
+
+.itemHead:hover .itemLink {
+  background: var(--landing-mist-1);
+}
+
+.itemLink svg {
+  transition: transform 200ms var(--ease-out);
+}
+
+.itemHead:hover .itemLink svg {
+  transform: translateX(2px);
+}
+
+/* "3 clases" / "12 estudiantes": a white button with what's still
+   waiting under it. */
+.itemButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  /* One width for all, so the buttons line up from row to row. */
+  width: 232px;
+  min-height: 52px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.itemButton:hover {
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+
+.itemButtonIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+.itemButtonText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.itemButtonCount {
   font-weight: 700;
   color: var(--color-iris-deep);
 }
 
-.classCount svg {
-  flex: none;
+/* "1 en espera" with its clock, in the IRIS blue. */
+.itemButtonWaiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
   color: var(--color-iris-medium);
 }
 
-.countWord {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: pre;
-}
-
-.pendingPill {
-  justify-self: end;
-  min-width: 26px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--color-amber);
-  color: var(--color-iris-deep);
+.itemButtonNone {
   font-size: 0.78rem;
-  font-weight: 800;
-  text-align: center;
+  color: var(--portal-muted);
 }
 
 .chevron {
   flex: none;
   justify-self: end;
+  color: var(--portal-muted);
+}
+
+/* --- Four tips, two by two: before a kid's session (padres), for
+   teaching with IRIS (docente) --- */
+.tips {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--color-canvas);
+}
+
+.tipIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-iris-medium);
+}
+
+.tipText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tipTitle {
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.tipHint {
+  font-size: 0.86rem;
+  line-height: 1.45;
   color: var(--portal-muted);
 }
 
@@ -278,6 +399,29 @@
   transition: background-color 160ms ease;
 }
 
+/* "Para tener en cuenta" is as tall as the list next to it (the kids, the
+   classes): its rows share that height, up to about one kid's row each,
+   so the panel doesn't end in a white gap. "Todo al día" goes centered. */
+.tasksPanel {
+  display: flex;
+  flex-direction: column;
+}
+
+.tasksPanel > .tasks {
+  flex: 1;
+}
+
+.tasksPanel > .tasks > li {
+  flex: 1 1 0;
+  display: flex;
+  max-height: 88px;
+}
+
+.tasksPanel > .empty {
+  flex: 1;
+  justify-content: center;
+}
+
 .task:hover {
   background: var(--color-canvas);
 }
@@ -294,12 +438,6 @@
 .blue {
   background: var(--color-canvas);
   color: var(--color-iris-medium);
-}
-
-/* Requests waiting: the warm color, only for what needs attention. */
-.orange {
-  background: color-mix(in srgb, var(--color-amber) 16%, var(--color-surface));
-  color: var(--color-amber-dark);
 }
 
 .taskText {
@@ -503,11 +641,16 @@
 @media (max-width: 1120px) {
   .columns {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "classes"
+      "tasks"
+      "notices"
+      "tips";
   }
 }
 
-/* On a phone: two counts per row with the icon on top, and each class row
-   folds (name on top, students and lessons under it, no table heading). */
+/* On a phone: two counts per row with the icon on top, and the button of
+   each row goes under it, the whole width. */
 @media (max-width: 640px) {
   .stats {
     gap: 12px;
@@ -539,43 +682,21 @@
     padding: 18px;
   }
 
-  .tableHead {
+  .item {
+    flex-wrap: wrap;
+  }
+
+  .itemLink {
     display: none;
   }
 
-  .classRow {
-    grid-template-columns: minmax(0, 1fr) 28px;
-    grid-template-areas:
-      "name end"
-      "students end"
-      "units end";
-    row-gap: 8px;
-  }
-
-  .className {
-    grid-area: name;
-  }
-
-  .classCount {
-    grid-area: students;
-    padding-left: 56px;
-  }
-
-  .classUnits {
-    grid-area: units;
-  }
-
-  .countWord {
-    position: static;
+  .itemButton {
+    flex-basis: 100%;
     width: auto;
-    height: auto;
-    clip-path: none;
-    font-weight: 500;
   }
 
-  .pendingPill,
-  .chevron {
-    grid-area: end;
+  .tips {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -587,7 +708,10 @@
   .primaryButton,
   .linkButton,
   .linkButton svg,
-  .notice {
+  .notice,
+  .itemLink,
+  .itemLink svg,
+  .itemButton {
     transition: none;
   }
 }

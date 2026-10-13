@@ -66,7 +66,6 @@ vi.mock("@/shared/api/hooks/useAuthApi", () => ({
       { id: 2, name: "Coral", accent_color: "#c06048" },
     ],
   }),
-  useSupportConditions: () => ({ data: [{ id: 7, name: "Prefiero no especificar" }] }),
   useAddStudent: () => ({ mutateAsync: addStudent, isPending: false }),
 }));
 
@@ -163,7 +162,6 @@ describe("MisPequesSection", () => {
     await user.type(screen.getByLabelText(/^Nombres/), "Mateo");
     await user.type(screen.getByLabelText(/^Apellidos/), "Pérez");
     await user.type(screen.getByLabelText(/Fecha de nacimiento/), "2019-05-04");
-    await user.click(screen.getByLabelText("Prefiero no especificar"));
     await user.click(screen.getByRole("radio", { name: "Coral" }));
     await user.type(screen.getByLabelText(/^PIN/), "2468");
     await user.type(screen.getByLabelText(/Escribe el PIN otra vez/), "2468");
@@ -175,9 +173,6 @@ describe("MisPequesSection", () => {
       date_of_birth: "2019-05-04",
       avatar_id: 2,
       pin: "2468",
-      support_condition_ids: [7],
-      support_condition_other: null,
-      additional_support_need: null,
     });
     expect(screen.queryByRole("heading", { name: "Agregar un peque" })).toBeNull();
   });

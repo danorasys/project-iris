@@ -32,7 +32,6 @@ from app.infrastructure.models import (
     AvatarModel,
     DocumentTypeModel,
     RelationshipTypeModel,
-    SupportConditionModel,
 )
 from app.main import app
 from tests.fakes import FakeAccountErasure, FakeObjectStorage
@@ -42,14 +41,12 @@ REFRESH_COOKIE = "iris_refresh"
 
 _TEST_DB_FILE = os.environ["DATABASE_URL"].removeprefix("sqlite+aiosqlite:///")
 
-# Matches the seed order in alembic/versions/0004_support_conditions_catalog.py,
-# so tests can rely on the same ids (1=Cédula de ciudadanía, 1=Madre, etc).
+# Matches the seed order of the document and relationship types in
+# alembic/versions/0004_support_conditions_catalog.py, so tests can rely on
+# the same ids (1=Cédula de ciudadanía, 1=Madre, etc).
 DOCUMENT_TYPE_ID_CEDULA = 1
 DOCUMENT_TYPE_ID_PASAPORTE = 3
 RELATIONSHIP_TYPE_ID_MADRE = 1
-SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL = 1
-SUPPORT_CONDITION_ID_OTRA = 14
-SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR = 15
 AVATAR_ID_VIOLETA = 1
 AVATAR_ID_CORAL = 2
 
@@ -66,26 +63,6 @@ async def _prepare_database() -> AsyncIterator[None]:
         await conn.execute(
             RelationshipTypeModel.__table__.insert(),
             [{"name": "Madre"}, {"name": "Padre"}, {"name": "Acudiente legal"}, {"name": "Otro"}],
-        )
-        await conn.execute(
-            SupportConditionModel.__table__.insert(),
-            [
-                {"name": "Parálisis cerebral"},
-                {"name": "Lesión medular"},
-                {"name": "Mielomeningocele"},
-                {"name": "Enfermedad de Arnold Chiari"},
-                {"name": "Distrofias musculares / miopatías"},
-                {"name": "Agenesia del cuerpo calloso u otra malformación congénita"},
-                {"name": "Luxación congénita de cadera"},
-                {"name": "Artrogriposis"},
-                {"name": "Parálisis de Guillain-Barré"},
-                {"name": "Poliomielitis anterior aguda"},
-                {"name": "Traumatismo craneoencefálico"},
-                {"name": "Reumatismos infantiles"},
-                {"name": "Mutilaciones o amputaciones"},
-                {"name": "Otra condición (especificar)"},
-                {"name": "Prefiero no especificar"},
-            ],
         )
         await conn.execute(
             AvatarModel.__table__.insert(),
@@ -194,12 +171,10 @@ def payload_registro_tutor(correo: str, document_number: str) -> dict:
             "avatar_id": AVATAR_ID_VIOLETA,
             "pin": "1234",
             "pin_confirmation": "1234",
-            "support_condition_ids": [SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR],
         },
         "consent": {
             "policy_version": "v1",
             "accepts_data_processing": True,
-            "authorizes_support_condition": True,
         },
     }
 

@@ -58,9 +58,6 @@ def _to_student_detail(student: Student) -> StudentDetailResponse:
         last_name=student.last_name,
         date_of_birth=student.date_of_birth,
         avatar_id=student.avatar_id,
-        support_condition_ids=student.support_condition_ids,
-        support_condition_other=student.support_condition_other,
-        additional_support_need=student.additional_support_need,
     )
 
 
@@ -108,9 +105,6 @@ async def create_additional_student(
             date_of_birth=payload.date_of_birth,
             avatar_id=payload.avatar_id,
             pin=payload.pin,
-            support_condition_ids=payload.support_condition_ids,
-            support_condition_other=payload.support_condition_other,
-            additional_support_need=payload.additional_support_need,
         ),
     )
     return _to_student_profile(student)
@@ -121,7 +115,7 @@ async def get_my_student(
     student_id: UUID, user: CurrentGuardianDep, guardians: GuardianServiceDep
 ) -> StudentDetailResponse:
     """All the data of one of the guardian's kids. Unlike the list, this one
-    needs the portal's 2FA code, because it includes the support condition."""
+    needs the portal's 2FA code, like everything else in "Sus datos"."""
     return _to_student_detail(await guardians.get_student(user.subject_id, student_id))
 
 
@@ -143,9 +137,6 @@ async def update_my_student(
             last_name=payload.last_name,
             date_of_birth=payload.date_of_birth,
             avatar_id=payload.avatar_id,
-            support_condition_ids=payload.support_condition_ids,
-            support_condition_other=payload.support_condition_other,
-            additional_support_need=payload.additional_support_need,
         ),
         session_id=user.session_id,
     )

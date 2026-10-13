@@ -14,7 +14,7 @@ from sqlalchemy import select
 from app.domain.entities import PROFILE_DECLARATION_VERSION
 from app.infrastructure.db import SessionLocal
 from app.infrastructure.models import ProfileChangeModel
-from tests.conftest import AVATAR_ID_VIOLETA, SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR, activar_2fa_y_abrir_portal
+from tests.conftest import AVATAR_ID_VIOLETA, activar_2fa_y_abrir_portal
 
 pytestmark = pytest.mark.asyncio
 
@@ -44,12 +44,10 @@ def _payload_registro_tutor(correo: str, document_number: str) -> dict:
             "avatar_id": AVATAR_ID_VIOLETA,
             "pin": "1234",
             "pin_confirmation": "1234",
-            "support_condition_ids": [SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR],
         },
         "consent": {
             "policy_version": "v1",
             "accepts_data_processing": True,
-            "authorizes_support_condition": True,
         },
     }
 

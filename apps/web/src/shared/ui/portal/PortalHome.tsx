@@ -3,24 +3,23 @@ import { IconArrowRight } from "@/shared/ui/icons";
 import styles from "./PortalHome.module.css";
 
 // The pieces both "Inicio" share (Portal Docente and Portal de Padres):
-// a count with its icon, a white panel with a title, an empty state and
-// the grey bars shown while a list loads.
+// a count with its icon, a white panel with a title, an empty state, the
+// lists of "Para tener en cuenta" and of tips, and the grey bars shown
+// while a list loads.
+
+type HomeIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
 interface StatProps {
   label: string;
   value: number;
-  /** A small line under the number; the parents' Inicio goes without it. */
-  hint?: string;
-  Icon: ComponentType<SVGProps<SVGSVGElement>>;
+  Icon: HomeIcon;
   loading: boolean;
-  /** The icon goes on a blue gradient when the number needs attention. */
-  highlight?: boolean;
 }
 
-export function Stat({ label, value, hint, Icon, loading, highlight }: StatProps) {
+export function Stat({ label, value, Icon, loading }: StatProps) {
   return (
     <div className={styles.stat}>
-      <span className={`${styles.statIcon} ${highlight ? styles.statIconStrong : ""}`} aria-hidden="true">
+      <span className={styles.statIcon} aria-hidden="true">
         <Icon width={22} height={22} />
       </span>
       <div className={styles.statBody}>
@@ -30,7 +29,6 @@ export function Stat({ label, value, hint, Icon, loading, highlight }: StatProps
         ) : (
           <p className={styles.statValue}>{value.toLocaleString("es-CO")}</p>
         )}
-        {hint && <p className={styles.statHint}>{loading ? " " : hint}</p>}
       </div>
     </div>
   );
@@ -44,7 +42,7 @@ export function Panel({
 }: {
   title: string;
   action?: { label: string; onClick: () => void };
-  /** Extra class, for a panel that takes the whole row. */
+  /** Extra classes, like its place in the grid of Inicio. */
   className?: string;
   children: ReactNode;
 }) {
@@ -71,7 +69,7 @@ export function Empty({
   done = false,
   children,
 }: {
-  Icon: ComponentType<SVGProps<SVGSVGElement>>;
+  Icon: HomeIcon;
   title: string;
   /** A second line under the title, when one line isn't enough. */
   text?: string;
@@ -88,6 +86,62 @@ export function Empty({
       {text && <p className={styles.emptyText}>{text}</p>}
       {children}
     </div>
+  );
+}
+
+/** One thing worth a look in "Para tener en cuenta". */
+export interface HomeTask {
+  key: string;
+  text: string;
+  hint: string;
+  Icon: HomeIcon;
+  onOpen: () => void;
+}
+
+// Each one a row that opens what it's about, its icon in the IRIS blue.
+export function TaskList({ tasks }: { tasks: HomeTask[] }) {
+  return (
+    <ul className={styles.tasks}>
+      {tasks.map(({ key, text, hint, Icon, onOpen }) => (
+        <li key={key}>
+          <button type="button" className={styles.task} onClick={onOpen}>
+            <span className={`${styles.taskIcon} ${styles.blue}`} aria-hidden="true">
+              <Icon width={18} height={18} />
+            </span>
+            <span className={styles.taskText}>
+              <span className={styles.taskTitle}>{text}</span>
+              <span className={styles.taskHint}>{hint}</span>
+            </span>
+            <IconArrowRight width={16} height={16} className={styles.chevron} />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export interface HomeTip {
+  title: string;
+  text: string;
+  Icon: HomeIcon;
+}
+
+// The four tips of the panel under the main list, two by two.
+export function TipList({ tips }: { tips: HomeTip[] }) {
+  return (
+    <ul className={styles.tips}>
+      {tips.map(({ title, text, Icon }) => (
+        <li key={title} className={styles.tip}>
+          <span className={styles.tipIcon} aria-hidden="true">
+            <Icon width={20} height={20} />
+          </span>
+          <span className={styles.tipText}>
+            <span className={styles.tipTitle}>{title}</span>
+            <span className={styles.tipHint}>{text}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

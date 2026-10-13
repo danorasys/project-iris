@@ -154,23 +154,6 @@ class GuardianDataRequest(BaseModel):
         return self
 
 
-def _sorted_without_repeats(ids: list[int]) -> list[int]:
-    if len(set(ids)) != len(ids):
-        raise ValueError("Hay una condición repetida.")
-    return sorted(ids)
-
-
-# The conditions of a kid, as ids of the catalog: at least one, none
-# repeated. They are kept sorted, so the same choice always looks the same.
-# Which ones can go together is checked in the services, that needs the
-# catalog from the database (see app/application/support_conditions.py).
-SupportConditionIds = Annotated[
-    list[Annotated[int, Field(gt=0)]],
-    Field(min_length=1, max_length=30),
-    AfterValidator(_sorted_without_repeats),
-]
-
-
 class FirstStudentDataRequest(BaseModel):
     first_name: PersonName
     last_name: PersonName
@@ -178,13 +161,6 @@ class FirstStudentDataRequest(BaseModel):
     avatar_id: int = Field(gt=0)
     pin: str = Field(min_length=4, max_length=4)
     pin_confirmation: str = Field(min_length=4, max_length=4)
-    support_condition_ids: SupportConditionIds
-    # Whether this must be set (and whether it's even allowed) depends on
-    # *which* conditions were chosen ("Otra condición (especificar)" among
-    # them or not) — that requires looking the ids up in the database, so
-    # it's checked in the services, not here.
-    support_condition_other: str | None = Field(default=None, max_length=200)
-    additional_support_need: str | None = Field(default=None, max_length=500)
 
     @field_validator("date_of_birth")
     @classmethod
@@ -204,24 +180,12 @@ class FirstStudentDataRequest(BaseModel):
 class ConsentDataRequest(BaseModel):
     policy_version: str = Field(min_length=1, max_length=20)
     accepts_data_processing: bool
-    authorizes_support_condition: bool
 
     @field_validator("accepts_data_processing")
     @classmethod
     def must_accept(cls, v: bool) -> bool:
         if not v:
             raise ValueError("El consentimiento de tratamiento de datos es obligatorio.")
-        return v
-
-    @field_validator("authorizes_support_condition")
-    @classmethod
-    def must_authorize_support_condition(cls, v: bool) -> bool:
-        # Choosing support_condition_ids on FirstStudentDataRequest is
-        # mandatory (it always includes a "prefiero no especificar" option
-        # for families with nothing to disclose), but authorizing the school
-        # to see whatever was chosen is a separate consent, asked here.
-        if not v:
-            raise ValueError("La autorización para compartir una condición o necesidad de apoyo es obligatoria.")
         return v
 
 
@@ -530,9 +494,6 @@ class CreateAdditionalStudentRequest(BaseModel):
     date_of_birth: date
     avatar_id: int = Field(gt=0)
     pin: str = Field(min_length=4, max_length=4)
-    support_condition_ids: SupportConditionIds
-    support_condition_other: str | None = Field(default=None, max_length=200)
-    additional_support_need: str | None = Field(default=None, max_length=500)
 
     @field_validator("pin")
     @classmethod
@@ -550,8 +511,7 @@ class AccessTokenResponse(BaseModel):
 
 
 # What the profile picker and the list of kids need. The list is open
-# without the portal's 2FA code, so nothing sensitive (like the support
-# condition) goes here, that is only in StudentDetailResponse.
+# without the portal's 2FA code, so the last name stays in StudentDetailResponse.
 class StudentProfileResponse(BaseModel):
     id: UUID
     first_name: str
@@ -566,9 +526,6 @@ class StudentDetailResponse(BaseModel):
     last_name: str
     date_of_birth: date
     avatar_id: int
-    support_condition_ids: list[int]
-    support_condition_other: str | None = None
-    additional_support_need: str | None = None
 
 
 class UpdateStudentRequest(BaseModel):
@@ -576,11 +533,6 @@ class UpdateStudentRequest(BaseModel):
     last_name: PersonName
     date_of_birth: date
     avatar_id: int = Field(gt=0)
-    support_condition_ids: SupportConditionIds
-    # Whether this one is needed depends on the conditions chosen, which is
-    # checked in GuardianService (it has to look the ids up in the database).
-    support_condition_other: str | None = Field(default=None, max_length=200)
-    additional_support_need: str | None = Field(default=None, max_length=500)
     # Same declaration as when the guardian edits their own profile.
     truthful_declaration: bool = Field(
         strict=True,
@@ -593,11 +545,6 @@ class UpdateStudentRequest(BaseModel):
         if v > date.today():
             raise ValueError("La fecha de nacimiento no puede ser una fecha futura.")
         return v
-
-    @field_validator("support_condition_other", "additional_support_need")
-    @classmethod
-    def empty_text_is_no_text(cls, v: str | None) -> str | None:
-        return (v or "").strip() or None
 
     @field_validator("truthful_declaration")
     @classmethod
@@ -692,11 +639,6 @@ class PortalChallengeResponse(BaseModel):
 
 
 class RelationshipTypeResponse(BaseModel):
-    id: int
-    name: str
-
-
-class SupportConditionResponse(BaseModel):
     id: int
     name: str
 

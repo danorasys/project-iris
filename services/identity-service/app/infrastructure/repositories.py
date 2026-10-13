@@ -16,7 +16,6 @@ from app.domain.entities import (
     RelationshipType,
     SessionRecord,
     Student,
-    SupportCondition,
     Teacher,
     TeacherConsent,
     TeacherExperience,
@@ -33,8 +32,6 @@ from app.infrastructure.models import (
     RelationshipTypeModel,
     SessionHistoryModel,
     StudentModel,
-    StudentSupportConditionModel,
-    SupportConditionModel,
     TeacherConsentModel,
     TeacherExperienceModel,
     TeacherModel,
@@ -73,10 +70,6 @@ def _relationship_type_to_entity(m: RelationshipTypeModel) -> RelationshipType:
     return RelationshipType(id=m.id, name=m.name)
 
 
-def _support_condition_to_entity(m: SupportConditionModel) -> SupportCondition:
-    return SupportCondition(id=m.id, name=m.name)
-
-
 def _avatar_to_entity(m: AvatarModel) -> Avatar:
     return Avatar(id=m.id, name=m.name, image_key=m.image_key, accent_color=m.accent_color)
 
@@ -94,9 +87,6 @@ def _student_to_entity(m: StudentModel) -> Student:
         date_of_birth=m.date_of_birth,
         hash_pin=m.hash_pin,
         avatar_id=m.avatar_id,
-        support_condition_ids=sorted(link.support_condition_id for link in m.support_condition_links),
-        support_condition_other=m.support_condition_other,
-        additional_support_need=m.additional_support_need,
     )
 
 
@@ -338,12 +328,6 @@ class SqlAlchemyStudentRepository:
                 date_of_birth=student.date_of_birth,
                 hash_pin=student.hash_pin,
                 avatar_id=student.avatar_id,
-                support_condition_links=[
-                    StudentSupportConditionModel(support_condition_id=condition_id)
-                    for condition_id in student.support_condition_ids
-                ],
-                support_condition_other=student.support_condition_other,
-                additional_support_need=student.additional_support_need,
             )
         )
 
@@ -355,9 +339,6 @@ class SqlAlchemyStudentRepository:
         last_name: str,
         date_of_birth: date,
         avatar_id: int,
-        support_condition_ids: list[int],
-        support_condition_other: str | None,
-        additional_support_need: str | None,
     ) -> None:
         m = await self._session.get(StudentModel, student_id)
         if m is not None:
@@ -365,18 +346,6 @@ class SqlAlchemyStudentRepository:
             m.last_name = last_name
             m.date_of_birth = date_of_birth
             m.avatar_id = avatar_id
-            # Only the rows that changed are touched: the ones no longer
-            # chosen are deleted and the new ones added.
-            wanted = set(support_condition_ids)
-            kept = [link for link in m.support_condition_links if link.support_condition_id in wanted]
-            already_there = {link.support_condition_id for link in kept}
-            added = [
-                StudentSupportConditionModel(support_condition_id=condition_id)
-                for condition_id in sorted(wanted - already_there)
-            ]
-            m.support_condition_links = kept + added
-            m.support_condition_other = support_condition_other
-            m.additional_support_need = additional_support_need
 
     async def update_pin(self, student_id: UUID, hash_pin: str) -> None:
         m = await self._session.get(StudentModel, student_id)
@@ -457,7 +426,6 @@ class SqlAlchemyConsentRepository:
                 policy_version=consent.policy_version,
                 granted_at=consent.granted_at,
                 accepts_data_processing=consent.accepts_data_processing,
-                authorizes_support_condition=consent.authorizes_support_condition,
             )
         )
 
@@ -502,19 +470,6 @@ class SqlAlchemyRelationshipTypeRepository:
     async def get_by_id(self, relationship_type_id: int) -> RelationshipType | None:
         m = await self._session.get(RelationshipTypeModel, relationship_type_id)
         return _relationship_type_to_entity(m) if m else None
-
-
-class SqlAlchemySupportConditionRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self._session = session
-
-    async def list_all(self) -> list[SupportCondition]:
-        result = await self._session.execute(select(SupportConditionModel).order_by(SupportConditionModel.id))
-        return [_support_condition_to_entity(m) for m in result.scalars().all()]
-
-    async def get_by_id(self, support_condition_id: int) -> SupportCondition | None:
-        m = await self._session.get(SupportConditionModel, support_condition_id)
-        return _support_condition_to_entity(m) if m else None
 
 
 class SqlAlchemyAvatarRepository:

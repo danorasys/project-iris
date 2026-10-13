@@ -15,8 +15,6 @@ from tests.conftest import (
     AVATAR_ID_VIOLETA,
     DOCUMENT_TYPE_ID_CEDULA,
     DOCUMENT_TYPE_ID_PASAPORTE,
-    SUPPORT_CONDITION_ID_OTRA,
-    SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR,
 )
 
 pytestmark = pytest.mark.asyncio
@@ -45,12 +43,10 @@ def _payload_registro_tutor(correo: str = "ana.tutor@example.com") -> dict:
             "avatar_id": AVATAR_ID_VIOLETA,
             "pin": "1234",
             "pin_confirmation": "1234",
-            "support_condition_ids": [SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR],
         },
         "consent": {
             "policy_version": "v1",
             "accepts_data_processing": True,
-            "authorizes_support_condition": True,
         },
     }
 
@@ -86,15 +82,6 @@ async def test_registro_tutor_con_consentimiento_crea_cuenta_y_devuelve_tokens(c
 async def test_registro_tutor_sin_aceptar_consentimiento_es_rechazado(client: AsyncClient) -> None:
     payload = _payload_registro_tutor()
     payload["consent"]["accepts_data_processing"] = False
-
-    response = await client.post("/auth/guardians", json=payload)
-
-    assert response.status_code == 422
-
-
-async def test_registro_tutor_sin_autorizar_condicion_apoyo_es_rechazado(client: AsyncClient) -> None:
-    payload = _payload_registro_tutor()
-    payload["consent"]["authorizes_support_condition"] = False
 
     response = await client.post("/auth/guardians", json=payload)
 
@@ -206,49 +193,13 @@ async def test_registro_tutor_telefono_supera_quince_digitos_es_rechazado(client
     assert response.status_code == 422
 
 
-async def test_registro_tutor_condicion_inexistente_es_rechazada(client: AsyncClient) -> None:
-    payload = _payload_registro_tutor()
-    payload["student"]["support_condition_ids"] = [9999]
-
-    response = await client.post("/auth/guardians", json=payload)
-
-    assert response.status_code == 422
-    assert response.json()["error"]["code"] == "condicion_apoyo_invalida"
-
-
-async def test_registro_tutor_otra_condicion_sin_especificar_es_rechazada(client: AsyncClient) -> None:
-    payload = _payload_registro_tutor()
-    payload["student"]["support_condition_ids"] = [SUPPORT_CONDITION_ID_OTRA]
-
-    response = await client.post("/auth/guardians", json=payload)
-
-    assert response.status_code == 422
-    assert response.json()["error"]["code"] == "condicion_apoyo_invalida"
-
-
-async def test_registro_tutor_otra_condicion_especificada_es_aceptada(client: AsyncClient) -> None:
-    payload = _payload_registro_tutor("otra.condicion@example.com")
-    payload["student"]["support_condition_ids"] = [SUPPORT_CONDITION_ID_OTRA]
-    payload["student"]["support_condition_other"] = "Migraña crónica"
-
-    response = await client.post("/auth/guardians", json=payload)
-
-    assert response.status_code == 201
-
-
-async def test_registro_tutor_especifica_condicion_sin_elegir_otra_es_rechazado(client: AsyncClient) -> None:
-    payload = _payload_registro_tutor()
-    payload["student"]["support_condition_other"] = "Algo que no debería ir aquí"
-
-    response = await client.post("/auth/guardians", json=payload)
-
-    assert response.status_code == 422
-    assert response.json()["error"]["code"] == "condicion_apoyo_invalida"
-
-
-async def test_registro_tutor_necesidad_apoyo_adicional_es_opcional(client: AsyncClient) -> None:
-    payload = _payload_registro_tutor("necesidad.adicional@example.com")
+# IRIS keeps no health data of the kids. A form from before still sends the
+# old condition fields: the account is created and they are just dropped.
+async def test_guardian_registration_ignores_the_old_health_fields(client: AsyncClient) -> None:
+    payload = _payload_registro_tutor("campos.viejos@example.com")
+    payload["student"]["support_condition_ids"] = [1]
     payload["student"]["additional_support_need"] = "Necesita más tiempo para las actividades."
+    payload["consent"]["authorizes_support_condition"] = False
 
     response = await client.post("/auth/guardians", json=payload)
 

@@ -2,7 +2,7 @@ import { LegalLayout } from "./LegalLayout";
 
 export default function PrivacyPolicyPage() {
   return (
-    <LegalLayout title="Política de Privacidad" updatedOn="5 de octubre de 2026">
+    <LegalLayout title="Política de Privacidad" updatedOn="12 de octubre de 2026">
       <p>
         IRIS es una plataforma educativa pensada para niños de primaria, así que el manejo de
         datos personales se diseñó desde el principio de <strong>minimización</strong>: pedimos
@@ -46,11 +46,6 @@ export default function PrivacyPolicyPage() {
       <ul>
         <li>Nombres (sin documento de identidad: un menor no necesita uno para usar IRIS).</li>
         <li>Fecha de nacimiento, para confirmar que está en el rango de primaria.</li>
-        <li>
-          Su condición o condiciones de apoyo y, si la familia quiere, una necesidad de apoyo
-          adicional, para que el docente lo acompañe mejor. Son datos sensibles: solo se comparten
-          con el docente si el tutor lo autoriza expresamente.
-        </li>
         <li>Un PIN numérico corto en vez de una contraseña, más apropiado para su edad.</li>
         <li>Avatar, elegido entre 4 opciones fijas, para personalizar su perfil.</li>
       </ul>
@@ -60,6 +55,14 @@ export default function PrivacyPolicyPage() {
         No recolectamos fotos ni video del estudiante, dirección física, ni información
         socioeconómica. Esto es posible porque el seguimiento ocular ocurre por completo dentro
         del navegador del estudiante, como se explica a continuación.
+      </p>
+      <p>
+        Tampoco pedimos <strong>datos de salud</strong> del estudiante, como un diagnóstico, una
+        condición o una discapacidad. Son datos sensibles y para usar IRIS no hacen falta: lo que
+        adapta IRIS a cada niño son sus ajustes, como manejarla con la mirada, el mouse o el
+        teclado, y su calibración. Si una familia quiere contarle algo así a un docente, puede
+        hacerlo por los mensajes de la clase, cuando quiera y solo a quien elija; ese mensaje
+        contiene únicamente lo que la familia decida escribir.
       </p>
 
       <h2>El video de la cámara nunca sale del dispositivo</h2>

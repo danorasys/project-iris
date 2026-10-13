@@ -1,4 +1,3 @@
-import type { ComponentType, SVGProps } from "react";
 import { Navigate } from "react-router-dom";
 import type { FamilyClassroom, NotificationItem, StudentProfile } from "@iris/shared-types";
 import { ageLabel } from "@/features/utils/calculateAge";
@@ -18,7 +17,16 @@ import {
   IconGraduationCap,
   IconSparkle,
 } from "@/shared/ui/icons";
-import { Empty, Panel, RowsSkeleton, Stat } from "@/shared/ui/portal/PortalHome";
+import {
+  Empty,
+  Panel,
+  RowsSkeleton,
+  Stat,
+  TaskList,
+  TipList,
+  type HomeTask,
+  type HomeTip,
+} from "@/shared/ui/portal/PortalHome";
 import { WelcomeBanner } from "@/shared/ui/portal/WelcomeBanner";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
 import { notificationSubject } from "../notifications/notificationText";
@@ -37,21 +45,13 @@ interface GuardianHomeSectionProps {
 }
 
 const NOTICES_SHOWN = 3;
-// More kids than this and the rest are one click away, in Mis peques.
+// More kids than this and the rest are in "Ver todos" of the panel.
 const KIDS_SHOWN = 3;
 const TASKS_SHOWN = 4;
 
-interface Task {
-  key: string;
-  text: string;
-  hint: string;
-  Icon: ComponentType<SVGProps<SVGSVGElement>>;
-  onOpen: () => void;
-}
-
 // What a family can do so a session with IRIS goes well: the same advice
 // the kid's calibration screen gives, here so the guardian has it at hand.
-const TIPS: { title: string; text: string; Icon: ComponentType<SVGProps<SVGSVGElement>> }[] = [
+const TIPS: HomeTip[] = [
   {
     title: "A la distancia de un brazo",
     text: "Que se siente cómodo, de frente al computador.",
@@ -144,29 +144,22 @@ export function GuardianHomeSection({
               text="Cuando registres a tu peque, aquí verás sus clases y cómo va."
             />
           ) : (
-            <>
-              <ul className={styles.kids}>
-                {kids.slice(0, KIDS_SHOWN).map((kid) => (
-                  <KidRow
-                    key={kid.id}
-                    kid={kid}
-                    classes={classes.filter((c) => c.student_id === kid.id)}
-                    classesFailed={family.isError}
-                    onOpen={() => onOpenStudent(kid.id)}
-                    onOpenClasses={() => onOpenStudent(kid.id, "clases")}
-                  />
-                ))}
-              </ul>
-              {kids.length > KIDS_SHOWN && (
-                <button type="button" className={styles.moreKids} onClick={onOpenStudents}>
-                  Ver todos los {kids.length} peques
-                </button>
-              )}
-            </>
+            <ul className={home.itemList}>
+              {kids.slice(0, KIDS_SHOWN).map((kid) => (
+                <KidRow
+                  key={kid.id}
+                  kid={kid}
+                  classes={classes.filter((c) => c.student_id === kid.id)}
+                  classesFailed={family.isError}
+                  onOpen={() => onOpenStudent(kid.id)}
+                  onOpenClasses={() => onOpenStudent(kid.id, "clases")}
+                />
+              ))}
+            </ul>
           )}
         </Panel>
 
-        <Panel title="Para tener en cuenta" className={styles.tasksArea}>
+        <Panel title="Para tener en cuenta" className={`${styles.tasksArea} ${home.tasksPanel}`}>
           {loading ? (
             <RowsSkeleton rows={2} />
           ) : tasks.length === 0 ? (
@@ -177,23 +170,7 @@ export function GuardianHomeSection({
               text="No hay nada esperando por ti. Aquí verás lo que valga la pena revisar."
             />
           ) : (
-            <ul className={home.tasks}>
-              {tasks.slice(0, TASKS_SHOWN).map(({ key, text, hint, Icon, onOpen }) => (
-                <li key={key}>
-                  <button type="button" className={home.task} onClick={onOpen}>
-                    {/* All in the IRIS blue, the bell too. */}
-                    <span className={`${home.taskIcon} ${home.blue}`} aria-hidden="true">
-                      <Icon width={18} height={18} />
-                    </span>
-                    <span className={home.taskText}>
-                      <span className={home.taskTitle}>{text}</span>
-                      <span className={home.taskHint}>{hint}</span>
-                    </span>
-                    <IconArrowRight width={16} height={16} className={home.chevron} />
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <TaskList tasks={tasks.slice(0, TASKS_SHOWN)} />
           )}
         </Panel>
 
@@ -231,19 +208,7 @@ export function GuardianHomeSection({
         {/* What makes IRIS different: kids learn with their gaze, so a good
             seat, good light and a calm calibration matter. */}
         <Panel title="Antes de cada sesión de tu peque con IRIS" className={styles.tipsArea}>
-          <ul className={styles.tips}>
-            {TIPS.map(({ title, text, Icon }) => (
-              <li key={title} className={styles.tip}>
-                <span className={styles.tipIcon} aria-hidden="true">
-                  <Icon width={20} height={20} />
-                </span>
-                <span className={styles.tipText}>
-                  <span className={styles.tipTitle}>{title}</span>
-                  <span className={styles.tipHint}>{text}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+          <TipList tips={TIPS} />
         </Panel>
       </div>
     </div>
@@ -258,8 +223,8 @@ function buildTasks(
   unread: number,
   onOpenStudent: GuardianHomeSectionProps["onOpenStudent"],
   onOpenNotifications: () => void,
-): Task[] {
-  const notices: Task[] =
+): HomeTask[] {
+  const notices: HomeTask[] =
     unread > 0
       ? [
           {
@@ -271,7 +236,7 @@ function buildTasks(
           },
         ]
       : [];
-  const waiting: Task[] = classes
+  const waiting: HomeTask[] = classes
     .filter((c) => c.status === "pendiente")
     .map((c) => ({
       key: `pending-${c.enrollment_id}`,
@@ -281,7 +246,7 @@ function buildTasks(
       onOpen: () => onOpenStudent(c.student_id, "clases"),
     }));
   // A rejected request doesn't count, the kid is still without a class.
-  const withoutClass: Task[] = kids
+  const withoutClass: HomeTask[] = kids
     .filter((kid) => !classes.some((c) => c.student_id === kid.id && c.status !== "rechazada"))
     .map((kid) => ({
       key: `no-class-${kid.id}`,
@@ -314,14 +279,14 @@ function KidRow({
   const waiting = classes.filter((c) => c.status === "pendiente").length;
 
   return (
-    <li className={styles.kid}>
-      <button type="button" className={styles.kidHead} onClick={onOpen}>
+    <li className={home.item}>
+      <button type="button" className={home.itemHead} onClick={onOpen}>
         <StudentAvatarImage avatarId={kid.avatar_id} size="small" label="" />
-        <span className={styles.kidText}>
-          <span className={styles.kidName}>{kid.first_name}</span>
-          <span className={styles.kidMeta}>{ageLabel(kid.date_of_birth)}</span>
+        <span className={home.itemText}>
+          <span className={home.itemName}>{kid.first_name}</span>
+          <span className={home.itemMeta}>{ageLabel(kid.date_of_birth)}</span>
         </span>
-        <span className={styles.kidLink}>
+        <span className={home.itemLink}>
           Ver su espacio
           <IconArrowRight width={15} height={15} />
         </span>
@@ -332,24 +297,24 @@ function KidRow({
       ) : (
         <button
           type="button"
-          className={styles.classesButton}
+          className={home.itemButton}
           aria-label={`Clases de ${kid.first_name}: ${classesLabel(inClasses)}${
             waiting > 0 ? `, ${waitingLabel(waiting)}` : ""
           }`}
           onClick={onOpenClasses}
         >
-          <span className={styles.classesIcon} aria-hidden="true">
+          <span className={home.itemButtonIcon} aria-hidden="true">
             <IconClassroom width={18} height={18} />
           </span>
-          <span className={styles.classesText}>
-            <span className={styles.classesCount}>{classesLabel(inClasses)}</span>
+          <span className={home.itemButtonText}>
+            <span className={home.itemButtonCount}>{classesLabel(inClasses)}</span>
             {waiting > 0 ? (
-              <span className={styles.classesWaiting}>
+              <span className={home.itemButtonWaiting}>
                 <IconClock width={13} height={13} aria-hidden="true" />
                 {waitingLabel(waiting)}
               </span>
             ) : (
-              inClasses === 0 && <span className={styles.classesNone}>Cómo unirse a una</span>
+              inClasses === 0 && <span className={home.itemButtonNone}>Cómo unirse a una</span>
             )}
           </span>
           <IconArrowRight width={16} height={16} className={home.chevron} />

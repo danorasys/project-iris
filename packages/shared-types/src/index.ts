@@ -47,11 +47,6 @@ export interface RelationshipType {
   name: string;
 }
 
-export interface SupportCondition {
-  id: number;
-  name: string;
-}
-
 export interface Avatar {
   /** The image is at `avatarImageUrl(id)`, see mediaPaths.ts. */
   id: number;
@@ -82,15 +77,10 @@ export interface GuardianRegistrationRequest {
     avatar_id: number;
     pin: string;
     pin_confirmation: string;
-    /** A kid can have several conditions: at least one id, none repeated. */
-    support_condition_ids: number[];
-    support_condition_other?: string; // Required only when "Otra condición (especificar)" is one of them
-    additional_support_need?: string; // Always optional
   };
   consent: {
     policy_version: string;
     accepts_data_processing: boolean;
-    authorizes_support_condition: boolean;
   };
 }
 
@@ -192,9 +182,6 @@ export interface StudentProfile {
 /** Everything the guardian registered about a kid, only inside the portal. */
 export interface StudentDetail extends StudentProfile {
   last_name: string;
-  support_condition_ids: number[];
-  support_condition_other: string | null;
-  additional_support_need: string | null;
 }
 
 export interface UpdateStudentRequest {
@@ -202,9 +189,6 @@ export interface UpdateStudentRequest {
   last_name: string;
   date_of_birth: string;
   avatar_id: number;
-  support_condition_ids: number[];
-  support_condition_other: string | null;
-  additional_support_need: string | null;
   /** Always true, same declaration as in the guardian's own profile. */
   truthful_declaration: true;
 }

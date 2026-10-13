@@ -3,10 +3,9 @@
 #
 # Each of the 3 entries in the document_types catalog (see migration 0004's
 # seed data) is a real, fixed government document format, not a business rule
-# that changes at runtime — so, like SUPPORT_CONDITION_NAME_OTHER in
-# entities.py, it's matched by catalog name here instead of a hardcoded id:
-# ids are only stable in practice, never guaranteed, since the catalog lives in
-# the database. Mirrors apps/web's features/auth/lib/documentNumber.ts, which
+# that changes at runtime — so it's matched by catalog name here instead of a
+# hardcoded id: ids are only stable in practice, never guaranteed, since the
+# catalog lives in the database. Mirrors apps/web's features/auth/lib/documentNumber.ts, which
 # enforces the same patterns client-side for immediate feedback.
 
 from __future__ import annotations

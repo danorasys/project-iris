@@ -20,7 +20,6 @@ from app.domain.entities import (
     SessionRecord,
     SignedDownload,
     Student,
-    SupportCondition,
     Teacher,
     TeacherConsent,
     TeacherProfile,
@@ -91,9 +90,6 @@ class StudentRepository(Protocol):
         last_name: str,
         date_of_birth: date,
         avatar_id: int,
-        support_condition_ids: list[int],
-        support_condition_other: str | None,
-        additional_support_need: str | None,
     ) -> None: ...
 
     async def update_pin(self, student_id: UUID, hash_pin: str) -> None: ...
@@ -131,11 +127,6 @@ class DocumentTypeRepository(Protocol):
 class RelationshipTypeRepository(Protocol):
     async def list_all(self) -> list[RelationshipType]: ...
     async def get_by_id(self, relationship_type_id: int) -> RelationshipType | None: ...
-
-
-class SupportConditionRepository(Protocol):
-    async def list_all(self) -> list[SupportCondition]: ...
-    async def get_by_id(self, support_condition_id: int) -> SupportCondition | None: ...
 
 
 # Garage, read only. identity-service never uploads, new avatars are added
@@ -197,9 +188,6 @@ class UnitOfWork(Protocol):
 
     @property
     def relationship_types(self) -> RelationshipTypeRepository: ...
-
-    @property
-    def support_conditions(self) -> SupportConditionRepository: ...
 
     @property
     def avatars(self) -> AvatarRepository: ...

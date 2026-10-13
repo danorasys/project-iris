@@ -107,12 +107,13 @@
   font-weight: 700;
 }
 
-/* Requests waiting: the warm color, only for what needs attention. */
+/* Requests waiting: in the IRIS blue, like every "en espera" and unread
+   count of the portals. */
 .pendingChip {
   padding: 4px 12px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-amber) 18%, var(--color-surface));
-  color: var(--color-amber-dark);
+  background: color-mix(in srgb, var(--color-iris-medium) 14%, var(--color-surface));
+  color: var(--color-iris-medium);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -354,9 +355,9 @@
   color: var(--color-ink-soft);
 }
 
-/* Requests waiting stand out in the warm color. */
+/* Requests waiting stand out in the IRIS blue. */
 .cardStat[data-pending="true"] .cardStatValue {
-  color: var(--color-amber-dark);
+  color: var(--color-iris-medium);
 }
 
 .cardStats + .cardAction {
@@ -523,8 +524,7 @@
   color: var(--color-iris-deep);
 }
 
-.emptyTitle,
-.comingSoonTitle {
+.emptyTitle {
   margin: 0;
   font-family: var(--font-display);
   font-size: 1.1rem;
@@ -532,8 +532,7 @@
   color: var(--color-iris-deep);
 }
 
-.emptyText,
-.comingSoonText {
+.emptyText {
   margin: 0;
   color: var(--color-ink-soft);
   line-height: 1.5;
@@ -618,17 +617,6 @@
 
 .optionCard:hover .optionArrow {
   transform: translateX(3px);
-}
-
-/* A section that isn't built yet, said plainly. */
-.comingSoon {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-large);
-  background: var(--color-canvas);
 }
 
 /* --- Lists of people (members, requests) --- */

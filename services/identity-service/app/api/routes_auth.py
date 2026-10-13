@@ -75,14 +75,10 @@ async def register_guardian(
             date_of_birth=payload.student.date_of_birth,
             avatar_id=payload.student.avatar_id,
             pin=payload.student.pin,
-            support_condition_ids=payload.student.support_condition_ids,
-            support_condition_other=payload.student.support_condition_other,
-            additional_support_need=payload.student.additional_support_need,
         ),
         ConsentData(
             policy_version=payload.consent.policy_version,
             accepts_data_processing=payload.consent.accepts_data_processing,
-            authorizes_support_condition=payload.consent.authorizes_support_condition,
         ),
         user_agent=_user_agent(request),
     )

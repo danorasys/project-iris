@@ -59,12 +59,6 @@ class RelationshipType:
     name: str
 
 
-@dataclass
-class SupportCondition:
-    id: int
-    name: str
-
-
 # Where Caddy has to fetch a file from in Garage, with a signature that is
 # only valid for that one GET. The service never reads the file itself.
 @dataclass(frozen=True)
@@ -84,17 +78,6 @@ class Avatar:
     image_key: str
     # Its main color, "#rrggbb", for the kid's banner in the parents' portal.
     accent_color: str = "#1f62bf"
-
-
-# The one catalog entry that means "the family will type their own condition
-# instead of picking one of the predetermined ones" (see
-# app/infrastructure/models.py's students.support_condition_other). Matched by
-# name rather than a hardcoded id: the catalog lives in the database (see
-# migration 0004), so its ids are only stable in practice, never guaranteed.
-SUPPORT_CONDITION_NAME_OTHER = "Otra condición (especificar)"
-# The entry for families that don't want to say. It can't go together with
-# any other condition, it would contradict itself.
-SUPPORT_CONDITION_NAME_PREFER_NOT_TO_SPECIFY = "Prefiero no especificar"
 
 
 @dataclass
@@ -174,15 +157,6 @@ class Student:
     date_of_birth: date
     hash_pin: str
     avatar_id: int
-    # A kid can have more than one condition, so this is a list of catalog
-    # ids, always with at least one and sorted from lowest to highest.
-    support_condition_ids: list[int]
-    # Only set when one of the conditions is the "Otra condición
-    # (especificar)" catalog entry.
-    support_condition_other: str | None = None
-    # Unlike the conditions, this one stays genuinely optional: a free
-    # text note for anything else the family wants the teacher to know.
-    additional_support_need: str | None = None
 
 
 @dataclass
@@ -193,7 +167,6 @@ class Consent:
     policy_version: str
     granted_at: datetime
     accepts_data_processing: bool = False
-    authorizes_support_condition: bool = False
 
 
 # A teacher accepting how IRIS treats their personal data, at registration

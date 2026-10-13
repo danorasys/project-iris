@@ -54,13 +54,6 @@ class RelationshipTypeModel(Base):
     name: Mapped[str] = mapped_column(String(100), unique=True)
 
 
-class SupportConditionModel(Base):
-    __tablename__ = "support_conditions"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(150), unique=True)
-
-
 class PersonModel(Base):
     __tablename__ = "people"
 
@@ -167,17 +160,6 @@ class AvatarModel(Base):
     accent_color: Mapped[str] = mapped_column(String(7))
 
 
-# Which conditions each kid has: one row per kid and condition. The pair is
-# the primary key, so the same condition can't be twice on the same kid.
-class StudentSupportConditionModel(Base):
-    __tablename__ = "student_support_conditions"
-
-    student_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), primary_key=True
-    )
-    support_condition_id: Mapped[int] = mapped_column(Integer, ForeignKey("support_conditions.id"), primary_key=True)
-
-
 class StudentModel(Base):
     __tablename__ = "students"
 
@@ -191,19 +173,8 @@ class StudentModel(Base):
     date_of_birth: Mapped[date] = mapped_column(Date)
     hash_pin: Mapped[str] = mapped_column(String(255))
     avatar_id: Mapped[int] = mapped_column(Integer, ForeignKey("avatars.id"))
-    # The conditions are in support_condition_links (a kid can have several).
-    # Only set when one of them is "Otra condición (especificar)".
-    support_condition_other: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    # Independent of the conditions: a free-text note for anything else
-    # the family wants the teacher to know, always optional.
-    additional_support_need: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     guardian: Mapped[GuardianModel] = relationship(back_populates="students")
-    # Loaded together with the kid in one extra query for all the kids asked
-    # (selectin), not one query per kid.
-    support_condition_links: Mapped[list[StudentSupportConditionModel]] = relationship(
-        cascade="all, delete-orphan", lazy="selectin", passive_deletes=True
-    )
 
 
 # Record of the changes each person made to their own profile or to the
@@ -284,4 +255,3 @@ class ConsentModel(Base):
     policy_version: Mapped[str] = mapped_column(String(20))
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     accepts_data_processing: Mapped[bool] = mapped_column(Boolean, default=False)
-    authorizes_support_condition: Mapped[bool] = mapped_column(Boolean, default=False)

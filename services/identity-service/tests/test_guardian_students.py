@@ -9,11 +9,6 @@ from app.domain.entities import PROFILE_DECLARATION_VERSION
 from app.infrastructure.db import SessionLocal
 from app.infrastructure.models import ProfileChangeModel
 from tests.conftest import (
-    SUPPORT_CONDITION_ID_OTRA,
-    SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL,
-    SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR,
-    activar_2fa_y_abrir_portal,
-    payload_registro_tutor,
     registrar_tutor,
     registrar_tutor_con_2fa,
 )
@@ -39,9 +34,6 @@ def _datos(**cambios: object) -> dict:
         "last_name": "Pérez",
         "date_of_birth": "2018-05-10",
         "avatar_id": 1,
-        "support_condition_ids": [SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR],
-        "support_condition_other": None,
-        "additional_support_need": None,
         "truthful_declaration": True,
     }
     return datos | cambios
@@ -90,7 +82,7 @@ async def test_la_lista_de_peques_no_trae_datos_sensibles(client: AsyncClient) -
     respuesta = await client.get("/guardians/me/students", headers=_headers(token))
 
     assert respuesta.status_code == 200
-    # No support condition and no last name: this list works without the 2FA code.
+    # No last name: this list works without the 2FA code.
     assert set(respuesta.json()[0]) == {"id", "first_name", "avatar_id", "date_of_birth"}
 
 
@@ -107,9 +99,8 @@ async def test_ver_los_datos_de_un_peque_trae_todo_lo_registrado(client: AsyncCl
     assert body["first_name"] == "Sofía"
     assert body["last_name"] == "Pérez"
     assert body["date_of_birth"] == "2018-05-10"
-    assert body["support_condition_ids"] == [SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR]
-    # Never the PIN, not even hashed.
-    assert not any("pin" in campo for campo in body)
+    # Never the PIN, not even hashed, and no health data: IRIS doesn't keep any.
+    assert set(body) == {"id", "first_name", "last_name", "date_of_birth", "avatar_id"}
 
 
 async def test_ver_los_datos_de_un_peque_exige_el_acceso_al_portal(client: AsyncClient) -> None:
@@ -150,18 +141,15 @@ async def test_editar_los_datos_de_un_peque_aplica_los_cambios(client: AsyncClie
             first_name="Sofía  Valentina",
             last_name="Pérez Gómez",
             date_of_birth="2018-06-11",
-            support_condition_ids=[SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL],
-            additional_support_need="  Necesita descansos cortos.  ",
         ),
         headers=_headers(token),
     )
 
     assert respuesta.status_code == 200
     body = respuesta.json()
-    # Extra spaces in names are joined and the note is trimmed.
+    # Extra spaces in names are joined.
     assert body["first_name"] == "Sofía Valentina"
     assert body["last_name"] == "Pérez Gómez"
-    assert body["additional_support_need"] == "Necesita descansos cortos."
     relectura = await client.get(f"/guardians/me/students/{student_id}", headers=_headers(token))
     assert relectura.json() == body
 
@@ -209,23 +197,20 @@ async def test_editar_un_peque_exige_la_declaracion_de_veracidad(client: AsyncCl
     assert await _cambios_registrados() == []
 
 
-async def test_la_condicion_otra_exige_que_se_especifique(client: AsyncClient) -> None:
-    token, student_id = await _tutor_con_peque(client, "peque-otra@example.com", "8000000020")
-    url = f"/guardians/me/students/{student_id}"
+# A form from before may still send the old condition fields: they are
+# dropped, nothing about them is saved or recorded as a change.
+async def test_editing_a_kid_ignores_the_old_health_fields(client: AsyncClient) -> None:
+    token, student_id = await _tutor_con_peque(client, "peque-campos-viejos@example.com", "8000000020")
 
-    sin_texto = await client.patch(url, json=_datos(support_condition_ids=[SUPPORT_CONDITION_ID_OTRA]), headers=_headers(token))
-    texto_sin_otra = await client.patch(url, json=_datos(support_condition_other="Algo"), headers=_headers(token))
-    con_texto = await client.patch(
-        url,
-        json=_datos(support_condition_ids=[SUPPORT_CONDITION_ID_OTRA], support_condition_other="Baja visión"),
+    respuesta = await client.patch(
+        f"/guardians/me/students/{student_id}",
+        json=_datos(support_condition_ids=[1], additional_support_need="Usa gafas"),
         headers=_headers(token),
     )
 
-    assert sin_texto.status_code == 422
-    assert sin_texto.json()["error"]["code"] == "condicion_apoyo_invalida"
-    assert texto_sin_otra.status_code == 422
-    assert con_texto.status_code == 200
-    assert con_texto.json()["support_condition_other"] == "Baja visión"
+    assert respuesta.status_code == 200
+    assert "support_condition_ids" not in respuesta.json()
+    assert await _cambios_registrados() == []
 
 
 async def test_la_fecha_de_nacimiento_de_un_peque_no_puede_ser_futura(client: AsyncClient) -> None:
@@ -243,7 +228,7 @@ async def test_editar_un_peque_registra_que_campos_cambiaron_sin_sus_valores(cli
 
     await client.patch(
         f"/guardians/me/students/{student_id}",
-        json=_datos(last_name="Gómez", additional_support_need="Usa gafas"),
+        json=_datos(last_name="Gómez", date_of_birth="2018-07-01"),
         headers=_headers(token),
     )
 
@@ -251,10 +236,10 @@ async def test_editar_un_peque_registra_que_campos_cambiaron_sin_sus_valores(cli
     assert len(cambios) == 1
     cambio = cambios[0]
     assert str(cambio.student_id) == student_id
-    assert cambio.changed_fields == ["last_name", "additional_support_need"]
+    assert cambio.changed_fields == ["last_name", "date_of_birth"]
     assert cambio.declaration_version == PROFILE_DECLARATION_VERSION
     guardado = str([cambio.changed_fields, cambio.declaration_version, cambio.session_id])
-    for valor in ("Gómez", "Pérez", "Usa gafas"):
+    for valor in ("Gómez", "Pérez", "2018-07-01"):
         assert valor not in guardado
 
 
@@ -466,110 +451,3 @@ async def test_no_se_puede_comprobar_el_pin_del_peque_de_otro_tutor(client: Asyn
     )
 
     assert respuesta.status_code == 404
-
-
-# --- Several support conditions on the same kid ---
-
-SUPPORT_CONDITION_ID_MIELOMENINGOCELE = 3
-SUPPORT_CONDITION_ID_ARNOLD_CHIARI = 4
-
-
-async def test_un_peque_puede_tener_varias_condiciones(client: AsyncClient) -> None:
-    token, student_id = await _tutor_con_peque(client, "peque-varias@example.com", "8000000030")
-    url = f"/guardians/me/students/{student_id}"
-    # Sent out of order on purpose.
-    varias = [SUPPORT_CONDITION_ID_ARNOLD_CHIARI, SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL, SUPPORT_CONDITION_ID_MIELOMENINGOCELE]
-
-    respuesta = await client.patch(url, json=_datos(support_condition_ids=varias), headers=_headers(token))
-
-    assert respuesta.status_code == 200
-    assert respuesta.json()["support_condition_ids"] == sorted(varias)
-    relectura = await client.get(url, headers=_headers(token))
-    assert relectura.json()["support_condition_ids"] == sorted(varias)
-    cambios = await _cambios_registrados()
-    assert [c.changed_fields for c in cambios] == [["support_condition_ids"]]
-
-
-async def test_quitar_y_agregar_condiciones_deja_solo_las_elegidas(client: AsyncClient) -> None:
-    token, student_id = await _tutor_con_peque(client, "peque-quitar@example.com", "8000000031")
-    url = f"/guardians/me/students/{student_id}"
-    primeras = [SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL, SUPPORT_CONDITION_ID_MIELOMENINGOCELE]
-    despues = [SUPPORT_CONDITION_ID_MIELOMENINGOCELE, SUPPORT_CONDITION_ID_ARNOLD_CHIARI]
-
-    await client.patch(url, json=_datos(support_condition_ids=primeras), headers=_headers(token))
-    respuesta = await client.patch(url, json=_datos(support_condition_ids=despues), headers=_headers(token))
-
-    assert respuesta.status_code == 200
-    relectura = await client.get(url, headers=_headers(token))
-    assert relectura.json()["support_condition_ids"] == despues
-    # The same ones in another order are not a change.
-    igual = await client.patch(url, json=_datos(support_condition_ids=despues[::-1]), headers=_headers(token))
-    assert igual.status_code == 200
-    assert len(await _cambios_registrados()) == 2
-
-
-async def test_otra_condicion_se_puede_combinar_con_las_del_catalogo(client: AsyncClient) -> None:
-    token, student_id = await _tutor_con_peque(client, "peque-otra-mas@example.com", "8000000032")
-    url = f"/guardians/me/students/{student_id}"
-    ids = [SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL, SUPPORT_CONDITION_ID_OTRA]
-
-    sin_texto = await client.patch(url, json=_datos(support_condition_ids=ids), headers=_headers(token))
-    con_texto = await client.patch(
-        url, json=_datos(support_condition_ids=ids, support_condition_other="Baja visión"), headers=_headers(token)
-    )
-
-    assert sin_texto.status_code == 422
-    assert con_texto.status_code == 200
-    assert con_texto.json()["support_condition_ids"] == ids
-    assert con_texto.json()["support_condition_other"] == "Baja visión"
-
-
-@pytest.mark.parametrize(
-    "ids",
-    [
-        # "Prefiero no especificar" goes alone.
-        [SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL, SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR],
-        [SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL, SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL],
-        [SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL, 9999],
-        [],
-        [0],
-        SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL,
-    ],
-)
-async def test_una_lista_de_condiciones_invalida_no_se_guarda(client: AsyncClient, ids: object) -> None:
-    token, student_id = await _tutor_con_peque(client, "peque-lista-mala@example.com", "8000000033")
-    url = f"/guardians/me/students/{student_id}"
-
-    respuesta = await client.patch(url, json=_datos(support_condition_ids=ids), headers=_headers(token))
-
-    assert respuesta.status_code == 422
-    relectura = await client.get(url, headers=_headers(token))
-    assert relectura.json()["support_condition_ids"] == [SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR]
-    assert await _cambios_registrados() == []
-
-
-async def test_el_registro_acepta_varias_condiciones_para_el_peque(client: AsyncClient) -> None:
-    payload = payload_registro_tutor("registro-varias@example.com", "8000000034")
-    payload["student"]["support_condition_ids"] = [SUPPORT_CONDITION_ID_ARNOLD_CHIARI, SUPPORT_CONDITION_ID_MIELOMENINGOCELE]
-
-    registro = await client.post("/auth/guardians", json=payload)
-
-    assert registro.status_code == 201
-    token = registro.json()["access_token"]
-    await activar_2fa_y_abrir_portal(client, token)
-    lista = await client.get("/guardians/me/students", headers=_headers(token))
-    detalle = await client.get(f"/guardians/me/students/{lista.json()[0]['id']}", headers=_headers(token))
-    assert detalle.json()["support_condition_ids"] == [SUPPORT_CONDITION_ID_MIELOMENINGOCELE, SUPPORT_CONDITION_ID_ARNOLD_CHIARI]
-
-
-async def test_el_registro_rechaza_prefiero_no_especificar_junto_a_otra_condicion(client: AsyncClient) -> None:
-    payload = payload_registro_tutor("registro-contradice@example.com", "8000000035")
-    payload["student"]["support_condition_ids"] = [
-        SUPPORT_CONDITION_ID_PARALISIS_CEREBRAL,
-        SUPPORT_CONDITION_ID_PREFIERO_NO_ESPECIFICAR,
-    ]
-
-    registro = await client.post("/auth/guardians", json=payload)
-
-    assert registro.status_code == 422
-    assert registro.json()["error"]["code"] == "condicion_apoyo_invalida"

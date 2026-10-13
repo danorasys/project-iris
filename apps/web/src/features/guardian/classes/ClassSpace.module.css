@@ -115,7 +115,8 @@
   color: var(--color-ink);
 }
 
-/* How many notifications wait, amber like the rest of what needs a look. */
+/* How many notifications wait: the IRIS blue with a white number, like
+   the count next to Notificaciones in the menu. */
 .badge {
   flex: none;
   display: grid;
@@ -124,7 +125,7 @@
   height: 26px;
   padding: 0 8px;
   border-radius: 999px;
-  background: var(--color-amber);
+  background: var(--color-iris-medium);
   color: var(--color-surface);
   font-size: 0.82rem;
   font-weight: 700;

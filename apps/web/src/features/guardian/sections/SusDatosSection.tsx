@@ -7,15 +7,12 @@ import {
   useCambiarPinDeEstudiante,
   useComprobarPinDeEstudiante,
   useEstudianteDeTutor,
-  useSupportConditions,
 } from "@/shared/api/hooks/useAuthApi";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { TextField } from "@/features/auth/ui/TextField";
-import { SupportConditionsField } from "@/features/auth/ui/SupportConditionsField";
 import { formatDate } from "@/features/utils/formatDate";
 import { nameError, studentBirthDateError, toIsoDate } from "@/features/utils/personValidation";
-import { includesOtherCondition, supportConditionNames } from "@/features/utils/supportCondition";
-import { IconImage, IconKey, IconSparkle, IconUserCircle } from "@/shared/ui/icons";
+import { IconImage, IconKey, IconUserCircle } from "@/shared/ui/icons";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
 import { Card, EDIT_HINT, EditableRow, SaveBar } from "@/shared/ui/profile/ProfileForm";
 import { useProfileForm } from "@/shared/ui/profile/useProfileForm";
@@ -31,11 +28,6 @@ type StudentValues = {
   lastName: string;
   dateOfBirth: string;
   avatarId: string;
-  // The ids of the conditions joined with commas ("3,4"), because the form
-  // keeps every value as a text. See toIds and fromIds.
-  supportConditionIds: string;
-  supportConditionOther: string;
-  additionalSupportNeed: string;
 };
 
 interface SusDatosSectionProps {
@@ -64,23 +56,12 @@ export function SusDatosSection({ studentId, onDirtyChange }: SusDatosSectionPro
   return <StudentEditor student={studentQuery.data} onDirtyChange={onDirtyChange} />;
 }
 
-function fromIds(ids: readonly number[]): string {
-  return [...ids].sort((a, b) => a - b).join(",");
-}
-
-function toIds(text: string): number[] {
-  return text ? text.split(",").map(Number) : [];
-}
-
 function toValues(student: StudentDetail): StudentValues {
   return {
     firstName: student.first_name,
     lastName: student.last_name,
     dateOfBirth: student.date_of_birth,
     avatarId: String(student.avatar_id),
-    supportConditionIds: fromIds(student.support_condition_ids),
-    supportConditionOther: student.support_condition_other ?? "",
-    additionalSupportNeed: student.additional_support_need ?? "",
   };
 }
 
@@ -91,7 +72,6 @@ function StudentEditor({
   student: StudentDetail;
   onDirtyChange: (dirty: boolean) => void;
 }) {
-  const supportConditionsQuery = useSupportConditions();
   const avatarsQuery = useAvatars();
   const updateStudent = useActualizarEstudianteDeTutor(student.id);
   const withPortalAccess = useWithPortalAccess();
@@ -101,14 +81,7 @@ function StudentEditor({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  // The catalogs arrive a moment after the kid's data.
-  const conditions = supportConditionsQuery.data ?? [];
-  // A kid can have several conditions.
-  const conditionIds = toIds(values.supportConditionIds);
-  const conditionNames = supportConditionNames(conditionIds, conditions);
-  const conditionsText = conditionNames.join(", ") || (supportConditionsQuery.isLoading ? "Cargando…" : "—");
-  // The free text only goes with "Otra condición (especificar)".
-  const isOtherCondition = includesOtherCondition(conditionIds, conditions);
+  // The avatars arrive a moment after the kid's data.
   const avatars = avatarsQuery.data ?? [];
   const avatarName =
     avatars.find((a) => a.id === Number(values.avatarId))?.name ?? (avatarsQuery.isLoading ? "Cargando…" : "—");
@@ -118,8 +91,6 @@ function StudentEditor({
     firstName: nameError(values.firstName, "Ingresa sus nombres."),
     lastName: nameError(values.lastName, "Ingresa sus apellidos."),
     dateOfBirth: studentBirthDateError(values.dateOfBirth),
-    supportConditionIds: conditionIds.length === 0 ? "Marca al menos una condición." : null,
-    supportConditionOther: isOtherCondition && !values.supportConditionOther.trim() ? "Especifica la condición." : null,
   };
   const hasErrors = Object.values(errors).some(Boolean);
   const rowProps = (field: keyof StudentValues) => fields.rowProps(field, errors[field] ?? null);
@@ -140,9 +111,6 @@ function StudentEditor({
           last_name: values.lastName.trim(),
           date_of_birth: values.dateOfBirth,
           avatar_id: Number(values.avatarId),
-          support_condition_ids: conditionIds,
-          support_condition_other: isOtherCondition ? values.supportConditionOther.trim() : null,
-          additional_support_need: values.additionalSupportNeed.trim() || null,
           truthful_declaration: true,
         }),
       );
@@ -202,66 +170,6 @@ function StudentEditor({
                 onChange={(v) => fields.setField("dateOfBirth", v)}
                 autoFocus
                 required
-              />
-            </EditableRow>
-          </div>
-        </Card>
-
-        <Card
-          id="kid-supports"
-          icon={<IconSparkle width={20} height={20} />}
-          title="Condición o necesidad de apoyo"
-          hint="Cuéntanos si tu peque tiene alguna condición o necesita un apoyo adicional. Con esta información sus docentes pueden conocerlo mejor y darle un mejor seguimiento y acompañamiento. Puedes actualizarla cuando quieras."
-        >
-          <div className={form.fieldGrid}>
-            <EditableRow
-              label={conditionIds.length > 1 ? "Condiciones" : "Condición"}
-              displayValue={conditionsText}
-              {...rowProps("supportConditionIds")}
-            >
-              <SupportConditionsField
-                id="kid-support-condition"
-                label="Condición o condiciones"
-                options={conditions}
-                value={conditionIds}
-                onChange={(ids) => fields.setField("supportConditionIds", fromIds(ids))}
-                error={errors.supportConditionIds ?? undefined}
-                required
-              />
-            </EditableRow>
-
-            {isOtherCondition && (
-              <EditableRow
-                label="Cuál condición"
-                displayValue={values.supportConditionOther || "Sin especificar"}
-                {...rowProps("supportConditionOther")}
-              >
-                <TextField
-                  id="kid-support-condition-other"
-                  label="Cuál condición"
-                  value={values.supportConditionOther}
-                  onChange={(v) => fields.setField("supportConditionOther", v)}
-                  maxLength={200}
-                  autoFocus
-                  required
-                />
-              </EditableRow>
-            )}
-
-            <EditableRow
-              label="Necesidad de apoyo adicional"
-              displayValue={values.additionalSupportNeed || "No indicada"}
-              {...rowProps("additionalSupportNeed")}
-            >
-              <TextField
-                id="kid-additional-support-need"
-                label="Necesidad de apoyo adicional (opcional)"
-                value={values.additionalSupportNeed}
-                onChange={(v) => fields.setField("additionalSupportNeed", v)}
-                maxLength={500}
-                placeholder="Ej.: le cuesta sostener el mouse, necesita más tiempo para las actividades…"
-                multiline
-                autoFocus
               />
             </EditableRow>
           </div>

@@ -35,7 +35,6 @@ from app.domain.exceptions import (
     ResourceNotFound,
 )
 from app.application.session_service import SessionService
-from app.application.support_conditions import check_support_conditions
 from app.domain.ports import (
     AttemptLockout,
     PasswordHasher,
@@ -128,9 +127,6 @@ class AuthService:
                 raise InvalidRelationshipType()
             if await uow.avatars.get_by_id(student_data.avatar_id) is None:
                 raise InvalidAvatar()
-            await check_support_conditions(
-                uow, student_data.support_condition_ids, student_data.support_condition_other
-            )
 
             now = datetime.now(timezone.utc)
             person = Person(
@@ -160,9 +156,6 @@ class AuthService:
                 date_of_birth=student_data.date_of_birth,
                 hash_pin=self._hasher.hash(student_data.pin),
                 avatar_id=student_data.avatar_id,
-                support_condition_ids=student_data.support_condition_ids,
-                support_condition_other=student_data.support_condition_other,
-                additional_support_need=student_data.additional_support_need,
             )
             consent_entity = Consent(
                 id=uuid.uuid4(),
@@ -171,7 +164,6 @@ class AuthService:
                 policy_version=consent_data.policy_version,
                 granted_at=now,
                 accepts_data_processing=consent_data.accepts_data_processing,
-                authorizes_support_condition=consent_data.authorizes_support_condition,
             )
 
             # Flush after each insert. These models carry the FK as a plain UUID

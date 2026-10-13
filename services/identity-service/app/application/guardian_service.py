@@ -26,7 +26,6 @@ from app.domain.exceptions import (
 )
 from app.application.password_change import PasswordChangeService
 from app.application.session_service import SessionService
-from app.application.support_conditions import check_support_conditions
 from app.domain.ports import AttemptLockout, PasswordHasher, UnitOfWork
 from app.security_log import log_security_event
 
@@ -70,8 +69,6 @@ class GuardianService:
             if await uow.avatars.get_by_id(data.avatar_id) is None:
                 raise InvalidAvatar()
 
-            await check_support_conditions(uow, data.support_condition_ids, data.support_condition_other)
-
             student = Student(
                 id=uuid.uuid4(),
                 guardian_id=guardian.id,
@@ -80,9 +77,6 @@ class GuardianService:
                 date_of_birth=data.date_of_birth,
                 hash_pin=self._hasher.hash(data.pin),
                 avatar_id=data.avatar_id,
-                support_condition_ids=data.support_condition_ids,
-                support_condition_other=data.support_condition_other,
-                additional_support_need=data.additional_support_need,
             )
             await uow.students.add(student)
             await uow.commit()
@@ -104,7 +98,6 @@ class GuardianService:
             student = await _own_student(uow, person_id, student_id)
             if await uow.avatars.get_by_id(data.avatar_id) is None:
                 raise InvalidAvatar()
-            await check_support_conditions(uow, data.support_condition_ids, data.support_condition_other)
 
             new_values = asdict(data)
             changed_fields = [name for name, value in new_values.items() if getattr(student, name) != value]

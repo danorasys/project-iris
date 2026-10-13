@@ -65,11 +65,6 @@ class InvalidRelationshipType(DomainError):
     message = "El tipo de relación indicado no existe."
 
 
-class InvalidSupportCondition(DomainError):
-    code = "condicion_apoyo_invalida"
-    message = "La condición indicada no existe."
-
-
 class InvalidAvatar(DomainError):
     code = "avatar_invalido"
     message = "El avatar indicado no existe."

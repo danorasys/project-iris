@@ -4,6 +4,10 @@ __pycache__/
 .venv/
 venv/
 *.db
+# What SQLite leaves next to a test database while it writes
+*.db-journal
+*.db-wal
+*.db-shm
 *.egg-info/
 .pytest_cache/
 .mypy_cache/

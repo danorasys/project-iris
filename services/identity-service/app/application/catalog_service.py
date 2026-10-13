@@ -11,7 +11,6 @@ from app.domain.entities import (
     DocumentType,
     RelationshipType,
     SignedDownload,
-    SupportCondition,
 )
 from app.domain.exceptions import ResourceNotFound
 from app.domain.ports import ObjectStorage, UnitOfWork
@@ -31,10 +30,6 @@ class CatalogQueryService:
     async def list_relationship_types(self) -> list[RelationshipType]:
         async with self._uow_factory() as uow:
             return await uow.relationship_types.list_all()
-
-    async def list_support_conditions(self) -> list[SupportCondition]:
-        async with self._uow_factory() as uow:
-            return await uow.support_conditions.list_all()
 
     async def list_avatars(self) -> list[Avatar]:
         async with self._uow_factory() as uow:

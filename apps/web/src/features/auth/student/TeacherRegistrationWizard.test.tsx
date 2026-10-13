@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { PRIVACY_POLICY_VERSION } from "@/features/legal/policyVersion";
 import TeacherRegistrationWizard from "./TeacherRegistrationWizard";
 
 const register = vi.fn();
@@ -104,7 +105,7 @@ describe("TeacherRegistrationWizard, the teacher's profile step", { timeout: 20_
         phone_country_code: "57",
         phone_number: "3009876543",
         document_issued_at: "2006-07-01",
-        consent: { policy_version: "1.2", accepts_data_processing: true },
+        consent: { policy_version: PRIVACY_POLICY_VERSION, accepts_data_processing: true },
         profile: null,
       }));
     // Like the guardian: first the celebration screen, then the 2FA.

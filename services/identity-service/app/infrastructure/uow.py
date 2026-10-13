@@ -15,7 +15,6 @@ from app.infrastructure.repositories import (
     SqlAlchemyRelationshipTypeRepository,
     SqlAlchemySessionHistoryRepository,
     SqlAlchemyStudentRepository,
-    SqlAlchemySupportConditionRepository,
     SqlAlchemyTeacherConsentRepository,
     SqlAlchemyTeacherProfileRepository,
     SqlAlchemyTeacherRepository,
@@ -40,7 +39,6 @@ class SqlAlchemyUnitOfWork:
         self.session_history = SqlAlchemySessionHistoryRepository(self.session)
         self.document_types = SqlAlchemyDocumentTypeRepository(self.session)
         self.relationship_types = SqlAlchemyRelationshipTypeRepository(self.session)
-        self.support_conditions = SqlAlchemySupportConditionRepository(self.session)
         self.avatars = SqlAlchemyAvatarRepository(self.session)
         return self
 

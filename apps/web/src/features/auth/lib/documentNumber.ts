@@ -2,8 +2,7 @@
 // migration 0004) is a real, fixed government document format, not a
 // business rule that changes at runtime — matched by name here rather than a
 // hardcoded id, since the catalog lives in the database and ids are only
-// stable in practice, never guaranteed (same reasoning as
-// GuardianRegistrationWizard's SUPPORT_CONDITION_NAME_OTHER). Mirrors
+// stable in practice, never guaranteed. Mirrors
 // identity-service's app/domain/document_number.py, which enforces the same
 // patterns server-side, so a family never gets a "looks fine here, rejected
 // there" surprise.
