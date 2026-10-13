@@ -196,6 +196,45 @@ export function IconPlus(props: IconProps) {
   );
 }
 
+export function IconMinus(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+// An arrow going around to the left, for turning a picture.
+export function IconRotateLeft(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4.5 9.5a8 8 0 1 1 1.6 6.6" />
+      <path d="M4.5 4.5v5h5" />
+    </svg>
+  );
+}
+
+// The same arrow, going around to the right.
+export function IconRotateRight(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M19.5 9.5a8 8 0 1 0-1.6 6.6" />
+      <path d="M19.5 4.5v5h-5" />
+    </svg>
+  );
+}
+
+// Two halves facing each other across a dashed line, for mirroring.
+export function IconFlip(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3v18" strokeDasharray="2 2.5" />
+      <path d="M9 7 4 17h5Z" />
+      <path d="m15 7 5 10h-5Z" />
+    </svg>
+  );
+}
+
 export function IconTrash(props: IconProps) {
   return (
     <svg {...base} {...props}>

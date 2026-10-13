@@ -1,8 +1,8 @@
 /* The pieces the sections of the Portal Docente share: "Mis clases", the
    space of one classroom and its members. The same look as the sections of
-   the Portal de Padres (MisPequesSection), so both portals feel like one
-   IRIS: the light header card, the white panel with the cards that lift,
-   the dashed card to add, and the option cards. */
+   the Portal de Padres, so both portals feel like one IRIS: the header of
+   an open classroom and the white panel. The class tiles are in ClassTiles,
+   the options of a class in OptionsPanel and the banner in PortalBanner. */
 
 .section {
   display: flex;
@@ -19,50 +19,6 @@
 .error {
   font-weight: 700;
   color: var(--color-error);
-}
-
-/* A light card, like the headings of Horizon UI: white, with two soft sky
-   circles in the corner. */
-.hero {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 24px;
-  border-radius: var(--portal-radius, var(--radius-large));
-  background:
-    radial-gradient(
-      circle at 100% 0%,
-      color-mix(in srgb, var(--landing-sky) 20%, transparent) 0 150px,
-      transparent 151px
-    ),
-    radial-gradient(
-      circle at 88% 135%,
-      color-mix(in srgb, var(--color-iris-medium) 10%, transparent) 0 110px,
-      transparent 111px
-    ),
-    var(--color-surface);
-  color: var(--color-iris-deep);
-  box-shadow: var(--shadow-card);
-}
-
-.heroBadge {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--color-canvas);
-  color: var(--color-iris-medium);
-  box-shadow:
-    0 0 0 6px var(--color-surface),
-    0 0 0 7px var(--landing-sky-pale);
-}
-
-.heroText {
-  flex: 1;
-  min-width: 0;
 }
 
 .eyebrow {
@@ -163,7 +119,7 @@
   align-self: flex-start;
 }
 
-/* --- The classrooms go on a white panel, like the kids' profiles --- */
+/* --- A white panel, like the kids' classes --- */
 .panel {
   display: flex;
   flex-direction: column;
@@ -175,31 +131,12 @@
   box-shadow: var(--shadow-soft);
 }
 
-/* A bit wider than the kids' cards, so the three numbers fit side by side. */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* Each card fills its cell, so they all end up the same height. */
-.grid li {
-  display: flex;
-}
-
-.classCard:focus-visible,
-.optionCard:focus-visible,
-.backButton:focus-visible,
-.addCard:focus-visible {
+.backButton:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 
 /* Each classroom brings its own color to its band. */
-.classCard,
 .spaceHeader {
   --class-color: var(--color-iris-medium);
 }
@@ -220,36 +157,8 @@
   --class-color: var(--color-gold);
 }
 
-/* A classroom as a profile card: the band of its color, its avatar in the
-   middle, its name and three numbers. */
-.classCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  padding: 14px 14px 0;
-  border: 1px solid color-mix(in srgb, var(--color-iris-medium) 35%, var(--color-surface));
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
-  font: inherit;
-  text-align: center;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-.classCard:hover {
-  border-color: var(--color-iris-medium);
-  box-shadow: var(--shadow-lift);
-  transform: translateY(-3px);
-}
-
 /* The band takes the classroom's color, lightened with white, with two
    soft circles on it. */
-.cardBanner,
 .spaceBanner {
   align-self: stretch;
   border-radius: 14px;
@@ -271,98 +180,10 @@
     );
 }
 
-.cardBanner {
-  height: 86px;
-}
-
 /* An archived class keeps its color, faded, so it reads as put away. */
-.classCard[data-archived="true"] .cardBanner,
 .spaceHeader[data-archived="true"] .spaceBanner {
   filter: grayscale(0.75);
   opacity: 0.7;
-}
-
-/* "Ver clases archivadas": a quiet row that opens the archived ones. */
-.disclosure {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  width: 100%;
-  padding: 4px 0;
-  border: none;
-  background: none;
-  color: var(--color-iris-deep);
-  font: inherit;
-  font-weight: 700;
-  text-align: left;
-  cursor: pointer;
-}
-
-.disclosure:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 3px;
-  border-radius: var(--radius-small);
-}
-
-.disclosure svg {
-  transition: transform 200ms ease;
-}
-
-.disclosure[aria-expanded="true"] svg {
-  transform: rotate(180deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .disclosure svg {
-    transition: none;
-  }
-}
-
-/* On top of the band, also when an archived one fades. */
-.cardAvatar {
-  margin: -38px 0 8px;
-  position: relative;
-  padding: 4px;
-  border-radius: 26%;
-  background: var(--color-surface);
-}
-
-.cardStats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-self: stretch;
-  margin-top: 16px;
-}
-
-.cardStat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.cardStatValue {
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--color-iris-deep);
-}
-
-.cardStatLabel {
-  font-size: 0.76rem;
-  color: var(--color-ink-soft);
-}
-
-/* Requests waiting stand out in the IRIS blue. */
-.cardStat[data-pending="true"] .cardStatValue {
-  color: var(--color-iris-medium);
-}
-
-.cardStats + .cardAction {
-  margin: 14px 0 0;
-  padding-bottom: 14px;
 }
 
 /* The header of an open classroom: the band of its color on top and the
@@ -407,98 +228,6 @@
   padding-top: 14px;
 }
 
-/* The card to create a classroom: same size as the others, but dashed and
-   without a white fill, so it reads as an empty spot. */
-.addCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  width: 100%;
-  padding: var(--space-5) var(--space-4) var(--space-4);
-  border: 2px dashed var(--color-iris-medium);
-  border-radius: var(--radius-large);
-  background: transparent;
-  font: inherit;
-  cursor: pointer;
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-/* It lifts like the other cards, fills in white and the plus turns a bit. */
-.addCard:hover {
-  background: var(--color-surface);
-  border-color: var(--color-iris-deep);
-  box-shadow: var(--shadow-card);
-  transform: translateY(-3px);
-}
-
-.addCard:hover .addIcon {
-  background: var(--color-iris-deep);
-  color: var(--color-surface);
-  transform: rotate(90deg) scale(1.06);
-}
-
-/* Same size as an avatar with its rings. */
-.addIcon {
-  display: grid;
-  place-items: center;
-  width: 88px;
-  height: 88px;
-  margin-bottom: var(--space-3);
-  border-radius: 50%;
-  background: var(--color-iris-pale);
-  color: var(--color-iris-deep);
-  transition:
-    background 160ms ease,
-    color 160ms ease,
-    transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.addTitle {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-iris-deep);
-}
-
-.cardName {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-iris-deep);
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-
-.cardAudience {
-  font-size: 0.9rem;
-  color: var(--color-ink-soft);
-  text-align: center;
-}
-
-.cardAction {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  align-self: stretch;
-  justify-content: center;
-  margin-top: auto;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-iris-pale);
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--color-iris-medium);
-}
-
-.classCard:hover .cardAction {
-  color: var(--color-iris-deep);
-}
-
 /* --- Nothing yet --- */
 .empty {
   display: flex;
@@ -512,8 +241,7 @@
   text-align: center;
 }
 
-.emptyIcon,
-.optionIcon {
+.emptyIcon {
   flex: none;
   display: grid;
   place-items: center;
@@ -559,64 +287,6 @@
 
 .backButton:hover {
   background: var(--color-iris-pale);
-}
-
-.options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-
-.optionCard {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
-}
-
-.optionCard:hover {
-  border-color: var(--color-iris-medium);
-  box-shadow: var(--shadow-card);
-}
-
-.optionText {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.optionTitle {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-iris-deep);
-}
-
-.optionHint {
-  font-size: 0.9rem;
-  color: var(--color-ink-soft);
-}
-
-.optionArrow {
-  flex: none;
-  color: var(--color-iris-medium);
-  transition: transform 160ms ease;
-}
-
-.optionCard:hover .optionArrow {
-  transform: translateX(3px);
 }
 
 /* --- Lists of people (members, requests) --- */
@@ -696,8 +366,9 @@
   text-decoration: none;
   cursor: pointer;
   transition:
-    background 120ms ease,
-    border-color 120ms ease;
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 120ms ease;
 }
 
 .primaryButton {
@@ -716,8 +387,15 @@
   color: var(--color-iris-deep);
 }
 
-.secondaryButton:hover {
-  border-color: var(--color-iris-deep);
+/* Under the mouse, the light sky of the other buttons of the portals
+   fills it, quietly. Pressed, it sinks a little. */
+.secondaryButton:hover:not(:disabled) {
+  background: var(--landing-mist-1);
+}
+
+.secondaryButton:active:not(:disabled),
+.dangerButton:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .dangerButton {
@@ -727,8 +405,9 @@
   color: var(--color-error);
 }
 
-.dangerButton:hover {
-  background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+/* The same, in a very soft red. */
+.dangerButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 7%, var(--color-surface));
 }
 
 .primaryButton:focus-visible,
@@ -753,11 +432,6 @@
 }
 
 @media (max-width: 720px) {
-  .hero {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .heroActions {
     flex-direction: row;
   }
@@ -768,10 +442,6 @@
 
   .spaceBody {
     flex-basis: calc(100% - 120px);
-  }
-
-  .options {
-    grid-template-columns: 1fr;
   }
 
   .row {
@@ -785,21 +455,34 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .classCard,
-  .addCard,
-  .addIcon,
-  .optionCard,
-  .optionArrow,
   .primaryButton,
   .secondaryButton,
   .dangerButton {
     transition: none;
   }
 
-  .classCard:hover,
-  .addCard:hover,
-  .addCard:hover .addIcon,
-  .optionCard:hover .optionArrow {
+  .secondaryButton:active:not(:disabled),
+  .dangerButton:active:not(:disabled) {
     transform: none;
   }
+}
+
+/* Under a class tile in Mis clases: its students and, in blue, the
+   requests waiting, like the "en espera" of the kids' classes. */
+.tileCount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.tileWaiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  color: var(--color-iris-medium);
 }

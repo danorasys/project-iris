@@ -1,5 +1,6 @@
 /* "Sus clases" of a kid: a white panel with the classes as square tiles
-   ("Agregar clase" first), and another with the requests sent. */
+   ("Agregar clase" first), and another with the requests sent. The tiles,
+   the title line and the search box are in ClassTiles.module.css. */
 .section {
   display: flex;
   flex-direction: column;
@@ -28,242 +29,10 @@
   box-shadow: var(--shadow-soft);
 }
 
-/* Gray and small, like the headings of the kids' list. */
-.panelTitle {
-  margin: 0;
-  font-family: inherit;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-ink-soft);
-}
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-iris-pale);
-}
-
-/* The search box, a soft pill that turns blue while typing. */
-.search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: min(320px, 100%);
-  padding: 0 14px;
-  border: 1.5px solid var(--color-iris-pale);
-  border-radius: 999px;
-  background: var(--color-canvas);
-  color: var(--color-ink-soft);
-  transition:
-    border-color 120ms ease,
-    box-shadow 160ms ease;
-}
-
-.search:focus-within {
-  border-color: var(--color-focus);
-  box-shadow: var(--focus-halo);
-  color: var(--color-iris-medium);
-}
-
-.search input {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 0;
-  border: none;
-  background: transparent;
-  color: var(--color-ink);
-  font: inherit;
-}
-
-.search input:focus {
-  outline: none;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* Square tiles: the class on lavender, rising a little under the mouse. */
-.tile,
-.addTile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  aspect-ratio: 1;
-  padding: var(--space-3);
-  border-radius: 20px;
-  font: inherit;
-  text-align: center;
-  cursor: pointer;
-  transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    background 160ms ease,
-    border-color 160ms ease;
-}
-
-/* White at rest with a pale border, and the light tone on hover. */
-.tile {
-  justify-content: flex-start;
-  padding: 8px 8px var(--space-3);
-  border: 1px solid var(--color-iris-pale);
-  background: var(--color-surface);
-}
-
-/* The avatar hangs from the band, with a ring of the tile's background, and
-   stays on top of it even when an archived one fades. */
-.tileAvatar {
-  position: relative;
-  margin-top: -34px;
-  padding: 4px;
-  border-radius: 26%;
-  background: inherit;
-  transition: background 160ms ease;
-}
-
-.tile:hover {
-  transform: translateY(-2px);
-  background: var(--color-canvas);
-  box-shadow: var(--shadow-soft);
-}
-
-/* Adding is set apart: a dashed blue border and a round plus. */
-.addTile {
-  border: 2px dashed var(--color-iris-medium);
-  background: var(--color-surface);
-  color: var(--color-iris-deep);
-  font-weight: 700;
-}
-
-.addTile:hover {
-  transform: translateY(-2px);
-  background: var(--color-iris-pale);
-}
-
-.addIcon {
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--color-action);
-  color: var(--color-surface);
-}
-
-.tile:focus-visible,
-.addTile:focus-visible,
-.linkButton:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 3px;
-}
-
-/* The name in two lines at most. */
-.tileName {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--color-iris-deep);
-  overflow-wrap: anywhere;
-}
-
-.tileMeta {
-  font-size: 0.8rem;
-  color: var(--portal-muted);
-}
-
 .emptyText {
   margin: 0;
   line-height: 1.5;
   color: var(--color-ink-soft);
-}
-
-/* A kid with no class yet: the same pale box of the other panels, its icon
-   on a white circle and the steps to join one, each with its number. */
-.noClasses {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-medium);
-  background: color-mix(in srgb, var(--color-iris-pale) 25%, var(--color-surface));
-}
-
-.noClassesIcon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--color-surface);
-  box-shadow: 0 0 0 1px var(--color-iris-pale);
-  color: var(--color-iris-medium);
-}
-
-.noClassesBody {
-  min-width: 0;
-}
-
-.noClassesTitle {
-  margin: 2px 0 8px;
-  font-family: var(--font-display);
-  font-size: 1.02rem;
-  color: var(--color-iris-deep);
-}
-
-.noClassesSteps {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-}
-
-.noClassesSteps li {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  line-height: 1.45;
-  color: var(--color-ink);
-  counter-increment: step;
-}
-
-/* The number of each step in a small blue circle. */
-.noClassesSteps li::before {
-  content: counter(step);
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  margin-top: 1px;
-  border-radius: 50%;
-  background: var(--color-action);
-  color: var(--color-surface);
-  font-size: 0.75rem;
-  font-weight: 700;
 }
 
 /* --- The requests sent (HU-41) --- */
@@ -366,31 +135,6 @@
   overflow-wrap: anywhere;
 }
 
-/* A class its teacher archived (HU-106): its band fades, like in the
-   teacher's portal, and a quiet gray tag says so. */
-.faded {
-  filter: grayscale(0.75);
-  opacity: 0.7;
-}
-
-.archivedTag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-ink-soft) 12%, var(--color-surface));
-  color: var(--color-ink-soft);
-  font-size: 0.75rem;
-  font-weight: 700;
-  vertical-align: middle;
-}
-
-.tile .archivedTag {
-  margin: 6px 0 0;
-}
-
 .requestMeta {
   margin: 0;
   font-size: 0.85rem;
@@ -449,33 +193,16 @@
   color: var(--color-iris-deep);
 }
 
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+.linkButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
 }
 
-/* On a phone: the search goes under the count, two tiles per row, and the
-   state of a request under its name. */
+/* On a phone: the filters start on the left and the state of a request
+   goes under its name. */
 @media (max-width: 640px) {
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .search {
-    width: 100%;
-  }
-
   .filters {
     justify-content: flex-start;
-  }
-
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .request {
@@ -497,15 +224,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tile,
-  .addTile,
-  .search,
   .filter {
     transition: none;
-  }
-
-  .tile:hover,
-  .addTile:hover {
-    transform: none;
   }
 }

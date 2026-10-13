@@ -1,14 +1,23 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import type { FamilyClassroom } from "@iris/shared-types";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import { classroomAudience } from "@/features/teacher/classrooms/classroomDetails";
 import { ClassroomAvatar } from "@/features/teacher/classrooms/ClassroomAvatar";
-import { ClassroomBanner } from "@/features/teacher/classrooms/ClassroomBanner";
+import {
+  AddTile,
+  ArchivedTag,
+  ClassTile,
+  TileGrid,
+  TileSearch,
+  TileSteps,
+  TilesToolbar,
+} from "@/features/teacher/classrooms/ClassTiles";
+import { searchable, tilesPerPage, useGridColumns } from "@/features/teacher/classrooms/tilePages";
 import { formatArrival } from "@/features/utils/formatArrival";
 import { useFamilyClassrooms, useLeaveClassroom } from "@/shared/api/hooks/useClassroomsApi";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { IconArchive, IconCheck, IconClassroom, IconClock, IconClose, IconPlus, IconSearch } from "@/shared/ui/icons";
+import { IconCheck, IconClock, IconClose } from "@/shared/ui/icons";
 import { TrayPager } from "@/shared/ui/portal/TrayPager";
 import { Toast } from "@/shared/ui/Toast";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
@@ -17,9 +26,6 @@ import { ClassSpace, type ClassOption } from "../classes/ClassSpace";
 import { isPortalAccessRequired, useWithPortalAccess } from "../portalAccess";
 import styles from "./SusClasesSection.module.css";
 
-// At least this many tiles per page, then up to the end of the last row, so
-// a page never leaves half a row empty. "Agregar clase" counts as one.
-const MIN_TILES_PER_PAGE = 8;
 // Requests are rows, so fewer per page keeps the panel short.
 const REQUESTS_PER_PAGE = 5;
 
@@ -84,35 +90,6 @@ export function SusClasesSection({ studentId, firstName, openId, option, onOpen,
   );
 }
 
-// How many columns the tiles grid has right now. It changes with the
-// width of the window, so it's measured again on every resize.
-function useGridColumns(): [(grid: HTMLUListElement | null) => (() => void) | undefined, number] {
-  const [columns, setColumns] = useState(0);
-  const ref = useCallback((grid: HTMLUListElement | null) => {
-    if (!grid || typeof ResizeObserver === "undefined") return undefined;
-    const measure = () => setColumns(getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length);
-    const observer = new ResizeObserver(measure);
-    observer.observe(grid);
-    measure();
-    return () => observer.disconnect();
-  }, []);
-  return [ref, columns];
-}
-
-// Whole rows only: 6 columns give 12 tiles, 4 give 8, 3 give 9.
-function tilesPerPage(columns: number): number {
-  if (columns < 1) return MIN_TILES_PER_PAGE;
-  return columns * Math.max(2, Math.ceil(MIN_TILES_PER_PAGE / columns));
-}
-
-// Lowercase and without accents, so "matematicas" finds "Matemáticas".
-function searchable(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
-
 interface ClassesHomeProps {
   studentId: string;
   firstName: string;
@@ -151,46 +128,44 @@ function ClassesHome({ studentId, firstName, onOpen, onAdd }: ClassesHomeProps) 
   return (
     <>
       <section className={styles.panel} aria-labelledby="kid-classes-title">
-        <div className={styles.toolbar}>
-          <h2 id="kid-classes-title" className={styles.panelTitle}>
-            {classesTitle(inside)}
-          </h2>
-          <label className={styles.search}>
-            <IconSearch width={18} height={18} aria-hidden="true" />
-            <span className={styles.visuallyHidden}>Buscar una clase por su nombre</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Buscar una clase"
-              autoComplete="off"
-            />
-          </label>
-        </div>
+        <TilesToolbar titleId="kid-classes-title" title={classesTitle(inside)}>
+          <TileSearch
+            value={query}
+            onChange={(value) => {
+              setQuery(value);
+              setPage(1);
+            }}
+            label="Buscar una clase por su nombre"
+          />
+        </TilesToolbar>
 
-        <ul ref={gridRef} className={styles.grid}>
+        <TileGrid gridRef={gridRef}>
           {shown.map((tile) =>
             tile === "add" ? (
               <li key="add">
-                <button type="button" className={styles.addTile} onClick={onAdd}>
-                  <span className={styles.addIcon} aria-hidden="true">
-                    <IconPlus width={26} height={26} />
-                  </span>
-                  Agregar clase
-                </button>
+                <AddTile label="Agregar clase" onClick={onAdd} />
               </li>
             ) : (
               <li key={tile.enrollment_id}>
-                <ClassTile item={tile} onOpen={() => onOpen(tile.enrollment_id)} />
+                <KidClassTile item={tile} onOpen={() => onOpen(tile.enrollment_id)} />
               </li>
             ),
           )}
-        </ul>
+        </TileGrid>
 
-        {inside.length === 0 && <NoClassesYet firstName={firstName} />}
+        {/* While the kid has no class: how to join the first one, in the
+            same order the family does it. */}
+        {inside.length === 0 && (
+          <TileSteps
+            titleId="no-classes-title"
+            title={`${firstName} aún no está en ninguna clase`}
+            steps={[
+              "Pídele al docente el código de ingreso de su clase.",
+              'Toca "Agregar clase" y escribe el código.',
+              "Cuando el docente acepte la solicitud, la clase aparecerá aquí.",
+            ]}
+          />
+        )}
         {inside.length > 0 && found.length === 0 && (
           <p className={styles.emptyText} role="status">
             Ninguna clase de {firstName} se llama así.
@@ -205,55 +180,16 @@ function ClassesHome({ studentId, firstName, onOpen, onAdd }: ClassesHomeProps) 
   );
 }
 
-// While the kid has no class: a pale box with how to join the first one,
-// step by step, in the same order the family does it.
-function NoClassesYet({ firstName }: { firstName: string }) {
+// One of the kid's classes, with its teacher in the words read aloud.
+function KidClassTile({ item, onOpen }: { item: FamilyClassroom; onOpen: () => void }) {
   return (
-    <section className={styles.noClasses} aria-labelledby="no-classes-title">
-      <span className={styles.noClassesIcon} aria-hidden="true">
-        <IconClassroom width={22} height={22} />
-      </span>
-      <div className={styles.noClassesBody}>
-        <h3 id="no-classes-title" className={styles.noClassesTitle}>
-          {firstName} aún no está en ninguna clase
-        </h3>
-        <ol className={styles.noClassesSteps}>
-          <li>Pídele al docente el código de ingreso de su clase.</li>
-          <li>Toca "Agregar clase" y escribe el código.</li>
-          <li>Cuando el docente acepte la solicitud, la clase aparecerá aquí.</li>
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-// One class as a tile: the band of its color with its avatar (or logo)
-// hanging from it, its name and who it's for. Opens its space.
-function ClassTile({ item, onOpen }: { item: FamilyClassroom; onOpen: () => void }) {
-  const audience = classroomAudience(item.area, item.grade, item.area_other);
-  return (
-    <button
-      type="button"
-      className={styles.tile}
-      onClick={onOpen}
-      aria-label={`${item.name}${item.teacher_name ? `, con ${item.teacher_name}` : ""}${item.archived_at ? ", archivada" : ""}. Ver la clase`}
-    >
-      <ClassroomBanner color={item.color} height={60} className={item.archived_at ? styles.faded : undefined} />
-      <span className={styles.tileAvatar}>
-        <ClassroomAvatar
-          classroom={{ id: item.classroom_id, name: item.name, color: item.color, logo_file: item.logo_file }}
-          size={60}
-        />
-      </span>
-      <span className={styles.tileName}>{item.name}</span>
-      {audience && <span className={styles.tileMeta}>{audience}</span>}
-      {item.archived_at && (
-        <span className={styles.archivedTag}>
-          <IconArchive width={13} height={13} aria-hidden="true" />
-          Archivada
-        </span>
-      )}
-    </button>
+    <ClassTile
+      classroom={{ id: item.classroom_id, name: item.name, color: item.color, logo_file: item.logo_file }}
+      meta={classroomAudience(item.area, item.grade, item.area_other)}
+      archived={Boolean(item.archived_at)}
+      label={`${item.name}${item.teacher_name ? `, con ${item.teacher_name}` : ""}${item.archived_at ? ", archivada" : ""}. Ver la clase`}
+      onOpen={onOpen}
+    />
   );
 }
 
@@ -323,10 +259,7 @@ function SentRequests({
 
   return (
     <section className={styles.panel} aria-labelledby="kid-requests-title">
-      <div className={styles.toolbar}>
-        <h2 id="kid-requests-title" className={styles.panelTitle}>
-          Solicitudes enviadas
-        </h2>
+      <TilesToolbar titleId="kid-requests-title" title="Solicitudes enviadas">
         <div className={styles.filters} role="group" aria-label="Ver las solicitudes por estado">
           {FILTERS.map(({ value, label }) => (
             <button
@@ -341,7 +274,7 @@ function SentRequests({
             </button>
           ))}
         </div>
-      </div>
+      </TilesToolbar>
       {error && (
         <p role="alert" className={`${styles.status} ${styles.error}`}>
           {error}
@@ -362,12 +295,7 @@ function SentRequests({
             <div className={styles.requestText}>
               <p className={styles.requestName}>
                 {item.name}
-                {item.archived_at && item.status === "aceptada" && (
-                  <span className={styles.archivedTag}>
-                    <IconArchive width={13} height={13} aria-hidden="true" />
-                    Clase archivada
-                  </span>
-                )}
+                {item.archived_at && item.status === "aceptada" && <ArchivedTag label="Clase archivada" />}
               </p>
               <p className={styles.requestMeta}>
                 {item.teacher_name ? `Con ${item.teacher_name} · ` : ""}

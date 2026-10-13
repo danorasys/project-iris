@@ -2,48 +2,150 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  width: 100%;
 }
 
-/* The same rounded square as the avatar, so the teacher sees how it ends up. */
-.canvas {
-  width: 240px;
-  height: 240px;
-  border-radius: 24%;
-  background: var(--color-canvas);
-  box-shadow:
-    0 0 0 5px var(--color-iris-pale),
-    0 0 0 6px var(--color-iris-medium);
+/* The stage: a soft checkered floor (so a transparent picture shows), the
+   picture on it and the shade around the frame, drawn by the canvas. Its
+   `color` is the deep blue the canvas uses for that shade. */
+.stage {
+  width: 300px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-large);
+  background:
+    repeating-conic-gradient(var(--color-canvas) 0 25%, var(--color-surface) 0 50%) 0 0 / 20px 20px;
+  box-shadow: 0 0 0 1px var(--color-iris-pale);
+  color: var(--color-iris-deep);
   cursor: grab;
   touch-action: none;
 }
 
-.canvas:active {
+.stage:active {
   cursor: grabbing;
 }
 
-.canvas:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 8px;
+.stage:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow:
+    0 0 0 1px var(--color-iris-pale),
+    var(--focus-halo);
 }
 
-.zoom {
+/* The tools on a light panel, like the search boxes of the portals: the
+   zoom on top, the whole width, and under it turn, mirror and start over,
+   apart by a thin line. */
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(360px, 100%);
+  padding: 10px 12px;
+  border: 1px solid var(--color-iris-pale);
+  border-radius: 18px;
+  background: var(--color-canvas);
+}
+
+.zoom,
+.actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--color-ink-soft);
+  gap: 8px;
 }
 
 .zoom input {
-  width: 180px;
+  flex: 1;
+  min-width: 0;
   accent-color: var(--color-iris-medium);
+}
+
+.actions {
+  justify-content: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.percent {
+  min-width: 46px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-iris-deep);
+}
+
+/* Round white buttons with the icon in blue, sky blue under the mouse. */
+.tool {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--color-iris-pale);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-iris-medium);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.tool:hover:not(:disabled) {
+  background: var(--landing-mist-1, var(--color-iris-pale));
+  color: var(--color-iris-deep);
+}
+
+/* Mirrored right now: the button stays filled. */
+.tool[aria-pressed="true"] {
+  border-color: var(--color-iris-medium);
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+}
+
+.reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-iris-medium);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reset:hover:not(:disabled) {
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.tool:focus-visible,
+.reset:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+.tool:disabled,
+.reset:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .hint {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: center;
   color: var(--color-ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool {
+    transition: none;
+  }
 }

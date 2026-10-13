@@ -1,4 +1,4 @@
-import { useState, type ComponentType, type SVGProps } from "react";
+import { useState } from "react";
 import type { Classroom } from "@iris/shared-types";
 import { getAuthErrorMessage } from "@/features/auth/errors";
 import {
@@ -10,11 +10,11 @@ import {
 } from "@/shared/api/hooks/useClassroomsApi";
 import { formatDay } from "@/features/utils/formatArrival";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { OptionsPanel, type OptionItem } from "@/shared/ui/portal/OptionsPanel";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
 import {
   IconArchive,
   IconArrowLeft,
-  IconArrowRight,
   IconBook,
   IconChart,
   IconChild,
@@ -42,18 +42,11 @@ interface ClassroomSpaceProps {
   onToast: (message: string) => void;
 }
 
-interface Option {
-  view: Exclude<ClassroomView, "inicio">;
-  title: string;
-  hint: string;
-  Icon: ComponentType<SVGProps<SVGSVGElement>>;
-}
-
-const OPTIONS: Option[] = [
-  { view: "miembros", title: "Miembros", hint: "Tus estudiantes y sus familias", Icon: IconChild },
-  { view: "lecciones", title: "Unidades y lecciones", hint: "Organiza y publica el material", Icon: IconBook },
-  { view: "mensajes", title: "Mensajes", hint: "Escríbele a un estudiante o a su tutor", Icon: IconMessage },
-  { view: "estadisticas", title: "Estadísticas", hint: "El avance de la clase", Icon: IconChart },
+const OPTIONS: OptionItem<Exclude<ClassroomView, "inicio">>[] = [
+  { id: "miembros", title: "Miembros", hint: "Tus estudiantes y sus familias", Icon: IconChild },
+  { id: "lecciones", title: "Unidades y lecciones", hint: "Organiza y publica el material", Icon: IconBook },
+  { id: "mensajes", title: "Mensajes", hint: "Escríbele a un estudiante o a su tutor", Icon: IconMessage },
+  { id: "estadisticas", title: "Estadísticas", hint: "El avance de la clase", Icon: IconChart },
 ];
 
 // What each button of the header asks before doing it.
@@ -61,7 +54,7 @@ type Confirming = "archive" | "delete" | null;
 
 /** The space of one classroom (HU-74): a header with a band of its color,
  * its avatar, name, code and students, "Editar" (HU-90) and "Archivar"
- * (HU-105), and its options as cards like a kid's space in the Portal de
+ * (HU-105), and its options as a list like a kid's class in the Portal de
  * Padres (members, lessons, messages and statistics). An archived class is
  * only for reading: it says so, and offers "Restaurar" and "Eliminar"
  * (HU-85), the only way to delete one. */
@@ -125,8 +118,8 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
   const audience = classroomAudience(classroom.area, classroom.grade, classroom.area_other);
   const archived = Boolean(classroom.archived_at);
   // Nothing can be sent from an archived class, so its messages are out.
-  const options = archived ? OPTIONS.filter((option) => option.view !== "mensajes") : OPTIONS;
-  const current = options.find((option) => option.view === view) ?? null;
+  const options = archived ? OPTIONS.filter((option) => option.id !== "mensajes") : OPTIONS;
+  const current = options.find((option) => option.id === view) ?? null;
 
   return (
     <div className={styles.section}>
@@ -226,20 +219,14 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
       {/* Under the header, the option or the menu of options, with the
           entrance every time one is opened or closed. */}
       <ViewEnter view={view} level={current ? 1 : 0} className={styles.section}>
+        {/* One under the other, like the options of a kid's class. */}
         {!current && (
-          <div className={styles.options}>
-            {options.map(({ view: target, title, hint, Icon }) => (
-              <button key={target} type="button" className={styles.optionCard} onClick={() => setView(target)}>
-                <span className={styles.optionIcon} aria-hidden="true">
-                  <Icon width={20} height={20} />
-                </span>
-                <span className={styles.optionText}>
-                  <span className={styles.optionTitle}>{title}</span> <span className={styles.optionHint}>{hint}</span>
-                </span>
-                <IconArrowRight width={18} height={18} className={styles.optionArrow} />
-              </button>
-            ))}
-          </div>
+          <OptionsPanel
+            titleId="classroom-options-title"
+            title="Opciones de la clase"
+            options={options}
+            onPick={setView}
+          />
         )}
 
         {view === "miembros" && <MembersPanel classroom={classroom} onToast={onToast} readOnly={archived} />}

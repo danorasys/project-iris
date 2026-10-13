@@ -1,0 +1,115 @@
+/* The options of a space (OptionsPanel.tsx): a white panel with a row per
+   option, one under the other, split by thin lines and lavender under the
+   mouse. */
+.optionsPanel {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Gray and small, like the headings of the kids' list. Other panels of a
+   space use it for their own title too. */
+.optionsTitle {
+  margin: 0;
+  padding: 0 14px 12px;
+  border-bottom: 1px solid var(--color-iris-pale);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.optionList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.optionList li + li .optionRow {
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.optionRow:hover {
+  background: var(--color-canvas);
+}
+
+.optionRow:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.optionIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.optionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.optionTitle {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.optionHint {
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+}
+
+.optionArrow {
+  flex: none;
+  color: var(--color-iris-medium);
+  transition: transform 160ms ease;
+}
+
+.optionRow:hover .optionArrow {
+  transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .optionRow,
+  .optionArrow {
+    transition: none;
+  }
+
+  .optionRow:hover .optionArrow {
+    transform: none;
+  }
+}

@@ -1,0 +1,302 @@
+/* The classes as square tiles (ClassTiles.tsx), the same in the teacher's
+   "Mis clases" and in a kid's "Sus clases". */
+
+/* Gray and small, like the headings of the kids' list. */
+.panelTitle {
+  margin: 0;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-iris-pale);
+}
+
+/* The search box, a soft pill that turns blue while typing. */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(320px, 100%);
+  padding: 0 14px;
+  border: 1.5px solid var(--color-iris-pale);
+  border-radius: 999px;
+  background: var(--color-canvas);
+  color: var(--color-ink-soft);
+  transition:
+    border-color 120ms ease,
+    box-shadow 160ms ease;
+}
+
+.search:focus-within {
+  border-color: var(--color-focus);
+  box-shadow: var(--focus-halo);
+  color: var(--color-iris-medium);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.search input:focus {
+  outline: none;
+}
+
+/* Every row as tall as the tallest tile, so a tile with more lines (a long
+   name, the teacher's line of students) doesn't stick out of its row. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid > li {
+  display: flex;
+}
+
+/* Square tiles: the class on lavender, rising a little under the mouse. */
+.tile,
+.addTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: var(--space-3);
+  border-radius: 20px;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+/* White at rest with a pale border, and the light tone on hover. */
+.tile {
+  justify-content: flex-start;
+  padding: 8px 8px var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  background: var(--color-surface);
+}
+
+/* The avatar hangs from the band, with a ring of the tile's background, and
+   stays on top of it even when an archived one fades. */
+.tileAvatar {
+  position: relative;
+  margin-top: -34px;
+  padding: 4px;
+  border-radius: 26%;
+  background: inherit;
+  transition: background 160ms ease;
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+  background: var(--color-canvas);
+  box-shadow: var(--shadow-soft);
+}
+
+.addTile {
+  border: 2px dashed var(--color-iris-medium);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+  font-weight: 700;
+}
+
+.addTile:hover {
+  transform: translateY(-2px);
+  background: var(--color-iris-pale);
+}
+
+.addIcon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
+.tile:focus-visible,
+.addTile:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* The name in two lines at most. */
+.tileName {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.tileMeta {
+  font-size: 0.8rem;
+  color: var(--portal-muted);
+}
+
+/* An archived class: its band fades, like in the teacher's portal, and a
+   quiet gray tag says so. */
+.faded {
+  filter: grayscale(0.75);
+  opacity: 0.7;
+}
+
+.archivedTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink-soft) 12%, var(--color-surface));
+  color: var(--color-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.tile .archivedTag {
+  margin: 6px 0 0;
+}
+
+/* No class yet: the same pale box of the other panels, its icon on a
+   white circle and the steps, each with its number. */
+.steps {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-iris-pale) 25%, var(--color-surface));
+}
+
+.stepsIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-iris-pale);
+  color: var(--color-iris-medium);
+}
+
+.stepsBody {
+  min-width: 0;
+}
+
+.stepsTitle {
+  margin: 2px 0 8px;
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  color: var(--color-iris-deep);
+}
+
+.stepsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.stepsList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.45;
+  color: var(--color-ink);
+  counter-increment: step;
+}
+
+/* The number of each step in a small blue circle. */
+.stepsList li::before {
+  content: counter(step);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--color-action);
+  color: var(--color-surface);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* On a phone: the search goes under the title and two tiles per row. */
+@media (max-width: 640px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search {
+    width: 100%;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .addTile,
+  .search {
+    transition: none;
+  }
+
+  .tile:hover,
+  .addTile:hover {
+    transform: none;
+  }
+}

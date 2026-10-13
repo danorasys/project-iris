@@ -118,16 +118,32 @@ afterEach(() => {
 });
 
 describe("Mis clases", { timeout: 20_000 }, () => {
-  it("shows each classroom with its initials and its pending requests", () => {
+  it("shows each classroom as a tile, like a kid's classes, with its students and requests", () => {
     renderSection();
 
-    const card = screen.getByRole("button", { name: /Matemáticas Básicas/ });
-    expect(within(card).getByText("MB")).toBeTruthy();
-    expect(within(card).getByText("2")).toBeTruthy();
-    expect(within(card).getByText("Matemáticas · 2.°")).toBeTruthy();
+    const panel = within(screen.getByRole("region", { name: "1 clase" }));
+    const tiles = panel.getAllByRole("listitem");
+    // "Nueva clase" goes first, then the classes.
+    expect(within(tiles[0]).getByRole("button", { name: "Nueva clase" })).toBeTruthy();
+    const tile = panel.getByRole("button", { name: "Matemáticas Básicas: Sin estudiantes, 2 en espera. Ver la clase" });
+    expect(within(tile).getByText("MB")).toBeTruthy();
+    expect(within(tile).getByText("Matemáticas · 2.°")).toBeTruthy();
+    expect(within(tile).getByText("2 en espera")).toBeTruthy();
     expect(screen.getByText("2 solicitudes pendientes")).toBeTruthy();
-    expect(within(card).getByText("3")).toBeTruthy();
-    expect(within(card).getByText("Lecciones")).toBeTruthy();
+  });
+
+  it("finds a classroom by its name, with or without accents", async () => {
+    classrooms = [math, { ...math, id: "c5", name: "Ciencias", pending_requests: 0 }];
+    const user = userEvent.setup({ delay: null });
+    renderSection();
+
+    await user.type(screen.getByRole("searchbox", { name: "Buscar una de tus clases por su nombre" }), "matematicas");
+    expect(screen.getByRole("button", { name: /^Matemáticas Básicas/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Ciencias/ })).toBeNull();
+
+    await user.clear(screen.getByRole("searchbox"));
+    await user.type(screen.getByRole("searchbox"), "historia");
+    expect(screen.getByText("Ninguna de tus clases se llama así.")).toBeTruthy();
   });
 
   it("asks for the name and description before creating a classroom", async () => {
@@ -305,20 +321,20 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     expect(screen.getByRole("button", { name: "Nueva clase" })).toBeTruthy();
   });
 
-  it("keeps the archived classrooms folded under the active ones", async () => {
-    classrooms = [math, { ...math, id: "c9", name: "Arte 2023", pending_requests: 0, archived_at: archivedAt }];
-    const user = userEvent.setup({ delay: null });
+  it("puts the archived classrooms after the active ones, faded and tagged", () => {
+    classrooms = [
+      { ...math, id: "c9", name: "Arte 2023", pending_requests: 0, archived_at: archivedAt },
+      math,
+    ];
     renderSection();
 
-    expect(screen.getByText("1 clase")).toBeTruthy();
-    expect(screen.getByText("1 archivada")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Arte 2023/ })).toBeNull();
-
-    await user.click(screen.getByRole("button", { name: "Ver clases archivadas (1)" }));
-
-    const card = screen.getByRole("button", { name: /Arte 2023/ });
-    expect(within(card).getByText("Archivada")).toBeTruthy();
-    expect(within(card).getByText("Ver la clase")).toBeTruthy();
+    const panel = within(screen.getByRole("region", { name: "1 clase · 1 archivada" }));
+    const names = panel.getAllByRole("button").map((tile) => tile.getAttribute("aria-label") ?? tile.textContent);
+    expect(names[0]).toBe("Nueva clase");
+    expect(names[1]).toMatch(/^Matemáticas Básicas/);
+    expect(names[2]).toMatch(/^Arte 2023, archivada/);
+    const archived = panel.getByRole("button", { name: /^Arte 2023/ });
+    expect(within(archived).getByText("Archivada")).toBeTruthy();
   });
 
   it("edits a classroom from its space", async () => {
@@ -379,10 +395,12 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     expect(await screen.findByText("Tomás ya es parte de la clase.")).toBeTruthy();
   });
 
-  it("says plainly when there are no classrooms yet", () => {
+  it("without classrooms shows the steps to start, like a kid without classes", () => {
     classrooms = [];
     renderSection();
 
-    expect(screen.getByText("Todavía no tienes clases")).toBeTruthy();
+    const steps = within(screen.getByRole("region", { name: "Todavía no tienes clases" }));
+    expect(steps.getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.getByRole("button", { name: "Nueva clase" })).toBeTruthy();
   });
 });

@@ -1,13 +1,15 @@
 import { useState } from "react";
 import type { Classroom, TeacherClassroom } from "@iris/shared-types";
 import { useTeacherClassrooms } from "@/shared/api/hooks/useClassroomsApi";
-import { useContentSummary } from "@/shared/api/hooks/useLessonsApi";
-import { IconArchive, IconArrowDown, IconArrowRight, IconClassroom, IconPlus } from "@/shared/ui/icons";
+import { IconClassroom, IconClock } from "@/shared/ui/icons";
+import { Highlight, PortalBanner } from "@/shared/ui/portal/PortalBanner";
+import { TrayPager } from "@/shared/ui/portal/TrayPager";
 import { Toast } from "@/shared/ui/Toast";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
-import { ClassroomAvatar } from "../../classrooms/ClassroomAvatar";
 import { classroomAudience } from "../../classrooms/classroomDetails";
 import { ClassroomFormDialog } from "../../classrooms/ClassroomFormDialog";
+import { AddTile, ClassTile, TileGrid, TileSearch, TileSteps, TilesToolbar } from "../../classrooms/ClassTiles";
+import { searchable, tilesPerPage, useGridColumns } from "../../classrooms/tilePages";
 import { ClassroomSpace, type ClassroomView } from "./ClassroomSpace";
 import styles from "../portalSection.module.css";
 
@@ -19,19 +21,16 @@ interface ClassroomsSectionProps {
   startCreating?: boolean;
 }
 
-/** "Mis clases" (HU-73), laid out like "Mis peques" of the Portal de
- * Padres: a light header with how many classes and requests there are, and
- * a white panel with the classrooms and the dashed card to create one. Each
- * classroom is a profile card: a band of its color, its avatar, who it's
- * for and three numbers (students, published lessons and requests).
- * Picking a card opens that classroom (HU-74). The archived ones (HU-105)
- * wait folded under the active ones, faded. */
+/** "Mis clases" (HU-73), laid out like a kid's "Sus clases" in the Portal
+ * de Padres: the banner of Inicio with how many classes and requests there are,
+ * and a white panel with the classes as square tiles, "Nueva clase" first,
+ * a search box and pages. Each tile shows who the class is for and its
+ * students. Picking one opens that classroom (HU-74). The archived ones
+ * (HU-105) go after the active ones, faded. */
 export function ClassroomsSection({ initialClassroomId, initialView, startCreating = false }: ClassroomsSectionProps) {
   const classrooms = useTeacherClassrooms();
-  const summary = useContentSummary();
   const [openId, setOpenId] = useState<string | null>(initialClassroomId ?? null);
   const [creating, setCreating] = useState(startCreating);
-  const [showArchived, setShowArchived] = useState(false);
   // Here and not in the classroom's space, so it stays when going back.
   const [toast, setToast] = useState<string | null>(null);
 
@@ -69,103 +68,31 @@ export function ClassroomsSection({ initialClassroomId, initialView, startCreati
   }
 
   const all = classrooms.data ?? [];
-  const list = all.filter((classroom) => !classroom.archived_at);
+  const active = all.filter((classroom) => !classroom.archived_at);
   const archived = all.filter((classroom) => classroom.archived_at);
-  const pending = list.reduce((total, classroom) => total + classroom.pending_requests, 0);
-  const published = new Map((summary.data ?? []).map((item) => [item.classroom_id, item.published_lessons]));
+  const pending = active.reduce((total, classroom) => total + classroom.pending_requests, 0);
 
   return (
     <>
       <ViewEnter view="list">
         <div className={styles.section}>
-          <header className={styles.hero}>
-            <span className={styles.heroBadge} aria-hidden="true">
-              <IconClassroom width={34} height={34} />
-            </span>
-            <div className={styles.heroText}>
-              <p className={styles.eyebrow}>Mis clases</p>
-              <h1 className={styles.heroTitle}>Tus clases</h1>
-              <p className={styles.heroMeta}>
-                <span className={styles.chip}>{list.length === 1 ? "1 clase" : `${list.length} clases`}</span>
-                {archived.length > 0 && (
-                  <span className={styles.archivedChip}>
-                    {archived.length === 1 ? "1 archivada" : `${archived.length} archivadas`}
-                  </span>
-                )}
-                {pending > 0 && (
-                  <span className={styles.pendingChip}>
-                    {pending === 1 ? "1 solicitud pendiente" : `${pending} solicitudes pendientes`}
-                  </span>
-                )}
-              </p>
-            </div>
-          </header>
+          {/* The banner of Inicio and Notificaciones: light sky with the rings
+              of the iris, "clases" underlined by hand and the counts in
+              white pills. */}
+          <PortalBanner
+            label="Mis clases"
+            eyebrow="Mis clases"
+            title={
+              <>
+                Tus <Highlight>clases</Highlight>
+              </>
+            }
+            chips={bannerChips(active.length, archived.length, pending)}
+            icon={<IconClassroom width={40} height={40} />}
+          />
 
-          {/* The classrooms go on their own white panel, like the kids' profiles. */}
-          <section className={styles.panel} aria-label="Tus clases">
-            {list.length === 0 && (
-              <div className={styles.empty}>
-                <span className={styles.emptyIcon} aria-hidden="true">
-                  <IconClassroom width={24} height={24} />
-                </span>
-                <p className={styles.emptyTitle}>Todavía no tienes clases</p>
-                <p className={styles.emptyText}>
-                  Crea tu primera clase con "Nueva clase". Después comparte su código de ingreso con las familias de tus
-                  estudiantes.
-                </p>
-              </div>
-            )}
-
-            <ul className={styles.grid}>
-              {list.map((classroom) => (
-                <li key={classroom.id}>
-                  <ClassCard
-                    classroom={classroom}
-                    lessons={published.get(classroom.id) ?? 0}
-                    onOpen={() => setOpenId(classroom.id)}
-                  />
-                </li>
-              ))}
-              <li>
-                <button type="button" className={styles.addCard} onClick={() => setCreating(true)}>
-                  <span className={styles.addIcon} aria-hidden="true">
-                    <IconPlus width={34} height={34} />
-                  </span>
-                  <span className={styles.addTitle}>Nueva clase</span>
-                </button>
-              </li>
-            </ul>
-          </section>
-
-          {archived.length > 0 && (
-            <section className={styles.panel} aria-label="Clases archivadas">
-              <button
-                type="button"
-                className={styles.disclosure}
-                onClick={() => setShowArchived((shown) => !shown)}
-                aria-expanded={showArchived}
-                aria-controls="archived-classrooms"
-              >
-                <span>
-                  {showArchived ? "Ocultar" : "Ver"} clases archivadas ({archived.length})
-                </span>
-                <IconArrowDown width={18} height={18} />
-              </button>
-              {showArchived && (
-                <ul id="archived-classrooms" className={styles.grid}>
-                  {archived.map((classroom) => (
-                    <li key={classroom.id}>
-                      <ClassCard
-                        classroom={classroom}
-                        lessons={published.get(classroom.id) ?? 0}
-                        onOpen={() => setOpenId(classroom.id)}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
+          {/* The active ones first and the archived after them, faded. */}
+          <ClassesPanel classrooms={[...active, ...archived]} onOpen={setOpenId} onCreate={() => setCreating(true)} />
 
           {creating && <ClassroomFormDialog onClose={() => setCreating(false)} onSaved={created} />}
         </div>
@@ -175,57 +102,126 @@ export function ClassroomsSection({ initialClassroomId, initialView, startCreati
   );
 }
 
-// One classroom as a profile card: the band of its color, its avatar, who
-// it's for and its three numbers. An archived one fades and says so.
-function ClassCard({
-  classroom,
-  lessons,
+// The classes as square tiles, like a kid's "Sus clases": the count and a
+// search box on top, "Nueva clase" first, pages when they don't fit, and
+// the steps to start while there are none.
+function ClassesPanel({
+  classrooms,
   onOpen,
+  onCreate,
 }: {
-  classroom: TeacherClassroom;
-  lessons: number;
-  onOpen: () => void;
+  classrooms: TeacherClassroom[];
+  onOpen: (classroomId: string) => void;
+  onCreate: () => void;
 }) {
-  const audience = classroomAudience(classroom.area, classroom.grade, classroom.area_other);
-  const archived = Boolean(classroom.archived_at);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [gridRef, columns] = useGridColumns();
+
+  const found = query.trim()
+    ? classrooms.filter((c) => searchable(c.name).includes(searchable(query.trim())))
+    : classrooms;
+  const tiles: (TeacherClassroom | "add")[] = ["add", ...found];
+  const perPage = tilesPerPage(columns);
+  const totalPages = Math.max(1, Math.ceil(tiles.length / perPage));
+  const current = Math.min(page, totalPages);
+  const shown = tiles.slice((current - 1) * perPage, current * perPage);
+
   return (
-    <button
-      type="button"
-      className={styles.classCard}
-      data-color={classroom.color}
-      data-archived={archived}
-      onClick={onOpen}
-    >
-      <span className={styles.cardBanner} aria-hidden="true" />
-      <span className={styles.cardAvatar}>
-        <ClassroomAvatar classroom={classroom} size={76} />
-      </span>
-      <span className={styles.cardName}>{classroom.name}</span>
-      {audience && <span className={styles.cardAudience}>{audience}</span>}
-      {archived && (
-        <span className={styles.archivedChip}>
-          <IconArchive width={14} height={14} />
-          Archivada
-        </span>
+    <section className={styles.panel} aria-labelledby="teacher-classes-title">
+      <TilesToolbar titleId="teacher-classes-title" title={classesTitle(classrooms)}>
+        <TileSearch
+          value={query}
+          onChange={(value) => {
+            setQuery(value);
+            setPage(1);
+          }}
+          label="Buscar una de tus clases por su nombre"
+        />
+      </TilesToolbar>
+
+      <TileGrid gridRef={gridRef}>
+        {shown.map((tile) =>
+          tile === "add" ? (
+            <li key="add">
+              <AddTile label="Nueva clase" onClick={onCreate} />
+            </li>
+          ) : (
+            <li key={tile.id}>
+              <TeacherClassTile classroom={tile} onOpen={() => onOpen(tile.id)} />
+            </li>
+          ),
+        )}
+      </TileGrid>
+
+      {classrooms.length === 0 && (
+        <TileSteps
+          titleId="no-classes-title"
+          title="Todavía no tienes clases"
+          steps={[
+            'Toca "Nueva clase" y escribe su nombre, área y grado.',
+            "Comparte su código de ingreso con las familias de tus estudiantes.",
+            "Acepta las solicitudes que te lleguen en Miembros y tu clase empezará a llenarse.",
+          ]}
+        />
       )}
-      <span className={styles.cardStats}>
-        <span className={styles.cardStat}>
-          <span className={styles.cardStatValue}>{classroom.student_count}</span>
-          <span className={styles.cardStatLabel}>{classroom.student_count === 1 ? "Estudiante" : "Estudiantes"}</span>
-        </span>
-        <span className={styles.cardStat}>
-          <span className={styles.cardStatValue}>{lessons}</span>
-          <span className={styles.cardStatLabel}>{lessons === 1 ? "Lección" : "Lecciones"}</span>
-        </span>
-        <span className={styles.cardStat} data-pending={classroom.pending_requests > 0}>
-          <span className={styles.cardStatValue}>{classroom.pending_requests}</span>
-          <span className={styles.cardStatLabel}>{classroom.pending_requests === 1 ? "Solicitud" : "Solicitudes"}</span>
-        </span>
-      </span>
-      <span className={styles.cardAction}>
-        {archived ? "Ver la clase" : "Entrar a la clase"}
-        <IconArrowRight width={16} height={16} />
-      </span>
-    </button>
+      {classrooms.length > 0 && found.length === 0 && (
+        <p className={styles.emptyText} role="status">
+          Ninguna de tus clases se llama así.
+        </p>
+      )}
+
+      <TrayPager page={current} totalPages={totalPages} onChange={setPage} label="Páginas de clases" />
+    </section>
   );
+}
+
+// One class with its students under it and, in blue, the requests waiting.
+function TeacherClassTile({ classroom, onOpen }: { classroom: TeacherClassroom; onOpen: () => void }) {
+  const archived = Boolean(classroom.archived_at);
+  const students = studentsLabel(classroom.student_count);
+  const waiting = classroom.pending_requests;
+  return (
+    <ClassTile
+      classroom={classroom}
+      meta={classroomAudience(classroom.area, classroom.grade, classroom.area_other)}
+      archived={archived}
+      label={`${classroom.name}${archived ? ", archivada" : ""}: ${students}${
+        waiting > 0 ? `, ${waiting} en espera` : ""
+      }. Ver la clase`}
+      onOpen={onOpen}
+    >
+      <span className={styles.tileCount}>
+        {students}
+        {waiting > 0 && (
+          <span className={styles.tileWaiting}>
+            <IconClock width={13} height={13} aria-hidden="true" />
+            {waiting} en espera
+          </span>
+        )}
+      </span>
+    </ClassTile>
+  );
+}
+
+// "4 clases", and the archived ones and the requests waiting when there are.
+function bannerChips(active: number, archived: number, pending: number): string[] {
+  const chips = [active === 1 ? "1 clase" : `${active} clases`];
+  if (archived > 0) chips.push(archived === 1 ? "1 archivada" : `${archived} archivadas`);
+  if (pending > 0) chips.push(pending === 1 ? "1 solicitud pendiente" : `${pending} solicitudes pendientes`);
+  return chips;
+}
+
+function studentsLabel(count: number): string {
+  if (count === 0) return "Sin estudiantes";
+  return count === 1 ? "1 estudiante" : `${count} estudiantes`;
+}
+
+// "4 clases · 1 archivada", like the title of a kid's classes.
+function classesTitle(classrooms: TeacherClassroom[]): string {
+  const archived = classrooms.filter((c) => c.archived_at).length;
+  const active = classrooms.length - archived;
+  const count = active === 1 ? "1 clase" : `${active} clases`;
+  if (archived === 0) return count;
+  return `${count} · ${archived === 1 ? "1 archivada" : `${archived} archivadas`}`;
 }

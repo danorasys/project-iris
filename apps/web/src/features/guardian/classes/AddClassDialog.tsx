@@ -9,11 +9,11 @@ import { TeacherProfileSummary } from "@/features/teacher/profile/TeacherProfile
 import { useClassroomLookup, useRequestEnrollment } from "@/shared/api/hooks/useClassroomsApi";
 import { IconArrowDown, IconArrowLeft, IconBook, IconClose, IconTeacher } from "@/shared/ui/icons";
 import { Mascot } from "@/shared/ui/Mascot";
+import options from "@/shared/ui/portal/OptionsPanel.module.css";
 import form from "@/shared/ui/profile/ProfileForm.module.css";
 import { canAnimate, useModalDialog } from "@/shared/ui/useModalDialog";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
 import { useWithPortalAccess } from "../portalAccess";
-import kid from "../sections/MisPequesSection.module.css";
 import { checkCode, CODE_MAX_LENGTH, isCompleteCode, normalizeCode } from "./classCode";
 import { contentLabel } from "./lessonsLabel";
 import styles from "./AddClassDialog.module.css";
@@ -288,19 +288,19 @@ function ClassPreview({
           {/* Same row as the options of the portal, opening the profile below. */}
           <button
             type="button"
-            className={`${kid.optionRow} ${styles.teacherRow}`}
+            className={`${options.optionRow} ${styles.teacherRow}`}
             onClick={toggleTeacher}
             aria-expanded={expanded}
             aria-controls={showTeacher ? profileId : undefined}
           >
-            <span className={kid.optionIcon} aria-hidden="true">
+            <span className={options.optionIcon} aria-hidden="true">
               <IconTeacher width={20} height={20} />
             </span>
-            <span className={kid.optionText}>
-              <span className={kid.optionTitle}>
+            <span className={options.optionText}>
+              <span className={options.optionTitle}>
                 {expanded ? "Ocultar el perfil del docente" : "Ver el perfil del docente"}
               </span>
-              <span className={kid.optionHint}>Su presentación, sus estudios y su experiencia.</span>
+              <span className={options.optionHint}>Su presentación, sus estudios y su experiencia.</span>
             </span>
             <IconArrowDown width={18} height={18} className={styles.teacherArrow} aria-hidden="true" />
           </button>

@@ -18,8 +18,9 @@
   height: 40px;
   padding: 0 var(--space-2);
   border-radius: 999px;
-  background: var(--color-amber);
-  color: var(--color-iris-deep);
+  /* The IRIS blue with a white number, like every count of what waits. */
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
   font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 800;

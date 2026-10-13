@@ -4,6 +4,7 @@ import { useAvatars, useEstudianteDeTutor, useEstudiantesDeTutor } from "@/share
 import { useFamilyClassrooms } from "@/shared/api/hooks/useClassroomsApi";
 import { ageLabel } from "@/features/utils/calculateAge";
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage";
+import { OptionsPanel, type OptionItem } from "@/shared/ui/portal/OptionsPanel";
 import { Highlight, PortalBanner } from "@/shared/ui/portal/PortalBanner";
 import { ProfileBanner } from "@/shared/ui/profile/ProfileHero";
 import profile from "@/shared/ui/profile/ProfileSection.module.css";
@@ -26,7 +27,7 @@ import styles from "./MisPequesSection.module.css";
 
 export type StudentOption = "datos" | "clases";
 
-const OPTIONS: { id: StudentOption; title: string; hint: string; Icon: typeof IconGraduationCap }[] = [
+const OPTIONS: OptionItem<StudentOption>[] = [
   { id: "datos", title: "Sus datos", hint: "Consulta y actualiza su perfil.", Icon: IconUserCircle },
   {
     id: "clases",
@@ -321,32 +322,7 @@ function StudentSpace({ student, initialOption, onBack, onDirtyChange }: Student
         {/* The options one under the other on a white panel, split by thin
             lines like the list of Mis peques. */}
         {!current && (
-          <nav className={styles.optionsPanel} aria-labelledby="kid-options-title">
-            <h2 id="kid-options-title" className={styles.optionsTitle}>
-              Opciones
-            </h2>
-            <ul className={styles.optionList}>
-              {OPTIONS.map(({ id, title, hint, Icon }) => (
-                <li key={id}>
-                  <button
-                    type="button"
-                    className={styles.optionRow}
-                    aria-label={`${title}. ${hint}`}
-                    onClick={() => setOption(id)}
-                  >
-                    <span className={styles.optionIcon} aria-hidden="true">
-                      <Icon width={20} height={20} />
-                    </span>
-                    <span className={styles.optionText}>
-                      <span className={styles.optionTitle}>{title}</span>
-                      <span className={styles.optionHint}>{hint}</span>
-                    </span>
-                    <IconArrowRight width={18} height={18} className={styles.optionArrow} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <OptionsPanel titleId="kid-options-title" title="Opciones" options={OPTIONS} onPick={setOption} />
         )}
       </ViewEnter>
 

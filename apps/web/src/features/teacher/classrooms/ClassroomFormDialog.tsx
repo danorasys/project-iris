@@ -10,7 +10,6 @@ import {
   useUploadClassroomLogo,
 } from "@/shared/api/hooks/useClassroomsApi";
 import {
-  IconArrowRight,
   IconCheck,
   IconClassroom,
   IconClose,
@@ -19,6 +18,7 @@ import {
   IconPencil,
   IconText,
 } from "@/shared/ui/icons";
+import { IrisRings } from "@/shared/ui/IrisRings";
 import { PortalSelect } from "@/shared/ui/portal/PortalSelect";
 import { useModalDialog } from "@/shared/ui/useModalDialog";
 import { ClassroomAvatar } from "./ClassroomAvatar";
@@ -32,7 +32,7 @@ const DESCRIPTION_MAX = 2000;
 // Same rules as the server's upload (POST /classrooms/{id}/logo).
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-const PREVIEW_SIZE = 68;
+const PREVIEW_SIZE = 60;
 
 type AvatarMode = "initials" | "image";
 
@@ -232,9 +232,10 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
       aria-describedby={introId}
     >
       <form className={styles.card} onSubmit={submit} noValidate>
-        {/* The header of the panel: the icon on a lavender circle, the title
-            and what to do, and the round close button. */}
+        {/* The header, like the banners of the portals: light sky with the
+            rings of the iris turning behind and the icon on a white disc. */}
         <header className={styles.header}>
+          <IrisRings className={styles.headerRings} />
           <span className={styles.badge} aria-hidden="true">
             {editing ? <IconPencil width={26} height={26} /> : <IconClassroom width={28} height={28} />}
           </span>
@@ -261,7 +262,7 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
         </header>
 
         <div className={styles.body}>
-          {/* The live preview, the same card of "Mis clases": the band of the
+          {/* The live preview, the same tile of "Mis clases": the band of the
               picked color with the avatar hanging from it. */}
           <aside className={styles.previewColumn} aria-label="Vista previa">
             <div className={styles.previewSticky}>
@@ -273,10 +274,6 @@ export function ClassroomFormDialog({ classroom, onClose, onSaved }: ClassroomFo
                   {previewName || "Nombre de la clase"}
                 </span>
                 {audience && <span className={styles.previewAudience}>{audience}</span>}
-                <span className={styles.previewAction}>
-                  Entrar a la clase
-                  <IconArrowRight width={16} height={16} />
-                </span>
               </div>
               {!editing && (
                 <p className={styles.note}>

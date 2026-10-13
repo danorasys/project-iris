@@ -20,7 +20,6 @@ import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { CountedTextField } from "@/shared/ui/CountedTextField";
 import {
   IconArchive,
-  IconArrowRight,
   IconBell,
   IconBook,
   IconChart,
@@ -29,12 +28,13 @@ import {
   IconTeacher,
 } from "@/shared/ui/icons";
 import { MESSAGE_BODY_MAX, MESSAGE_BODY_TOO_LONG, MESSAGE_SUBJECT_MAX } from "@/shared/ui/portal/messageThreadRules";
+import { OptionsPanel } from "@/shared/ui/portal/OptionsPanel";
+import options from "@/shared/ui/portal/OptionsPanel.module.css";
 import form from "@/shared/ui/profile/ProfileForm.module.css";
 import { isPortalAccessRequired, useWithPortalAccess } from "../portalAccess";
 import { NotificacionesSection } from "../sections/NotificacionesSection";
 import { ClassProgress } from "./ClassProgress";
 import { ClassStructure } from "./ClassStructure";
-import kid from "../sections/MisPequesSection.module.css";
 import { contentLabel } from "./lessonsLabel";
 import styles from "./ClassSpace.module.css";
 
@@ -104,7 +104,7 @@ export function ClassSpace({ enrollmentId, firstName, option, onOption, onLeft, 
           ofClass={{
             classroomId: c.classroom_id,
             studentId: c.student_id,
-            heading: <h3 className={kid.optionsTitle}>Notificaciones de la clase</h3>,
+            heading: <h3 className={options.optionsTitle}>Notificaciones de la clase</h3>,
           }}
         />
       )}
@@ -228,11 +228,23 @@ function ClassOptions({ classroom: c, firstName, teacherName, unread, onOption, 
   // and an archived class (HU-105) takes no messages.
   const hasTeacher = c.has_teacher !== false;
   const archived = Boolean(c.archived_at);
-  const options = allOptions.filter((o) => {
-    if (o.id === "contacto") return hasTeacher && !archived;
-    if (o.id === "docente") return hasTeacher;
-    return true;
-  });
+  const shown = allOptions
+    .filter((o) => {
+      if (o.id === "contacto") return hasTeacher && !archived;
+      if (o.id === "docente") return hasTeacher;
+      return true;
+    })
+    // The unread count goes on the right of its row, in the IRIS blue.
+    .map(({ badge, ...o }) => ({
+      ...o,
+      label: `${o.title}${badge > 0 ? `, ${badge} sin leer` : ""}. ${o.hint}`,
+      extra:
+        badge > 0 ? (
+          <span className={styles.badge} aria-hidden="true">
+            {badge}
+          </span>
+        ) : undefined,
+    }));
 
   async function withdraw() {
     setConfirming(false);
@@ -248,10 +260,13 @@ function ClassOptions({ classroom: c, firstName, teacherName, unread, onOption, 
   return (
     <>
       {/* Same rows as the options of a kid's space. */}
-      <nav className={kid.optionsPanel} aria-labelledby="class-options-title">
-        <h3 id="class-options-title" className={kid.optionsTitle}>
-          Opciones de la clase
-        </h3>
+      <OptionsPanel
+        titleId="class-options-title"
+        title="Opciones de la clase"
+        heading="h3"
+        options={shown}
+        onPick={onOption}
+      >
         {!hasTeacher && (
           <p className={styles.status}>
             Esta clase ya no tiene un docente a cargo. {firstName} puede seguir viendo sus lecciones y su progreso.
@@ -263,33 +278,7 @@ function ClassOptions({ classroom: c, firstName, teacherName, unread, onOption, 
             su espacio, pero aquí puedes seguir consultando su progreso y sus avisos.
           </p>
         )}
-        <ul className={kid.optionList}>
-          {options.map(({ id, title, hint, Icon, badge }) => (
-            <li key={id}>
-              <button
-                type="button"
-                className={kid.optionRow}
-                aria-label={`${title}${badge > 0 ? `, ${badge} sin leer` : ""}. ${hint}`}
-                onClick={() => onOption(id)}
-              >
-                <span className={kid.optionIcon} aria-hidden="true">
-                  <Icon width={20} height={20} />
-                </span>
-                <span className={kid.optionText}>
-                  <span className={kid.optionTitle}>{title}</span>
-                  <span className={kid.optionHint}>{hint}</span>
-                </span>
-                {badge > 0 && (
-                  <span className={styles.badge} aria-hidden="true">
-                    {badge}
-                  </span>
-                )}
-                <IconArrowRight width={18} height={18} className={kid.optionArrow} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      </OptionsPanel>
 
       {/* Taking the kid out goes apart from the options, it can't be undone. */}
       <section className={styles.leave} aria-labelledby="class-leave-title">
@@ -373,7 +362,7 @@ function ContactTeacher({
 
   return (
     <form className={styles.panel} onSubmit={submit} noValidate aria-labelledby="class-contact-title">
-      <h3 id="class-contact-title" className={kid.optionsTitle}>
+      <h3 id="class-contact-title" className={options.optionsTitle}>
         Mensaje para {teacherName ?? "el docente"}
       </h3>
       <p className={styles.formIntro}>
