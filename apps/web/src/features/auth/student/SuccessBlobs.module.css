@@ -1,0 +1,31 @@
+/* The blue blobs behind the success screens (the sign up's and the 2FA's),
+   used next to their .page class. The four big ones of "¿Cómo quieres
+   continuar?" on the corners and smaller ones along the edges, away from the
+   middle where the text goes. It's imported in each component and not with
+   `composes`, since that way Vite left the url() of the SVGs broken. */
+.blobs {
+  background:
+    url("../../../assets/auth/blob-sky.svg") left 6% top 44% / 150px no-repeat,
+    url("../../../assets/auth/blob-deep.svg") left 30% top -60px / 170px no-repeat,
+    url("../../../assets/auth/blob-mist.svg") right 30% bottom -70px / 180px no-repeat,
+    url("../../../assets/auth/blob-deep.svg") left 17% bottom 16% / 70px no-repeat,
+    url("../../../assets/auth/blob-sky.svg") right 18% top 14% / 80px no-repeat,
+    url("../../../assets/auth/blob-blue.svg") left -120px top -110px / 440px no-repeat,
+    url("../../../assets/auth/blob-sky.svg") right -70px top 70px / 290px no-repeat,
+    url("../../../assets/auth/blob-mist.svg") left -90px bottom -90px / 340px no-repeat,
+    url("../../../assets/auth/blob-deep.svg") right -130px bottom -150px / 470px no-repeat,
+    var(--color-canvas);
+}
+
+/* On a phone the text takes the whole width, so the small blobs would end up
+   behind it: only the corner ones. */
+@media (max-width: 600px) {
+  .blobs {
+    background:
+      url("../../../assets/auth/blob-blue.svg") left -120px top -110px / 440px no-repeat,
+      url("../../../assets/auth/blob-sky.svg") right -70px top 70px / 290px no-repeat,
+      url("../../../assets/auth/blob-mist.svg") left -90px bottom -90px / 340px no-repeat,
+      url("../../../assets/auth/blob-deep.svg") right -130px bottom -150px / 470px no-repeat,
+      var(--color-canvas);
+  }
+}

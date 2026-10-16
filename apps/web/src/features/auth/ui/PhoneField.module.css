@@ -19,6 +19,11 @@
 .wrapperError {
   border-color: var(--color-error);
 }
+
+/* Well written: the mint border of the other fields. */
+.wrapperValid {
+  border-color: var(--color-mint);
+}
 .wrapper :global(.PhoneInput) {
   /* react-phone-number-input renders its own flex row (.PhoneInput) as a
    * single child of this wrapper. Without stretching it explicitly, that

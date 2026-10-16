@@ -23,6 +23,7 @@ import { firstOptionId } from "./firstOption"
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage"
 import { TextField } from "@/features/auth/ui/TextField"
 import { PhoneField } from "@/features/auth/ui/PhoneField"
+import type { FieldStatus } from "@/features/auth/ui/FieldStatusIcon"
 import { PasswordRequirements } from "@/features/auth/ui/PasswordRequirements"
 import { passwordMeetsRequirements } from "@/features/auth/ui/passwordRules"
 import {
@@ -30,13 +31,14 @@ import {
     documentNumberFormatError,
     filterDocumentNumberInput,
 } from "@/features/auth/lib/documentNumber"
-import { SelectField } from "@/features/auth/ui/SelectField"
+import { PortalSelect } from "@/shared/ui/portal/PortalSelect"
 import fieldStyles from "@/features/auth/ui/Fields.module.css"
 import { CheckboxField } from "@/features/auth/ui/CheckboxField"
 import { NumericKeypad } from "@/shared/ui/NumericKeypad"
-import { IrisMark } from "@/shared/ui/IrisMark"
+import { IrisRings } from "@/shared/ui/IrisRings"
 import { IconCheck, IconArrowLeft, IconInfo, IconLock } from "@/shared/ui/icons"
 import { LoadingScreen } from "@/shared/ui/LoadingScreen"
+import { usePortalTheme } from "@/shared/ui/portal/usePortalTheme"
 import { RegistrationSuccessScreen } from "./RegistrationSuccessScreen"
 import { TotpSetupScreen } from "./TotpSetupScreen"
 import { TotpSuccessScreen } from "./TotpSuccessScreen"
@@ -82,6 +84,18 @@ function focusAndScrollToField(fieldId: string): void {
     window.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" })
 }
 
+/** What a field that's checked when it's left needs (TextField, PhoneField). */
+interface CheckedFieldProps {
+    id: string
+    value: string
+    error?: string
+    status?: FieldStatus
+    onChange: (value: string) => void
+    onBlur: () => void
+}
+
+type Problem = (value: string) => string | null
+
 function catalogLabel(
     items: { id: number; name: string }[] | undefined,
     id: string,
@@ -94,6 +108,9 @@ function catalogLabel(
  * signs the guardian in, then comes the 2FA setup and the parents' portal.
  * The kid's own session always asks for the PIN again later. */
 export default function GuardianRegistrationWizard() {
+    // The colors and Poppins of the landing and the login. It also covers the
+    // 2FA screens, since they're shown from here.
+    usePortalTheme()
     const navigate = useNavigate()
     const { setSession } = useAuth()
     const register = useRegistrarTutor()
@@ -196,6 +213,117 @@ export default function GuardianRegistrationWizard() {
         documentTypesQuery.isError || relationshipTypesQuery.isError
     const avatarsFailed = avatarsQuery.isError
 
+    // --- Each field is checked when it's left ---
+    // A field counts as "touched" once it's left with something written, or
+    // once "Siguiente" checks it. From then on it's checked on every key, so
+    // the cross turns into a check as soon as it's fixed. An empty field that
+    // was only tabbed through stays quiet until "Siguiente".
+    const [touched, setTouched] = useState<Record<string, boolean>>({})
+
+    function markTouched(id: string) {
+        setTouched((current) =>
+            current[id] ? current : { ...current, [id]: true },
+        )
+    }
+
+    // What's wrong with each field, or null. The same rules run when a field
+    // is left and when "Siguiente" is pressed, so the messages are the same.
+    const guardianFirstNameProblem: Problem = (value) =>
+        nameError(value, "Ingresa tus nombres.")
+    const guardianLastNameProblem: Problem = (value) =>
+        nameError(value, "Ingresa tus apellidos.")
+    const guardianBirthDateProblem: Problem = (value) => {
+        if (!value) return "Ingresa tu fecha de nacimiento."
+        if (calculateAge(value) < MIN_GUARDIAN_AGE) {
+            return `Debes ser mayor de edad (${MIN_GUARDIAN_AGE} años o más) para registrarte como tutor.`
+        }
+        if (calculateAge(value) > MAX_AGE) {
+            return "Revisa el año de la fecha de nacimiento."
+        }
+        return null
+    }
+    // These ones also depend on another field, which can be given when it's
+    // the other one that just changed.
+    const documentNumberProblem = (
+        value: string,
+        typeName = selectedDocumentType?.name,
+    ) =>
+        value.trim()
+            ? documentNumberFormatError(typeName, value)
+            : "Ingresa tu número de documento."
+    const documentIssuedAtProblem = (value: string, birth = guardianBirthDate) =>
+        value
+            ? validateDocumentIssuedAt(value, birth, TODAY_ISO)
+            : "Ingresa la fecha de expedición del documento de identificación."
+    const emailProblem: Problem = (value) =>
+        EMAIL_PATTERN.test(value.trim())
+            ? null
+            : "Ingresa un correo electrónico válido."
+    const phoneProblem: Problem = (value) =>
+        value && isValidPhoneNumber(value)
+            ? null
+            : "Ingresa un número telefónico válido."
+    const passwordProblem: Problem = (value) =>
+        passwordMeetsRequirements(value)
+            ? null
+            : "Ingresa una contraseña que cumpla con todos los requisitos indicados abajo."
+    const passwordConfirmationProblem = (value: string, first = password) => {
+        if (!value) return "Ingresa la confirmación de la contraseña."
+        return value === first ? null : "Las contraseñas no coinciden."
+    }
+    const studentFirstNameProblem: Problem = (value) =>
+        nameError(value, "Ingresa los nombres de tu hijo o hija.")
+    const studentLastNameProblem: Problem = (value) =>
+        nameError(value, "Ingresa los apellidos de tu hijo o hija.")
+    const studentBirthDateProblem: Problem = (value) => {
+        if (!value) return "Ingresa la fecha de nacimiento de tu hijo o hija."
+        return value > TODAY_ISO
+            ? "La fecha de nacimiento no puede ser una fecha futura."
+            : null
+    }
+
+    /** The props of a field checked on blur: its value and error, the check
+     * or the cross, and what to do on each key and when it's left. */
+    function checkedField(
+        id: string,
+        value: string,
+        setValue: (value: string) => void,
+        error: string | null,
+        setError: (error: string | null) => void,
+        problem: Problem,
+    ): CheckedFieldProps {
+        return {
+            id,
+            value,
+            error: error ?? undefined,
+            status: touched[id] ? (error ? "invalid" : "valid") : undefined,
+            onChange: (next) => {
+                setValue(next)
+                setError(touched[id] ? problem(next) : null)
+            },
+            onBlur: () => {
+                if (!value.trim()) return
+                markTouched(id)
+                setError(problem(value))
+            },
+        }
+    }
+
+    /** "Siguiente" checks a field even when it's empty. False means it has
+     * something to fix, and the page moves to it. */
+    function checkField(
+        id: string,
+        value: string,
+        setError: (error: string | null) => void,
+        problem: Problem,
+    ): boolean {
+        markTouched(id)
+        const issue = problem(value)
+        setError(issue)
+        if (issue) focusAndScrollToField(id)
+        return !issue
+    }
+
     function handleGoBackToStep1() {
         setStep(1)
         setPhase("formulario")
@@ -208,40 +336,28 @@ export default function GuardianRegistrationWizard() {
         e.preventDefault()
         if (!catalogsReady) return
 
-        const firstNameProblem = nameError(guardianFirstName, "Ingresa tus nombres.")
-        if (firstNameProblem) {
-            setGuardianFirstNameError(firstNameProblem)
-            focusAndScrollToField("guardian-first-name")
-            return
-        }
-        setGuardianFirstNameError(null)
-
-        const lastNameProblem = nameError(guardianLastName, "Ingresa tus apellidos.")
-        if (lastNameProblem) {
-            setGuardianLastNameError(lastNameProblem)
-            focusAndScrollToField("guardian-last-name")
-            return
-        }
-        setGuardianLastNameError(null)
-
-        if (!guardianBirthDate) {
-            setGuardianBirthDateError("Ingresa tu fecha de nacimiento.")
-            focusAndScrollToField("guardian-date-of-birth")
-            return
-        }
-        if (calculateAge(guardianBirthDate) < MIN_GUARDIAN_AGE) {
-            setGuardianBirthDateError(
-                `Debes ser mayor de edad (${MIN_GUARDIAN_AGE} años o más) para registrarte como tutor.`,
+        if (
+            !checkField(
+                "guardian-first-name",
+                guardianFirstName,
+                setGuardianFirstNameError,
+                guardianFirstNameProblem,
+            ) ||
+            !checkField(
+                "guardian-last-name",
+                guardianLastName,
+                setGuardianLastNameError,
+                guardianLastNameProblem,
+            ) ||
+            !checkField(
+                "guardian-date-of-birth",
+                guardianBirthDate,
+                setGuardianBirthDateError,
+                guardianBirthDateProblem,
             )
-            focusAndScrollToField("guardian-date-of-birth")
+        ) {
             return
         }
-        if (calculateAge(guardianBirthDate) > MAX_AGE) {
-            setGuardianBirthDateError("Revisa el año de la fecha de nacimiento.")
-            focusAndScrollToField("guardian-date-of-birth")
-            return
-        }
-        setGuardianBirthDateError(null)
 
         if (!documentType) {
             setDocumentTypeError("Selecciona un tipo de documento.")
@@ -250,54 +366,24 @@ export default function GuardianRegistrationWizard() {
         }
         setDocumentTypeError(null)
 
-        if (!documentNumber.trim()) {
-            setDocumentNumberError("Ingresa tu número de documento.")
-            focusAndScrollToField("guardian-document-number")
+        if (
+            !checkField(
+                "guardian-document-number",
+                documentNumber,
+                setDocumentNumberError,
+                documentNumberProblem,
+            ) ||
+            !checkField(
+                "guardian-document-issued-at",
+                documentIssuedAt,
+                setDocumentIssuedAtError,
+                documentIssuedAtProblem,
+            ) ||
+            !checkField("guardian-email", email, setEmailError, emailProblem) ||
+            !checkField("guardian-phone", phone, setPhoneError, phoneProblem)
+        ) {
             return
         }
-        const documentNumberValidationError = documentNumberFormatError(
-            selectedDocumentType?.name,
-            documentNumber,
-        )
-        if (documentNumberValidationError) {
-            setDocumentNumberError(documentNumberValidationError)
-            focusAndScrollToField("guardian-document-number")
-            return
-        }
-        setDocumentNumberError(null)
-
-        if (!documentIssuedAt) {
-            setDocumentIssuedAtError(
-                "Ingresa la fecha de expedición del documento de identificación.",
-            )
-            focusAndScrollToField("guardian-document-issued-at")
-            return
-        }
-        const documentIssuedAtValidationError = validateDocumentIssuedAt(
-            documentIssuedAt,
-            guardianBirthDate,
-            TODAY_ISO,
-        )
-        if (documentIssuedAtValidationError) {
-            setDocumentIssuedAtError(documentIssuedAtValidationError)
-            focusAndScrollToField("guardian-document-issued-at")
-            return
-        }
-        setDocumentIssuedAtError(null)
-
-        if (!EMAIL_PATTERN.test(email.trim())) {
-            setEmailError("Ingresa un correo electrónico válido.")
-            focusAndScrollToField("guardian-email")
-            return
-        }
-        setEmailError(null)
-
-        if (!phone || !isValidPhoneNumber(phone)) {
-            setPhoneError("Ingresa un número telefónico válido.")
-            focusAndScrollToField("guardian-phone")
-            return
-        }
-        setPhoneError(null)
 
         if (!relationship) {
             setRelationshipError("Selecciona tu relación con el estudiante.")
@@ -306,28 +392,22 @@ export default function GuardianRegistrationWizard() {
         }
         setRelationshipError(null)
 
-        if (!passwordMeetsRequirements(password)) {
-            setPasswordError(
-                "Ingresa una contraseña que cumpla con todos los requisitos indicados abajo.",
+        if (
+            !checkField(
+                "guardian-password",
+                password,
+                setPasswordError,
+                passwordProblem,
+            ) ||
+            !checkField(
+                "guardian-password-confirmation",
+                passwordConfirmation,
+                setPasswordConfirmationError,
+                passwordConfirmationProblem,
             )
-            focusAndScrollToField("guardian-password")
+        ) {
             return
         }
-        setPasswordError(null)
-
-        if (!passwordConfirmation) {
-            setPasswordConfirmationError(
-                "Ingresa la confirmación de la contraseña.",
-            )
-            focusAndScrollToField("guardian-password-confirmation")
-            return
-        }
-        if (password !== passwordConfirmation) {
-            setPasswordConfirmationError("Las contraseñas no coinciden.")
-            focusAndScrollToField("guardian-password-confirmation")
-            return
-        }
-        setPasswordConfirmationError(null)
 
         setStep(2)
     }
@@ -371,37 +451,28 @@ export default function GuardianRegistrationWizard() {
     function handleSubmitStep2(e: FormEvent) {
         e.preventDefault()
 
-        const studentFirstNameProblem = nameError(studentFirstName, "Ingresa los nombres de tu hijo o hija.")
-        if (studentFirstNameProblem) {
-            setStudentFirstNameError(studentFirstNameProblem)
-            focusAndScrollToField("student-first-name")
-            return
-        }
-        setStudentFirstNameError(null)
-
-        const studentLastNameProblem = nameError(studentLastName, "Ingresa los apellidos de tu hijo o hija.")
-        if (studentLastNameProblem) {
-            setStudentLastNameError(studentLastNameProblem)
-            focusAndScrollToField("student-last-name")
-            return
-        }
-        setStudentLastNameError(null)
-
-        if (!birthDate) {
-            setStudentBirthDateError(
-                "Ingresa la fecha de nacimiento de tu hijo o hija.",
+        if (
+            !checkField(
+                "student-first-name",
+                studentFirstName,
+                setStudentFirstNameError,
+                studentFirstNameProblem,
+            ) ||
+            !checkField(
+                "student-last-name",
+                studentLastName,
+                setStudentLastNameError,
+                studentLastNameProblem,
+            ) ||
+            !checkField(
+                "student-date-of-birth",
+                birthDate,
+                setStudentBirthDateError,
+                studentBirthDateProblem,
             )
-            focusAndScrollToField("student-date-of-birth")
+        ) {
             return
         }
-        if (birthDate > TODAY_ISO) {
-            setStudentBirthDateError(
-                "La fecha de nacimiento no puede ser una fecha futura.",
-            )
-            focusAndScrollToField("student-date-of-birth")
-            return
-        }
-        setStudentBirthDateError(null)
 
         if (!acceptsDataProcessing) {
             setAcceptsDataProcessingError(
@@ -550,24 +621,110 @@ export default function GuardianRegistrationWizard() {
         )
     }
 
+    // The fields checked when they're left, step 1 and step 2.
+    const guardianFirstNameField = checkedField(
+        "guardian-first-name",
+        guardianFirstName,
+        setGuardianFirstName,
+        guardianFirstNameError,
+        setGuardianFirstNameError,
+        guardianFirstNameProblem,
+    )
+    const guardianLastNameField = checkedField(
+        "guardian-last-name",
+        guardianLastName,
+        setGuardianLastName,
+        guardianLastNameError,
+        setGuardianLastNameError,
+        guardianLastNameProblem,
+    )
+    const guardianBirthDateField = checkedField(
+        "guardian-date-of-birth",
+        guardianBirthDate,
+        setGuardianBirthDate,
+        guardianBirthDateError,
+        setGuardianBirthDateError,
+        guardianBirthDateProblem,
+    )
+    const documentNumberField = checkedField(
+        "guardian-document-number",
+        documentNumber,
+        setDocumentNumber,
+        documentNumberError,
+        setDocumentNumberError,
+        documentNumberProblem,
+    )
+    const documentIssuedAtField = checkedField(
+        "guardian-document-issued-at",
+        documentIssuedAt,
+        setDocumentIssuedAt,
+        documentIssuedAtError,
+        setDocumentIssuedAtError,
+        documentIssuedAtProblem,
+    )
+    const emailField = checkedField(
+        "guardian-email",
+        email,
+        setEmail,
+        emailError,
+        setEmailError,
+        emailProblem,
+    )
+    const phoneField = checkedField(
+        "guardian-phone",
+        phone,
+        setPhone,
+        phoneError,
+        setPhoneError,
+        phoneProblem,
+    )
+    const passwordField = checkedField(
+        "guardian-password",
+        password,
+        setPassword,
+        passwordError,
+        setPasswordError,
+        passwordProblem,
+    )
+    const passwordConfirmationField = checkedField(
+        "guardian-password-confirmation",
+        passwordConfirmation,
+        setPasswordConfirmation,
+        passwordConfirmationError,
+        setPasswordConfirmationError,
+        passwordConfirmationProblem,
+    )
+    const studentFirstNameField = checkedField(
+        "student-first-name",
+        studentFirstName,
+        setStudentFirstName,
+        studentFirstNameError,
+        setStudentFirstNameError,
+        studentFirstNameProblem,
+    )
+    const studentLastNameField = checkedField(
+        "student-last-name",
+        studentLastName,
+        setStudentLastName,
+        studentLastNameError,
+        setStudentLastNameError,
+        studentLastNameProblem,
+    )
+    const studentBirthDateField = checkedField(
+        "student-date-of-birth",
+        birthDate,
+        setBirthDate,
+        studentBirthDateError,
+        setStudentBirthDateError,
+        studentBirthDateProblem,
+    )
+
     return (
         <main className={styles.page}>
-            <IrisMark
-                size={420}
-                className={`${styles.ring} ${styles.ringLarge}`}
-            />
-            <IrisMark
-                size={150}
-                className={`${styles.ring} ${styles.ringBottomLeft}`}
-            />
-            <IrisMark
-                size={420}
-                className={`${styles.ring} ${styles.ringTopLeft}`}
-            />
-            <IrisMark
-                size={150}
-                className={`${styles.ring} ${styles.ringTopRight}`}
-            />
+            {/* The rings of the landing and the login's panel, one set at
+                the top and another at the end of the form. */}
+            <IrisRings className={styles.irisRingsTop} />
+            <IrisRings className={styles.irisRingsBottom} />
             <Link
                 to="/register"
                 className={styles.back}
@@ -670,75 +827,57 @@ export default function GuardianRegistrationWizard() {
                             (Tutor, papá o mamá).
                         </p>
                         <TextField
-                            id="guardian-first-name"
+                            {...guardianFirstNameField}
                             label="Nombres"
-                            value={guardianFirstName}
-                            onChange={(value) => {
-                                setGuardianFirstName(value)
-                                setGuardianFirstNameError(null)
-                            }}
-                            error={guardianFirstNameError ?? undefined}
                             required
                             autoComplete="given-name"
                         />
                         <TextField
-                            id="guardian-last-name"
+                            {...guardianLastNameField}
                             label="Apellidos"
-                            value={guardianLastName}
-                            onChange={(value) => {
-                                setGuardianLastName(value)
-                                setGuardianLastNameError(null)
-                            }}
-                            error={guardianLastNameError ?? undefined}
                             required
                             autoComplete="family-name"
                         />
                         <TextField
-                            id="guardian-date-of-birth"
+                            {...guardianBirthDateField}
                             label="Fecha de nacimiento"
                             type="date"
-                            value={guardianBirthDate}
                             onChange={(value) => {
-                                setGuardianBirthDate(value)
-                                setGuardianBirthDateError(null)
-                                // The issued-date field's own lower bound just moved. An
-                                // already-typed issued date that was valid a moment ago can
-                                // now sit before the new birth date, so it needs re-checking
-                                // right here, not left to linger until the form is submitted.
-                                setDocumentIssuedAtError(
-                                    validateDocumentIssuedAt(
-                                        documentIssuedAt,
-                                        value,
-                                        TODAY_ISO,
-                                    ),
-                                )
+                                guardianBirthDateField.onChange(value)
+                                // The issued date can't be before the birth date, so
+                                // if it was already checked it's checked again here.
+                                if (touched["guardian-document-issued-at"]) {
+                                    setDocumentIssuedAtError(
+                                        documentIssuedAtProblem(documentIssuedAt, value),
+                                    )
+                                }
                             }}
-                            error={guardianBirthDateError ?? undefined}
                             required
                             max={TODAY_ISO}
                         />
-                        <SelectField
+                        <PortalSelect
                             id="guardian-document-type"
                             label="Tipo de documento"
                             value={documentType}
                             onChange={(value) => {
                                 setDocumentType(value)
                                 setDocumentTypeError(null)
-                                // Switching type can turn a value that was fine a moment ago
-                                // into an invalid one (e.g. a passport's letters, once you
-                                // switch to cédula), so it's re-checked against the new
-                                // type right away instead of waiting for the next keystroke
-                                // or the next attempt to leave this screen.
-                                const nextDocumentType =
-                                    documentTypesQuery.data?.find(
-                                        (dt) => String(dt.id) === value,
+                                // Switching type can turn a number that was fine a moment
+                                // ago into a wrong one (e.g. a passport's letters, once you
+                                // switch to cédula), so a number already checked is checked
+                                // again against the new type.
+                                if (touched["guardian-document-number"]) {
+                                    const nextDocumentType =
+                                        documentTypesQuery.data?.find(
+                                            (dt) => String(dt.id) === value,
+                                        )
+                                    setDocumentNumberError(
+                                        documentNumberProblem(
+                                            documentNumber,
+                                            nextDocumentType?.name,
+                                        ),
                                     )
-                                setDocumentNumberError(
-                                    documentNumberFormatError(
-                                        nextDocumentType?.name,
-                                        documentNumber,
-                                    ),
-                                )
+                                }
                             }}
                             options={(documentTypesQuery.data ?? []).map(
                                 (dt) => ({
@@ -751,23 +890,17 @@ export default function GuardianRegistrationWizard() {
                             disabled={documentTypesQuery.isLoading}
                         />
                         <TextField
-                            id="guardian-document-number"
+                            {...documentNumberField}
                             label="Número de documento"
-                            value={documentNumber}
-                            onChange={(value) => {
-                                const filtered = filterDocumentNumberInput(
-                                    selectedDocumentType?.name,
-                                    value,
-                                )
-                                setDocumentNumber(filtered)
-                                setDocumentNumberError(
-                                    documentNumberFormatError(
+                            // Only the characters the type allows get in.
+                            onChange={(value) =>
+                                documentNumberField.onChange(
+                                    filterDocumentNumberInput(
                                         selectedDocumentType?.name,
-                                        filtered,
+                                        value,
                                     ),
                                 )
-                            }}
-                            error={documentNumberError ?? undefined}
+                            }
                             required
                             inputMode={
                                 selectedDocumentType?.name ===
@@ -777,53 +910,26 @@ export default function GuardianRegistrationWizard() {
                             }
                         />
                         <TextField
-                            id="guardian-document-issued-at"
+                            {...documentIssuedAtField}
                             label="Fecha de expedición del documento"
                             type="date"
-                            value={documentIssuedAt}
-                            onChange={(value) => {
-                                setDocumentIssuedAt(value)
-                                // Validated immediately, not only on submit, since a date
-                                // typed on the keyboard skips the native picker's min/max
-                                // enforcement entirely.
-                                setDocumentIssuedAtError(
-                                    validateDocumentIssuedAt(
-                                        value,
-                                        guardianBirthDate,
-                                        TODAY_ISO,
-                                    ),
-                                )
-                            }}
-                            error={documentIssuedAtError ?? undefined}
                             required
                             min={guardianBirthDate || undefined}
                             max={TODAY_ISO}
                         />
                         <TextField
-                            id="guardian-email"
+                            {...emailField}
                             label="Correo electrónico"
                             type="email"
-                            value={email}
-                            onChange={(value) => {
-                                setEmail(value)
-                                setEmailError(null)
-                            }}
-                            error={emailError ?? undefined}
                             required
                             autoComplete="email"
                         />
                         <PhoneField
-                            id="guardian-phone"
+                            {...phoneField}
                             label="Teléfono"
-                            value={phone}
-                            onChange={(value) => {
-                                setPhone(value)
-                                setPhoneError(null)
-                            }}
-                            error={phoneError ?? undefined}
                             required
                         />
-                        <SelectField
+                        <PortalSelect
                             id="guardian-relationship"
                             label="Relación con el estudiante"
                             value={relationship}
@@ -842,32 +948,30 @@ export default function GuardianRegistrationWizard() {
                             disabled={relationshipTypesQuery.isLoading}
                         />
                         <TextField
-                            id="guardian-password"
+                            {...passwordField}
                             label="Contraseña"
                             type="password"
-                            value={password}
                             onChange={(value) => {
-                                setPassword(value)
-                                setPasswordError(null)
-                                // A stale "no coinciden" belongs to the previous password,
-                                // not this new one.
-                                setPasswordConfirmationError(null)
+                                passwordField.onChange(value)
+                                // The confirmation has to match the new one, so if it
+                                // was already checked it's checked again.
+                                if (touched["guardian-password-confirmation"]) {
+                                    setPasswordConfirmationError(
+                                        passwordConfirmationProblem(
+                                            passwordConfirmation,
+                                            value,
+                                        ),
+                                    )
+                                }
                             }}
-                            error={passwordError ?? undefined}
                             required
                             autoComplete="new-password"
                         />
                         <PasswordRequirements password={password} />
                         <TextField
-                            id="guardian-password-confirmation"
+                            {...passwordConfirmationField}
                             label="Confirmar contraseña"
                             type="password"
-                            value={passwordConfirmation}
-                            onChange={(value) => {
-                                setPasswordConfirmation(value)
-                                setPasswordConfirmationError(null)
-                            }}
-                            error={passwordConfirmationError ?? undefined}
                             required
                             autoComplete="new-password"
                         />
@@ -948,39 +1052,21 @@ export default function GuardianRegistrationWizard() {
                             Paso 2 de 4 — Perfil de estudiante.
                         </p>
                         <TextField
-                            id="student-first-name"
+                            {...studentFirstNameField}
                             label="Nombres"
-                            value={studentFirstName}
-                            onChange={(value) => {
-                                setStudentFirstName(value)
-                                setStudentFirstNameError(null)
-                            }}
-                            error={studentFirstNameError ?? undefined}
                             required
                             autoComplete="off"
                         />
                         <TextField
-                            id="student-last-name"
+                            {...studentLastNameField}
                             label="Apellidos"
-                            value={studentLastName}
-                            onChange={(value) => {
-                                setStudentLastName(value)
-                                setStudentLastNameError(null)
-                            }}
-                            error={studentLastNameError ?? undefined}
                             required
                             autoComplete="off"
                         />
                         <TextField
-                            id="student-date-of-birth"
+                            {...studentBirthDateField}
                             label="Fecha de nacimiento"
                             type="date"
-                            value={birthDate}
-                            onChange={(value) => {
-                                setBirthDate(value)
-                                setStudentBirthDateError(null)
-                            }}
-                            error={studentBirthDateError ?? undefined}
                             required
                             max={TODAY_ISO}
                         />

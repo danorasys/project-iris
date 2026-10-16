@@ -4,6 +4,7 @@ import "react-phone-number-input/style.css";
 import flags from "react-phone-number-input/flags";
 import es from "react-phone-number-input/locale/es.json";
 import type { Country } from "react-phone-number-input";
+import { FieldStatusIcon, type FieldStatus } from "./FieldStatusIcon";
 import fieldStyles from "./Fields.module.css";
 import styles from "./PhoneField.module.css";
 
@@ -63,6 +64,9 @@ interface PhoneFieldProps {
   onChange: (value: string) => void;
   error?: string;
   required?: boolean;
+  onBlur?: () => void;
+  /** The check or the cross at the end, like TextField's. */
+  status?: FieldStatus;
 }
 
 /** Phone field with a country-flag selector, storing the number in E.164
@@ -78,7 +82,7 @@ interface PhoneFieldProps {
  * real browser, not in jsdom, so PhoneField.test.tsx alone won't catch a
  * regression here — verify by hand in the browser if this component's
  * country handling changes. */
-export function PhoneField({ id, label, value, onChange, error, required }: PhoneFieldProps) {
+export function PhoneField({ id, label, value, onChange, error, required, onBlur, status }: PhoneFieldProps) {
   const errorId = `${id}-error`;
   const [defaultCountry] = useState<Country>(() => guessCountryFromTimezone());
 
@@ -88,7 +92,9 @@ export function PhoneField({ id, label, value, onChange, error, required }: Phon
         {label}
         {required && <span aria-hidden="true"> *</span>}
       </label>
-      <div className={`${styles.wrapper} ${error ? styles.wrapperError : ""}`}>
+      <div
+        className={`${styles.wrapper} ${error ? styles.wrapperError : ""} ${status === "valid" ? styles.wrapperValid : ""}`}
+      >
         <PhoneInput
           id={id}
           international
@@ -100,11 +106,13 @@ export function PhoneField({ id, label, value, onChange, error, required }: Phon
           flags={flags}
           value={value || undefined}
           onChange={(next) => onChange(next ?? "")}
+          onBlur={onBlur}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
           autoComplete="tel"
           maxLength={MAX_INPUT_LENGTH}
         />
+        <FieldStatusIcon status={status} inline />
       </div>
       {error && (
         <p id={errorId} className={fieldStyles.error} role="alert">

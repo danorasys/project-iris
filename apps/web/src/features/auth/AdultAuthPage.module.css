@@ -23,10 +23,12 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-5);
+  /* The same calm blue of the sign up wizard: half of it is the navy, with
+     only a faint sky glow behind the logo. */
   background:
-    radial-gradient(55% 40% at 50% 42%, color-mix(in srgb, var(--landing-sky) 55%, transparent), transparent 72%),
-    radial-gradient(70% 60% at 0% 100%, color-mix(in srgb, var(--landing-navy) 60%, transparent), transparent 70%),
-    var(--landing-blue);
+    radial-gradient(55% 40% at 50% 42%, color-mix(in srgb, var(--landing-sky) 16%, transparent), transparent 72%),
+    radial-gradient(70% 60% at 0% 100%, color-mix(in srgb, var(--landing-navy) 50%, transparent), transparent 70%),
+    color-mix(in srgb, var(--landing-blue) 55%, var(--landing-navy));
   color: var(--color-surface);
   text-align: center;
 }

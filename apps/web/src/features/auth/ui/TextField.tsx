@@ -1,5 +1,6 @@
 import { useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { IconEye, IconEyeOff } from "@/shared/ui/icons";
+import { FieldStatusIcon, type FieldStatus } from "./FieldStatusIcon";
 import styles from "./Fields.module.css";
 
 interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value"> {
@@ -10,6 +11,9 @@ interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "on
   error?: string;
   /** The label is still read by screen readers, but not shown. */
   hideLabel?: boolean;
+  /** A check or a cross on the right, for forms that check each field
+   * when it's left (the sign up). */
+  status?: FieldStatus;
   multiline?: false;
 }
 
@@ -55,7 +59,12 @@ export function TextField(props: TextFieldProps | TextareaFieldProps) {
           autoFocus={props.autoFocus}
         />
       ) : (
-        <div className={isPassword ? styles.inputWithIcon : undefined}>
+        // Always the same box around the input, so showing the check later
+        // doesn't rebuild the input and take the focus away from it.
+        <div
+          className={isPassword ? styles.inputWithIcon : styles.inputBox}
+          data-status={props.status}
+        >
           <input
             id={id}
             className={styles.input}
@@ -86,6 +95,7 @@ export function TextField(props: TextFieldProps | TextareaFieldProps) {
               {showPassword ? <IconEyeOff /> : <IconEye />}
             </button>
           )}
+          <FieldStatusIcon status={props.status} />
         </div>
       )}
       {error && (

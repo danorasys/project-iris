@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
 import logoIris from "@/assets/landing/logo-iris.png";
 import styles from "./RegistrationSuccessScreen.module.css";
+import blobStyles from "./SuccessBlobs.module.css";
 
 interface RegistrationSuccessScreenProps {
   /** What the bubble says, each wizard writes its own (guardian or teacher). */
@@ -12,7 +14,7 @@ interface RegistrationSuccessScreenProps {
  * celebrates, and it waits for "Continuar" instead of moving on by itself. */
 export function RegistrationSuccessScreen({ children, onContinue }: RegistrationSuccessScreenProps) {
   return (
-    <div className={styles.page} role="status">
+    <div className={`${styles.page} ${blobStyles.blobs}`} role="status">
       <div className={styles.stage}>
         <svg className={styles.badge} viewBox="0 0 120 120" aria-hidden="true">
           <rect className={styles.badgeSquare} x="8" y="8" width="104" height="104" rx="28" />
@@ -25,6 +27,7 @@ export function RegistrationSuccessScreen({ children, onContinue }: Registration
 
       <button type="button" className={styles.continueButton} onClick={onContinue}>
         Continuar
+        <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
       </button>
     </div>
   );

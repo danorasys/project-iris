@@ -6,13 +6,6 @@
   justify-content: center;
   gap: var(--space-5);
   padding: var(--space-5);
-  /* The same pastel blobs as the registration success screen. */
-  background:
-    url("../../../assets/auth/blob-blue.svg") left -120px top -110px / 440px no-repeat,
-    url("../../../assets/auth/blob-gold.svg") right -70px top 70px / 290px no-repeat,
-    url("../../../assets/auth/blob-mint.svg") left -90px bottom -90px / 340px no-repeat,
-    url("../../../assets/auth/blob-peach.svg") right -130px bottom -150px / 470px no-repeat,
-    var(--color-canvas);
   text-align: center;
 }
 

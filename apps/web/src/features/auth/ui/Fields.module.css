@@ -89,6 +89,74 @@
   height: 20px;
 }
 
+/* --- The check or the cross after leaving a field (FieldStatusIcon) --- */
+
+.inputBox {
+  position: relative;
+}
+
+/* Room for the icon, and next to the eye of a password. */
+.inputBox[data-status] .input {
+  padding-right: 48px;
+}
+
+.inputWithIcon[data-status] .input {
+  padding-right: 80px;
+}
+
+/* Well written: a mint border instead of the plain one. */
+.inputBox[data-status="valid"] .input,
+.inputWithIcon[data-status="valid"] .input {
+  border-color: var(--color-mint);
+}
+
+.statusIcon {
+  position: absolute;
+  top: 50%;
+  right: var(--space-3);
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--color-surface);
+  pointer-events: none;
+  translate: 0 -50%;
+  animation: status-pop 260ms var(--ease-out) both;
+}
+
+.inputWithIcon .statusIcon {
+  right: 46px;
+}
+
+/* Inside a row of its own (the phone), it just goes at the end. */
+.statusIconInline {
+  position: static;
+  flex: none;
+  translate: none;
+}
+
+.statusIcon[data-status="valid"] {
+  background: var(--color-mint);
+}
+
+.statusIcon[data-status="invalid"] {
+  background: var(--color-error);
+}
+
+@keyframes status-pop {
+  from {
+    opacity: 0;
+    scale: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusIcon {
+    animation: none;
+  }
+}
+
 textarea.input {
   resize: vertical;
   min-height: 80px;

@@ -1,6 +1,7 @@
 import type { TwoFactorAccount } from "@/shared/api/hooks/useAuthApi";
 import logoIris from "@/assets/landing/logo-iris.png";
 import styles from "./TotpSuccessScreen.module.css";
+import blobStyles from "./SuccessBlobs.module.css";
 
 interface TotpSuccessScreenProps {
   firstName: string;
@@ -25,7 +26,7 @@ const DETAILS: Record<TwoFactorAccount, { why: string; next: string }> = {
 export function TotpSuccessScreen({ firstName, account = "guardian", onContinue }: TotpSuccessScreenProps) {
   const details = DETAILS[account];
   return (
-    <div className={styles.page} role="status">
+    <div className={`${styles.page} ${blobStyles.blobs}`} role="status">
       <div className={styles.stage}>
         <svg className={styles.badge} viewBox="0 0 120 120" aria-hidden="true">
           <rect className={styles.badgeSquare} x="8" y="8" width="104" height="104" rx="28" />

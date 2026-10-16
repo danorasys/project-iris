@@ -16,8 +16,10 @@ interface LoadingScreenProps {
  * dots bounce one after another, so waiting still feels like IRIS instead
  * of a bare "Cargando…" line. */
 export function LoadingScreen({ message = "Cargando" }: LoadingScreenProps) {
+  // data-theme="portal": the blues and the Poppins of IRIS's current look,
+  // whatever page is loading (the base colors are the old steel blue).
   return (
-    <div className={styles.page} role="status">
+    <div className={styles.page} role="status" data-theme="portal">
       <div className={styles.logoWrap}>
         <svg className={styles.ring} viewBox="0 0 96 96" aria-hidden="true">
           <circle className={styles.ringTrack} cx="48" cy="48" r="42" />
