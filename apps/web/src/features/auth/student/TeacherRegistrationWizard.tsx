@@ -402,7 +402,7 @@ export default function TeacherRegistrationWizard() {
                 className={`${styles.ring} ${styles.ringTopRight}`}
             />
             <Link
-                to="/login/adult"
+                to="/login"
                 state={{ vista: "elegirRegistro" }}
                 className={styles.back}
             >

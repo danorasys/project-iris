@@ -243,7 +243,7 @@ function StartNow() {
             Únete a IRIS
             <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
           </Link>
-          <Link to="/login/adult" className={`${links.lineLink} ${styles.startLogin}`}>
+          <Link to="/login" className={`${links.lineLink} ${styles.startLogin}`}>
             Ya tengo cuenta
           </Link>
         </div>

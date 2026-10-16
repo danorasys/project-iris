@@ -15,7 +15,7 @@ export function RequireTeacherVerified({ children }: { children: ReactNode }) {
 
   if (verified) return <>{children}</>;
   if (status.isPending) return <LoadingScreen />;
-  if (status.isError) return <Navigate to="/login/adult" replace />;
+  if (status.isError) return <Navigate to="/login" replace />;
   return (
     <Navigate
       to={status.data.enabled ? "/teacher/verify-2fa" : "/teacher/setup-2fa"}

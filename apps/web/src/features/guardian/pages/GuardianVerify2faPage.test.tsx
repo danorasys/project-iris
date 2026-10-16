@@ -27,7 +27,7 @@ function renderPage() {
       <Routes>
         <Route path="/guardian/verify-2fa" element={<GuardianVerify2faPage />} />
         <Route path="/guardian/portal" element={<p>Portal de padres</p>} />
-        <Route path="/login/adult" element={<LoginStub />} />
+        <Route path="/login" element={<LoginStub />} />
       </Routes>
     </MemoryRouter>,
   );

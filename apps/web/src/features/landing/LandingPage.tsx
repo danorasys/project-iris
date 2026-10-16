@@ -86,7 +86,7 @@ function JoinBand() {
             <HeartHandshake size={20} strokeWidth={2} aria-hidden="true" />
             Quiero unirme
           </Link>
-          <Link to="/login/adult" className={`${links.lineLink} ${styles.joinLogin}`}>
+          <Link to="/login" className={`${links.lineLink} ${styles.joinLogin}`}>
             Ya tengo cuenta
             <ArrowRight size={16} strokeWidth={2.4} aria-hidden="true" />
           </Link>

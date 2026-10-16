@@ -17,7 +17,9 @@ export function RequireRol({ role, children }: RequireRolProps) {
   if (loading) return null;
 
   if (!session || session.role !== role) {
-    const destination = role === "student" ? "/login/student" : "/login/adult";
+    // A kid without a session goes back to the profile picker, which sends
+    // to /login itself when there's no tutor signed in either.
+    const destination = role === "student" ? "/kids" : "/login";
     return <Navigate to={destination} state={{ desde: location }} replace />;
   }
 

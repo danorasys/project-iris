@@ -127,10 +127,10 @@ export default function GuardianPortalPage() {
         cancelLabel: "Cancelar",
         danger: true,
         onAccept: () => {
-          // RequireRol already redirects to /login/adult on its own once
+          // RequireRol already redirects to /login on its own once
           // the session is cleared, so this line mostly just makes that
           // same destination explicit here too.
-          void closeSession().then(() => navigate("/login/adult", { replace: true }));
+          void closeSession().then(() => navigate("/login", { replace: true }));
         },
       });
     });

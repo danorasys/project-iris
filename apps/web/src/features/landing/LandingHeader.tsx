@@ -56,7 +56,7 @@ export function LandingHeader() {
         </nav>
 
         <div className={styles.actions}>
-          <Link to="/login/adult" className={styles.loginButton}>
+          <Link to="/login" className={styles.loginButton}>
             Ingresar
           </Link>
           <Link to={REGISTER_LINK.to} state={REGISTER_LINK.state} className={styles.registerButton}>
@@ -81,7 +81,7 @@ export function LandingHeader() {
             {link.text}
           </a>
         ))}
-        <Link to="/login/adult" className={styles.menuLogin}>
+        <Link to="/login" className={styles.menuLogin}>
           Ingresar
         </Link>
       </nav>

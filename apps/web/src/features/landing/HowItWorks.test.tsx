@@ -22,7 +22,7 @@ function renderHowItWorks() {
     <MemoryRouter initialEntries={["/"]}>
       <Routes>
         <Route path="/" element={<HowItWorks />} />
-        <Route path="/login/adult" element={<LoginProbe />} />
+        <Route path="/login" element={<LoginProbe />} />
       </Routes>
     </MemoryRouter>,
   );

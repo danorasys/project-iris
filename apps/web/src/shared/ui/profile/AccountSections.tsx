@@ -114,7 +114,7 @@ export function SecurityCard({ changePassword }: { changePassword: PasswordChang
       message:
         "Tu contraseña se cambió correctamente. Usa la nueva para ingresar a tu cuenta. Por seguridad, cerramos todas tus sesiones abiertas.",
     });
-    navigate("/login/adult", { replace: true });
+    navigate("/login", { replace: true });
     discardSession();
   }
 
@@ -252,7 +252,7 @@ function CloseAllSessions() {
     }
     // The server already closed this session too, only the local copy is left.
     discardSession();
-    navigate("/login/adult", {
+    navigate("/login", {
       replace: true,
       state: { aviso: "Cerramos tus sesiones en todos los dispositivos. Inicia sesión de nuevo." },
     });
@@ -368,7 +368,7 @@ export function DeleteAccountCard({ deleteAccount, warning }: DeleteAccountCardP
       title: "Tu cuenta se eliminó",
       message: "Borramos tu cuenta y tus datos de IRIS. Gracias por haber estado aquí.",
     });
-    navigate("/login/adult", { replace: true });
+    navigate("/login", { replace: true });
   }
 
   return (

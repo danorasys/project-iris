@@ -20,7 +20,7 @@ export default function TeacherVerify2faPage() {
       pending={confirm.isPending}
       // There's nothing behind this screen but the login, so going back signs out.
       onBack={() => {
-        void closeSession().then(() => navigate("/login/adult", { replace: true }));
+        void closeSession().then(() => navigate("/login", { replace: true }));
       }}
       onConfirm={async (code) => {
         const tokens = await confirm.mutateAsync({ code });

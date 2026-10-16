@@ -68,7 +68,7 @@ export function TeacherPortalFrame({
               danger
               onAccept={() => {
                 setConfirmingLogout(false);
-                void closeSession().then(() => navigate("/login/adult", { replace: true }));
+                void closeSession().then(() => navigate("/login", { replace: true }));
               }}
               onCancel={() => setConfirmingLogout(false)}
             />

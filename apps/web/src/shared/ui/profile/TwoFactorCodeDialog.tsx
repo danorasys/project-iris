@@ -61,7 +61,7 @@ export function TwoFactorCodeDialog({ title, text, onSubmit, onCancel, onOtherEr
         // The server already closed this session, so only the local copy is dropped.
         onCancel();
         discardSession();
-        navigate("/login/adult", { replace: true, state: { aviso: getAuthErrorMessage(err) } });
+        navigate("/login", { replace: true, state: { aviso: getAuthErrorMessage(err) } });
         return;
       }
       const wait = getRetryAfterSeconds(err);

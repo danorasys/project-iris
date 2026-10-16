@@ -117,7 +117,7 @@ export default function TeacherPortalPage() {
         danger: true,
         onAccept: () => {
           setConfirm(null);
-          void closeSession().then(() => navigate("/login/adult", { replace: true }));
+          void closeSession().then(() => navigate("/login", { replace: true }));
         },
       }),
     );

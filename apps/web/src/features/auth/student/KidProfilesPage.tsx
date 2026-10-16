@@ -62,7 +62,7 @@ function PinEntry({ profile, onBack }: { profile: StudentProfile; onBack: () => 
       const tokens = await loginProfile.mutateAsync({ student_id: profile.id, pin });
       // React Router moves inside a transition. If the kid's session landed
       // first, this page (only for guardians) would see a student and send
-      // them to /login/adult. In the same transition both land together.
+      // them to /login. In the same transition both land together.
       startTransition(() => {
         setSession(tokens);
         navigate(routeAfterPin(profile.id), { replace: true });

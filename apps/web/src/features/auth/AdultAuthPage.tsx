@@ -32,9 +32,10 @@ export default function AdultAuthPage() {
         clearLoginNotice()
     }, [])
 
-    const [view, setView] = useState<View>(
-        (location.state as { vista?: View } | null)?.vista ?? "login",
-    )
+    // The state can bring the sign up view or a notice from another screen.
+    // Anything could be in the history, so both get checked before using them.
+    const { vista, aviso } = (location.state ?? {}) as { vista?: unknown; aviso?: unknown }
+    const [view, setView] = useState<View>(vista === "elegirRegistro" ? "elegirRegistro" : "login")
     return (
         <main className={styles.page}>
             {successNotice && (
@@ -72,10 +73,7 @@ export default function AdultAuthPage() {
                     {view === "login" ? (
                         <LoginForm
                             onGoToRegister={() => setView("elegirRegistro")}
-                            notice={
-                                (location.state as { aviso?: string } | null)
-                                    ?.aviso
-                            }
+                            notice={typeof aviso === "string" ? aviso : undefined}
                         />
                     ) : (
                         <ChooseAccountType

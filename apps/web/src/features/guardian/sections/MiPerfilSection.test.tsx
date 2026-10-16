@@ -358,7 +358,7 @@ describe("MiPerfilSection", { timeout: 20_000 }, () => {
         <MemoryRouter initialEntries={["/guardian/portal"]}>
           <Routes>
             <Route path="/guardian/portal" element={<MiPerfilSection onDirtyChange={onDirtyChange} />} />
-            <Route path="/login/adult" element={<p>Login</p>} />
+            <Route path="/login" element={<p>Login</p>} />
           </Routes>
         </MemoryRouter>,
       );
@@ -457,7 +457,7 @@ describe("MiPerfilSection", { timeout: 20_000 }, () => {
         <MemoryRouter initialEntries={["/guardian/portal"]}>
           <Routes>
             <Route path="/guardian/portal" element={<MiPerfilSection onDirtyChange={onDirtyChange} />} />
-            <Route path="/login/adult" element={<p>Login</p>} />
+            <Route path="/login" element={<p>Login</p>} />
           </Routes>
         </MemoryRouter>,
       );
@@ -511,7 +511,7 @@ describe("MiPerfilSection", { timeout: 20_000 }, () => {
         <MemoryRouter initialEntries={["/guardian/portal"]}>
           <Routes>
             <Route path="/guardian/portal" element={<MiPerfilSection onDirtyChange={onDirtyChange} />} />
-            <Route path="/login/adult" element={<p>Login</p>} />
+            <Route path="/login" element={<p>Login</p>} />
           </Routes>
         </MemoryRouter>,
       );

@@ -22,7 +22,7 @@ function GuardianPortalChoice() {
 
   async function handleLogout() {
     await closeSession();
-    navigate("/login/adult", { replace: true });
+    navigate("/login", { replace: true });
   }
 
   return (

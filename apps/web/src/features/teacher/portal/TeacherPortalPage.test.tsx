@@ -49,7 +49,7 @@ function renderPortal() {
     <MemoryRouter initialEntries={["/teacher/portal"]}>
       <Routes>
         <Route path="/teacher/portal" element={<TeacherPortalPage />} />
-        <Route path="/login/adult" element={<p>Inicio de sesión</p>} />
+        <Route path="/login" element={<p>Inicio de sesión</p>} />
       </Routes>
     </MemoryRouter>,
   );

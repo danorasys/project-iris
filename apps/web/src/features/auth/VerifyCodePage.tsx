@@ -45,7 +45,7 @@ export function VerifyCodePage({ purpose, onConfirm, pending, onBack }: VerifyCo
       if (err instanceof ApiError && err.code === "sesion_cerrada_por_seguridad") {
         // The server already closed this session, so only the local copy is dropped.
         discardSession();
-        navigate("/login/adult", { replace: true, state: { aviso: getAuthErrorMessage(err) } });
+        navigate("/login", { replace: true, state: { aviso: getAuthErrorMessage(err) } });
         return;
       }
       const wait = getRetryAfterSeconds(err);

@@ -17,8 +17,6 @@ import { playEnter } from "@/shared/ui/enterAnimation"
 // We split the code by role, so the /student/* pages, and the gaze
 // engine that comes with them, only get downloaded if the user goes there.
 const LandingPage = lazy(() => import("@/features/landing/LandingPage"))
-const RoleSelectorPage = lazy(() => import("@/features/auth/RoleSelectorPage"))
-const StudentAuthPage = lazy(() => import("@/features/auth/StudentAuthPage"))
 const AdultAuthPage = lazy(() => import("@/features/auth/AdultAuthPage"))
 const GuardianRegistrationWizard = lazy(
     () => import("@/features/auth/student/GuardianRegistrationWizard"),
@@ -124,6 +122,19 @@ function PageEnter() {
     return null
 }
 
+/** The login used to live at /login/adult. A saved link or bookmark still
+ * lands on it, and the state goes along (the notice or the sign up view). */
+export function OldLoginRedirect() {
+    const { state } = useLocation()
+    return (
+        <Navigate
+            to="/login"
+            replace
+            state={state}
+        />
+    )
+}
+
 export function AppRouter() {
     return (
         <BrowserRouter>
@@ -137,15 +148,11 @@ export function AppRouter() {
                     />
                     <Route
                         path="/login"
-                        element={<RoleSelectorPage />}
-                    />
-                    <Route
-                        path="/login/student/*"
-                        element={<StudentAuthPage />}
+                        element={<AdultAuthPage />}
                     />
                     <Route
                         path="/login/adult/*"
-                        element={<AdultAuthPage />}
+                        element={<OldLoginRedirect />}
                     />
                     <Route
                         path="/login/guardian/new"
