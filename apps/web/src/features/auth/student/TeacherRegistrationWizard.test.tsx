@@ -211,23 +211,37 @@ describe("TeacherRegistrationWizard, same behavior as the guardian's", { timeout
     expect(screen.getAllByRole("alert").map((alert) => alert.textContent)).toEqual(["Ingresa tus nombres."]);
   });
 
-  it("checks the document number while it's typed", async () => {
+  it("checks the document number when it's left", async () => {
     const user = userEvent.setup({ delay: null });
     renderWizard();
 
     await user.type(screen.getByLabelText(/^Número de documento/), "12");
+    expect(screen.queryByRole("alert")).toBeNull();
+    await user.tab();
 
     expect(screen.getByRole("alert")).toBeTruthy();
   });
 
-  it("checks the document issue date against the birth date while it's typed", async () => {
+  it("checks the document issue date against the birth date when it's left", async () => {
     const user = userEvent.setup({ delay: null });
     renderWizard();
 
     await user.type(screen.getByLabelText(/^Fecha de nacimiento/), "1988-06-20");
     await user.type(screen.getByLabelText(/^Fecha de expedición del documento/), "1980-01-01");
+    await user.tab();
 
     expect(screen.getByText(/no puede ser anterior a tu fecha de nacimiento/)).toBeTruthy();
+  });
+
+  it("marks a field with the check once it's left right", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderWizard();
+
+    const firstName = screen.getByLabelText(/^Nombres/);
+    await user.type(firstName, "Carlos");
+    await user.tab();
+
+    expect(firstName.parentElement?.dataset.status).toBe("valid");
   });
 
   it("asks to accept the data treatment at the end of step 2, not in step 1", async () => {

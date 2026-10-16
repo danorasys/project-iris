@@ -14,7 +14,6 @@ import {
 import { getAuthErrorMessage } from "@/features/auth/errors"
 import { firstOptionId } from "./firstOption"
 import { TextField } from "@/features/auth/ui/TextField"
-import { SelectField } from "@/features/auth/ui/SelectField"
 import { PhoneField } from "@/features/auth/ui/PhoneField"
 import { CheckboxField } from "@/features/auth/ui/CheckboxField"
 import { PasswordRequirements } from "@/features/auth/ui/PasswordRequirements"
@@ -35,9 +34,11 @@ import {
     profileFromDraft,
     type ProfileDraft,
 } from "@/features/teacher/profile/teacherProfileDraft"
-import { IrisMark } from "@/shared/ui/IrisMark"
+import { PortalSelect } from "@/shared/ui/portal/PortalSelect"
+import { IrisRings } from "@/shared/ui/IrisRings"
 import { IconArrowLeft, IconInfo, IconLock } from "@/shared/ui/icons"
 import { LoadingScreen } from "@/shared/ui/LoadingScreen"
+import { usePortalTheme } from "@/shared/ui/portal/usePortalTheme"
 import { calculateAge } from "@/features/utils/calculateAge"
 import { MAX_AGE, nameError } from "@/features/utils/personValidation"
 import { formatDate } from "@/features/utils/formatDate"
@@ -47,6 +48,11 @@ import { RegistrationConfirmation, type SummaryItem } from "./RegistrationConfir
 import { RegistrationSuccessScreen } from "./RegistrationSuccessScreen"
 import { TotpSetupScreen } from "./TotpSetupScreen"
 import { TotpSuccessScreen } from "./TotpSuccessScreen"
+import {
+    focusAndScrollToField,
+    useFieldChecks,
+    type Problem,
+} from "./useFieldChecks"
 import styles from "./GuardianRegistrationWizard.module.css"
 
 const MINIMUM_TEACHER_AGE = 18
@@ -77,24 +83,14 @@ type Field =
     | "passwordConfirmation"
     | "acceptsDataProcessing"
 
-/** Same as in the guardian's wizard: the window is scrolled by hand, so the
- * page's clipped root (`overflow: hidden`, for the rings) never scrolls
- * instead. See GuardianRegistrationWizard for the long story. */
-function focusAndScrollToField(fieldId: string): void {
-    const field = document.getElementById(fieldId)
-    if (!field) return
-    field.focus({ preventScroll: true })
-    const rect = field.getBoundingClientRect()
-    const targetTop =
-        rect.top + window.scrollY - window.innerHeight / 2 + rect.height / 2
-    window.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" })
-}
-
 /** `/register/teacher`. Looks and checks the same as the guardian's
  * registration: two forms (personal data, and the teacher's profile, which
  * is optional) and a confirmation with the IRIS mascot before creating the
  * account. Right after, the teacher sets up their 2FA, like the guardian. */
 export default function TeacherRegistrationWizard() {
+    // The colors and Poppins of the landing and the login, like the
+    // guardian's sign up. It also covers the 2FA screens shown from here.
+    usePortalTheme()
     const navigate = useNavigate()
     const { setSession } = useAuth()
     const register = useRegistrarDocente()
@@ -152,81 +148,126 @@ export default function TeacherRegistrationWizard() {
         })
     }
 
-    // The first problem from top to bottom, like the guardian's form: only
-    // that one is shown, and the form takes the teacher right to it.
-    function firstProblem(): [Field, string, string] | null {
-        const ageProblem = !dateOfBirth
-            ? "Ingresa tu fecha de nacimiento."
-            : calculateAge(dateOfBirth) < MINIMUM_TEACHER_AGE
-              ? `Debes ser mayor de edad (${MINIMUM_TEACHER_AGE} años o más) para registrarte como docente.`
-              : calculateAge(dateOfBirth) > MAX_AGE
-                ? "Revisa el año de la fecha de nacimiento."
-                : null
-        const checks: [Field, string, string | null][] = [
-            ["firstName", "teacher-first-name", nameError(firstName, "Ingresa tus nombres.")],
-            ["lastName", "teacher-last-name", nameError(lastName, "Ingresa tus apellidos.")],
-            ["dateOfBirth", "teacher-date-of-birth", ageProblem],
-            [
-                "documentType",
-                "teacher-document-type",
-                documentType ? null : "Selecciona un tipo de documento.",
-            ],
-            [
-                "documentNumber",
-                "teacher-document-number",
-                !documentNumber.trim()
-                    ? "Ingresa tu número de documento."
-                    : documentNumberFormatError(selectedDocumentType?.name, documentNumber),
-            ],
-            [
-                "documentIssuedAt",
-                "teacher-document-issued-at",
-                !documentIssuedAt
-                    ? "Ingresa la fecha de expedición del documento de identificación."
-                    : validateDocumentIssuedAt(documentIssuedAt, dateOfBirth, TODAY_ISO),
-            ],
-            [
-                "email",
-                "teacher-email",
-                EMAIL_PATTERN.test(email.trim()) ? null : "Ingresa un correo electrónico válido.",
-            ],
-            [
-                "phone",
-                "teacher-phone",
-                phone && isValidPhoneNumber(phone) ? null : "Ingresa un número telefónico válido.",
-            ],
-            [
-                "password",
-                "teacher-password",
-                passwordMeetsRequirements(password)
-                    ? null
-                    : "Ingresa una contraseña que cumpla con todos los requisitos indicados abajo.",
-            ],
-            [
-                "passwordConfirmation",
-                "teacher-password-confirmation",
-                !passwordConfirmation
-                    ? "Ingresa la confirmación de la contraseña."
-                    : password === passwordConfirmation
-                      ? null
-                      : "Las contraseñas no coinciden.",
-            ],
-        ]
-        const found = checks.find(([, , message]) => message)
-        return found ? [found[0], found[1], found[2] as string] : null
+    // Each field is checked when it's left, like the guardian's form (see
+    // useFieldChecks).
+    const { touched, checkedField, checkField } = useFieldChecks()
+
+    // What's wrong with each field, or null. The same rules run when a field
+    // is left and when "Siguiente" is pressed, so the messages are the same.
+    const firstNameProblem: Problem = (value) =>
+        nameError(value, "Ingresa tus nombres.")
+    const lastNameProblem: Problem = (value) =>
+        nameError(value, "Ingresa tus apellidos.")
+    const dateOfBirthProblem: Problem = (value) => {
+        if (!value) return "Ingresa tu fecha de nacimiento."
+        if (calculateAge(value) < MINIMUM_TEACHER_AGE) {
+            return `Debes ser mayor de edad (${MINIMUM_TEACHER_AGE} años o más) para registrarte como docente.`
+        }
+        if (calculateAge(value) > MAX_AGE) {
+            return "Revisa el año de la fecha de nacimiento."
+        }
+        return null
+    }
+    // These ones also depend on another field, which can be given when it's
+    // the other one that just changed.
+    const documentNumberProblem = (
+        value: string,
+        typeName = selectedDocumentType?.name,
+    ) =>
+        value.trim()
+            ? documentNumberFormatError(typeName, value)
+            : "Ingresa tu número de documento."
+    const documentIssuedAtProblem = (value: string, birth = dateOfBirth) =>
+        value
+            ? validateDocumentIssuedAt(value, birth, TODAY_ISO)
+            : "Ingresa la fecha de expedición del documento de identificación."
+    const emailProblem: Problem = (value) =>
+        EMAIL_PATTERN.test(value.trim())
+            ? null
+            : "Ingresa un correo electrónico válido."
+    const phoneProblem: Problem = (value) =>
+        value && isValidPhoneNumber(value)
+            ? null
+            : "Ingresa un número telefónico válido."
+    const passwordProblem: Problem = (value) =>
+        passwordMeetsRequirements(value)
+            ? null
+            : "Ingresa una contraseña que cumpla con todos los requisitos indicados abajo."
+    const passwordConfirmationProblem = (value: string, first = password) => {
+        if (!value) return "Ingresa la confirmación de la contraseña."
+        return value === first ? null : "Las contraseñas no coinciden."
     }
 
+    // The same two helpers of the hook, but with the error kept in `errors`.
+    function teacherField(
+        field: Field,
+        id: string,
+        value: string,
+        setValue: (value: string) => void,
+        problem: Problem,
+    ) {
+        return checkedField(
+            id,
+            value,
+            setValue,
+            errors[field] ?? null,
+            (message) => setError(field, message),
+            problem,
+        )
+    }
+
+    function checkTeacherField(
+        field: Field,
+        id: string,
+        value: string,
+        problem: Problem,
+    ): boolean {
+        return checkField(
+            id,
+            value,
+            (message) => setError(field, message),
+            problem,
+        )
+    }
+
+    /** Checks the fields top to bottom and stops at the first error, showing
+     * it and moving to that field. The step dots use it too, through
+     * `requestSubmit()`. */
     function handleSubmitStep1(event: FormEvent) {
         event.preventDefault()
         if (!catalogsReady) return
-        const problem = firstProblem()
-        if (problem) {
-            const [field, fieldId, message] = problem
-            setErrors({ [field]: message })
-            focusAndScrollToField(fieldId)
+
+        if (
+            !checkTeacherField("firstName", "teacher-first-name", firstName, firstNameProblem) ||
+            !checkTeacherField("lastName", "teacher-last-name", lastName, lastNameProblem) ||
+            !checkTeacherField("dateOfBirth", "teacher-date-of-birth", dateOfBirth, dateOfBirthProblem)
+        ) {
             return
         }
-        setErrors({})
+
+        if (!documentType) {
+            setError("documentType", "Selecciona un tipo de documento.")
+            focusAndScrollToField("teacher-document-type")
+            return
+        }
+        setError("documentType", null)
+
+        if (
+            !checkTeacherField("documentNumber", "teacher-document-number", documentNumber, documentNumberProblem) ||
+            !checkTeacherField("documentIssuedAt", "teacher-document-issued-at", documentIssuedAt, documentIssuedAtProblem) ||
+            !checkTeacherField("email", "teacher-email", email, emailProblem) ||
+            !checkTeacherField("phone", "teacher-phone", phone, phoneProblem) ||
+            !checkTeacherField("password", "teacher-password", password, passwordProblem) ||
+            !checkTeacherField(
+                "passwordConfirmation",
+                "teacher-password-confirmation",
+                passwordConfirmation,
+                passwordConfirmationProblem,
+            )
+        ) {
+            return
+        }
+
         setSubmitError(null)
         setPhase("perfil")
     }
@@ -383,24 +424,47 @@ export default function TeacherRegistrationWizard() {
 
     const step = phase === "perfil" ? 2 : 1
 
+    // The fields of step 1 checked when they're left.
+    const firstNameField = teacherField("firstName", "teacher-first-name", firstName, setFirstName, firstNameProblem)
+    const lastNameField = teacherField("lastName", "teacher-last-name", lastName, setLastName, lastNameProblem)
+    const dateOfBirthField = teacherField(
+        "dateOfBirth",
+        "teacher-date-of-birth",
+        dateOfBirth,
+        setDateOfBirth,
+        dateOfBirthProblem,
+    )
+    const documentNumberField = teacherField(
+        "documentNumber",
+        "teacher-document-number",
+        documentNumber,
+        setDocumentNumber,
+        documentNumberProblem,
+    )
+    const documentIssuedAtField = teacherField(
+        "documentIssuedAt",
+        "teacher-document-issued-at",
+        documentIssuedAt,
+        setDocumentIssuedAt,
+        documentIssuedAtProblem,
+    )
+    const emailField = teacherField("email", "teacher-email", email, setEmail, emailProblem)
+    const phoneField = teacherField("phone", "teacher-phone", phone, setPhone, phoneProblem)
+    const passwordField = teacherField("password", "teacher-password", password, setPassword, passwordProblem)
+    const passwordConfirmationField = teacherField(
+        "passwordConfirmation",
+        "teacher-password-confirmation",
+        passwordConfirmation,
+        setPasswordConfirmation,
+        passwordConfirmationProblem,
+    )
+
     return (
         <main className={styles.page}>
-            <IrisMark
-                size={420}
-                className={`${styles.ring} ${styles.ringLarge}`}
-            />
-            <IrisMark
-                size={150}
-                className={`${styles.ring} ${styles.ringBottomLeft}`}
-            />
-            <IrisMark
-                size={420}
-                className={`${styles.ring} ${styles.ringTopLeft}`}
-            />
-            <IrisMark
-                size={150}
-                className={`${styles.ring} ${styles.ringTopRight}`}
-            />
+            {/* The same rings as the guardian's sign up, at the top and at
+                the end of the form. */}
+            <IrisRings className={styles.irisRingsTop} />
+            <IrisRings className={styles.irisRingsBottom} />
             <Link
                 to="/register"
                 className={styles.back}
@@ -494,49 +558,36 @@ export default function TeacherRegistrationWizard() {
                             Paso 1 de 3 — Datos de tu cuenta de docente.
                         </p>
                         <TextField
-                            id="teacher-first-name"
+                            {...firstNameField}
                             label="Nombres"
-                            value={firstName}
-                            onChange={(value) => {
-                                setFirstName(value)
-                                setError("firstName", null)
-                            }}
-                            error={errors.firstName}
                             required
                             autoComplete="given-name"
                         />
                         <TextField
-                            id="teacher-last-name"
+                            {...lastNameField}
                             label="Apellidos"
-                            value={lastName}
-                            onChange={(value) => {
-                                setLastName(value)
-                                setError("lastName", null)
-                            }}
-                            error={errors.lastName}
                             required
                             autoComplete="family-name"
                         />
                         <TextField
-                            id="teacher-date-of-birth"
+                            {...dateOfBirthField}
                             label="Fecha de nacimiento"
                             type="date"
-                            value={dateOfBirth}
                             onChange={(value) => {
-                                setDateOfBirth(value)
-                                setError("dateOfBirth", null)
-                                // The birth date is the issue date's lower
-                                // bound, so that one is checked again.
-                                setError(
-                                    "documentIssuedAt",
-                                    validateDocumentIssuedAt(documentIssuedAt, value, TODAY_ISO),
-                                )
+                                dateOfBirthField.onChange(value)
+                                // The issued date can't be before the birth date, so
+                                // if it was already checked it's checked again here.
+                                if (touched["teacher-document-issued-at"]) {
+                                    setError(
+                                        "documentIssuedAt",
+                                        documentIssuedAtProblem(documentIssuedAt, value),
+                                    )
+                                }
                             }}
-                            error={errors.dateOfBirth}
                             required
                             max={TODAY_ISO}
                         />
-                        <SelectField
+                        <PortalSelect
                             id="teacher-document-type"
                             label="Tipo de documento"
                             value={documentType}
@@ -544,14 +595,17 @@ export default function TeacherRegistrationWizard() {
                                 setDocumentType(value)
                                 setError("documentType", null)
                                 // A number that was fine can stop being it with
-                                // another type, so it's checked again right away.
-                                const nextType = documentTypesQuery.data?.find(
-                                    (item) => String(item.id) === value,
-                                )
-                                setError(
-                                    "documentNumber",
-                                    documentNumberFormatError(nextType?.name, documentNumber),
-                                )
+                                // another type, so if it was already checked
+                                // it's checked again against the new one.
+                                if (touched["teacher-document-number"]) {
+                                    const nextType = documentTypesQuery.data?.find(
+                                        (item) => String(item.id) === value,
+                                    )
+                                    setError(
+                                        "documentNumber",
+                                        documentNumberProblem(documentNumber, nextType?.name),
+                                    )
+                                }
                             }}
                             options={(documentTypesQuery.data ?? []).map(
                                 (item) => ({
@@ -564,21 +618,17 @@ export default function TeacherRegistrationWizard() {
                             disabled={documentTypesQuery.isLoading}
                         />
                         <TextField
-                            id="teacher-document-number"
+                            {...documentNumberField}
                             label="Número de documento"
-                            value={documentNumber}
-                            onChange={(value) => {
-                                const filtered = filterDocumentNumberInput(
-                                    selectedDocumentType?.name,
-                                    value,
+                            // Only the characters the type allows get in.
+                            onChange={(value) =>
+                                documentNumberField.onChange(
+                                    filterDocumentNumberInput(
+                                        selectedDocumentType?.name,
+                                        value,
+                                    ),
                                 )
-                                setDocumentNumber(filtered)
-                                setError(
-                                    "documentNumber",
-                                    documentNumberFormatError(selectedDocumentType?.name, filtered),
-                                )
-                            }}
-                            error={errors.documentNumber}
+                            }
                             required
                             inputMode={
                                 selectedDocumentType?.name ===
@@ -588,46 +638,23 @@ export default function TeacherRegistrationWizard() {
                             }
                         />
                         <TextField
-                            id="teacher-document-issued-at"
+                            {...documentIssuedAtField}
                             label="Fecha de expedición del documento"
                             type="date"
-                            value={documentIssuedAt}
-                            onChange={(value) => {
-                                setDocumentIssuedAt(value)
-                                // Checked right away, a typed date skips the
-                                // picker's min and max.
-                                setError(
-                                    "documentIssuedAt",
-                                    validateDocumentIssuedAt(value, dateOfBirth, TODAY_ISO),
-                                )
-                            }}
-                            error={errors.documentIssuedAt}
                             required
                             min={dateOfBirth || undefined}
                             max={TODAY_ISO}
                         />
                         <TextField
-                            id="teacher-email"
+                            {...emailField}
                             label="Correo electrónico"
                             type="email"
-                            value={email}
-                            onChange={(value) => {
-                                setEmail(value)
-                                setError("email", null)
-                            }}
-                            error={errors.email}
                             required
                             autoComplete="email"
                         />
                         <PhoneField
-                            id="teacher-phone"
+                            {...phoneField}
                             label="Teléfono"
-                            value={phone}
-                            onChange={(value) => {
-                                setPhone(value)
-                                setError("phone", null)
-                            }}
-                            error={errors.phone}
                             required
                         />
                         <TextField
@@ -640,31 +667,28 @@ export default function TeacherRegistrationWizard() {
                             placeholder="El colegio o instituto donde enseñas. Si das clases particulares, déjalo vacío."
                         />
                         <TextField
-                            id="teacher-password"
+                            {...passwordField}
                             label="Contraseña"
                             type="password"
-                            value={password}
                             onChange={(value) => {
-                                setPassword(value)
-                                setError("password", null)
-                                // A stale "no coinciden" belongs to the old password.
-                                setError("passwordConfirmation", null)
+                                passwordField.onChange(value)
+                                // The confirmation has to match the new one, so if it
+                                // was already checked it's checked again.
+                                if (touched["teacher-password-confirmation"]) {
+                                    setError(
+                                        "passwordConfirmation",
+                                        passwordConfirmationProblem(passwordConfirmation, value),
+                                    )
+                                }
                             }}
-                            error={errors.password}
                             required
                             autoComplete="new-password"
                         />
                         <PasswordRequirements password={password} />
                         <TextField
-                            id="teacher-password-confirmation"
+                            {...passwordConfirmationField}
                             label="Confirmar contraseña"
                             type="password"
-                            value={passwordConfirmation}
-                            onChange={(value) => {
-                                setPasswordConfirmation(value)
-                                setError("passwordConfirmation", null)
-                            }}
-                            error={errors.passwordConfirmation}
                             required
                             autoComplete="new-password"
                         />

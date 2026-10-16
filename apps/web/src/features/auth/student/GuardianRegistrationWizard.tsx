@@ -23,7 +23,6 @@ import { firstOptionId } from "./firstOption"
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage"
 import { TextField } from "@/features/auth/ui/TextField"
 import { PhoneField } from "@/features/auth/ui/PhoneField"
-import type { FieldStatus } from "@/features/auth/ui/FieldStatusIcon"
 import { PasswordRequirements } from "@/features/auth/ui/PasswordRequirements"
 import { passwordMeetsRequirements } from "@/features/auth/ui/passwordRules"
 import {
@@ -43,6 +42,11 @@ import { RegistrationSuccessScreen } from "./RegistrationSuccessScreen"
 import { TotpSetupScreen } from "./TotpSetupScreen"
 import { TotpSuccessScreen } from "./TotpSuccessScreen"
 import { RegistrationConfirmation, type SummaryItem } from "./RegistrationConfirmation"
+import {
+    focusAndScrollToField,
+    useFieldChecks,
+    type Problem,
+} from "./useFieldChecks"
 import { PRIVACY_POLICY_VERSION } from "@/features/legal/policyVersion"
 import styles from "./GuardianRegistrationWizard.module.css"
 import { calculateAge } from "@/features/utils/calculateAge"
@@ -68,33 +72,6 @@ type PostSubmitPhase =
     | "exito"
     | "totp-setup"
     | "totp-exito"
-
-/** Scrolls to a field and focuses it, so an error is never hidden below.
- * It uses `window.scrollTo` instead of `scrollIntoView()`: the page root
- * has `overflow: hidden` (for the background rings) and `scrollIntoView()`
- * would scroll that box instead of the page. `preventScroll` avoids the
- * same problem when focusing. */
-function focusAndScrollToField(fieldId: string): void {
-    const field = document.getElementById(fieldId)
-    if (!field) return
-    field.focus({ preventScroll: true })
-    const rect = field.getBoundingClientRect()
-    const targetTop =
-        rect.top + window.scrollY - window.innerHeight / 2 + rect.height / 2
-    window.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" })
-}
-
-/** What a field that's checked when it's left needs (TextField, PhoneField). */
-interface CheckedFieldProps {
-    id: string
-    value: string
-    error?: string
-    status?: FieldStatus
-    onChange: (value: string) => void
-    onBlur: () => void
-}
-
-type Problem = (value: string) => string | null
 
 function catalogLabel(
     items: { id: number; name: string }[] | undefined,
@@ -213,18 +190,8 @@ export default function GuardianRegistrationWizard() {
         documentTypesQuery.isError || relationshipTypesQuery.isError
     const avatarsFailed = avatarsQuery.isError
 
-    // --- Each field is checked when it's left ---
-    // A field counts as "touched" once it's left with something written, or
-    // once "Siguiente" checks it. From then on it's checked on every key, so
-    // the cross turns into a check as soon as it's fixed. An empty field that
-    // was only tabbed through stays quiet until "Siguiente".
-    const [touched, setTouched] = useState<Record<string, boolean>>({})
-
-    function markTouched(id: string) {
-        setTouched((current) =>
-            current[id] ? current : { ...current, [id]: true },
-        )
-    }
+    // Each field is checked when it's left (see useFieldChecks).
+    const { touched, checkedField, checkField } = useFieldChecks()
 
     // What's wrong with each field, or null. The same rules run when a field
     // is left and when "Siguiente" is pressed, so the messages are the same.
@@ -280,48 +247,6 @@ export default function GuardianRegistrationWizard() {
         return value > TODAY_ISO
             ? "La fecha de nacimiento no puede ser una fecha futura."
             : null
-    }
-
-    /** The props of a field checked on blur: its value and error, the check
-     * or the cross, and what to do on each key and when it's left. */
-    function checkedField(
-        id: string,
-        value: string,
-        setValue: (value: string) => void,
-        error: string | null,
-        setError: (error: string | null) => void,
-        problem: Problem,
-    ): CheckedFieldProps {
-        return {
-            id,
-            value,
-            error: error ?? undefined,
-            status: touched[id] ? (error ? "invalid" : "valid") : undefined,
-            onChange: (next) => {
-                setValue(next)
-                setError(touched[id] ? problem(next) : null)
-            },
-            onBlur: () => {
-                if (!value.trim()) return
-                markTouched(id)
-                setError(problem(value))
-            },
-        }
-    }
-
-    /** "Siguiente" checks a field even when it's empty. False means it has
-     * something to fix, and the page moves to it. */
-    function checkField(
-        id: string,
-        value: string,
-        setError: (error: string | null) => void,
-        problem: Problem,
-    ): boolean {
-        markTouched(id)
-        const issue = problem(value)
-        setError(issue)
-        if (issue) focusAndScrollToField(id)
-        return !issue
     }
 
     function handleGoBackToStep1() {
