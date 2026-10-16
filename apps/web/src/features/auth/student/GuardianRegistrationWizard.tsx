@@ -103,7 +103,7 @@ function catalogLabel(
     return items?.find((item) => String(item.id) === id)?.name ?? id
 }
 
-/** `/login/guardian/new`: the guardian's data and consent, then the first
+/** `/register/guardian`: the guardian's data and consent, then the first
  * kid with the PIN typed twice. Confirming creates everything together and
  * signs the guardian in, then comes the 2FA setup and the parents' portal.
  * The kid's own session always asks for the PIN again later. */

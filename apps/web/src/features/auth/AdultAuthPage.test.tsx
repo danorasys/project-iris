@@ -49,7 +49,8 @@ describe("AdultAuthPage success notice", () => {
 });
 
 // Opens the page at a path with the given history state, with the same
-// routes as the app, so the links and the old /login/adult can be followed.
+// routes as the app, so the links and the old /login/adult can be followed
+// (the sign ups are just a heading here).
 function renderAt(pathname: string, state: unknown = null) {
   return render(
     <MemoryRouter initialEntries={[{ pathname, state }]}>
@@ -57,6 +58,8 @@ function renderAt(pathname: string, state: unknown = null) {
         <Route path="/login" element={<AdultAuthPage view="login" />} />
         <Route path="/register" element={<AdultAuthPage view="register" />} />
         <Route path="/login/adult/*" element={<OldLoginRedirect />} />
+        <Route path="/register/guardian" element={<h1>Registro de tutor</h1>} />
+        <Route path="/register/teacher" element={<h1>Registro de docente</h1>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -89,5 +92,17 @@ describe("AdultAuthPage routes", () => {
     renderAt("/login/adult", { aviso: "Inicia sesión de nuevo." });
     expect(screen.getByRole("heading", { name: "Iniciar sesión" })).toBeTruthy();
     expect(screen.getByRole("status").textContent).toBe("Inicia sesión de nuevo.");
+  });
+
+  it("takes each kind of account to its sign up under /register", async () => {
+    const user = userEvent.setup();
+    renderAt("/register");
+    await user.click(screen.getByRole("link", { name: /Soy tutor, papá o mamá/ }));
+    expect(screen.getByRole("heading", { name: "Registro de tutor" })).toBeTruthy();
+
+    cleanup();
+    renderAt("/register");
+    await user.click(screen.getByRole("link", { name: /Soy docente/ }));
+    expect(screen.getByRole("heading", { name: "Registro de docente" })).toBeTruthy();
   });
 });

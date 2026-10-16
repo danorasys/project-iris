@@ -90,7 +90,7 @@ function focusAndScrollToField(fieldId: string): void {
     window.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" })
 }
 
-/** `/login/teacher/new`. Looks and checks the same as the guardian's
+/** `/register/teacher`. Looks and checks the same as the guardian's
  * registration: two forms (personal data, and the teacher's profile, which
  * is optional) and a confirmation with the IRIS mascot before creating the
  * account. Right after, the teacher sets up their 2FA, like the guardian. */

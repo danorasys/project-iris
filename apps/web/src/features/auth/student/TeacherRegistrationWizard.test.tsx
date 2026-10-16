@@ -40,9 +40,9 @@ vi.mock("./TotpSuccessScreen", () => ({
 
 function renderWizard() {
   return render(
-    <MemoryRouter initialEntries={["/login/teacher/new"]}>
+    <MemoryRouter initialEntries={["/register/teacher"]}>
       <Routes>
-        <Route path="/login/teacher/new" element={<TeacherRegistrationWizard />} />
+        <Route path="/register/teacher" element={<TeacherRegistrationWizard />} />
         <Route path="/teacher/portal" element={<p>Panel docente</p>} />
       </Routes>
     </MemoryRouter>,

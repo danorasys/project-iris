@@ -302,14 +302,14 @@ function LoginForm({ notice }: { notice?: string }) {
 // The two kinds of account, numbered like the steps of the landing.
 const ACCOUNT_TYPES = [
     {
-        to: "/login/guardian/new",
+        to: "/register/guardian",
         number: "01",
         title: "Soy tutor, papá o mamá",
         note: "Crea tu cuenta y la de tu hijo o hija, acompaña su aprendizaje y sigue de cerca su progreso dentro de IRIS.",
         icon: HeartHandshake,
     },
     {
-        to: "/login/teacher/new",
+        to: "/register/teacher",
         number: "02",
         title: "Soy docente",
         note: "Crea clases organizadas en unidades y lecciones para aprender con la mirada, y guía el progreso de tus estudiantes.",

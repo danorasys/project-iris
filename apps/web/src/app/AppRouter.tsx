@@ -159,8 +159,32 @@ export function AppRouter() {
                         element={<OldLoginRedirect />}
                     />
                     <Route
-                        path="/login/guardian/new"
+                        path="/register/guardian"
                         element={<GuardianRegistrationWizard />}
+                    />
+                    <Route
+                        path="/register/teacher"
+                        element={<TeacherRegistrationWizard />}
+                    />
+                    {/* Where the sign ups used to be, so an old link still
+                        gets to them. */}
+                    <Route
+                        path="/login/guardian/new"
+                        element={
+                            <Navigate
+                                to="/register/guardian"
+                                replace
+                            />
+                        }
+                    />
+                    <Route
+                        path="/login/teacher/new"
+                        element={
+                            <Navigate
+                                to="/register/teacher"
+                                replace
+                            />
+                        }
                     />
                     <Route
                         path="/login/guardian/portal"
@@ -169,10 +193,6 @@ export function AppRouter() {
                                 <ProfileSelectorAuth />
                             </RequireRol>
                         }
-                    />
-                    <Route
-                        path="/login/teacher/new"
-                        element={<TeacherRegistrationWizard />}
                     />
                     <Route
                         path="/legal-notice"
