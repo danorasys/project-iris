@@ -4,7 +4,7 @@ ever sees, reads or deletes their own."""
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
@@ -29,12 +29,15 @@ async def list_my_notifications(
     classroom_id: UUID | None = None,
     student_id: UUID | None = None,
     event: Annotated[list[str] | None, Query(max_length=10)] = None,
+    box: Literal["received", "sent"] | None = None,
 ) -> NotificationPageOut:
     """The tray, newest first and one page at a time, with the total and how
     many are still unread. With classroom_id and student_id, only the ones
     of that class and kid (the space of a class in the parents' portal).
-    With event, only those kinds (the messages of a class, HU-77)."""
-    result = await service.list_page(user.subject_id, user.role, page, page_size, classroom_id, student_id, event)
+    With event, only those kinds (the messages of a class, HU-77). With
+    box, only what they received or only what they sent; unread_count
+    stays the same in both."""
+    result = await service.list_page(user.subject_id, user.role, page, page_size, classroom_id, student_id, event, box)
     return NotificationPageOut.from_page(result, page, page_size)
 
 

@@ -3,6 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import type { StudentProfile } from "@iris/shared-types";
+import KidProfilesPage from "./KidProfilesPage";
 import ProfileSelectorAuth from "./ProfileSelectorAuth";
 
 let kids: StudentProfile[] = [];
@@ -33,13 +34,14 @@ function family(count: number): StudentProfile[] {
   }));
 }
 
+// The profiles, after the calibration (/kids/profiles).
 async function openKidsPortal() {
   render(
     <MemoryRouter>
-      <ProfileSelectorAuth />
+      <KidProfilesPage />
     </MemoryRouter>,
   );
-  await userEvent.click(screen.getByRole("button", { name: /Portal Peques/ }));
+  await screen.findByRole("heading", { name: "¿Quién eres?" });
 }
 
 const shownProfiles = () =>
@@ -49,6 +51,27 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   localStorage.clear();
+});
+
+describe("Portal Peques", () => {
+  it("goes first to calibrate (the first time, to set up the camera), then to the profiles", async () => {
+    render(
+      <MemoryRouter>
+        <ProfileSelectorAuth />
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Portal Peques/ }));
+
+    expect(navigate).toHaveBeenCalledWith("/kids/setup-conditions");
+  });
+
+  it("\"Volver\" goes back to choosing the portal", async () => {
+    kids = family(2);
+    await openKidsPortal();
+    await userEvent.click(screen.getByRole("button", { name: /Volver/ }));
+
+    expect(navigate).toHaveBeenCalledWith("/login/guardian/portal");
+  });
 });
 
 describe("profile selector (HU-30)", () => {
@@ -93,7 +116,7 @@ describe("PIN window (HU-52)", () => {
 });
 
 describe("after the PIN", () => {
-  it("the first time goes to set up the camera, then to calibrate every session", async () => {
+  it("the first time goes to the tour (the calibration was before the profiles)", async () => {
     kids = family(1);
     login.mockResolvedValue({ access_token: "t" });
     await openKidsPortal();
@@ -102,6 +125,6 @@ describe("after the PIN", () => {
     await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
 
     expect(login).toHaveBeenCalledWith({ student_id: "k0", pin: "2749" });
-    expect(navigate).toHaveBeenLastCalledWith("/student/setup-conditions", { replace: true });
+    expect(navigate).toHaveBeenLastCalledWith("/student/tour", { replace: true });
   });
 });

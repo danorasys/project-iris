@@ -1,12 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
-import { Mascot } from "@/shared/ui/Mascot";
 import { useAuth } from "@/shared/auth/useAuth";
 import { lessonKeys, useLessonPlay } from "@/shared/api/hooks/useLessonsApi";
+import { KidMessage, KidPage } from "@/shared/ui/kid/KidKit";
 import { LessonPlayer } from "../lesson/LessonPlayer";
 import { getDwellDurationMs } from "../lib/dwellPreferences";
-import styles from "./LessonViewerPage.module.css";
 
 /** `/student/lessons/:lessonId`: loads the lesson to play and hands it to
  * LessonPlayer (its hub, pages, activity and extras, all by gaze). */
@@ -20,28 +18,20 @@ export default function LessonViewerPage() {
 
   if (play.isLoading) {
     return (
-      <main className={styles.centered}>
-        <Mascot mood="thinking" size="medium">
-          Abriendo la lección…
-        </Mascot>
-      </main>
+      <KidPage dwellDurationMs={dwellDurationMs}>
+        <KidMessage mood="thinking">Abriendo la lección…</KidMessage>
+      </KidPage>
     );
   }
 
   if (play.isError || !play.data) {
     return (
-      <main className={styles.centered}>
-        <Mascot mood="thinking" size="medium">
-          No pudimos abrir esta lección.
-        </Mascot>
-        <BigChoiceButton
-          variant="teal"
-          onSelect={() => navigate("/student/home")}
-          dwellDurationMs={dwellDurationMs}
-        >
-          Volver al inicio
-        </BigChoiceButton>
-      </main>
+      <KidPage
+        back={{ label: "Volver al inicio", onSelect: () => navigate("/student/home") }}
+        dwellDurationMs={dwellDurationMs}
+      >
+        <KidMessage mood="thinking">No pudimos abrir esta lección.</KidMessage>
+      </KidPage>
     );
   }
 

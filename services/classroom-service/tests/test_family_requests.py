@@ -156,7 +156,7 @@ async def test_el_tutor_pide_el_ingreso_y_el_docente_lo_sabe(
     family = await client.get("/classrooms/family", headers=auth(guardian_token))
 
     assert event["event"] == "request.created"
-    assert (event["student_name"], event["guardian_name"]) == ("Sofía", "Ana Pérez")
+    assert (event["student_name"], event["guardian_name"]) == ("Sofía Pérez", "Ana Pérez")
     assert [r["enrollment_id"] for r in requests.json()] == [enrollment_id]
     assert [(c["enrollment_id"], c["status"]) for c in family.json()] == [(enrollment_id, "pendiente")]
     await pubsub.aclose()
@@ -295,7 +295,7 @@ async def test_retirar_al_peque_le_avisa_al_docente(
 
     assert response.status_code == 204
     assert event["event"] == "enrollment.withdrawn"
-    assert (event["student_name"], event["guardian_name"]) == ("Sofía", "Ana Pérez")
+    assert (event["student_name"], event["guardian_name"]) == ("Sofía Pérez", "Ana Pérez")
     assert members.json()["students"] == []
     await pubsub.aclose()
 
@@ -348,7 +348,7 @@ async def test_el_mensaje_le_llega_al_docente(
     assert response.status_code == 204
     assert event["event"] == "message.sent"
     assert (event["subject"], event["body"]) == ("Tarea de sumas", "Hola profe,\nSofía no pudo entrar ayer.")
-    assert (event["guardian_name"], event["student_name"]) == ("Ana Pérez", "Sofía")
+    assert (event["guardian_name"], event["student_name"]) == ("Ana Pérez", "Sofía Pérez")
     assert event["teacher_id"] == classroom["teacher_id"]
     await pubsub.aclose()
 

@@ -12,6 +12,7 @@ import {
   IconQuestion,
   IconSparkle,
 } from "@/shared/ui/icons";
+import { SectionOverview } from "@/shared/ui/portal/SectionOverview";
 import { isPortalAccessRequired } from "../portalAccess";
 import { lessonsByUnit } from "./lessonUnits";
 import styles from "./ClassStructure.module.css";
@@ -118,63 +119,44 @@ interface StructureOverviewProps {
 // unit and each lesson tells below, with the same icons they use.
 function StructureOverview({ unitCount, lessonCount, withDba }: StructureOverviewProps) {
   return (
-    <section className={styles.panel} aria-labelledby="structure-overview-title">
-      <header className={styles.overviewHead}>
-        <span className={styles.overviewIcon} aria-hidden="true">
-          <IconLayers width={22} height={22} />
-        </span>
-        <div>
-          <h3 id="structure-overview-title" className={styles.overviewTitle}>
-            Cómo está organizada la clase
-          </h3>
-          <p className={styles.overviewText}>
-            Tiene <strong>{unitCount === 1 ? "1 unidad" : `${unitCount} unidades`}</strong> con{" "}
-            <strong>{lessonCount === 1 ? "1 lección" : `${lessonCount} lecciones`}</strong>.
-          </p>
-        </div>
-      </header>
-
-      <div className={styles.overviewGuide}>
-        <div className={styles.guideColumn}>
-          <p className={styles.guideTitle}>
-            <IconLayers width={16} height={16} aria-hidden="true" />
-            En cada unidad
-          </p>
-          <ul className={styles.guideList}>
-            <li>
-              <IconQuestion width={16} height={16} aria-hidden="true" />
-              La pregunta que la guía
-            </li>
-            {withDba && (
-              <li>
-                <IconBook width={16} height={16} aria-hidden="true" />
-                Su Derecho Básico de Aprendizaje (DBA) y sus Evidencias de Aprendizaje
-              </li>
-            )}
-          </ul>
-        </div>
-        <div className={styles.guideColumn}>
-          <p className={styles.guideTitle}>
-            <IconBook width={16} height={16} aria-hidden="true" />
-            En cada lección
-          </p>
-          <ul className={styles.guideList}>
-            <li>
-              <IconInfo width={16} height={16} aria-hidden="true" />
-              Para qué es
-            </li>
-            <li>
-              <IconCheck width={16} height={16} aria-hidden="true" />
-              Qué debería lograr al terminarla
-            </li>
-            <li>
-              <IconSparkle width={16} height={16} aria-hidden="true" />
-              Sus momentos y sus extras
-            </li>
-          </ul>
-        </div>
-      </div>
-    </section>
+    <SectionOverview
+      titleId="structure-overview-title"
+      Icon={IconLayers}
+      title="Cómo está organizada la clase"
+      text={
+        <>
+          Tiene <strong>{unitCount === 1 ? "1 unidad" : `${unitCount} unidades`}</strong> con{" "}
+          <strong>{lessonCount === 1 ? "1 lección" : `${lessonCount} lecciones`}</strong>.
+        </>
+      }
+      guides={[
+        {
+          title: "En cada unidad",
+          Icon: IconLayers,
+          items: [
+            { key: "question", Icon: IconQuestion, text: "La pregunta que la guía" },
+            ...(withDba
+              ? [
+                  {
+                    key: "dba",
+                    Icon: IconBook,
+                    text: "Su Derecho Básico de Aprendizaje (DBA) y sus Evidencias de Aprendizaje",
+                  },
+                ]
+              : []),
+          ],
+        },
+        {
+          title: "En cada lección",
+          Icon: IconBook,
+          items: [
+            { key: "purpose", Icon: IconInfo, text: "Para qué es" },
+            { key: "goal", Icon: IconCheck, text: "Qué debería lograr al terminarla" },
+            { key: "moments", Icon: IconSparkle, text: "Sus momentos y sus extras" },
+          ],
+        },
+      ]}
+    />
   );
 }
 

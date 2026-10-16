@@ -112,7 +112,7 @@ function BrandPanel() {
                     Tu mirada. Tu forma de aprender.
                 </p>
                 <p className={styles.brandDescription}>
-                    Tecnología educativa accesible mediante seguimiento de la
+                    Tecnología educativa inclusiva mediante seguimiento de la
                     mirada.
                 </p>
             </div>

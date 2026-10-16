@@ -3,7 +3,11 @@
    for the stuff that needs attention. Keep all colors and fonts in this
    file, don't add new ones somewhere else. */
 
-:root {
+/* [data-theme="kid"] brings these same colors back inside a portal, for the
+   teacher's preview of a lesson: it shows the lesson exactly as the kid
+   sees it, not in the portal's colors. */
+:root,
+[data-theme="kid"] {
   /* --- Main colors --- */
   --color-iris-deep: #1e3a52; /* brand, headings, dark surfaces */
   --color-iris-medium: #3e6e8e; /* secondary action, links, focus */
@@ -125,7 +129,11 @@
    app (sign in, sign up, the student's side) keeps the colors above.
    usePortalTheme puts data-theme="portal" on <html> while a portal is open,
    so dialogs and toasts (drawn in <body>) get the same colors. */
-:root[data-theme="portal"] {
+/* [data-theme="portal"] on any element brings the portal's colors to that
+   part only: the kid's lesson inside the teacher's preview, which is drawn
+   in the kid's own colors around it. */
+:root[data-theme="portal"],
+[data-theme="portal"] {
   --color-iris-deep: var(--landing-navy);
   --color-iris-medium: var(--landing-blue);
   --color-iris-pale: var(--landing-sky-pale);
@@ -271,4 +279,32 @@ img {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* While the gaze cursor is on (the kid's screens), the mouse's own arrow
+   hides: the blue circle is the only thing to follow (see GazeCursor). */
+:root[data-gaze-cursor="on"],
+:root[data-gaze-cursor="on"] * {
+  cursor: none !important;
+}
+
+/* EyeGestures' own gaze cursor (#cursor, 50px, placed by the library), in
+   the blue of IRIS: a ring with a white line so it shows on blue buttons
+   too, filling all around while something is being chosen (GazeCursor sets
+   --iris-fill from 0 to 1). */
+html #cursor {
+  box-sizing: border-box;
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--landing-blue);
+  border-radius: 50%;
+  background: conic-gradient(
+    color-mix(in srgb, var(--landing-blue) 75%, transparent) calc(var(--iris-fill, 0) * 1turn),
+    color-mix(in srgb, var(--landing-blue) 14%, transparent) 0
+  );
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.95),
+    0 3px 10px rgba(10, 47, 102, 0.35);
+  pointer-events: none;
+  z-index: 9999;
 }

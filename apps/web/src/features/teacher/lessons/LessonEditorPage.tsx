@@ -14,12 +14,14 @@ import {
 } from "@/shared/api/hooks/useLessonsApi";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { CountedTextField } from "@/shared/ui/CountedTextField";
-import { IconArrowLeft, IconBook, IconCheck, IconInfo, IconTrash } from "@/shared/ui/icons";
-import { usePortalTheme } from "@/shared/ui/portal/usePortalTheme";
+import { IconArrowLeft, IconBook, IconCheck, IconEye, IconInfo, IconTrash } from "@/shared/ui/icons";
+import { PortalSection } from "@/shared/ui/portal/PortalShell";
 import { Toast } from "@/shared/ui/Toast";
 import { useEnterAnimation } from "@/shared/ui/enterAnimation";
 import { hasDba } from "../classrooms/classroomDetails";
+import { TeacherPortalFrame } from "../portal/TeacherPortalFrame";
 import type { TeacherPortalState } from "../portal/TeacherPortalPage";
+import portal from "../portal/portalSection.module.css";
 import { ActivityEditor } from "./editor/ActivityEditor";
 import { LessonUnitDba } from "./dba/LessonUnitDba";
 import {
@@ -31,10 +33,11 @@ import {
   type EditorPage,
 } from "./editor/editorModel";
 import { ExtrasEditor, type ClassStudent } from "./editor/ExtrasEditor";
-import { PagesEditor } from "./editor/PagesEditor";
 import { SaveStatus } from "./editor/SaveStatus";
+import { SlidesEditor } from "./editor/SlidesEditor";
 import { combineSaveStates, useAutosave } from "./editor/useAutosave";
 import { LIMITS } from "./lessonLimits";
+import { LessonPreview } from "./preview/LessonPreview";
 import styles from "./LessonEditorPage.module.css";
 
 type Tab = "details" | "content" | "activity" | "extra";
@@ -49,11 +52,20 @@ interface Details {
 }
 
 /** `/teacher/classrooms/:classroomId/lessons/:lessonId/edit`: the whole lesson
- * in one place (HU-78 to HU-84, HU-102, HU-103). The editor keeps its own copy
- * and saves it by itself, so a refetch never undoes what's being typed. */
+ * in one place (HU-78 to HU-84, HU-102, HU-103), inside the Portal Docente
+ * (its menu, top bar and look) under "Mis clases". The editor keeps its own
+ * copy and saves it by itself, so a refetch never undoes what's being typed. */
 export default function LessonEditorPage() {
-  // The same colors as the Portal Docente it comes from.
-  usePortalTheme();
+  return (
+    <TeacherPortalFrame section="clases">
+      <PortalSection>
+        <LessonEditorContent />
+      </PortalSection>
+    </TeacherPortalFrame>
+  );
+}
+
+function LessonEditorContent() {
   const { classroomId = "", lessonId = "" } = useParams<{ classroomId: string; lessonId: string }>();
   const lesson = useLessonDetail(lessonId);
   const units = useClassroomUnits(classroomId);
@@ -114,6 +126,8 @@ function Editor({ lesson, units, students, classroomId, area }: EditorProps) {
   const panelRef = useEnterAnimation<HTMLElement>(tab, { level: TAB_ORDER.indexOf(tab) });
   const [toast, setToast] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // The lesson as the kid will go through it, from what's written now.
+  const [previewing, setPreviewing] = useState(false);
 
   // The editor's own copy, seeded once from what was loaded.
   const [details, setDetails] = useState<Details>({
@@ -184,7 +198,11 @@ function Editor({ lesson, units, students, classroomId, area }: EditorProps) {
 
   const tabs: { id: Tab; label: string; count?: string }[] = [
     { id: "details", label: "Datos" },
-    { id: "content", label: "Contenido", count: `${pages.length} ${pages.length === 1 ? "página" : "páginas"}` },
+    {
+      id: "content",
+      label: "Contenido",
+      count: `${pages.length} ${pages.length === 1 ? "diapositiva" : "diapositivas"}`,
+    },
     {
       id: "activity",
       label: "Actividad",
@@ -194,10 +212,10 @@ function Editor({ lesson, units, students, classroomId, area }: EditorProps) {
   ];
 
   return (
-    <main className={styles.page}>
-      <button type="button" className={styles.back} onClick={goBack}>
+    <div className={styles.page}>
+      <button type="button" className={portal.backButton} onClick={goBack}>
         <IconArrowLeft width={18} height={18} />
-        Volver a unidades y lecciones
+        Regresar a unidades y lecciones
       </button>
 
       <header className={styles.header}>
@@ -209,17 +227,22 @@ function Editor({ lesson, units, students, classroomId, area }: EditorProps) {
           <h1 className={styles.title}>{details.title.trim() || lesson.title}</h1>
           <p className={styles.purpose}>{details.purpose.trim() || lesson.purpose}</p>
           <div className={styles.meta}>
-            <span className={published ? `${styles.chip} ${styles.chipPublished}` : styles.chip}>
+            <span className={styles.chip} data-published={published}>
+              <span className={styles.chipDot} aria-hidden="true" />
               {published ? "Publicada" : "Borrador, solo la ves tú"}
             </span>
             <SaveStatus state={saveState} />
           </div>
         </div>
         <div className={styles.headerActions}>
+          <button type="button" className={portal.secondaryButton} onClick={() => setPreviewing(true)}>
+            <IconEye width={18} height={18} />
+            Vista previa
+          </button>
           {!published && (
             <button
               type="button"
-              className={styles.publish}
+              className={portal.primaryButton}
               onClick={() => void doPublish()}
               disabled={busy || lesson.missing.length > 0}
             >
@@ -227,7 +250,7 @@ function Editor({ lesson, units, students, classroomId, area }: EditorProps) {
               {publish.isPending ? "Publicando…" : "Publicar lección"}
             </button>
           )}
-          <button type="button" className={styles.delete} onClick={() => setConfirming(true)}>
+          <button type="button" className={portal.dangerButton} onClick={() => setConfirming(true)}>
             <IconTrash width={18} height={18} />
             Eliminar
           </button>
@@ -281,7 +304,7 @@ function Editor({ lesson, units, students, classroomId, area }: EditorProps) {
         id={`panel-${tab}`}
         role="tabpanel"
         aria-labelledby={`tab-${tab}`}
-        className={styles.panel}
+        className={tab === "content" ? styles.panel : `${styles.panel} ${styles.panelCard}`}
       >
         {tab === "details" && (
           <div className={styles.form}>
@@ -332,7 +355,14 @@ function Editor({ lesson, units, students, classroomId, area }: EditorProps) {
           </div>
         )}
         {tab === "content" && (
-          <PagesEditor lessonId={lesson.id} pages={pages} onChange={setPages} onError={setToast} owner="la lección" />
+          <SlidesEditor
+            lessonId={lesson.id}
+            title={details.title.trim() || lesson.title}
+            pages={pages}
+            onChange={setPages}
+            onError={setToast}
+            owner="la lección"
+          />
         )}
         {tab === "activity" && <ActivityEditor activity={activity} onChange={setActivity} name="lesson" />}
         {tab === "extra" && (
@@ -342,7 +372,7 @@ function Editor({ lesson, units, students, classroomId, area }: EditorProps) {
 
       <p className={styles.footnote}>
         {blockCount} {blockCount === 1 ? "bloque" : "bloques"} en {pages.length}{" "}
-        {pages.length === 1 ? "página" : "páginas"} · Los cambios se guardan solos.
+        {pages.length === 1 ? "diapositiva" : "diapositivas"} · Los cambios se guardan solos.
       </p>
 
       {confirming && (
@@ -356,7 +386,14 @@ function Editor({ lesson, units, students, classroomId, area }: EditorProps) {
           onCancel={() => setConfirming(false)}
         />
       )}
+      {previewing && (
+        <LessonPreview
+          lesson={lesson}
+          draft={{ title: details.title, purpose: details.purpose, pages, activity }}
+          onClose={() => setPreviewing(false)}
+        />
+      )}
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
-    </main>
+    </div>
   );
 }

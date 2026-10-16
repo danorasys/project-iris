@@ -95,3 +95,46 @@ async def test_un_hilo_que_no_es_tuyo_no_existe(
     )
 
     assert response.status_code == 404
+
+
+async def _box(client: AsyncClient, token: str, box: str) -> dict:
+    response = await client.get(f"/notifications/me?box={box}", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200, response.text
+    page: dict = response.json()
+    return page
+
+
+async def test_recibidos_y_enviados_separan_lo_que_cada_uno_escribio(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    ids = _people(fake_identity_client)
+    enrollment = str(uuid.uuid4())
+    thread = str(uuid.uuid4())
+    await _record(_message("message.sent", ids, enrollment, thread_id=thread, subject="Tarea", body="¿Hay tarea?"))
+    await _record(
+        _message(
+            "teacher.message", ids, enrollment, thread_id=thread, reply=True, recipient="guardian",
+            subject="Re: Tarea", body="Sí, la página 3.",
+        )
+    )
+
+    teacher_in = await _box(client, "token-docente", "received")
+    teacher_out = await _box(client, "token-docente", "sent")
+    guardian_in = await _box(client, "token-tutor", "received")
+    guardian_out = await _box(client, "token-tutor", "sent")
+
+    assert [m["body"] for m in teacher_in["items"]] == ["¿Hay tarea?"]
+    assert [m["body"] for m in teacher_out["items"]] == ["Sí, la página 3."]
+    assert [m["body"] for m in guardian_in["items"]] == ["Sí, la página 3."]
+    assert [m["body"] for m in guardian_out["items"]] == ["¿Hay tarea?"]
+    assert (teacher_in["total"], teacher_out["total"]) == (1, 1)
+    # The unread ones are the same number in both boxes.
+    assert teacher_in["unread_count"] == teacher_out["unread_count"] == 1
+
+
+async def test_una_bandeja_desconocida_no_se_acepta(
+    client: AsyncClient, fake_identity_client: FakeIdentityClient
+) -> None:
+    _people(fake_identity_client)
+    response = await client.get("/notifications/me?box=borradores", headers={"Authorization": "Bearer token-docente"})
+    assert response.status_code == 422

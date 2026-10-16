@@ -4,7 +4,8 @@ import styles from "./StudentAvatarImage.module.css";
 
 interface StudentAvatarImageProps {
   avatarId: number;
-  size?: "small" | "medium" | "large";
+  /** tiny fits a row of a list, next to the name. */
+  size?: "tiny" | "small" | "medium" | "large";
   label?: string;
 }
 

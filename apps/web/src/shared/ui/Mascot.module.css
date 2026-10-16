@@ -26,13 +26,26 @@
   object-fit: contain;
 }
 
+/* The kid's screens: IRIS on a white disc with a soft halo, and a white
+   bubble with a thin blue line, like the cards around it. */
 .bubble {
   position: relative;
   background: var(--color-surface);
-  border-radius: var(--radius-medium);
+  border: 3px solid color-mix(in srgb, var(--color-iris-medium) 18%, var(--color-surface));
+  border-radius: 24px;
   padding: var(--space-3) var(--space-4);
   box-shadow: var(--shadow-card);
-  max-width: 320px;
+  max-width: min(560px, 80vw);
+  text-align: left;
+}
+
+.container:not(.wide) .logoWrap {
+  padding: 10%;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--color-surface) 55%, transparent),
+    0 14px 30px rgba(80, 112, 170, 0.2);
 }
 
 /* Wide: the bubble takes the rest of the row, so the pair looks centered,
@@ -78,15 +91,16 @@
 .bubble p {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 1.1rem;
+  font-size: clamp(1.1rem, 0.95rem + 0.6vw, 1.45rem);
   font-weight: 600;
-  color: var(--color-ink);
+  line-height: 1.4;
+  color: var(--color-iris-deep);
 }
 
 .bubble::before {
   content: "";
   position: absolute;
-  left: -8px;
+  left: -11px;
   bottom: 20px;
   border-width: 8px 10px 8px 0;
   border-style: solid;

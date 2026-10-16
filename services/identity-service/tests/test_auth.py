@@ -420,8 +420,10 @@ async def test_internal_obtener_estudiante_con_tutor(client: AsyncClient) -> Non
     assert response.status_code == 200
     body = response.json()
     assert body["student_first_name"] == "Sofía"
+    assert body["student_last_name"]
     assert body["guardian_first_name"] == "Ana"
-    assert body["guardian_phone"] == "+573001234567"
+    assert body["guardian_relationship"] == "Madre"
+    assert "guardian_phone" not in body
 
 
 async def test_internal_obtener_estudiante_inexistente(client: AsyncClient) -> None:

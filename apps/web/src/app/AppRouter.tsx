@@ -11,8 +11,6 @@ import { RequireRol } from "./RequireRol"
 import { RequirePortalAccess } from "@/features/guardian/RequirePortalAccess"
 import { RequireTeacherVerified } from "@/features/teacher/twoFactor/RequireTeacherVerified"
 import { TeacherAccessProvider } from "@/features/teacher/twoFactor/TeacherAccessProvider"
-import { StudentGazeProvider } from "@/shared/gaze/GazeSourceContext"
-import { GazeCursor } from "@/shared/ui/GazeCursor"
 import { LoadingScreen } from "@/shared/ui/LoadingScreen"
 import { playEnter } from "@/shared/ui/enterAnimation"
 
@@ -27,6 +25,10 @@ const GuardianRegistrationWizard = lazy(
 )
 const TeacherRegistrationWizard = lazy(
     () => import("@/features/auth/student/TeacherRegistrationWizard"),
+)
+const KidGazeLayout = lazy(() => import("@/features/student/KidGazeLayout"))
+const KidProfilesPage = lazy(
+    () => import("@/features/auth/student/KidProfilesPage"),
 )
 const ProfileSelectorAuth = lazy(
     () => import("@/features/auth/student/ProfileSelectorAuth"),
@@ -170,14 +172,48 @@ export function AppRouter() {
                         element={<PrivacyPolicyPage />}
                     />
 
+                    {/* One gaze engine for the calibration, the profiles and
+                        the kid's screens (see KidGazeLayout). */}
+                    <Route element={<KidGazeLayout />}>
+                    <Route
+                        path="/kids"
+                        element={
+                            <RequireRol role="guardian">
+                                <Outlet />
+                            </RequireRol>
+                        }
+                    >
+                        <Route
+                            index
+                            element={
+                                <Navigate
+                                    to="profiles"
+                                    replace
+                                />
+                            }
+                        />
+                        <Route
+                            path="setup-conditions"
+                            element={<SetupConditionsPage />}
+                        />
+                        <Route
+                            path="camera-permission"
+                            element={<CameraPermissionPage />}
+                        />
+                        <Route
+                            path="calibration"
+                            element={<CalibrationPage />}
+                        />
+                        <Route
+                            path="profiles"
+                            element={<KidProfilesPage />}
+                        />
+                    </Route>
                     <Route
                         path="/student"
                         element={
                             <RequireRol role="student">
-                                <StudentGazeProvider>
-                                    <GazeCursor />
-                                    <Outlet />
-                                </StudentGazeProvider>
+                                <Outlet />
                             </RequireRol>
                         }
                     >
@@ -194,14 +230,7 @@ export function AppRouter() {
                             path="tour"
                             element={<TourPage />}
                         />
-                        <Route
-                            path="setup-conditions"
-                            element={<SetupConditionsPage />}
-                        />
-                        <Route
-                            path="camera-permission"
-                            element={<CameraPermissionPage />}
-                        />
+                        {/* Again from Ajustes, when going back to the gaze. */}
                         <Route
                             path="calibration"
                             element={<CalibrationPage />}
@@ -247,6 +276,8 @@ export function AppRouter() {
                             path="lessons/:lessonId"
                             element={<LessonViewerPage />}
                         />
+                    </Route>
+
                     </Route>
 
                     <Route

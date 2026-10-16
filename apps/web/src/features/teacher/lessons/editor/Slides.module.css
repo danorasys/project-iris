@@ -1,0 +1,765 @@
+/* The content as slides: the slides in small on the left, the one being
+   written in the middle on the kid's own screen ([data-theme="kid"] gives
+   it the kid's colors), and under it what can go on it. */
+.deck {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+}
+
+/* --- The slides in small --- */
+.rail {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 120px);
+  padding: 12px;
+  border: 1px solid var(--portal-line, var(--color-iris-pale));
+  border-radius: var(--portal-radius, var(--radius-large));
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.thumbs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  margin: 0;
+  padding: 2px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.thumb {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.thumbNumber {
+  width: 16px;
+  padding-top: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: right;
+  color: var(--color-ink-soft);
+}
+
+/* The slide drawn at a fifth of its size, as the kid will see it. */
+.thumbScreen {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 148px;
+  height: 92px;
+  overflow: hidden;
+  border: 2px solid var(--color-iris-pale);
+  border-radius: 12px;
+  background: var(--color-canvas);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms var(--ease-out);
+}
+
+.thumbPage {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 720px;
+  transform: scale(0.17);
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.thumbEmpty {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  font-size: 0.75rem;
+  color: var(--color-ink-soft);
+}
+
+.thumb:hover .thumbScreen {
+  border-color: color-mix(in srgb, var(--color-iris-medium) 45%, var(--color-iris-pale));
+  transform: translateY(-1px);
+}
+
+.thumb[aria-current="true"] .thumbScreen {
+  border-color: var(--color-iris-medium);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-iris-medium) 20%, transparent);
+}
+
+.thumb[aria-current="true"] .thumbNumber {
+  color: var(--color-iris-medium);
+}
+
+.thumb:focus-visible {
+  outline: none;
+}
+
+.thumb:focus-visible .thumbScreen {
+  box-shadow: var(--focus-halo);
+}
+
+.addSlide {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border: 1.5px dashed color-mix(in srgb, var(--color-iris-medium) 45%, var(--color-iris-pale));
+  border-radius: 12px;
+  background: var(--color-canvas);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.addSlide:hover:not(:disabled) {
+  border-color: var(--color-iris-medium);
+  background: var(--landing-mist-1, var(--color-iris-pale));
+}
+
+/* --- The slide being written --- */
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.slideBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.slideCount {
+  font-size: 0.92rem;
+  color: var(--color-ink-soft);
+}
+
+.slideCount strong {
+  font-family: var(--font-display);
+  color: var(--color-iris-deep);
+}
+
+.slideActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.barButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  border: 1px solid var(--portal-line, var(--color-iris-pale));
+  border-radius: 10px;
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.barButton:hover:not(:disabled) {
+  border-color: var(--color-iris-medium);
+  background: var(--color-canvas);
+}
+
+.barDanger {
+  --button-focus-halo: var(--focus-halo-danger);
+  color: var(--color-error);
+}
+
+.barDanger:hover:not(:disabled) {
+  border-color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 7%, var(--color-surface));
+}
+
+.barButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The kid's screen: their light background, the big round arrows on the
+   sides and the page in the middle, like in their viewer. */
+.screen {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 460px;
+  padding: var(--space-4) var(--space-3);
+  border-radius: 24px;
+  background: var(--color-canvas);
+  box-shadow:
+    inset 0 0 0 1px var(--color-iris-pale),
+    var(--shadow-card);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+.screenArrow {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-iris-deep);
+  cursor: pointer;
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 160ms ease;
+}
+
+.screenArrow:hover:not(:disabled) {
+  transform: scale(1.06);
+}
+
+.screenArrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.screenArrow:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.screenBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.screenCounter {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+
+/* The page as the kid gets it: right on their background, with no card.
+   Only a soft dashed line says where the page goes. */
+.slide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 820px;
+  min-height: 300px;
+  padding: var(--space-3);
+  border: 1.5px dashed color-mix(in srgb, var(--color-iris-medium) 25%, transparent);
+  border-radius: 20px;
+}
+
+.slideEmpty {
+  margin: auto 0;
+  text-align: center;
+  color: var(--color-ink-soft);
+}
+
+/* --- One block on the slide: its buttons show when it's pointed at --- */
+.block {
+  position: relative;
+  padding: 6px 8px;
+  border: 1.5px dashed transparent;
+  border-radius: 12px;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.block:hover,
+.block:focus-within {
+  border-color: color-mix(in srgb, var(--color-iris-medium) 35%, transparent);
+  background: color-mix(in srgb, var(--color-iris-pale) 25%, transparent);
+}
+
+.blockTools {
+  position: absolute;
+  top: -15px;
+  right: 10px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: 0 4px 14px rgba(20, 32, 42, 0.14);
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.block:hover .blockTools,
+.block:focus-within .blockTools {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.blockKind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+.toolButton {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-iris-deep);
+  cursor: pointer;
+}
+
+.toolButton:hover:not(:disabled) {
+  background: var(--color-iris-pale);
+}
+
+.toolButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.toolDanger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface));
+  color: var(--color-error);
+}
+
+/* The fields write like the kid reads: no box, the letters of each block
+   (the same sizes as BlockView in the viewer). */
+.title,
+.subtitle,
+.paragraph,
+.listInput,
+.altInput {
+  width: 100%;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: var(--color-ink);
+  outline: none;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-iris-deep);
+}
+
+.subtitle {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+.paragraph {
+  min-height: 3.4em;
+  font-size: 1.4rem;
+  line-height: 1.65;
+  resize: none;
+  field-sizing: content;
+}
+
+.title::placeholder,
+.subtitle::placeholder,
+.paragraph::placeholder,
+.listInput::placeholder,
+.altInput::placeholder {
+  color: color-mix(in srgb, var(--color-ink-soft) 70%, transparent);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bullet {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-iris-medium);
+}
+
+.listInput {
+  font-size: 1.4rem;
+  line-height: 1.5;
+}
+
+.inlineRemove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.block:hover .inlineRemove,
+.block:focus-within .inlineRemove {
+  opacity: 1;
+}
+
+.inlineRemove:hover:not(:disabled) {
+  color: var(--color-error);
+}
+
+.inlineRemove:disabled {
+  visibility: hidden;
+}
+
+.inlineRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.inlineAdd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-canvas);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  cursor: pointer;
+}
+
+.inlineAdd:hover:not(:disabled) {
+  background: var(--color-iris-pale);
+}
+
+.inlineAdd:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tableBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tableWrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  display: grid;
+  border: 1px solid var(--color-iris-pale);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cell {
+  min-width: 0;
+  padding: 10px 14px;
+  border: none;
+  border-right: 1px solid var(--color-iris-pale);
+  border-bottom: 1px solid var(--color-iris-pale);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 1.15rem;
+  color: var(--color-ink);
+  outline: none;
+}
+
+.headerCell {
+  background: var(--color-iris-pale);
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.image {
+  display: block;
+  max-width: 100%;
+  max-height: 360px;
+  border-radius: var(--radius-medium);
+  object-fit: contain;
+}
+
+.altBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.altInput {
+  flex: 1;
+  min-width: 220px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--color-canvas);
+  font-size: 0.95rem;
+}
+
+.altMissing {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-amber-dark);
+}
+
+/* Empty fields carry a soft amber line, so what's missing shows. */
+.title[data-empty="true"],
+.subtitle[data-empty="true"],
+.paragraph[data-empty="true"],
+.listInput[data-empty="true"] {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--color-amber) 45%, transparent);
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* --- What can go on the slide --- */
+.insert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--portal-line, var(--color-iris-pale));
+  border-radius: var(--portal-radius, var(--radius-large));
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.insertLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.insertButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.insertButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--color-canvas);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.insertButton:hover:not(:disabled):not([aria-disabled="true"]) {
+  border-color: var(--color-iris-pale);
+  background: var(--color-surface);
+}
+
+.insertButton:focus-within,
+.insertButton:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+.insertButton:disabled,
+.insertButton[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The icon on a pale tile, like the options of a class. */
+.insertIcon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.tip {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}
+
+.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-action);
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-surface);
+  cursor: pointer;
+}
+
+.primary:hover {
+  background: var(--color-action-hover);
+}
+
+.emptyDeck {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.emptyText {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumbScreen,
+  .blockTools,
+  .screenArrow {
+    transition: none;
+  }
+}
+
+/* On a narrow screen the slides in small go on top, side by side. */
+@media (max-width: 900px) {
+  .deck {
+    grid-template-columns: 1fr;
+  }
+
+  .rail {
+    position: static;
+    max-height: none;
+  }
+
+  .thumbs {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .thumb {
+    flex-direction: column;
+    width: auto;
+  }
+
+  .screen {
+    grid-template-columns: 1fr;
+  }
+
+  .screenArrow {
+    display: none;
+  }
+}

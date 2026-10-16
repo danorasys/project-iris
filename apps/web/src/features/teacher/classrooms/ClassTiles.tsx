@@ -28,11 +28,13 @@ export function TileSearch({
   value,
   onChange,
   label,
+  placeholder = "Buscar una clase",
 }: {
   value: string;
   onChange: (value: string) => void;
-  /** What a screen reader hears, the box only shows "Buscar una clase". */
+  /** What a screen reader hears, the box only shows the placeholder. */
   label: string;
+  placeholder?: string;
 }) {
   return (
     <label className={styles.search}>
@@ -42,7 +44,7 @@ export function TileSearch({
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Buscar una clase"
+        placeholder={placeholder}
         autoComplete="off"
       />
     </label>

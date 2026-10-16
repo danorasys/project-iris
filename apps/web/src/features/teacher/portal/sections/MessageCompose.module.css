@@ -1,0 +1,212 @@
+/* A new message, like a new mail in Gmail: inside the same white card as an
+   opened mail, "Para" and "Asunto" on lines split by thin lines, a wide
+   text with no box and "Enviar" at the bottom. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 32px 28px;
+}
+
+.title {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 1.1rem + 0.8vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-iris-deep);
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+/* The label in grey on the left, the field taking the rest. The line turns
+   blue while something in it has the focus, red when it's missing. */
+.line {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--color-iris-pale);
+  transition: border-color 140ms ease;
+}
+
+.line:focus-within {
+  border-bottom-color: var(--color-iris-medium);
+}
+
+.line[data-invalid="true"] {
+  border-bottom-color: var(--color-error);
+}
+
+.lineLabel {
+  padding-top: 12px;
+  font-size: 0.92rem;
+  color: var(--color-ink-soft);
+}
+
+.lineField {
+  min-width: 0;
+}
+
+.subject {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-ink);
+  transition: var(--focus-halo-transition);
+}
+
+.subject:focus-visible,
+.body:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+.body {
+  width: 100%;
+  min-height: 260px;
+  padding: 12px 8px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  line-height: 1.6;
+  color: var(--color-ink);
+  resize: vertical;
+  transition: var(--focus-halo-transition);
+}
+
+.body::placeholder {
+  color: var(--color-ink-soft);
+}
+
+.bodyFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -4px;
+}
+
+.count {
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+  white-space: nowrap;
+}
+
+.count[data-over="true"] {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.error {
+  margin: 4px 8px 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+/* "Enviar" on the left like Gmail, a short note in the middle and the
+   trash on the right, over a thin line. */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-iris-pale);
+}
+
+.send {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-action);
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-surface);
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    transform 120ms ease;
+}
+
+.send:hover:not(:disabled) {
+  background: var(--color-action-hover);
+}
+
+.send:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.hint {
+  flex: 1;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}
+
+.discard {
+  --button-focus-halo: var(--focus-halo-danger);
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.discard:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+  color: var(--color-error);
+}
+
+.send:disabled,
+.discard:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .form {
+    padding: 20px 16px 24px;
+  }
+
+  .line {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .hint {
+    display: none;
+  }
+
+  .footer {
+    justify-content: space-between;
+  }
+}

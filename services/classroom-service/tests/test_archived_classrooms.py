@@ -87,7 +87,7 @@ async def test_archivar_cierra_las_solicitudes_y_avisa_a_las_familias(
         "Laura Gómez",
     )
     members = {m["enrollment_id"]: m for m in event["members"]}
-    assert members[in_class]["student_name"] == "Sofía"
+    assert members[in_class]["student_name"] == "Sofía Pérez"
     assert "request_closed" not in members[in_class]
     assert members[waiting]["request_closed"] is True
     assert members[waiting]["guardian_id"] == str(identity_gateway.guardian_person_id)

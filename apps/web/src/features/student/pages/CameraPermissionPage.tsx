@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
+import { IconEye } from "@/shared/ui/icons";
 import { MascotStepScreen } from "../components/MascotStepScreen";
 
-/** This is `/student/camera-permission`. Also addressed to the adult, it
+/** This is `/kids/camera-permission`. Also addressed to the adult, it
  * sets the expectation that the browser will ask for camera access next,
  * that it must always be allowed, and that the adult should step out of
  * frame once granted. The real permission prompt happens on the next
@@ -13,8 +14,11 @@ export default function CameraPermissionPage() {
   return (
     <MascotStepScreen
       message="En un momento el navegador va a pedir acceso a la cámara. Es muy importante otorgarlo siempre, IRIS solo la usa para seguir la mirada, nunca guarda ni comparte video. Cuando lo autorices, aléjate un poco de la pantalla para que tu hijo o hija quede solo o sola frente a la cámara."
+      eyebrow="Antes de empezar"
+      eyebrowIcon={<IconEye aria-hidden="true" />}
+      title="La cámara"
       buttonLabel="Siguiente"
-      onAdvance={() => navigate("/student/calibration")}
+      onAdvance={() => navigate("/kids/calibration")}
     />
   );
 }

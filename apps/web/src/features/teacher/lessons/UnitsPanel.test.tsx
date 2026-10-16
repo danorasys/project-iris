@@ -103,7 +103,10 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
     expect(screen.getByText("Elige el DBA de la unidad o escribe uno propio.")).toBeTruthy();
     expect(createUnit).not.toHaveBeenCalled();
 
-    await user.selectOptions(screen.getByLabelText(/^DBA/), "natural_sciences-1-3");
+    await user.click(screen.getByRole("combobox", { name: /^DBA/ }));
+    await user.click(screen.getByRole("option", { name: "DBA 3: Seres vivos y objetos sin vida" }));
+    // The picked DBA shows whole, with what it is.
+    expect(screen.getByText("DBA 3 · Ciencias naturales · 1.°")).toBeTruthy();
     expect(screen.getByRole("link", { name: /Ver el texto oficial de los DBA de Ciencias naturales/ })).toBeTruthy();
     // Without an evidence, it doesn't save either.
     await user.click(screen.getByRole("button", { name: "Crear unidad" }));
@@ -147,7 +150,8 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
     // Without its DBA it says so, and the button opens its form.
     expect(screen.getByText(/Falta el DBA de la unidad/)).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Elegirlo" }));
-    await user.selectOptions(screen.getByLabelText(/^DBA/), "own");
+    await user.click(screen.getByRole("combobox", { name: /^DBA/ }));
+    await user.click(screen.getByRole("option", { name: "Escribir un DBA propio" }));
     await user.type(screen.getByLabelText(/^Tu DBA propio/), "Cuido los animales de mi casa.");
     // An own DBA has no evidences to tick: only the teacher's own.
     expect(screen.queryByRole("checkbox")).toBeNull();
@@ -195,11 +199,9 @@ describe("UnitsPanel", { timeout: 20_000 }, () => {
     const points = screen.getByRole("list", { name: "Evidencias de Aprendizaje de la unidad Los medios" });
     expect(within(points).getByText("Compara la radio y la televisión.")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Nueva unidad" }));
-    const select = screen.getByLabelText(/^DBA/);
-    expect(within(select).getByRole("option", { name: "Lenguaje · DBA 1: Los medios de comunicación" })).toBeTruthy();
-    expect(
-      within(select).getByRole("option", { name: "Inglés · DBA 1: Seguir instrucciones sencillas de clase" }),
-    ).toBeTruthy();
+    await user.click(screen.getByRole("combobox", { name: /^DBA/ }));
+    expect(screen.getByRole("option", { name: "Lenguaje · DBA 1: Los medios de comunicación" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Inglés · DBA 1: Seguir instrucciones sencillas de clase" })).toBeTruthy();
   });
 
   it("without units invites to create the first one", () => {

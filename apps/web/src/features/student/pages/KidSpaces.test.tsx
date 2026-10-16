@@ -73,14 +73,13 @@ afterEach(() => {
 });
 
 describe("the kid's home (HU-53)", () => {
-  it("has the tray first, with how many are new, then one per class", async () => {
+  it("has a big card per class, and on the bottom bar the tray (with how many are new) and Ajustes", async () => {
     classrooms = [classroom("c1", "Ciencias naturales"), classroom("c2", "Matemáticas")];
     unread = 2;
     renderAt("/student/home");
 
     const buttons = screen.getAllByRole("button").map((b) => b.textContent);
-    expect(buttons.slice(0, 3)).toEqual(["Notificaciones2, 2 nuevas", "Ciencias naturales", "Matemáticas"]);
-    expect(screen.getByRole("button", { name: /Ajustes/ })).toBeTruthy();
+    expect(buttons).toEqual(["Ciencias naturales", "Matemáticas", "Notificaciones2, 2 nuevas", "Ajustes"]);
 
     await userEvent.click(screen.getByRole("button", { name: /Ciencias naturales/ }));
     expect(screen.getByRole("heading", { name: "Ciencias naturales" })).toBeTruthy();
@@ -100,8 +99,8 @@ describe("the space of a class (HU-57)", () => {
     unread = 1;
     renderAt("/student/classrooms/c1");
 
-    expect(screen.getByRole("button", { name: "Notificaciones, 1 nueva" })).toBeTruthy();
-    for (const name of [/Lecciones/, /Mi progreso/, /Volver al inicio/]) {
+    expect(screen.getByRole("button", { name: /^Notificaciones.*, 1 nueva$/ })).toBeTruthy();
+    for (const name of [/Lecciones/, /Mi progreso/, /Volver a mis clases/]) {
       expect(screen.getByRole("button", { name })).toBeTruthy();
     }
     await userEvent.click(screen.getByRole("button", { name: /Notificaciones/ }));

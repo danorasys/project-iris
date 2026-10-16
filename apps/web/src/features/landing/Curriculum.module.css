@@ -1,432 +1,255 @@
-/* "Cómo se organiza": one bento. The example class is tall on the left,
-   the areas wide on top and grades and outcomes under them. */
-.bento {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-areas:
-    "example areas areas"
-    "example grades outcome";
-  gap: var(--space-3);
-  margin: var(--space-6) 0 0;
-  padding: 0;
-  list-style: none;
+/* "Cómo se organiza". The blue panel, the cards and the steps come from
+   HowItWorks.module.css; this file only has what's new here. */
+.curriculum {
+  margin-top: var(--space-6);
   text-align: left;
 }
 
-.slotExample {
-  grid-area: example;
+/* --- The blue panel: the example class as a trail going up --- */
+.classPanel {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
 }
 
-.slotAreas {
-  grid-area: areas;
-}
-
-.slotGrades {
-  grid-area: grades;
-}
-
-.slotOutcome {
-  grid-area: outcome;
-}
-
-/* --- The example class: boxes inside boxes --- */
-.example {
-  margin-top: auto;
-}
-
-.level {
-  border-radius: 18px;
-}
-
-.levelClass {
-  padding: var(--space-3);
-  background: var(--color-surface);
-  box-shadow: 0 24px 44px -30px rgba(10, 47, 102, 0.55);
-}
-
-/* Each inner level sits a bit further in, with a dashed line on its left
-   that ties it to the level that holds it. */
-.levelUnit,
-.levelLesson {
+.route {
   position: relative;
-  margin: var(--space-3) 0 0 var(--space-3);
-  padding: 12px 12px 12px var(--space-3);
+  padding: var(--space-4) 0 96px;
 }
 
-.levelUnit::before,
-.levelLesson::before {
-  content: "";
+/* The dashed trail behind the stops, from bottom left to top right. */
+.routeTrail {
   position: absolute;
-  top: -12px;
-  bottom: 50%;
-  left: -12px;
-  width: 10px;
-  border-left: 2px dashed color-mix(in srgb, var(--color-iris-deep) 35%, transparent);
-  border-bottom: 2px dashed color-mix(in srgb, var(--color-iris-deep) 35%, transparent);
-  border-bottom-left-radius: 10px;
+  inset: 0 -8% 40px;
+  width: 116%;
+  height: calc(100% - 40px);
+  overflow: visible;
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-surface) 55%, transparent);
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
 }
 
-.levelUnit {
-  background: color-mix(in srgb, var(--color-gold) 22%, var(--color-surface));
+.routeTrail path {
+  vector-effect: non-scaling-stroke;
 }
 
-/* The next unit, paler and dashed: it's there, but not opened yet. */
-.levelNext {
-  border: 1.5px dashed color-mix(in srgb, var(--color-gold) 70%, var(--color-amber-dark));
-  background: color-mix(in srgb, var(--color-gold) 10%, var(--color-surface));
-}
-
-.levelNext::before {
-  content: none;
-}
-
-.levelNext .levelTitle {
-  color: var(--color-ink-soft);
-}
-
-.levelLesson {
-  background: var(--color-surface);
-  box-shadow: 0 14px 28px -22px rgba(10, 47, 102, 0.6);
-}
-
-.levelName {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* Three stops, each a bit higher than the one before, like steps. */
+.stops {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-3);
   margin: 0;
-  font-size: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.stop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: 0 22px 40px -22px rgba(0, 0, 0, 0.55);
+  color: var(--color-iris-deep);
+}
+
+.stop[data-step="0"] {
+  margin-bottom: 0;
+}
+
+.stop[data-step="1"] {
+  margin-bottom: 44px;
+}
+
+.stop[data-step="2"] {
+  margin-bottom: 88px;
+}
+
+/* The round badge sits on the stop's top edge, like on the call's tiles. */
+.stopBadge {
+  top: -18px;
+  right: 14px;
+}
+
+.stopLevel {
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-iris-medium);
 }
 
-.levelTitle {
-  margin: 4px 0 0;
-  font-size: 1.05rem;
+.stopText {
   font-weight: 700;
+  font-size: 0.98rem;
   line-height: 1.3;
-  color: var(--color-iris-deep);
 }
 
+/* The lesson's four moments, small chips under its title. */
 .moments {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  margin: var(--space-3) 0 0;
-  padding: 0;
-  list-style: none;
+  margin-top: var(--space-2);
 }
 
-.moments li {
+.moment {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 8px;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
   background: color-mix(in srgb, var(--color-mint) 16%, var(--color-surface));
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--color-iris-deep);
 }
 
-/* The extra moment can be left out, so it goes dashed. */
-.moments li[data-optional="true"] {
-  border: 1.5px dashed color-mix(in srgb, var(--color-mint) 70%, var(--landing-mint-dark));
+.moment svg {
+  color: var(--color-mint);
+}
+
+/* The extra can be left out, so it's dashed. */
+.moment[data-optional="true"] {
   background: var(--color-surface);
+  outline: 1.5px dashed color-mix(in srgb, var(--color-mint) 70%, transparent);
+  outline-offset: -1.5px;
 }
 
-.moments svg {
-  color: var(--landing-mint-dark);
-}
-
-/* --- The cards --- */
-/* The slot is what comes in (.rise moves it), the card inside is what lifts
-   on hover, so the two movements don't step on each other. */
-.pillarSlot {
-  display: flex;
-}
-
-/* Each card has its own soft blue and its own color for the icon and the
-   drawing. The pillar icon also shows big and faint in the corner. */
-.pillar {
-  --pillar-bg: var(--landing-mist-1);
-  --pillar-ink: var(--landing-blue);
-  position: relative;
-  overflow: hidden;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-4);
-  border-radius: 22px;
-  background: var(--pillar-bg);
-  border: 1px solid color-mix(in srgb, var(--pillar-bg) 86%, var(--landing-navy));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 18px 34px -30px rgba(10, 47, 102, 0.5);
-  transition:
-    transform 280ms var(--ease-out),
-    box-shadow 280ms var(--ease-out);
-}
-
-.pillar:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 26px 40px -28px rgba(10, 47, 102, 0.55);
-}
-
-.pillar > :not(.pillarWatermark) {
-  position: relative;
-}
-
-.pillarWatermark {
-  position: absolute;
-  top: -26px;
-  right: -22px;
-  color: var(--pillar-ink);
-  opacity: 0.07;
-  transform: rotate(-12deg);
-  pointer-events: none;
-}
-
-.toneSky {
-  --pillar-bg: var(--landing-mist-1);
-  --pillar-ink: var(--landing-blue);
-}
-
-.toneSun {
-  --pillar-bg: var(--landing-mist-2);
-  --pillar-ink: var(--color-amber-dark);
-}
-
-.toneMint {
-  --pillar-bg: var(--landing-mist-3);
-  --pillar-ink: var(--landing-mint-dark);
-}
-
-/* The example class on a light card that goes from white to sky blue, so
-   the white boxes of the class stand out at the bottom. */
-.toneClear {
-  --pillar-bg: var(--landing-sky-pale);
-  --pillar-ink: var(--landing-blue);
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--landing-sky-pale) 100%);
-}
-
-.pillarHead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-/* A white raised square, like the chips of "Únete". */
-.pillarIcon {
-  flex: none;
+/* --- The three cards: their round icon in place of the paths' drawings --- */
+.pillarBadge {
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
   background: var(--color-surface);
-  box-shadow: 0 3px 0 color-mix(in srgb, var(--pillar-bg) 60%, var(--landing-navy));
-  color: var(--pillar-ink);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pillar-accent) 40%, transparent);
+  color: var(--pillar-accent);
 }
 
-.pillarTitle {
-  margin: 0;
-  font-size: 1.12rem;
-  line-height: 1.3;
-  color: var(--landing-navy);
+.badgeAmber {
+  --pillar-accent: var(--color-amber-dark);
 }
 
-.pillarText {
-  max-width: 46ch;
-  margin: var(--space-3) 0 var(--space-4);
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: var(--color-ink-soft);
+.badgeMint {
+  --pillar-accent: var(--color-mint);
 }
 
-/* The nine areas, three per row, each with its icon in a color of its own. */
-.areas {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.badgeBlue {
+  --pillar-accent: var(--color-iris-medium);
 }
 
-.areas li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--landing-sky-pale);
-  background: var(--color-surface);
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--landing-sky-pale) 60%, var(--landing-navy));
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--color-iris-deep);
+/* The areas carry a tilted tag that stands a little taller: a hair less
+   room between them, so the three paths end up the same height. */
+.gradeRoute.areasRoute {
+  gap: 25px;
 }
 
-.areas svg {
-  flex: none;
-  color: var(--landing-blue);
+/* The grades zigzag: the straight dashed line of the steps gives way to
+   one that turns from each grade into the side of the next. */
+.gradeRoute {
+  gap: 26px;
+  align-items: stretch;
 }
 
-.areas li:nth-child(4n + 2) svg {
-  color: var(--landing-orange-dark);
+.gradeRoute::before {
+  display: none;
 }
 
-.areas li:nth-child(4n + 3) svg {
-  color: var(--landing-mint-dark);
-}
-
-.areas li:nth-child(4n) svg {
-  color: var(--color-amber-dark);
-}
-
-/* Grades: five steps that grow from the floor one after the other. */
-.grades {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  height: 104px;
-  margin-top: auto;
-}
-
-.grade {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 6px;
-  height: 100%;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-ink-soft);
-}
-
-.gradeBar {
-  width: 100%;
-  border-radius: 8px 8px 4px 4px;
-  background: var(--color-surface);
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--pillar-bg) 60%, var(--landing-navy));
-  transform: scaleY(0);
-  transform-origin: bottom;
-  transition: transform 620ms var(--ease-spring);
-  transition-delay: calc(var(--i, 0) * 110ms);
-}
-
-.grade:nth-child(1) .gradeBar {
-  height: 22%;
-}
-
-.grade:nth-child(2) .gradeBar {
-  height: 36%;
-}
-
-.grade:nth-child(3) .gradeBar {
-  height: 50%;
-}
-
-.grade:nth-child(4) .gradeBar {
-  height: 64%;
-}
-
-.grade:nth-child(5) .gradeBar {
-  height: 78%;
-}
-
-[data-visible="true"] .gradeBar {
-  transform: none;
-}
-
-.grade[data-on="true"] {
-  color: var(--landing-navy);
-}
-
-.grade[data-on="true"] .gradeBar {
-  background: var(--color-gold);
-}
-
-/* The outcome, like a note the teacher wrote, with a check at the end. A
-   white raised piece, like the area chips. */
-.outcome {
-  margin-top: auto;
-  padding: 12px 46px 12px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--landing-sky-pale);
-  background: var(--color-surface);
-  box-shadow:
-    0 3px 0 color-mix(in srgb, var(--pillar-bg) 60%, var(--landing-navy)),
-    0 12px 22px -16px rgba(10, 47, 102, 0.45);
-}
-
-.outcomeLabel {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--landing-mint-dark);
-}
-
-.outcomeText {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.92rem;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--landing-navy);
-}
-
-.outcomeCheck {
+/* Drawn in the route's own pixels (no viewBox), see useGradeTrail. */
+.gradeTrail {
   position: absolute;
-  top: 50%;
-  right: 12px;
-  margin-top: -11px;
-  color: var(--landing-mint);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-iris-deep) 50%, transparent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 2 9;
 }
 
-/* Tablets: two columns, the example on top along the whole width. */
-@media (max-width: 1020px) {
-  .bento {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas:
-      "example example"
-      "areas areas"
-      "grades outcome";
-  }
+.gradeStop {
+  position: relative;
+  width: fit-content;
 }
 
-/* Phones: one card under the other. */
-@media (max-width: 640px) {
-  .bento {
+.gradeStop[data-side="left"] {
+  align-self: flex-start;
+}
+
+.gradeStop[data-side="right"] {
+  align-self: flex-end;
+}
+
+/* A long stop keeps to its side, so the turn of the line into it shows. */
+.longStop {
+  max-width: 66%;
+}
+
+/* It has fewer stops than the grades: more room between them, so both
+   paths end up the same height. */
+.dbaRoute {
+  gap: 48px;
+}
+
+/* The DBA with its name under it, wide enough for its label in one line. */
+.longStop.dbaStop {
+  max-width: 76%;
+}
+
+.dbaStop {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.dbaHead {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dbaName {
+  padding-left: 24px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-ink-soft);
+}
+
+/* On a phone the pill wraps instead of going out of the panel. */
+.routePill {
+  max-width: calc(100% - 2 * var(--space-3));
+  white-space: normal;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .classPanel {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "example" "areas" "grades" "outcome";
   }
 
-  .pillar {
-    padding: var(--space-3);
+  .route {
+    padding-bottom: 84px;
   }
 
-  .areas {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pillar:hover {
-    transform: none;
+  .routeTrail {
+    display: none;
   }
 
-  .gradeBar {
-    transform: none;
-    transition: none;
+  .stops {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .stop[data-step="1"],
+  .stop[data-step="2"] {
+    margin-bottom: 0;
   }
 }

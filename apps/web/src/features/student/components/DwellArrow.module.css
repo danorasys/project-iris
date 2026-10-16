@@ -1,54 +1,50 @@
+/* A tall arrow in the blue of IRIS, like the ones on the edges of the kid's
+   screens (KidKit), for the screens that still place it in their own row. */
 .arrow {
   position: relative;
-  min-width: var(--dwell-target-min);
-  width: 15vw;
-  max-width: 180px;
-  /* As tall as the row it's in: a percent height has nothing to measure
-     against when the row only has a min-height. */
+  flex-shrink: 0;
   align-self: stretch;
-  border: none;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
-  cursor: pointer;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: clamp(84px, 8vw, 132px);
+  margin: 14px;
+  overflow: hidden;
+  border: 3px solid var(--landing-blue-hover);
+  border-radius: 32px;
+  background: var(--landing-blue);
+  box-shadow: 0 18px 36px -14px color-mix(in srgb, var(--landing-blue) 70%, transparent);
+  color: var(--color-surface);
+  cursor: pointer;
   transition:
-    transform 120ms ease,
-    background 120ms ease;
-  flex-shrink: 0;
-}
-
-.left {
-  border-radius: 0 var(--radius-large) var(--radius-large) 0;
-}
-
-.right {
-  border-radius: var(--radius-large) 0 0 var(--radius-large);
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 160ms ease;
 }
 
 .arrow:hover,
-.arrow.focused,
-.arrow:focus-visible {
-  background: #fdf1e9;
+.arrow.focused {
+  background: var(--landing-blue-hover);
+  transform: scaleX(1.04);
 }
 
-/* Inside the strip, so it isn't cut at the edge of the screen. */
 .arrow:focus-visible {
   outline: 5px solid var(--color-focus);
-  outline-offset: -8px;
+  outline-offset: 3px;
 }
 
 .arrow:disabled {
-  opacity: 0.3;
+  border-color: color-mix(in srgb, var(--landing-blue) 22%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  color: color-mix(in srgb, var(--landing-blue) 30%, var(--color-surface));
+  box-shadow: var(--shadow-soft);
+  transform: none;
   cursor: not-allowed;
 }
 
 .fill {
   position: absolute;
   inset: 0;
-  background: rgba(217, 125, 69, 0.25);
+  background: color-mix(in srgb, var(--color-surface) 28%, transparent);
   transform-origin: bottom center;
   transform: scaleY(0);
   pointer-events: none;
@@ -57,7 +53,10 @@
 .icon {
   position: relative;
   display: flex;
-  width: 3rem;
-  height: 3rem;
-  color: var(--color-amber-dark);
+}
+
+/* left and right are only for the label and the icon now. */
+.left,
+.right {
+  border-radius: 32px;
 }

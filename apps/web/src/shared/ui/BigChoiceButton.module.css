@@ -5,26 +5,34 @@
   gap: var(--space-2);
 }
 
+/* A white card of IRIS with a line of its color (the variant), the icon on a
+   pale disc of that color and the words in navy. While it's looked at, the
+   color of the line grows and it fills from the left. */
 .button {
+  --tone: var(--landing-orange);
   position: relative;
   min-width: var(--dwell-target-min);
   min-height: var(--dwell-target-min);
   padding: var(--space-4) var(--space-5);
-  border: none;
-  border-radius: var(--radius-large);
+  border: 3px solid color-mix(in srgb, var(--tone) 35%, var(--color-surface));
+  border-radius: 28px;
+  background: var(--color-surface);
   cursor: pointer;
   overflow: hidden;
   box-shadow: var(--shadow-card);
   transition:
-    transform 120ms ease,
-    box-shadow 120ms ease;
-  color: var(--color-white);
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+  color: var(--landing-navy);
 }
 
 .button:hover,
 .button.focused,
 .button:focus-visible {
-  transform: translateY(-2px) scale(1.02);
+  border-color: color-mix(in srgb, var(--tone) 75%, var(--color-surface));
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-4px);
 }
 
 /* With the keyboard (HU-88) the button in focus gets a thick ring, so the
@@ -42,23 +50,22 @@
 }
 
 .coral {
-  background: var(--color-coral);
+  --tone: var(--landing-orange);
 }
 .teal {
-  background: var(--color-teal);
+  --tone: var(--landing-blue);
 }
 .sol {
-  background: var(--color-sun);
-  color: var(--color-ink);
+  --tone: var(--landing-sun);
 }
 .hoja {
-  background: var(--color-leaf);
+  --tone: var(--landing-mint);
 }
 
 .fill {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.35);
+  background: color-mix(in srgb, var(--tone) 14%, var(--color-surface));
   transform-origin: left center;
   transform: scaleX(0);
   pointer-events: none;
@@ -70,12 +77,20 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  font-size: 1.25rem;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
   font-weight: 700;
   text-align: center;
 }
 
 .icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tone) 16%, var(--color-surface));
+  color: color-mix(in srgb, var(--tone) 80%, var(--landing-navy));
   font-size: 2.5rem;
   line-height: 1;
 }
@@ -102,8 +117,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface);
-  color: var(--color-coral-dark);
+  background: var(--landing-orange);
+  color: var(--color-surface);
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 800;

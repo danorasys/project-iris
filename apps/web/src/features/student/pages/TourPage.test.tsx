@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { setInputMode } from "@/shared/gaze/inputMode";
 import { isTourDone } from "../lib/studentJourney";
 import TourPage from "./TourPage";
 
@@ -30,13 +29,13 @@ afterEach(() => {
 });
 
 describe("TourPage (HU-89)", () => {
-  it("explains how to choose with the way the kid moves", async () => {
-    setInputMode("keyboard");
+  it("explains how to choose with the eyes, without talking about other ways to move", async () => {
     renderTour();
 
     await userEvent.click(screen.getByRole("button", { name: "Siguiente" }));
 
-    expect(screen.getByText(/usa la tecla Tab/)).toBeTruthy();
+    expect(screen.getByText(/mira fijo un botón grande/)).toBeTruthy();
+    expect(screen.queryByText(/mouse|teclado|cómo te mueves/i)).toBeNull();
     expect(screen.getByText("Paso 2 de 4")).toBeTruthy();
   });
 

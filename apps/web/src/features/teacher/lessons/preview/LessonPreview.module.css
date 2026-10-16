@@ -1,0 +1,147 @@
+/* The preview over the whole screen: the bar of the portal on top, and
+   under it the kid's screen, in the kid's colors, inside a rounded frame. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: rgba(10, 47, 102, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: preview-in 260ms var(--ease-out) both;
+}
+
+.leaving {
+  animation: preview-out 180ms ease forwards;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: var(--portal-radius, var(--radius-large));
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.barIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.barText {
+  flex: 1;
+  min-width: 0;
+}
+
+.barTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.barNote {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}
+
+.again,
+.close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: var(--radius-medium);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.again {
+  border: 1.5px solid var(--color-iris-pale);
+  background: var(--color-surface);
+  color: var(--color-iris-deep);
+}
+
+.again:hover {
+  border-color: var(--color-iris-medium);
+  background: var(--color-canvas);
+}
+
+.close {
+  border: none;
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
+.close:hover {
+  background: var(--color-action-hover);
+}
+
+.again:focus-visible,
+.close:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+/* The kid's screen: their background and colors, scrolling inside. */
+.screen {
+  /* The kid's screens fill this box instead of the whole window. */
+  --kid-page-height: 100%;
+  position: relative;
+  flex: 1;
+  overflow: auto;
+  border-radius: 24px;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  box-shadow: 0 30px 60px rgba(5, 25, 60, 0.35);
+}
+
+@keyframes preview-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+@keyframes preview-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .leaving {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .bar {
+    flex-wrap: wrap;
+  }
+
+  .barNote {
+    display: none;
+  }
+}

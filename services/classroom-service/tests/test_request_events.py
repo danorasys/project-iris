@@ -56,7 +56,7 @@ async def test_la_solicitud_y_su_respuesta_llevan_al_tutor_y_al_aula(
     guardian_id = str(identity_gateway.guardian_person_id)
     assert creada["event"] == "request.created"
     assert creada["guardian_id"] == guardian_id
-    assert creada["student_name"] == "Sofía"
+    assert creada["student_name"] == "Sofía Pérez"
     assert creada["classroom_name"] == "Matemáticas 3A"
     assert resuelta["event"] == "request.resolved"
     assert resuelta["decision"] == "aceptada"

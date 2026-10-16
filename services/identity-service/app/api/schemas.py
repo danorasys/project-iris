@@ -571,11 +571,12 @@ class TokenClaimsResponse(BaseModel):
 class StudentWithGuardianResponse(BaseModel):
     student_id: UUID
     student_first_name: str
+    student_last_name: str
     student_avatar_id: int
     guardian_first_name: str
     guardian_last_name: str
     guardian_email: EmailStr
-    guardian_phone: str
+    guardian_relationship: str
     guardian_person_id: UUID
 
 

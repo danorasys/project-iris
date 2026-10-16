@@ -11,6 +11,8 @@ from uuid import UUID
 from app.domain.entities import (
     ACTIVITY_COMPLETED,
     BODY_MAX_LENGTH,
+    BOX_RECEIVED,
+    BOX_SENT,
     CLASSROOM_ARCHIVED,
     CLASSROOM_DELETED,
     CLASSROOM_RESTORED,
@@ -20,6 +22,7 @@ from app.domain.entities import (
     EXTRA_PUBLISHED,
     LESSON_PUBLISHED,
     MESSAGE_SENT,
+    OWN_COPY_EVENT,
     REQUEST_CANCELLED,
     REQUEST_CLOSED,
     REQUEST_CLOSED_DECISION,
@@ -282,10 +285,28 @@ class NotificationService:
         classroom_id: UUID | None = None,
         student_id: UUID | None = None,
         events: list[str] | None = None,
+        box: str | None = None,
     ) -> NotificationPage:
+        # What this person sent is the copy they keep of their own messages;
+        # everything else in their tray they received. A kid sends nothing.
+        own = OWN_COPY_EVENT.get(role)
+        only_events: list[str] | None = None
+        skip_events: list[str] | None = None
+        if box == BOX_SENT:
+            only_events = [own] if own else []
+        elif box == BOX_RECEIVED and own:
+            skip_events = [own]
         async with self._uow_factory() as uow:
             return await uow.notifications.list_page(
-                recipient_id, role, (page - 1) * page_size, page_size, classroom_id, student_id, events
+                recipient_id,
+                role,
+                (page - 1) * page_size,
+                page_size,
+                classroom_id,
+                student_id,
+                events,
+                only_events,
+                skip_events,
             )
 
     async def mark_as_read(self, notification_id: UUID, recipient_id: UUID, role: str) -> Notification:

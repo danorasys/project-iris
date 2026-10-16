@@ -1,18 +1,10 @@
-// Gaze preferences saved in localStorage per student profile
-// (`session.subjectId`): the custom dwell duration measured at
-// /student/calibration. What the kid already went through is in
-// studentJourney.ts.
+// How long a target takes to fill, per profile (`session.subjectId`), kept
+// in localStorage. Older versions measured it with a calibration of their
+// own; now the calibration is EyeGestures' only, and without a saved time
+// every target uses the default one. What the kid already went through is
+// in studentJourney.ts.
 
 const DWELL_DURATION_PREFIX = "iris_dwell_ms_";
-
-/** Average time (ms) the student took to complete each calibration target.
- * Pure, no DOM dependencies, so it can be tested without simulating real
- * gaze events. */
-export function calculateAverageDwellMs(timesMs: number[]): number {
-  if (timesMs.length === 0) return 0;
-  const sum = timesMs.reduce((acc, t) => acc + t, 0);
-  return Math.round(sum / timesMs.length);
-}
 
 function isLocalStorageAvailable(): boolean {
   try {

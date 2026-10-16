@@ -1,114 +1,121 @@
 import { useState } from "react";
-import type { ClassroomWithStudents, NotificationItem } from "@iris/shared-types";
-import { formatArrival } from "@/features/utils/formatArrival";
-import { useClassMessages, useMarkNotificationRead } from "@/shared/api/hooks/useNotifications";
+import type { ClassroomWithStudents } from "@iris/shared-types";
+import { useClassMessages, type TrayBox } from "@/shared/api/hooks/useNotifications";
 import { IconMessage } from "@/shared/ui/icons";
-import { TrayPager } from "@/shared/ui/portal/TrayPager";
-import { FamilyMessageDialog } from "./FamilyMessageDialog";
+import tray from "@/shared/ui/portal/NotificationTray.module.css";
+import { SectionOverview } from "@/shared/ui/portal/SectionOverview";
+import { MESSAGE_WORDS } from "@/shared/ui/portal/trayWords";
+import { ViewEnter } from "@/shared/ui/ViewEnter";
+import { MessageCompose } from "./MessageCompose";
+import { TeacherInbox } from "./TeacherInbox";
 import styles from "../portalSection.module.css";
-import own from "./MessagesPanel.module.css";
 
 const PAGE_SIZE = 8;
 
 interface MessagesPanelProps {
   classroom: ClassroomWithStudents;
   onToast: (message: string) => void;
+  /** Opens straight in a new message to this kid ("Escribir" in Miembros). */
+  composeFor?: string | null;
 }
 
-type Message = Extract<NotificationItem, { event: "message.sent" | "teacher.message" }>;
+// Writing a new message: to whom it starts addressed, if anyone.
+type Compose = { enrollmentId: string | null };
 
-/** Who wrote it or who it went to, in one line. */
-function messageLine(message: Message): string {
-  const kid = message.student_name ?? "un estudiante";
-  if (message.event === "message.sent") return `De ${message.sender_name ?? "su familia"}, familia de ${kid}`;
-  return message.addressee === "student" ? `Para ${kid}` : `Para la familia de ${kid}`;
-}
-
-/** "Mensajes" of a classroom (HU-77, HU-74): write to a kid or their
- * guardian, and the messages of this class, the ones the families wrote
- * and the ones the teacher sent, newest first. */
-export function MessagesPanel({ classroom, onToast }: MessagesPanelProps) {
+/** "Mensajes" of a classroom (HU-77, HU-74): a card with how many there are
+ * and "Escribir un mensaje", and the messages of this class in the same
+ * inbox as Notificaciones, like Gmail: the ones the families wrote and the
+ * ones the teacher sent, newest first, each one opened as a conversation to
+ * answer. A new message is written in place, like a new mail. */
+export function MessagesPanel({ classroom, onToast, composeFor = null }: MessagesPanelProps) {
   const [page, setPage] = useState(1);
-  const [writing, setWriting] = useState(false);
-  const messages = useClassMessages(classroom.id, page, PAGE_SIZE);
-  const markRead = useMarkNotificationRead("teacher");
-  const items = (messages.data?.items ?? []) as Message[];
-  const totalPages = Math.max(1, Math.ceil((messages.data?.total ?? 0) / PAGE_SIZE));
+  const [box, setBox] = useState<TrayBox>("received");
+  const [compose, setCompose] = useState<Compose | null>(composeFor ? { enrollmentId: composeFor } : null);
+  const messages = useClassMessages(classroom.id, page, PAGE_SIZE, box);
   const hasMembers = classroom.students.length > 0;
+  const total = messages.data?.total ?? 0;
+  const unread = messages.data?.unread_count ?? 0;
 
+  // The new message comes in from the right and goes back to the left.
   return (
-    <section aria-labelledby="class-messages-title" className={styles.section}>
-      <div className={own.top}>
-        <h2 id="class-messages-title" className={styles.subTitle}>
-          Mensajes de la clase
-        </h2>
-        <button
-          type="button"
-          className={styles.primaryButton}
-          onClick={() => setWriting(true)}
-          disabled={!hasMembers}
-          title={hasMembers ? undefined : "Cuando haya estudiantes en la clase podrás escribirles."}
-        >
-          <IconMessage width={16} height={16} />
-          Escribir un mensaje
-        </button>
-      </div>
-
-      {messages.isLoading ? (
-        <p className={styles.status}>Cargando los mensajes…</p>
-      ) : messages.isError ? (
-        <p role="alert" className={`${styles.status} ${styles.error}`}>
-          No pudimos cargar los mensajes. Inténtalo de nuevo en un momento.
-        </p>
-      ) : items.length === 0 ? (
-        <div className={styles.empty}>
-          <span className={styles.emptyIcon} aria-hidden="true">
-            <IconMessage width={24} height={24} />
-          </span>
-          <p className={styles.emptyTitle}>Aún no hay mensajes en esta clase</p>
-          <p className={styles.emptyText}>
-            {hasMembers
-              ? "Escríbele a un estudiante o a su familia. Aquí verás lo que envíes y lo que te escriban."
-              : "Cuando haya estudiantes en la clase podrás escribirles a ellos y a sus familias."}
-          </p>
-        </div>
-      ) : (
-        <ul className={own.messages}>
-          {items.map((message) => (
-            <li key={message.id}>
-              {/* Closed it shows the subject, who and when; open, the text. */}
-              <details
-                className={own.message}
-                data-unread={!message.read}
-                onToggle={(event) => {
-                  if (event.currentTarget.open && !message.read) markRead.mutate(message.id);
-                }}
-              >
-                <summary className={own.summary}>
-                  <span className={own.direction} data-sent={message.event === "teacher.message"}>
-                    {message.event === "teacher.message" ? "Enviado" : "Recibido"}
-                  </span>
-                  <span className={own.subject}>{message.subject ?? "Sin asunto"}</span>
-                  <span className={own.meta}>
-                    {messageLine(message)} · {formatArrival(message.created_at)}
-                  </span>
-                </summary>
-                <p className={own.body}>{message.body}</p>
-              </details>
-            </li>
-          ))}
-        </ul>
-      )}
-      <TrayPager page={page} totalPages={totalPages} onChange={setPage} label="Páginas de mensajes" />
-
-      {writing && (
-        <FamilyMessageDialog
+    <ViewEnter view={compose ? "compose" : "inbox"} level={compose ? 1 : 0}>
+      {compose ? (
+        <MessageCompose
           classroomId={classroom.id}
           members={classroom.students}
-          onClose={() => setWriting(false)}
+          enrollmentId={compose.enrollmentId}
+          onClose={() => setCompose(null)}
           onSent={onToast}
         />
+      ) : (
+      <TeacherInbox
+        tray={messages}
+        page={page}
+        onPageChange={setPage}
+        pageSize={PAGE_SIZE}
+        words={MESSAGE_WORDS}
+        listLabel={box === "sent" ? "Mensajes enviados de la clase" : "Mensajes recibidos de la clase"}
+        box={box}
+        onBoxChange={(next) => {
+          setBox(next);
+          setPage(1);
+        }}
+        onToast={onToast}
+        header={
+          <SectionOverview
+            titleId="messages-overview-title"
+            Icon={IconMessage}
+            title="Mensajes de la clase"
+            text={
+              <>
+                {messages.data &&
+                  (box === "sent" ? (
+                    <>
+                      Has enviado <strong>{total === 1 ? "1 mensaje" : `${total} mensajes`}</strong>.{" "}
+                    </>
+                  ) : (
+                    <>
+                      Tienes <strong>{total === 1 ? "1 mensaje recibido" : `${total} mensajes recibidos`}</strong>
+                      {unread > 0 && (
+                        <>
+                          , <strong>{unread === 1 ? "1 sin leer" : `${unread} sin leer`}</strong>
+                        </>
+                      )}
+                      .{" "}
+                    </>
+                  ))}
+                Aquí ves lo que les escribes a tus estudiantes y a sus familias, y lo que las familias te escriben.
+              </>
+            }
+            action={
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => setCompose({ enrollmentId: null })}
+                disabled={!hasMembers}
+                title={hasMembers ? undefined : "Cuando haya estudiantes en la clase podrás escribirles."}
+              >
+                <IconMessage width={16} height={16} />
+                Escribir un mensaje
+              </button>
+            }
+          />
+        }
+        empty={
+          <div className={tray.empty}>
+            <span className={tray.emptyIcon} aria-hidden="true">
+              <IconMessage width={22} height={22} />
+            </span>
+            <p className={tray.emptyTitle}>Aún no tienes mensajes recibidos</p>
+            <p className={tray.emptyText}>
+              {hasMembers
+                ? "Cuando una familia te escriba desde esta clase, su mensaje aparecerá aquí."
+                : "Cuando haya estudiantes en la clase podrás escribirles a ellos y a sus familias."}
+            </p>
+          </div>
+        }
+      />
       )}
-    </section>
+    </ViewEnter>
   );
 }

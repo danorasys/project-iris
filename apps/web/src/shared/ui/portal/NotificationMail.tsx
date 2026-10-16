@@ -3,6 +3,7 @@ import { formatArrival } from "@/features/utils/formatArrival";
 import { IconArrowLeft, IconArrowRight, IconChild, IconClassroom, IconTrash } from "@/shared/ui/icons";
 import logoIris from "@/assets/landing/logo-iris.png";
 import { initialsOf } from "./messageThreadRules";
+import { NOTIFICATION_WORDS, type TrayWords } from "./trayWords";
 import styles from "./NotificationTray.module.css";
 
 /** Where this one is in the tray, to go to the one before or after. A
@@ -34,6 +35,8 @@ interface NotificationMailProps {
   conversation?: ReactNode;
   /** Something to do with it, under the message (a request to answer). */
   children?: ReactNode;
+  /** A notification unless said otherwise (a message of a class). */
+  words?: TrayWords;
 }
 
 /** One notification read in full, laid out like an opened mail: a bar with
@@ -54,15 +57,17 @@ export function NotificationMail({
   position,
   conversation,
   children,
+  words = NOTIFICATION_WORDS,
 }: NotificationMailProps) {
   const subjectId = useId();
+  const One = words.one.charAt(0).toUpperCase() + words.one.slice(1);
 
   return (
     <article className={styles.mail} aria-labelledby={subjectId}>
       <div className={styles.mailBar}>
         <button type="button" className={styles.mailBack} onClick={onBack}>
           <IconArrowLeft width={18} height={18} />
-          Regresar a notificaciones
+          Regresar a {words.many}
         </button>
         <div className={styles.mailTools}>
           {position && (
@@ -75,7 +80,7 @@ export function NotificationMail({
                 className={styles.mailStep}
                 onClick={position.onPrev}
                 disabled={!position.onPrev}
-                aria-label="Notificación anterior"
+                aria-label={`${One} anterior`}
                 title="Anterior"
               >
                 <IconArrowLeft width={18} height={18} />
@@ -85,7 +90,7 @@ export function NotificationMail({
                 className={styles.mailStep}
                 onClick={position.onNext}
                 disabled={!position.onNext}
-                aria-label="Notificación siguiente"
+                aria-label={`${One} siguiente`}
                 title="Siguiente"
               >
                 <IconArrowRight width={18} height={18} />
@@ -93,7 +98,7 @@ export function NotificationMail({
               <span className={styles.mailDivider} aria-hidden="true" />
             </>
           )}
-          <button type="button" className={styles.mailDelete} onClick={onDelete} aria-label="Eliminar notificación">
+          <button type="button" className={styles.mailDelete} onClick={onDelete} aria-label={`Eliminar ${words.one}`}>
             <IconTrash width={18} height={18} />
             <span className={styles.mailDeleteText}>Eliminar</span>
           </button>
@@ -104,7 +109,7 @@ export function NotificationMail({
         <h1 id={subjectId} className={styles.mailSubject}>
           {subject}
         </h1>
-        <dl className={styles.mailFacts} aria-label="Sobre esta notificación">
+        <dl className={styles.mailFacts} aria-label={`Sobre ${words.this} ${words.one}`}>
           <div className={styles.mailFact}>
             <dt>
               <IconChild width={16} height={16} aria-hidden="true" />

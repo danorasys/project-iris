@@ -306,6 +306,7 @@ class LessonProgressOut(BaseModel):
 class KidInLessonOut(BaseModel):
     student_id: UUID
     first_name: str
+    last_name: str
     avatar_id: int
     percent: int
     tries: int
@@ -317,6 +318,7 @@ class KidInLessonOut(BaseModel):
 class LessonStatisticsOut(BaseModel):
     lesson_id: UUID
     title: str
+    unit_id: UUID
     unit_title: str
     has_activity: bool
     average_percent: int
@@ -331,6 +333,7 @@ class LessonStatisticsOut(BaseModel):
 class KidInClassOut(BaseModel):
     student_id: UUID
     first_name: str
+    last_name: str
     avatar_id: int
     average_percent: int
     completed_lessons: int
@@ -353,12 +356,13 @@ class EnrolledStudentResponse(BaseModel):
     enrollment_id: UUID
     student_id: UUID
     first_name: str
+    last_name: str
     avatar_id: int
     status: str
     # Their guardian (HU-75). Only the teacher of the classroom sees it.
     guardian_name: str | None
     guardian_email: str | None
-    guardian_phone: str | None
+    guardian_relationship: str | None
 
 
 class ClassroomWithStudentsResponse(ClassroomResponse):
@@ -369,9 +373,12 @@ class RequestResponse(BaseModel):
     enrollment_id: UUID
     student_id: UUID
     student_first_name: str
+    student_last_name: str
     student_avatar_id: int
+    # The same guardian data as a member of the class.
     guardian_name: str
-    guardian_contact: str
+    guardian_email: str
+    guardian_relationship: str
     requested_at: datetime
 
 

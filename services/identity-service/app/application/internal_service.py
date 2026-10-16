@@ -1,7 +1,8 @@
 # Queries used only by other services via /internal/*, never exposed to end
 # clients. classroom-service needs the student's name and avatar plus the
-# guardian's name and contact info, to give the teacher context when resolving an
-# enrollment request, and the names it puts in the notifications it sends.
+# guardian's name, email and how they're related to the kid, to give the
+# teacher context when resolving an enrollment request, and the names it puts
+# in the notifications it sends.
 
 from __future__ import annotations
 
@@ -20,11 +21,14 @@ UowFactory = Callable[[], "UnitOfWork"]
 class StudentWithGuardian:
     student_id: UUID
     student_first_name: str
+    # The teacher sees the kid's full name, like the guardian's.
+    student_last_name: str
     student_avatar_id: int
     guardian_first_name: str
     guardian_last_name: str
     guardian_email: str
-    guardian_phone: str
+    # "Madre", "Padre"... from the relationship_types catalog.
+    guardian_relationship: str
     # The id the guardian signs in with, so a notification can reach them.
     guardian_person_id: UUID
 
@@ -69,15 +73,17 @@ class InternalQueryService:
             person = await uow.people.get_by_id(guardian.person_id)
             if person is None:
                 raise ResourceNotFound("Tutor no encontrado.")
+            relationship = await uow.relationship_types.get_by_id(guardian.relationship_type_id)
 
             return StudentWithGuardian(
                 student_id=student.id,
                 student_first_name=student.first_name,
+                student_last_name=student.last_name,
                 student_avatar_id=student.avatar_id,
                 guardian_first_name=person.first_name,
                 guardian_last_name=person.last_name,
                 guardian_email=person.email,
-                guardian_phone=person.phone_e164(),
+                guardian_relationship=relationship.name if relationship else "Otro",
                 guardian_person_id=person.id,
             )
 

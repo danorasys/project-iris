@@ -110,7 +110,7 @@ async def test_las_clases_de_un_docente_borrado_quedan_para_sus_peques(
     # The family that was waiting hears why.
     assert (closed["event"], closed["student_name"], closed["classroom_name"]) == (
         "request.closed",
-        "Tomás",
+        "Tomás Pérez",
         "Ciencias 1A",
     )
     assert closed["guardian_id"] == str(identity_gateway.guardian_person_id)

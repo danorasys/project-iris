@@ -89,7 +89,8 @@ async def test_obtener_estudiante_no_usa_cache() -> None:
                 "guardian_first_name": "Ana",
                 "guardian_last_name": "Pérez",
                 "guardian_email": "ana@example.com",
-                "guardian_phone": "3001234567",
+                "guardian_relationship": "Madre",
+                "student_last_name": "Pérez",
                 "guardian_person_id": str(uuid.uuid4()),
             },
         )

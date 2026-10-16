@@ -1,0 +1,273 @@
+/* The kid's PIN, on the kid's page with "No soy yo" on the bottom edge
+   (KidKit): the kid's card and a very big keypad side by
+   side, filling the height of the screen so every key is easy to look at. */
+.layout {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  justify-content: center;
+  gap: clamp(16px, 3vw, 48px);
+  width: 100%;
+  max-width: 1500px;
+  min-height: 0;
+}
+
+/* --- The kid's card: the band in their avatar's color, like the cards of
+   "¿Quién eres?" and their banner in the Portal de Padres --- */
+.profile {
+  --banner-color: var(--color-iris-medium);
+  --avatar: clamp(96px, min(15vw, 24vh), 190px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 1.4vh, 14px);
+  flex: none;
+  width: clamp(260px, 27vw, 420px);
+  padding: 20px 24px;
+  overflow: hidden;
+  border: 3px solid color-mix(in srgb, var(--banner-color) 30%, var(--color-surface));
+  border-radius: 32px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+  animation: rise 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.band {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 34%;
+  background:
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--color-surface) 45%, transparent) 0 34px, transparent 35px),
+    radial-gradient(circle at 70% 150%, color-mix(in srgb, var(--color-surface) 35%, transparent) 0 50px, transparent 51px),
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--banner-color) 70%, var(--color-surface)),
+      color-mix(in srgb, var(--banner-color) 30%, var(--color-surface))
+    );
+}
+
+.avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--avatar) + 12px);
+  height: calc(var(--avatar) + 12px);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 12px 28px -12px color-mix(in srgb, var(--banner-color) 80%, transparent);
+}
+
+.avatar img {
+  width: var(--avatar);
+  height: var(--avatar);
+}
+
+.title {
+  position: relative;
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1rem + 1.4vw, 2.3rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: clamp(1.05rem, 0.9rem + 0.5vw, 1.3rem);
+  color: var(--portal-muted, var(--color-ink-soft));
+}
+
+/* The four boxes of the PIN: a dot in the blue of IRIS in each one written,
+   and the next one marked with its line. */
+.cells {
+  display: flex;
+  gap: clamp(8px, 1vw, 14px);
+  margin-top: 6px;
+}
+
+.cell {
+  display: grid;
+  place-items: center;
+  width: clamp(44px, 4.4vw, 64px);
+  height: clamp(52px, 8vh, 72px);
+  border: 3px solid var(--portal-line, var(--color-iris-pale));
+  border-radius: 18px;
+  background: var(--landing-mist-1, var(--color-canvas));
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.cell[data-next="true"] {
+  border-color: color-mix(in srgb, var(--color-iris-medium) 55%, var(--color-surface));
+  background: var(--color-surface);
+}
+
+.cell[data-filled="true"] {
+  border-color: var(--color-iris-medium);
+  background: var(--color-surface);
+}
+
+.cell[data-filled="true"]::after {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-iris-medium);
+  animation: dot-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.error {
+  margin: 4px 0 0;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* --- The keypad: three columns, four rows that fill the height --- */
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  flex: 1;
+  gap: clamp(10px, 1.6vh, 18px);
+  min-width: 0;
+  animation: rise 480ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+.key {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 56px;
+  overflow: hidden;
+  border: 3px solid color-mix(in srgb, var(--color-iris-medium) 30%, var(--color-surface));
+  border-radius: 26px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  font: inherit;
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 1.2rem + 2.8vw, 4rem);
+  font-weight: 700;
+  color: var(--color-iris-deep);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.key:hover:not(:disabled),
+.key[data-looking="true"] {
+  border-color: var(--color-iris-medium);
+  transform: translateY(-2px);
+}
+
+.key:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Delete: soft lavender, the icon in the blue of IRIS. */
+.key[data-tone="erase"] {
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+/* Confirm: filled in the blue of IRIS, with a darker line. */
+.key[data-tone="confirm"] {
+  border-color: var(--color-action-hover);
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
+.key[data-tone="confirm"]:hover:not(:disabled),
+.key[data-tone="confirm"][data-looking="true"] {
+  background: var(--color-action-hover);
+}
+
+.key:disabled {
+  border-color: var(--portal-line, var(--color-iris-pale));
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  color: color-mix(in srgb, var(--color-iris-medium) 28%, var(--color-surface));
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  background: var(--landing-mist-1);
+  transform-origin: bottom;
+  pointer-events: none;
+}
+
+.key[data-tone="confirm"] .fill {
+  background: color-mix(in srgb, var(--color-surface) 28%, transparent);
+}
+
+.keyLabel {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes dot-pop {
+  from {
+    transform: scale(0.3);
+  }
+}
+
+/* A narrow screen: the card on top, the keypad under it. */
+@media (max-width: 760px) {
+  .layout {
+    flex-direction: column;
+    align-items: center;
+    max-height: none;
+  }
+
+  .profile {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .keypad {
+    flex: none;
+    width: 100%;
+    max-width: 420px;
+    grid-template-rows: repeat(4, 76px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile,
+  .keypad,
+  .key,
+  .cell,
+  .cell[data-filled="true"]::after {
+    animation: none;
+    transition: none;
+  }
+}

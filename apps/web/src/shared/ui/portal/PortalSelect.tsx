@@ -20,6 +20,11 @@ interface PortalSelectProps {
   error?: string;
   required?: boolean;
   disabled?: boolean;
+  /** The label only for screen readers, when the place already says it
+   * (the "Para" line of a mail). */
+  hideLabel?: boolean;
+  /** Without its box, to sit on a line like the fields of a mail. */
+  bare?: boolean;
 }
 
 /** Room the list keeps from the edges of the window. */
@@ -57,6 +62,8 @@ export function PortalSelect({
   error,
   required,
   disabled,
+  hideLabel = false,
+  bare = false,
 }: PortalSelectProps) {
   const listId = useId();
   const errorId = `${id}-error`;
@@ -187,7 +194,7 @@ export function PortalSelect({
 
   return (
     <div className={fieldStyles.field} ref={wrapperRef}>
-      <label htmlFor={id} className={fieldStyles.label}>
+      <label htmlFor={id} className={hideLabel ? styles.visuallyHidden : fieldStyles.label}>
         {label}
         {required && <span aria-hidden="true"> *</span>}
       </label>
@@ -196,7 +203,7 @@ export function PortalSelect({
         id={id}
         type="button"
         role="combobox"
-        className={`${fieldStyles.input} ${styles.trigger}`}
+        className={`${fieldStyles.input} ${styles.trigger} ${bare ? styles.bare : ""}`}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}

@@ -128,7 +128,7 @@ export function KidTray({ tray, screen, onScreen, title, backLabel, onBack, dwel
         </>
       }
       render={(n) => <NotificationCard notification={n} dwellDurationMs={dwellDurationMs} onOpen={() => read(n)} />}
-      bottom={back}
+      back={{ label: backLabel, onSelect: onBack }}
     />
   );
 }

@@ -188,6 +188,26 @@ export function IconReply(props: IconProps) {
   );
 }
 
+// The tray of "Recibidos": a box with the dip where mail lands.
+export function IconInbox(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 13.5 6.5 5h11l2.5 8.5V19H4v-5.5Z" />
+      <path d="M4 13.5h4.5l1.5 2.5h4l1.5-2.5H20" />
+    </svg>
+  );
+}
+
+// The paper plane of "Enviar" when writing a mail.
+export function IconSend(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M21 3 10.5 13.5" />
+      <path d="M21 3 14.5 21l-4-7.5L3 9.5 21 3Z" />
+    </svg>
+  );
+}
+
 export function IconPlus(props: IconProps) {
   return (
     <svg {...base} {...props}>

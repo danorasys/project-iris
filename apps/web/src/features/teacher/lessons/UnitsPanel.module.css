@@ -1,18 +1,11 @@
-/* The units of a classroom: white cards like the ones of Mi perfil, each
-   one with its number in an IRIS blue circle, its guiding question and its
-   lessons as rows. */
+/* The units of a classroom, in the look of the portal: a white card per
+   unit with its number, its counts as tags, its guiding question set apart,
+   its DBA in a box that opens, and its lessons as numbered rows. The cards
+   rise in one after the other. */
 .section {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-}
-
-.top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
 }
 
 .visuallyHidden {
@@ -22,13 +15,6 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-.lead {
-  margin: 0;
-  max-width: 60ch;
-  font-size: 0.95rem;
-  color: var(--color-ink-soft);
 }
 
 .status {
@@ -41,36 +27,30 @@
   color: var(--color-error);
 }
 
-.primaryButton,
-.addLesson {
+.primaryButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
   min-height: 44px;
   padding: var(--space-2) var(--space-4);
+  border: none;
   border-radius: var(--radius-medium);
+  background: var(--color-action);
   font: inherit;
   font-weight: 700;
+  color: var(--color-surface);
   cursor: pointer;
   transition:
     background 140ms ease,
-    border-color 140ms ease,
     transform 140ms ease;
-}
-
-.primaryButton {
-  border: none;
-  background: var(--color-action);
-  color: var(--color-surface);
 }
 
 .primaryButton:hover {
   background: var(--color-action-hover);
 }
 
-.primaryButton:active,
-.addLesson:active {
+.primaryButton:active {
   transform: scale(0.98);
 }
 
@@ -80,21 +60,20 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-5) var(--space-4);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-large);
+  border-radius: var(--portal-radius, var(--radius-large));
   background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-card);
   text-align: center;
 }
 
 .emptyIcon {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-medium);
   background: var(--color-iris-pale);
-  color: var(--color-iris-medium);
+  color: var(--color-iris-deep);
 }
 
 .emptyTitle {
@@ -106,11 +85,12 @@
 }
 
 .emptyText {
-  margin: 0;
   max-width: 46ch;
+  margin: 0;
   color: var(--color-ink-soft);
 }
 
+/* --- A unit --- */
 .units {
   display: flex;
   flex-direction: column;
@@ -125,44 +105,54 @@
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-large);
+  border-radius: var(--portal-radius, var(--radius-large));
   background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-card);
+  animation: rise 560ms var(--ease-out) both;
+  animation-delay: calc(var(--order, 0) * 80ms);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
 }
 
 .unitHead {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-3);
 }
 
-/* The unit's number in a blue circle with a soft ring. */
+/* The number on a pale tile, like the icons of the options of a class. */
 .unitNumber {
-  flex: none;
   display: grid;
+  flex: none;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--color-iris-medium);
-  color: var(--color-surface);
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--color-iris-pale);
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 700;
-  box-shadow: 0 0 0 5px var(--color-iris-pale);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--color-iris-deep);
 }
 
 .unitText {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  gap: 3px;
   min-width: 0;
 }
 
 .unitEyebrow {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-iris-medium);
 }
@@ -170,110 +160,78 @@
 .unitTitle {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.2rem;
-  color: var(--color-iris-deep);
-  overflow-wrap: anywhere;
-}
-
-/* The guiding question, in quotes like something the kids will answer. */
-.unitQuestion {
-  margin: var(--space-1) 0 0;
-  font-style: italic;
-  color: var(--color-ink-soft);
-  overflow-wrap: anywhere;
-}
-
-/* What the kids should manage after the unit, under its question. */
-.unitGoal {
-  margin: var(--space-1) 0 0;
-  font-size: 0.92rem;
-  line-height: 1.5;
-  color: var(--color-ink);
-  overflow-wrap: anywhere;
-}
-
-/* The Evidencias de Aprendizaje of the unit's DBA, under it. */
-.unitPoints {
-  margin: 4px 0 0;
-  padding-left: 1.25rem;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--color-ink-soft);
-  overflow-wrap: anywhere;
-}
-
-.unitGoalLabel {
+  font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-ink-soft);
+  line-height: 1.25;
+  color: var(--color-iris-deep);
 }
 
-/* A unit from before it had one: a soft amber note with its button. */
-.unitGoalMissing {
+.unitTags {
   display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+  margin: 3px 0 0;
+}
+
+/* Small tags of the counts, each with its icon and color. */
+.tag {
+  --tone: var(--color-iris-medium);
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin: var(--space-2) 0 0;
-  padding: 8px 12px;
-  border-radius: var(--radius-medium);
-  background: color-mix(in srgb, var(--color-amber) 12%, var(--color-surface));
-  font-size: 0.88rem;
-  color: color-mix(in srgb, var(--color-amber) 45%, var(--color-ink));
-}
-
-.unitGoalMissing svg {
-  flex: none;
-}
-
-.unitGoalButton {
-  padding: 4px 12px;
-  border: 1.5px solid color-mix(in srgb, var(--color-amber) 60%, var(--color-surface));
+  gap: 5px;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: var(--color-surface);
-  color: inherit;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
+  background: color-mix(in srgb, var(--tone) 10%, var(--color-surface));
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--tone) 80%, var(--color-ink));
 }
 
-.unitGoalButton:hover {
-  border-color: var(--color-amber);
+.tag[data-tone="mint"] {
+  --tone: var(--landing-mint-dark);
 }
 
-.unitGoalButton:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 2px;
+.tag[data-tone="sun"] {
+  --tone: var(--landing-brick);
 }
 
-.unitActions,
-.lessonMove {
-  flex: none;
+/* Move, edit and delete, together in a soft group. */
+.unitActions {
   display: flex;
-  gap: var(--space-1);
+  flex: none;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--color-canvas);
 }
 
 .iconButton {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-small);
-  background: var(--color-surface);
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
   color: var(--color-iris-deep);
   cursor: pointer;
   transition:
-    background 140ms ease,
-    border-color 140ms ease;
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .iconButton:hover:not(:disabled) {
-  border-color: var(--color-iris-medium);
-  background: var(--color-iris-pale);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
 }
 
 .iconButton:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
@@ -283,29 +241,198 @@
 }
 
 .iconDanger:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--color-error) 40%, var(--color-surface));
-  background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-error) 9%, var(--color-surface));
 }
 
-.iconButton:focus-visible,
-.lessonMain:focus-visible,
-.addLesson:focus-visible,
-.primaryButton:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 2px;
+/* --- The guiding question, set apart like a quote --- */
+.question {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--landing-mist-1, var(--color-canvas));
 }
 
-.noLessons {
-  margin: 0 0 0 calc(44px + var(--space-3));
+.questionIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-iris-medium);
+}
+
+.questionLabel {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--color-ink-soft);
-  font-size: 0.95rem;
+}
+
+.questionText {
+  display: block;
+  font-size: 1.02rem;
+  font-style: italic;
+  color: var(--color-iris-deep);
+}
+
+/* --- The DBA and its evidences, in a box that opens --- */
+.dba {
+  border: 1px solid var(--portal-line, var(--color-iris-pale));
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+.dbaSummary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.dbaSummary::-webkit-details-marker {
+  display: none;
+}
+
+.dbaSummary:hover {
+  background: var(--color-canvas);
+}
+
+.dbaSummary:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+.dbaIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.dbaText {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.92rem;
+  color: var(--color-ink);
+}
+
+.unitGoalLabel {
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.dbaToggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--color-ink-soft);
+  transition: transform 200ms var(--ease-out);
+}
+
+.dba[open] .dbaToggle {
+  transform: rotate(180deg);
+}
+
+.dbaBody {
+  padding: 4px 14px 14px 58px;
+}
+
+.dbaPointsTitle {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.unitPoints {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.unitPoints li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--color-ink);
+}
+
+.unitPoints svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--landing-mint-dark);
+}
+
+/* What the unit still lacks to publish its lessons. */
+.unitGoalMissing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-amber) 10%, var(--color-surface));
+  font-size: 0.9rem;
+  color: var(--color-amber-dark);
+}
+
+.unitGoalMissing span {
+  flex: 1;
+  min-width: 200px;
+}
+
+.unitGoalButton {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-amber-dark);
+  cursor: pointer;
+}
+
+.unitGoalButton:hover {
+  background: color-mix(in srgb, var(--color-amber) 16%, var(--color-surface));
+}
+
+/* --- The lessons of the unit, each a numbered row --- */
+.noLessons {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--color-canvas);
+  font-size: 0.92rem;
+  color: var(--color-ink-soft);
 }
 
 .lessons {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin: 0 0 0 calc(44px + var(--space-3));
+  gap: 6px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -313,105 +440,190 @@
 .lesson {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 8px;
 }
 
 .lessonMain {
+  display: grid;
   flex: 1;
-  min-width: 0;
-  display: flex;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-medium);
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 14px;
   background: var(--color-canvas);
   font: inherit;
+  color: inherit;
   text-align: left;
   cursor: pointer;
   transition:
-    border-color 140ms ease,
-    background 140ms ease;
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms var(--ease-out);
 }
 
 .lessonMain:hover {
-  border-color: var(--color-iris-medium);
+  border-color: var(--color-iris-pale);
   background: var(--color-surface);
+  transform: translateX(2px);
 }
 
-/* In an archived class a lesson is only listed, it doesn't open. */
+.lessonMain:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
 .lessonStatic {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   cursor: default;
 }
 
 .lessonStatic:hover {
-  border-color: var(--color-iris-pale);
+  border-color: transparent;
   background: var(--color-canvas);
+  transform: none;
 }
 
-.lessonIcon {
-  flex: none;
+.lessonNumber {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-small);
-  background: var(--color-iris-pale);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  font-family: var(--font-display);
+  font-weight: 800;
   color: var(--color-iris-medium);
 }
 
 .lessonText {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .lessonTitle {
   font-weight: 700;
-  color: var(--color-ink);
-  overflow-wrap: anywhere;
+  color: var(--color-iris-deep);
 }
 
 .lessonPurpose {
-  font-size: 0.85rem;
-  color: var(--color-ink-soft);
   overflow: hidden;
+  font-size: 0.86rem;
+  color: var(--color-ink-soft);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Published in green, draft in yellow, each with its dot. */
 .statusChip {
-  flex: none;
-  padding: 2px var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
   border-radius: 999px;
-  background: var(--color-iris-pale);
+  background: color-mix(in srgb, var(--landing-sun) 26%, var(--color-surface));
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--color-ink-soft);
+  color: #7a5200;
+  white-space: nowrap;
 }
 
-.published {
-  background: color-mix(in srgb, var(--color-mint) 18%, var(--color-surface));
-  color: color-mix(in srgb, var(--color-mint) 80%, black);
+.statusChip[data-published="true"] {
+  background: color-mix(in srgb, var(--landing-mint) 16%, var(--color-surface));
+  color: var(--landing-mint-dark);
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .lessonArrow {
-  flex: none;
-  color: var(--color-iris-medium);
+  color: var(--color-ink-soft);
+  transition:
+    color 160ms ease,
+    transform 200ms var(--ease-out);
 }
 
+.lessonMain:hover .lessonArrow {
+  color: var(--color-iris-medium);
+  transform: translateX(2px);
+}
+
+.lessonMove {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lessonMove .iconButton {
+  width: 28px;
+  height: 22px;
+  border-radius: 7px;
+}
+
+/* "Nueva lección": a soft row with its plus on a tile. */
 .addLesson {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   align-self: flex-start;
-  margin-left: calc(44px + var(--space-3));
-  border: 2px dashed var(--color-iris-medium);
+  padding: 6px 14px 6px 6px;
+  border: 1.5px dashed color-mix(in srgb, var(--color-iris-medium) 40%, var(--color-iris-pale));
+  border-radius: 14px;
   background: var(--color-surface);
-  color: var(--color-iris-deep);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
 }
 
 .addLesson:hover {
-  border-style: solid;
+  border-color: var(--color-iris-medium);
+  background: var(--color-canvas);
+}
+
+.addLesson:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+.addLessonIcon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
   background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unit {
+    animation: none;
+  }
+
+  .lessonMain,
+  .lessonArrow,
+  .dbaToggle {
+    transition: none;
+  }
+
+  .lessonMain:hover {
+    transform: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -420,17 +632,18 @@
   }
 
   .unitActions {
-    width: 100%;
-    justify-content: flex-end;
+    order: 3;
   }
 
-  .lessons,
-  .noLessons,
-  .addLesson {
-    margin-left: 0;
+  .lessonMain {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
   }
 
-  .lessonPurpose {
-    white-space: normal;
+  .lessonArrow {
+    display: none;
+  }
+
+  .dbaBody {
+    padding-left: 14px;
   }
 }

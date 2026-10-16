@@ -49,6 +49,8 @@ async def test_el_docente_ve_las_estadisticas_con_el_nombre_de_cada_peque(
     assert len(asked) == 2 and body["kids"] == 2
     assert sorted(k["first_name"] for k in body["lessons"][0]["kids"]) == ["Sofía", "Tomás"]
     assert sorted(k["first_name"] for k in body["by_kid"]) == ["Sofía", "Tomás"]
+    # With the last name too, so two kids called the same can be told apart.
+    assert {k["last_name"] for k in body["by_kid"]} == {"Pérez"}
 
 
 async def test_solo_el_docente_de_la_clase(

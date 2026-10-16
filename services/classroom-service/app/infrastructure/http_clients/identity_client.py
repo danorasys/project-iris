@@ -103,11 +103,12 @@ class IdentityHttpClient:
         return StudentInfo(
             student_id=UUID(str(body["student_id"])),
             first_name=str(body["student_first_name"]),
+            last_name=str(body["student_last_name"]),
             avatar_id=int(body["student_avatar_id"]),
             guardian_first_name=str(body["guardian_first_name"]),
             guardian_last_name=str(body["guardian_last_name"]),
             guardian_email=str(body["guardian_email"]),
-            guardian_phone=str(body["guardian_phone"]),
+            guardian_relationship=str(body["guardian_relationship"]),
             guardian_person_id=UUID(str(body["guardian_person_id"])),
         )
 

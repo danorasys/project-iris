@@ -2,17 +2,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/shared/auth/useAuth";
 import { useStudentClassrooms } from "@/shared/api/hooks/useClassroomsApi";
 import { useClassroomUnits } from "@/shared/api/hooks/useLessonsApi";
-import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
-import { IconArrowLeft, IconLayers } from "@/shared/ui/icons";
-import { Mascot } from "@/shared/ui/Mascot";
+import { IconLayers } from "@/shared/ui/icons";
+import { KidCard, KidHeader, KidMessage, KidPage } from "@/shared/ui/kid/KidKit";
 import { PagedChoices } from "../components/PagedChoices";
+import { classTone } from "../lib/classTone";
 import { getDwellDurationMs } from "../lib/dwellPreferences";
-import styles from "./ChoiceListPage.module.css";
 
-const VARIANTS = ["coral", "teal", "sol", "hoja"] as const;
-
-/** `/student/classrooms/:classroomId/units` (HU-104): the units of the class that
- * already have lessons, each with its title and its guiding question. */
+/** `/student/classrooms/:classroomId/units` (HU-104): the units of the class
+ * that already have lessons, as very big cards in the class's color: its
+ * number, its title, its guiding question and how many lessons it has. */
 export default function UnitsPage() {
   const { classroomId } = useParams<{ classroomId: string }>();
   const navigate = useNavigate();
@@ -20,40 +18,29 @@ export default function UnitsPage() {
   const dwellDurationMs = session ? getDwellDurationMs(session.subjectId) : undefined;
   const unitsQuery = useClassroomUnits(classroomId);
   const classroom = useStudentClassrooms().data?.find((c) => c.id === classroomId);
-
-  const back = (
-    <BigChoiceButton
-      variant="teal"
-      icon={<IconArrowLeft width={36} height={36} />}
-      onSelect={() => navigate(`/student/classrooms/${classroomId}`)}
-      dwellDurationMs={dwellDurationMs}
-    >
-      Volver a la clase
-    </BigChoiceButton>
+  const back = { label: "Volver a la clase", onSelect: () => navigate(`/student/classrooms/${classroomId}`) };
+  const header = (
+    <KidHeader
+      eyebrow={classroom?.name ?? "Tu clase"}
+      icon={<IconLayers aria-hidden="true" />}
+      title="¿Qué tema quieres aprender hoy?"
+    />
   );
-
-  if (unitsQuery.isLoading) {
-    return (
-      <main className={styles.centered}>
-        <Mascot mood="thinking" size="medium">
-          Buscando los temas de tu clase…
-        </Mascot>
-      </main>
-    );
-  }
 
   // A kid only gets the units with published lessons.
   const units = unitsQuery.data ?? [];
-  if (unitsQuery.isError || units.length === 0) {
+  if (unitsQuery.isLoading || unitsQuery.isError || units.length === 0) {
     return (
-      <main className={styles.centered}>
-        <Mascot mood={unitsQuery.isError ? "thinking" : "happy"} size="large">
-          {unitsQuery.isError
-            ? "No pudimos cargar los temas de tu clase. Inténtalo de nuevo en un momento."
-            : "Tu profe todavía no ha publicado lecciones aquí. ¡Vuelve pronto!"}
-        </Mascot>
-        {back}
-      </main>
+      <KidPage back={back} dwellDurationMs={dwellDurationMs}>
+        {header}
+        <KidMessage mood={unitsQuery.isError ? "thinking" : "happy"}>
+          {unitsQuery.isLoading
+            ? "Buscando los temas de tu clase…"
+            : unitsQuery.isError
+              ? "No pudimos cargar los temas de tu clase. Inténtalo de nuevo en un momento."
+              : "Tu profe todavía no ha publicado lecciones aquí. ¡Vuelve pronto!"}
+        </KidMessage>
+      </KidPage>
     );
   }
 
@@ -63,27 +50,20 @@ export default function UnitsPage() {
       getKey={(unit) => unit.id}
       countLabel="Unidades"
       dwellDurationMs={dwellDurationMs}
-      top={
-        <>
-          <Mascot mood="happy" size="medium">
-            ¿Qué tema quieres aprender hoy?
-          </Mascot>
-          <h1 className={styles.title}>{classroom?.name ?? "Tu clase"}</h1>
-        </>
-      }
+      back={back}
+      top={header}
       render={(unit, index) => (
-        <BigChoiceButton
-          variant={VARIANTS[index % VARIANTS.length]}
-          icon={<IconLayers width={36} height={36} />}
+        <KidCard
+          title={unit.title}
+          subtitle={unit.guiding_question}
+          mark={units.indexOf(unit) + 1}
+          note={unit.lessons.length === 1 ? "1 lección" : `${unit.lessons.length} lecciones`}
+          tone={classTone(classroom?.color)}
+          order={index}
           onSelect={() => navigate(`/student/classrooms/${classroomId}/units/${unit.id}`)}
           dwellDurationMs={dwellDurationMs}
-        >
-          {unit.title}
-          {/* Inside the button, big enough to read: it's what the unit is about. */}
-          <span className={styles.question}>{unit.guiding_question}</span>
-        </BigChoiceButton>
+        />
       )}
-      bottom={back}
     />
   );
 }

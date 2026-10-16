@@ -43,21 +43,38 @@ interface ClassroomSpaceProps {
 }
 
 const OPTIONS: OptionItem<Exclude<ClassroomView, "inicio">>[] = [
-  { id: "miembros", title: "Miembros", hint: "Tus estudiantes y sus familias", Icon: IconChild },
-  { id: "lecciones", title: "Unidades y lecciones", hint: "Organiza y publica el material", Icon: IconBook },
-  { id: "mensajes", title: "Mensajes", hint: "Escríbele a un estudiante o a su tutor", Icon: IconMessage },
-  { id: "estadisticas", title: "Estadísticas", hint: "El avance de la clase", Icon: IconChart },
+  {
+    id: "miembros",
+    title: "Miembros",
+    hint: "Tus estudiantes con el contacto de su familia, y las solicitudes de ingreso que esperan tu respuesta.",
+    Icon: IconChild,
+  },
+  {
+    id: "lecciones",
+    title: "Unidades y lecciones",
+    hint: "Organiza la clase en unidades, prepara sus lecciones con su actividad y publícalas para tus estudiantes.",
+    Icon: IconBook,
+  },
+  {
+    id: "mensajes",
+    title: "Mensajes",
+    hint: "Escríbele a un estudiante o a su familia, y lee los mensajes que las familias te envían.",
+    Icon: IconMessage,
+  },
+  {
+    id: "estadisticas",
+    title: "Estadísticas",
+    hint: "Cuánto ha avanzado la clase, cómo va cada estudiante y los resultados de cada lección.",
+    Icon: IconChart,
+  },
 ];
 
 // What each button of the header asks before doing it.
 type Confirming = "archive" | "delete" | null;
 
-/** The space of one classroom (HU-74): a header with a band of its color,
- * its avatar, name, code and students, "Editar" (HU-90) and "Archivar"
- * (HU-105), and its options as a list like a kid's class in the Portal de
- * Padres (members, lessons, messages and statistics). An archived class is
- * only for reading: it says so, and offers "Restaurar" and "Eliminar"
- * (HU-85), the only way to delete one. */
+/** The space of one classroom (HU-74): its header with "Editar" (HU-90)
+ * and "Archivar" (HU-105), and its options as a list. An archived class is
+ * read only and offers "Restaurar" and "Eliminar" (HU-85). */
 export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, onToast }: ClassroomSpaceProps) {
   const detail = useClassroomDetail(classroomId);
   // The pending count comes with the list, already cached.
@@ -66,10 +83,18 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
   const restoreClassroom = useRestoreClassroom();
   const deleteClassroom = useDeleteClassroom();
   const [view, setView] = useState<ClassroomView>(initialView);
+  // "Escribir" in Miembros: Mensajes opens on a new message to that kid.
+  const [writeTo, setWriteTo] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [error, setError] = useState<string | null>(null);
   const busy = archiveClassroom.isPending || restoreClassroom.isPending || deleteClassroom.isPending;
+
+  // Moving between the options starts each one as usual.
+  function openView(next: ClassroomView) {
+    setWriteTo(null);
+    setView(next);
+  }
 
   // The three do the same: run it, say how it went, and on deleting go back.
   async function run(action: () => Promise<unknown>, done: string, leave = false) {
@@ -123,7 +148,7 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
 
   return (
     <div className={styles.section}>
-      <button type="button" className={styles.backButton} onClick={current ? () => setView("inicio") : onBack}>
+      <button type="button" className={styles.backButton} onClick={current ? () => openView("inicio") : onBack}>
         <IconArrowLeft width={18} height={18} />
         {current ? "Regresar a la clase" : "Regresar a mis clases"}
       </button>
@@ -225,15 +250,25 @@ export function ClassroomSpace({ classroomId, initialView = "inicio", onBack, on
             titleId="classroom-options-title"
             title="Opciones de la clase"
             options={options}
-            onPick={setView}
+            onPick={openView}
           />
         )}
 
-        {view === "miembros" && <MembersPanel classroom={classroom} onToast={onToast} readOnly={archived} />}
+        {view === "miembros" && (
+          <MembersPanel
+            classroom={classroom}
+            onToast={onToast}
+            readOnly={archived}
+            onWrite={(enrollmentId) => {
+              setWriteTo(enrollmentId);
+              setView("mensajes");
+            }}
+          />
+        )}
         {view === "lecciones" && (
           <UnitsPanel classroomId={classroom.id} area={classroom.area} onToast={onToast} readOnly={archived} />
         )}
-        {view === "mensajes" && <MessagesPanel classroom={classroom} onToast={onToast} />}
+        {view === "mensajes" && <MessagesPanel classroom={classroom} onToast={onToast} composeFor={writeTo} />}
         {view === "estadisticas" && <StatisticsPanel classroomId={classroom.id} />}
       </ViewEnter>
 

@@ -1,25 +1,60 @@
-/* The charts of the teacher's statistics: a donut with its legend, and a
-   list of bars. Colors come from the theme, so they follow the portal. */
+/* The charts of the teacher's statistics: a donut with its legend and the
+   progress rings. Colors come from the theme, so they follow the portal.
+   They draw themselves when they appear, unless the person asked for less
+   motion. */
 .chartTitle {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--color-iris-deep);
 }
 
 /* --- donut --- */
+/* The title on top and the chart in the middle of the space left, so a
+   card as tall as the one beside it has no empty part under the chart. */
 .donut {
-  margin: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex: 1;
+  flex-direction: column;
   gap: var(--space-4);
+  margin: 0;
+}
+
+
+.donutBody {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
 }
 
 .donutGraphic {
   position: relative;
   flex: none;
+}
+
+/* A soft glow behind the donut, in the sky of IRIS. */
+.donutGraphic::before {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--landing-sky) 22%, transparent), transparent 70%);
+  filter: blur(6px);
+}
+
+.donutGraphic svg {
+  position: relative;
+}
+
+.donutArc {
+  stroke-dasharray: var(--dash) var(--length);
+  animation: draw 900ms var(--ease-out) both;
+  animation-delay: calc(var(--order, 0) * 220ms + 150ms);
 }
 
 .donutCenter {
@@ -35,100 +70,109 @@
 
 .donutCenter strong {
   font-family: var(--font-display);
-  font-size: 1.6rem;
-  line-height: 1.1;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 
 .donutCenter span {
-  max-width: 90px;
+  max-width: 96px;
   font-size: 0.78rem;
+  font-weight: 600;
   color: var(--color-ink-soft);
 }
 
+/* The legend as soft rows: color, what it is, how many and its part. */
 .legend {
-  margin: var(--space-2) 0 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+  margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  font-size: 0.92rem;
 }
 
 .legend li {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: var(--space-2);
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--color-canvas);
+  font-size: 0.92rem;
 }
 
 .swatch {
   width: 12px;
   height: 12px;
-  border-radius: 4px;
-  flex: none;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--color-iris-pale);
 }
 
-/* --- bars --- */
-.bars {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+.legendLabel {
+  color: var(--color-ink);
 }
 
-.barRows {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.barRow {
-  display: grid;
-  grid-template-columns: minmax(90px, 160px) 1fr auto;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.barLabel {
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
-.barTrack {
-  height: 12px;
-  border-radius: 999px;
-  background: var(--color-iris-pale);
-  overflow: hidden;
-}
-
-.barFill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--color-iris-medium);
-}
-
-.barValue {
+.legendValue {
   font-family: var(--font-display);
-  font-weight: 700;
-  white-space: nowrap;
+  font-size: 1.02rem;
+  color: var(--color-iris-deep);
 }
 
-.barNote {
-  font-family: var(--font-body);
-  font-weight: 500;
+.legendPart {
+  min-width: 3.2em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
   color: var(--color-ink-soft);
 }
 
-@media (max-width: 560px) {
-  .barRow {
-    grid-template-columns: 1fr auto;
-  }
+/* --- progress ring --- */
+.ring {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+}
 
-  .barTrack {
-    grid-column: 1 / -1;
-    grid-row: 2;
+.ring svg {
+  position: absolute;
+  inset: 0;
+}
+
+.ringValue {
+  stroke-dasharray: var(--dash) var(--length);
+  animation: draw 1100ms var(--ease-out) both;
+  animation-delay: 120ms;
+}
+
+.ringCenter {
+  position: relative;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--color-iris-deep);
+}
+
+/* From nothing to its own length (each piece says it in --dash). */
+@keyframes draw {
+  from {
+    stroke-dasharray: 0 var(--length);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .donutArc,
+  .ringValue {
+    animation: none;
   }
 }

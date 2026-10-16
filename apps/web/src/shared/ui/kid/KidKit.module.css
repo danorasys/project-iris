@@ -1,0 +1,715 @@
+/* The kid's screens in the look of the portals of IRIS, made for the eyes:
+   a light sky page with the rings of the iris behind, very big white cards
+   with a soft blue shadow, arrows on the edges from top to bottom and the
+   bar on the bottom edge. The arrows and the bar never move, so the eyes
+   learn where they are. */
+.page {
+  --arrow: clamp(84px, 8vw, 132px);
+  --edge: 14px;
+  --bar: clamp(64px, 11vh, 92px);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* The teacher's preview sets its own height (the box it's drawn in). */
+  min-height: var(--kid-page-height, 100dvh);
+  padding: clamp(12px, 2.5vh, 28px) 16px;
+  background:
+    radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--landing-sky) 22%, transparent) 0%, transparent 70%),
+    radial-gradient(40% 40% at 100% 100%, color-mix(in srgb, var(--landing-sky-pale) 80%, transparent) 0%, transparent 70%),
+    linear-gradient(180deg, var(--landing-mist-1) 0%, var(--color-canvas) 60%);
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  text-align: center;
+}
+
+/* The content keeps clear of the bar and the arrows. */
+.page[data-bar="true"] {
+  padding-bottom: calc(var(--bar) + var(--edge) + 16px);
+}
+
+.page[data-arrows="true"] {
+  padding-left: calc(var(--arrow) + var(--edge) + 16px);
+  padding-right: calc(var(--arrow) + var(--edge) + 16px);
+}
+
+.page .rings {
+  z-index: -1;
+  top: 55%;
+  left: 50%;
+  width: 1100px;
+  height: 1100px;
+  color: var(--landing-blue);
+  opacity: 0.12;
+  transform: translate(-50%, -50%);
+}
+
+.middle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2.2vh, 26px);
+  width: 100%;
+  max-width: 1400px;
+  min-height: 0;
+}
+
+.page[data-fill="true"] .middle {
+  flex: 1;
+  justify-content: stretch;
+}
+
+/* --- The top of a screen --- */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-iris-medium);
+}
+
+.eyebrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+.title {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 1.3rem + 2vw, 3rem);
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.subtitle {
+  margin: 0;
+  max-width: 60ch;
+  font-size: clamp(1.05rem, 0.9rem + 0.5vw, 1.35rem);
+  color: var(--portal-muted, var(--color-ink-soft));
+}
+
+/* --- Cards: up to three in a row --- */
+.cards {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: clamp(12px, 2.2vw, 36px);
+  width: 100%;
+  min-width: 0;
+}
+
+.card {
+  --card-color: var(--color-iris-medium);
+  --media: clamp(84px, min(12vw, 22vh), 180px);
+  position: relative;
+  display: flex;
+  flex: 0 1 clamp(180px, 25vw, 400px);
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.6vh, 16px);
+  min-width: 0;
+  padding: 14px 18px clamp(18px, 3vh, 28px);
+  overflow: hidden;
+  border: 3px solid color-mix(in srgb, var(--card-color) 30%, var(--color-surface));
+  border-radius: 32px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+  animation: card-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--order, 0) * 70ms);
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+
+.card[data-tone="orange"] {
+  --card-color: var(--landing-orange);
+}
+
+.card[data-tone="mint"] {
+  --card-color: var(--landing-mint);
+}
+
+.card[data-tone="sun"] {
+  --card-color: var(--landing-sun);
+}
+
+.card[data-tone="sky"] {
+  --card-color: var(--landing-sky);
+}
+
+.card[data-tone="navy"] {
+  --card-color: var(--landing-navy);
+}
+
+.card[data-large="true"] {
+  --media: clamp(96px, min(15vw, 28vh), 220px);
+  flex-basis: clamp(190px, 26vw, 410px);
+}
+
+.card[data-compact="true"] {
+  --media: clamp(64px, min(8vw, 15vh), 120px);
+  flex-basis: clamp(150px, 20vw, 320px);
+}
+
+/* An answer: the letter smaller, the words big in the middle. */
+.card[data-answer="true"] {
+  --media: clamp(48px, min(6vw, 11vh), 84px);
+  justify-content: flex-start;
+  /* Tall, so each answer is easy to look at. */
+  min-height: clamp(200px, 40vh, 380px);
+}
+
+.card[data-answer="true"] .cardTitle {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-size: clamp(1.5rem, 1rem + 2vw, 2.8rem);
+  font-weight: 800;
+  -webkit-line-clamp: 4;
+}
+
+.card:hover:not(:disabled),
+.card[data-looking="true"] {
+  border-color: color-mix(in srgb, var(--card-color) 70%, var(--color-surface));
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-6px);
+}
+
+.card:active:not(:disabled) {
+  transform: translateY(-2px) scale(0.99);
+}
+
+.card:focus-visible {
+  outline: none;
+  border-color: var(--card-color);
+  box-shadow:
+    var(--shadow-lift),
+    var(--focus-halo);
+}
+
+/* Closed for now: pale, and it doesn't move. */
+.card:disabled {
+  border-color: var(--portal-line, var(--color-iris-pale));
+  box-shadow: var(--shadow-soft);
+  cursor: not-allowed;
+}
+
+.card:disabled .cardBand,
+.card:disabled .media {
+  filter: grayscale(0.85);
+  opacity: 0.55;
+}
+
+.card:disabled .cardTitle {
+  color: color-mix(in srgb, var(--color-iris-deep) 55%, var(--color-surface));
+}
+
+/* The band of its color on top, in the soft mix of the kid's banner in the
+   Portal de Padres (ProfileSection.module.css). */
+.cardBand {
+  position: absolute;
+  inset: 0 0 auto;
+  height: calc(var(--media) * 0.62);
+  background:
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--color-surface) 45%, transparent) 0 34px, transparent 35px),
+    radial-gradient(circle at 70% 150%, color-mix(in srgb, var(--color-surface) 35%, transparent) 0 50px, transparent 51px),
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--card-color) 70%, var(--color-surface)),
+      color-mix(in srgb, var(--card-color) 30%, var(--color-surface))
+    );
+}
+
+.media {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(var(--media) + 28px);
+  height: calc(var(--media) + 28px);
+  margin-top: calc(var(--media) * 0.1);
+}
+
+.picture,
+.iconDisc {
+  display: grid;
+  place-items: center;
+  width: calc(var(--media) + 12px);
+  height: calc(var(--media) + 12px);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 12px 28px -12px color-mix(in srgb, var(--card-color) 80%, transparent);
+}
+
+.picture > * {
+  width: var(--media) !important;
+  height: var(--media) !important;
+}
+
+/* A class logo is a rounded square: so is its white frame. */
+.picture[data-shape="square"] {
+  border-radius: 30%;
+}
+
+.picture[data-shape="square"] > * {
+  border-radius: 26%;
+}
+
+/* The icon (or a number, a letter) in the card's color on its pale tint,
+   inside the white disc, like the icon tiles of the portals. */
+.iconDisc {
+  background:
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--card-color) 16%, var(--color-surface)) 0 calc(var(--media) / 2),
+      var(--color-surface) calc(var(--media) / 2 + 1px)
+    );
+  color: color-mix(in srgb, var(--card-color) 80%, var(--landing-navy));
+  font-family: var(--font-display);
+  font-size: calc(var(--media) * 0.42);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.iconDisc svg {
+  width: 46%;
+  height: 46%;
+}
+
+.cardTitle {
+  max-width: 100%;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 0.85rem + 1vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card[data-compact="true"] .cardTitle {
+  font-size: clamp(1.05rem, 0.8rem + 0.9vw, 1.5rem);
+}
+
+.cardSubtitle {
+  max-width: 100%;
+  font-size: clamp(0.95rem, 0.85rem + 0.35vw, 1.15rem);
+  font-style: italic;
+  line-height: 1.35;
+  color: var(--portal-muted, var(--color-ink-soft));
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* How it's going: a soft tag at the bottom of the card. */
+.note {
+  margin-top: auto;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-iris-medium) 10%, var(--color-surface));
+  font-size: clamp(0.85rem, 0.78rem + 0.3vw, 1rem);
+  font-weight: 700;
+  color: var(--color-iris-medium);
+}
+
+.note[data-tone="done"] {
+  background: color-mix(in srgb, var(--landing-mint) 14%, var(--color-surface));
+  color: var(--landing-mint-dark);
+}
+
+.note[data-tone="locked"] {
+  background: var(--color-canvas);
+  color: var(--portal-muted, var(--color-ink-soft));
+}
+
+/* A count of new things, in the corner. */
+.badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
+  border: 3px solid var(--color-surface);
+  border-radius: 999px;
+  background: var(--landing-orange);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The ring around the picture that fills with the eyes. */
+.dwellRing {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.dwellTrack,
+.dwellFill {
+  fill: none;
+  stroke-width: 4;
+}
+
+.dwellTrack {
+  stroke: transparent;
+}
+
+.dwellFill {
+  stroke: var(--card-color);
+  stroke-dasharray: 1;
+  stroke-linecap: round;
+}
+
+.card[data-looking="true"] .dwellTrack {
+  stroke: color-mix(in srgb, var(--card-color) 20%, var(--color-surface));
+}
+
+/* --- The arrows: on the edges, from top to bottom (down to the bar) --- */
+.arrow {
+  position: absolute;
+  top: var(--edge);
+  bottom: var(--edge);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--arrow);
+  overflow: hidden;
+  border: 3px solid var(--color-action-hover);
+  border-radius: 32px;
+  background: var(--color-action);
+  color: var(--color-surface);
+  box-shadow: 0 18px 36px -14px color-mix(in srgb, var(--color-action) 70%, transparent);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 160ms ease;
+}
+
+.arrow:hover:not(:disabled),
+.arrow[data-looking="true"] {
+  background: var(--color-action-hover);
+  transform: scaleX(1.04);
+}
+
+.arrow:active:not(:disabled) {
+  transform: scaleX(0.97);
+}
+
+.arrow[data-direction="previous"] {
+  left: var(--edge);
+}
+
+.arrow[data-direction="next"] {
+  right: var(--edge);
+}
+
+.arrowIcon {
+  position: relative;
+}
+
+.arrow:disabled {
+  border-color: color-mix(in srgb, var(--color-iris-medium) 22%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  color: color-mix(in srgb, var(--color-iris-medium) 30%, var(--color-surface));
+  box-shadow: var(--shadow-soft);
+  cursor: not-allowed;
+}
+
+/* What the eyes have filled: it rises in the arrows, grows from the left
+   in the bar. */
+.fill {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-surface) 28%, transparent);
+  transform-origin: bottom;
+  pointer-events: none;
+}
+
+/* --- The bar on the bottom edge, between the arrows when there are --- */
+.bar {
+  position: absolute;
+  left: var(--edge);
+  right: var(--edge);
+  bottom: var(--edge);
+  z-index: 1;
+  display: flex;
+  gap: var(--edge);
+  height: var(--bar);
+}
+
+.page[data-arrows="true"] .bar {
+  left: calc(var(--arrow) + var(--edge) * 2);
+  right: calc(var(--arrow) + var(--edge) * 2);
+}
+
+.barButton {
+  position: relative;
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-width: 0;
+  overflow: hidden;
+  border: 3px solid color-mix(in srgb, var(--color-iris-medium) 35%, var(--color-surface));
+  border-radius: 28px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font: inherit;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 0.95rem + 1vw, 1.75rem);
+  font-weight: 700;
+  color: var(--color-iris-medium);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.barButton:hover:not(:disabled),
+.barButton[data-looking="true"] {
+  border-color: var(--color-iris-medium);
+  transform: translateY(-2px);
+}
+
+.barButton .fill {
+  background: var(--landing-mist-1);
+  transform-origin: left;
+}
+
+/* Forward: filled in the blue of IRIS. */
+.barButton[data-tone="go"] {
+  border-color: var(--color-action-hover);
+  background: var(--color-action);
+  color: var(--color-surface);
+}
+
+.barButton[data-tone="go"]:hover:not(:disabled),
+.barButton[data-tone="go"][data-looking="true"] {
+  background: var(--color-action-hover);
+}
+
+.barButton[data-tone="go"] .fill {
+  background: color-mix(in srgb, var(--color-surface) 25%, transparent);
+}
+
+.barButton:disabled {
+  border-color: var(--portal-line, var(--color-iris-pale));
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  color: color-mix(in srgb, var(--color-iris-medium) 35%, var(--color-surface));
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Other places on the bar: white, with their icon on a pale disc. */
+.barButton[data-tone="item"] {
+  color: var(--color-iris-deep);
+}
+
+.barIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-iris-pale);
+  color: var(--color-iris-medium);
+}
+
+.barIcon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.barBadge {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--landing-orange);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-surface);
+}
+
+.barText {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* --- Which group is on screen --- */
+.pager {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-iris-medium) 25%, var(--color-surface));
+  transition:
+    width 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 240ms ease;
+}
+
+.dot[data-current="true"] {
+  width: 30px;
+  background: var(--color-iris-medium);
+}
+
+.count {
+  margin: 0;
+  font-weight: 700;
+  color: var(--portal-muted, var(--color-ink-soft));
+}
+
+/* --- IRIS speaking: its logo next to a white bubble --- */
+.message {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 24px);
+  max-width: min(100%, 980px);
+  text-align: left;
+  animation: card-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.messageLogo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: clamp(72px, 8vw, 112px);
+  height: clamp(72px, 8vw, 112px);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--color-surface) 55%, transparent),
+    0 14px 30px rgba(80, 112, 170, 0.2);
+}
+
+.messageLogo img {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+}
+
+.messageText {
+  position: relative;
+  margin: 0;
+  padding: clamp(14px, 2.4vh, 24px) clamp(18px, 2vw, 30px);
+  border: 3px solid color-mix(in srgb, var(--color-iris-medium) 18%, var(--color-surface));
+  border-radius: 28px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font-size: clamp(1.1rem, 0.9rem + 0.8vw, 1.6rem);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--color-iris-deep);
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    --arrow: 56px;
+    --edge: 8px;
+  }
+
+  .cards {
+    flex-wrap: wrap;
+  }
+
+  .card {
+    flex-basis: clamp(140px, 40vw, 260px);
+    border-radius: 22px;
+  }
+
+  .message {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .arrow,
+  .barButton,
+  .dot,
+  .message {
+    animation: none;
+    transition: none;
+  }
+}

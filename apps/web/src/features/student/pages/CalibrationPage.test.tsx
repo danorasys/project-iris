@@ -4,10 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { GazeEngineState, GazeSource } from "@/shared/gaze/GazeSource";
 import { GazeSourceProvider } from "@/shared/gaze/GazeSourceContext";
-import * as inputMode from "@/shared/gaze/inputMode";
 import CalibrationPage from "./CalibrationPage";
 
-vi.mock("@/shared/auth/useAuth", () => ({ useAuth: () => ({ session: { subjectId: "kid-1" } }) }));
+vi.mock("@/shared/auth/useAuth", () => ({ useAuth: () => ({ session: { subjectId: "tutor-1", role: "guardian" } }) }));
+
+const activate = vi.fn();
+const recalibrate = vi.fn();
 
 // A gaze engine stuck in the state given, like a camera that never answers.
 function engine(state: GazeEngineState): GazeSource {
@@ -17,17 +19,19 @@ function engine(state: GazeEngineState): GazeSource {
     subscribe: () => () => undefined,
     subscribeEngineState: () => () => undefined,
     getEngineState: () => state,
-    activateEngine: () => undefined,
+    activateEngine: activate,
+    recalibrate,
   };
 }
 
-function renderCalibration(state: GazeEngineState) {
+function renderCalibration(state: GazeEngineState, url = "/kids/calibration") {
   render(
-    <MemoryRouter initialEntries={["/student/calibration"]}>
+    <MemoryRouter initialEntries={[url]}>
       <GazeSourceProvider fuente={engine(state)}>
         <Routes>
+          <Route path="/kids/calibration" element={<CalibrationPage />} />
           <Route path="/student/calibration" element={<CalibrationPage />} />
-          <Route path="/student/tour" element={<p>Recorrido</p>} />
+          <Route path="/kids/profiles" element={<p>¿Quién eres?</p>} />
         </Routes>
       </GazeSourceProvider>
     </MemoryRouter>,
@@ -36,36 +40,43 @@ function renderCalibration(state: GazeEngineState) {
 
 afterEach(() => {
   cleanup();
-  vi.restoreAllMocks();
+  vi.clearAllMocks();
   localStorage.clear();
 });
 
-describe("CalibrationPage without a camera (HU-88)", () => {
-  it("when the camera fails, offers the mouse and the keyboard", async () => {
-    const switchMode = vi.spyOn(inputMode, "switchInputMode").mockImplementation(() => undefined);
+describe("CalibrationPage", () => {
+  it("starts EyeGestures, whose own calibration goes over this screen", () => {
+    renderCalibration("idle");
+
+    expect(activate).toHaveBeenCalled();
+    expect(screen.getByText(/mira cada círculo rojo/)).toBeTruthy();
+  });
+
+  it("from Ajustes, asks EyeGestures to calibrate again", () => {
+    renderCalibration("ready", "/student/calibration");
+
+    expect(recalibrate).toHaveBeenCalled();
+    expect(activate).not.toHaveBeenCalled();
+  });
+});
+
+describe("CalibrationPage without a camera", () => {
+  it("when the camera fails, says so and lets them go on to the profiles", async () => {
     renderCalibration("error");
 
     expect(screen.getByText(/No pudimos activar tu cámara/)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: /Usar el teclado/ }));
+    // Nothing about choosing how to move: the kid always goes with the eyes.
+    expect(screen.queryByText(/mouse|teclado/i)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Continuar" }));
 
-    // The first time, the tour comes next.
-    expect(switchMode).toHaveBeenCalledWith("keyboard", "/student/tour");
+    expect(screen.getByText("¿Quién eres?")).toBeTruthy();
   });
 
-  it("the adult can say there's no camera while it waits", async () => {
-    const switchMode = vi.spyOn(inputMode, "switchInputMode").mockImplementation(() => undefined);
+  it("the adult can go on without the camera while it waits", async () => {
     renderCalibration("calibrating");
 
-    await userEvent.click(screen.getByRole("button", { name: /No tienes cámara/ }));
-    await userEvent.click(screen.getByRole("button", { name: /Usar el mouse/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Continuar sin cámara/ }));
 
-    expect(switchMode).toHaveBeenCalledWith("mouse", "/student/tour");
-  });
-
-  it("with the keyboard there's nothing to calibrate", () => {
-    inputMode.setInputMode("keyboard");
-    renderCalibration("calibrating");
-
-    expect(screen.getByText("Recorrido")).toBeTruthy();
+    expect(screen.getByText("¿Quién eres?")).toBeTruthy();
   });
 });

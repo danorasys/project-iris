@@ -14,18 +14,28 @@ const INTERVALO_BANDEJA_MS = 60_000;
  * account never shows the previous one's notifications. */
 export type TrayRole = "guardian" | "teacher" | "student";
 
+/** The two boxes of a tray: what the person got and what they sent (the
+ * copies of their own messages). Without one, everything. */
+export type TrayBox = "received" | "sent";
+
+// "&box=sent", or nothing for the whole tray.
+function boxParam(box?: TrayBox): string {
+  return box ? `&box=${box}` : "";
+}
+
 const trayKeys = {
   all: (role: TrayRole) => ["notifications", role] as const,
-  page: (role: TrayRole, page: number, pageSize: number) => [...trayKeys.all(role), "page", page, pageSize] as const,
+  page: (role: TrayRole, page: number, pageSize: number, box?: TrayBox) =>
+    [...trayKeys.all(role), "page", box ?? "all", page, pageSize] as const,
   unread: (role: TrayRole) => [...trayKeys.all(role), "unread"] as const,
-  ofClass: (classroomId: string, studentId: string, page: number, pageSize: number) =>
-    [...trayKeys.all("guardian"), "class", classroomId, studentId, page, pageSize] as const,
+  ofClass: (classroomId: string, studentId: string, page: number, pageSize: number, box?: TrayBox) =>
+    [...trayKeys.all("guardian"), "class", classroomId, studentId, box ?? "all", page, pageSize] as const,
   kidClass: (classroomId: string, page: number, pageSize: number) =>
     [...trayKeys.all("student"), "class", classroomId, page, pageSize] as const,
   kidClassUnread: (classroomId: string) => [...trayKeys.all("student"), "class", classroomId, "unread"] as const,
   thread: (role: TrayRole, threadId: string) => [...trayKeys.all(role), "thread", threadId] as const,
-  messages: (classroomId: string, page: number, pageSize: number) =>
-    [...trayKeys.all("teacher"), "messages", classroomId, page, pageSize] as const,
+  messages: (classroomId: string, page: number, pageSize: number, box?: TrayBox) =>
+    [...trayKeys.all("teacher"), "messages", classroomId, box ?? "all", page, pageSize] as const,
 };
 
 // The kinds of notification that are messages, from a family or from the teacher.
@@ -33,12 +43,14 @@ const MESSAGE_EVENTS = ["message.sent", "teacher.message"] as const;
 
 /** One page of a tray, newest first. For the guardian the server needs the
  * portal's 2FA access open, a closed one comes back as `acceso_portal_requerido`. */
-export function useNotificationTray(role: TrayRole, page: number, pageSize: number, enabled = true) {
+export function useNotificationTray(role: TrayRole, page: number, pageSize: number, enabled = true, box?: TrayBox) {
   return useQuery({
-    queryKey: trayKeys.page(role, page, pageSize),
+    queryKey: trayKeys.page(role, page, pageSize, box),
     enabled,
     queryFn: () =>
-      apiFetch<NotificationPage>(`/notifications/me?page=${page}&page_size=${pageSize}`, { background: true }),
+      apiFetch<NotificationPage>(`/notifications/me?page=${page}&page_size=${pageSize}${boxParam(box)}`, {
+        background: true,
+      }),
     refetchInterval: INTERVALO_BANDEJA_MS,
     // Moving to the next page keeps the current one on screen meanwhile.
     placeholderData: (previous) => previous,
@@ -94,6 +106,7 @@ export function useClassNotifications(
   studentId: string | undefined,
   page: number,
   pageSize: number,
+  box?: TrayBox,
 ) {
   const params = new URLSearchParams({
     page: String(page),
@@ -101,8 +114,9 @@ export function useClassNotifications(
     classroom_id: classroomId ?? "",
     student_id: studentId ?? "",
   });
+  if (box) params.set("box", box);
   return useQuery({
-    queryKey: trayKeys.ofClass(classroomId ?? "", studentId ?? "", page, pageSize),
+    queryKey: trayKeys.ofClass(classroomId ?? "", studentId ?? "", page, pageSize, box),
     queryFn: () => apiFetch<NotificationPage>(`/notifications/me?${params.toString()}`, { background: true }),
     enabled: Boolean(classroomId && studentId),
     refetchInterval: INTERVALO_BANDEJA_MS,
@@ -114,11 +128,12 @@ export function useClassNotifications(
 /** The messages of one class for its teacher (HU-77): what the families
  * wrote and what the teacher sent, newest first. Under the teacher's tray
  * key, so reading one there refreshes this too. */
-export function useClassMessages(classroomId: string, page: number, pageSize: number) {
+export function useClassMessages(classroomId: string, page: number, pageSize: number, box?: TrayBox) {
   const params = new URLSearchParams({ page: String(page), page_size: String(pageSize), classroom_id: classroomId });
   for (const event of MESSAGE_EVENTS) params.append("event", event);
+  if (box) params.set("box", box);
   return useQuery({
-    queryKey: trayKeys.messages(classroomId, page, pageSize),
+    queryKey: trayKeys.messages(classroomId, page, pageSize, box),
     queryFn: () => apiFetch<NotificationPage>(`/notifications/me?${params.toString()}`, { background: true }),
     refetchInterval: INTERVALO_BANDEJA_MS,
     placeholderData: (previous) => previous,
@@ -169,8 +184,8 @@ export function useThread(role: TrayRole, threadId: string | null | undefined) {
 }
 
 // The guardian's portal uses these names.
-export const useBandejaNotificaciones = (page: number, pageSize: number, enabled = true) =>
-  useNotificationTray("guardian", page, pageSize, enabled);
+export const useBandejaNotificaciones = (page: number, pageSize: number, enabled = true, box?: TrayBox) =>
+  useNotificationTray("guardian", page, pageSize, enabled, box);
 export const useNotificacionesSinLeer = () => useUnreadNotifications("guardian");
 export const useMarcarNotificacionLeida = () => useMarkNotificationRead("guardian");
 export const useEliminarNotificacion = () => useDeleteNotification("guardian");

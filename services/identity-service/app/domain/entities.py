@@ -33,12 +33,6 @@ class Person:
     totp_secret: str | None = None
     totp_enabled: bool = False
 
-    # Reassembles the E.164 phone number from its stored parts. Only
-    # needed where a single display string is expected, e.g. the
-    # guardian_phone shown to a teacher in internal_service.py.
-    def phone_e164(self) -> str:
-        return f"+{self.phone_country_code}{self.phone_number}"
-
 
 @dataclass
 class Guardian:

@@ -1,22 +1,10 @@
 import type { GazeEngineState, GazeSource, GazePosition, GazeSubscriber } from "./GazeSource";
 
-// EyeGestures v4 (web). https://eyegestures.com / github.com/NativeSensors/EyeGestures
-//
-// These two files are vendored locally, in `apps/web/public/eyegestures/`,
-// instead of loaded from eyegestures.com on every visit. This way we
-// don't depend on a third-party CDN staying up or serving a different
-// version than the one we tested.
-//
-// How the files find each other, read directly from their source:
-// - `eyegestures.js` looks for `EyegesturesEngine.js` next to itself,
-//   using `document.currentScript.src`. Since we serve both from the
-//   same local folder, this works without extra setup.
-// - `EyegesturesEngine.js` (the wasm-bindgen glue) finds
-//   `EyegesturesEngine_bg.wasm` the same way, so the 4 files just need
-//   to stay together in `apps/web/public/eyegestures/`.
-// - `eyegestures.js` still loads its own MediaPipe FaceMesh dependencies
-//   from a CDN. We don't need to load those ourselves, its own `init()`
-//   already requests them.
+// EyeGestures v4 (web), https://github.com/NativeSensors/EyeGestures.
+// Its files live in `public/eyegestures/` instead of coming from their site,
+// so we always run the version we tested. They find each other by their own
+// path, so the four of them just have to stay together in that folder. The
+// library still downloads MediaPipe Face Mesh from a CDN by itself.
 const EYEGESTURES_CSS_PATH = "/eyegestures/eyegestures.css";
 const EYEGESTURES_JS_PATH = "/eyegestures/eyegestures.js";
 // Our own one-line script, see bridgeGlobalClass().
@@ -132,16 +120,20 @@ function createHiddenVideo(): HTMLVideoElement {
   return video;
 }
 
-/** Gaze source backed by the real EyeGestures v4 engine. Loads it,
- * forwards its points as `GazePosition`, and on first calibration calls
- * `.invisible()` plus manually hides `#calib_cursor`, since the library
- * leaves that circle visible after calibrating by design. */
+/** Gaze source backed by the real EyeGestures v4 engine. The calibration,
+ * its red circles and the blue cursor are the library's own (IRIS only
+ * paints the cursor, see theme.css and GazeCursor); its points come out as
+ * `GazePosition`. */
 export class EyeGesturesGazeSource implements GazeSource {
   private subscribers = new Set<GazeSubscriber>();
   private stateSubscribers = new Set<(state: GazeEngineState) => void>();
   private dependenciesLoad: Promise<void> | null = null;
   private instance: EyeGesturesInstance | null = null;
   private alreadyCalibrated = false;
+  // The calibration flag of the first point. The library's own docs and its
+  // code don't agree on what that flag means (calibrating or calibrated),
+  // so the calibration is over when the flag changes from how it started.
+  private firstFlag: boolean | null = null;
   private state: GazeEngineState = "idle";
 
   getEngineState(): GazeEngineState {
@@ -166,6 +158,30 @@ export class EyeGesturesGazeSource implements GazeSource {
         console.error("Failed to load the EyeGestures engine:", error);
         this.notifyState("error");
       });
+  }
+
+  /** EyeGestures' own calibration again (from Ajustes). */
+  recalibrate(): void {
+    if (!this.instance) {
+      this.activateEngine();
+      return;
+    }
+    this.alreadyCalibrated = false;
+    this.firstFlag = null;
+    this.notifyState("calibrating");
+    this.instance.recalibrate();
+    this.instance.start();
+  }
+
+  /** Off for now, without the camera ("Continuar sin cámara"): its
+   * calibration, its circles and its badge go away, and the state goes back
+   * to idle, so the mouse moves the gaze cursor instead. */
+  stopEngine(): void {
+    this.instance?.stop();
+    for (const id of ["calibrationOverlay", "cursor", "calib_cursor", "logoDivEyeGestures"]) {
+      document.getElementById(id)?.style.setProperty("display", "none");
+    }
+    this.notifyState("idle");
   }
 
   stop(): void {
@@ -206,10 +222,13 @@ export class EyeGesturesGazeSource implements GazeSource {
       // its calibration instructions overlay and starts calling this
       // callback with real points.
       this.instance = new EngineClass(ENGINE_VIDEO_ID, (point: [number, number], calibrated: boolean) => {
-        this.emit({ x: point[0], y: point[1], calibrated });
-        if (calibrated && !this.alreadyCalibrated) {
+        this.firstFlag ??= calibrated;
+        const done = this.alreadyCalibrated || calibrated !== this.firstFlag;
+        this.emit({ x: point[0], y: point[1], calibrated: done });
+        if (done && !this.alreadyCalibrated) {
           this.alreadyCalibrated = true;
-          this.instance?.invisible();
+          // Its red calibration circle can stay on screen after the last
+          // point; its blue cursor stays, it's the kid's gaze.
           document.getElementById("calib_cursor")?.style.setProperty("display", "none");
           this.notifyState("ready");
         }

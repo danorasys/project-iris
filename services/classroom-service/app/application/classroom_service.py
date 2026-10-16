@@ -329,11 +329,12 @@ class ClassroomService:
                     enrollment_id=enrollment.id,
                     student_id=enrollment.student_id,
                     first_name=info.first_name,
+                    last_name=info.last_name,
                     avatar_id=info.avatar_id,
                     status=enrollment.status,
                     guardian_name=info.guardian_name,
                     guardian_email=info.guardian_email,
-                    guardian_phone=info.guardian_phone,
+                    guardian_relationship=info.guardian_relationship,
                 )
             )
         students.sort(key=lambda student: student.first_name.casefold())
@@ -567,9 +568,11 @@ class ClassroomService:
                 enrollment_id=enrollment.id,
                 student_id=enrollment.student_id,
                 student_first_name=info.first_name,
+                student_last_name=info.last_name,
                 student_avatar_id=info.avatar_id,
-                guardian_name=f"{info.guardian_first_name} {info.guardian_last_name}",
-                guardian_contact=f"{info.guardian_email} · {info.guardian_phone}",
+                guardian_name=info.guardian_name,
+                guardian_email=info.guardian_email,
+                guardian_relationship=info.guardian_relationship,
                 requested_at=enrollment.requested_at,
             )
             for enrollment, info in zip(pending, infos)
@@ -832,12 +835,17 @@ class ClassroomService:
             asyncio.gather(*(self._identity.obtener_estudiante(s) for s in student_ids), return_exceptions=True),
         )
         # Without identity-service a kid still counts, only without a name.
+        # The full name and the avatar tell apart two kids called the same.
         who: dict[str, dict[str, object]] = {}
         for student_id, info in zip(student_ids, infos):
             if isinstance(info, StudentInfo):
-                who[str(student_id)] = {"first_name": info.first_name, "avatar_id": info.avatar_id}
+                who[str(student_id)] = {
+                    "first_name": info.first_name,
+                    "last_name": info.last_name,
+                    "avatar_id": info.avatar_id,
+                }
             else:
-                who[str(student_id)] = {"first_name": "Estudiante sin datos", "avatar_id": 1}
+                who[str(student_id)] = {"first_name": "Estudiante sin datos", "last_name": "", "avatar_id": 1}
 
         def named(kids: object) -> list[dict[str, object]]:
             items = kids if isinstance(kids, list) else []
@@ -1045,7 +1053,7 @@ class ClassroomService:
             return {}
         return {
             "student_id": str(student_id),
-            "student_name": info.first_name,
+            "student_name": info.full_name,
             "guardian_id": str(info.guardian_person_id),
             "guardian_name": info.guardian_name,
         }

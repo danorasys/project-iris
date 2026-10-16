@@ -387,12 +387,15 @@ export interface ClassroomMember {
   enrollment_id: string;
   student_id: string;
   first_name: string;
+  /** "" when identity-service doesn't have the kid anymore. */
+  last_name: string;
   avatar_id: number;
   status: EnrollmentStatus;
   /** Their guardian. null when identity-service doesn't have the kid anymore. */
   guardian_name: string | null;
   guardian_email: string | null;
-  guardian_phone: string | null;
+  /** "Madre", "Padre", "Acudiente legal" or "Otro". */
+  guardian_relationship: string | null;
 }
 
 export interface ClassroomWithStudents extends Classroom {
@@ -403,9 +406,11 @@ export interface EnrollmentRequest {
   enrollment_id: string;
   student_id: string;
   student_first_name: string;
+  student_last_name: string;
   student_avatar_id: number;
   guardian_name: string;
-  guardian_contact: string;
+  guardian_email: string;
+  guardian_relationship: string;
   requested_at: string;
 }
 
@@ -664,6 +669,7 @@ export interface LessonProgress {
 export interface KidInLesson {
   student_id: string;
   first_name: string;
+  last_name: string;
   avatar_id: number;
   /** 0 to 100, the same percent their family sees. */
   percent: number;
@@ -677,6 +683,8 @@ export interface KidInLesson {
 export interface LessonStatistics {
   lesson_id: string;
   title: string;
+  /** Its unit, to show the lessons grouped by unit. */
+  unit_id: string;
   unit_title: string;
   has_activity: boolean;
   average_percent: number;
@@ -692,6 +700,7 @@ export interface LessonStatistics {
 export interface KidInClass {
   student_id: string;
   first_name: string;
+  last_name: string;
   avatar_id: number;
   average_percent: number;
   completed_lessons: number;

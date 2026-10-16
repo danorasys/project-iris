@@ -92,7 +92,7 @@ async def test_el_docente_le_escribe_al_peque_o_a_su_tutor(
     assert event["event"] == "teacher.message"
     assert event["recipient"] == recipient
     assert (event["subject"], event["body"]) == ("Tarea", "Repasen la lección 2.")
-    assert event["student_id"] == str(kid_id) and event["student_name"] == "Sofía"
+    assert event["student_id"] == str(kid_id) and event["student_name"] == "Sofía Pérez"
     assert event["guardian_id"] == str(identity_gateway.guardian_person_id)
     assert (event["teacher_name"], event["classroom_name"]) == ("Carlos Ruiz", "Ciencias 1A")
     await pubsub.aclose()
@@ -162,7 +162,7 @@ async def test_una_leccion_nueva_va_a_cada_peque_y_su_tutor(
         {
             "enrollment_id": enrollment_id,
             "student_id": str(kid_id),
-            "student_name": "Sofía",
+            "student_name": "Sofía Pérez",
             "guardian_id": str(identity_gateway.guardian_person_id),
         }
     ]
@@ -228,7 +228,7 @@ async def test_el_docente_se_entera_de_lo_que_termina_un_peque(
 
     assert response.status_code == 204, response.text
     assert event["event"] == "lesson.activity_completed"
-    assert (event["enrollment_id"], event["student_name"]) == (enrollment_id, "Sofía")
+    assert (event["enrollment_id"], event["student_name"]) == (enrollment_id, "Sofía Pérez")
     assert (event["correct"], event["total"]) == (2, 3)
     assert "guardian_id" not in event
     await pubsub.aclose()

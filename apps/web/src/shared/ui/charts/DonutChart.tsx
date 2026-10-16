@@ -1,4 +1,5 @@
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
+import { CountUp } from "./CountUp";
 import styles from "./charts.module.css";
 
 export interface DonutSlice {
@@ -12,77 +13,95 @@ interface DonutChartProps {
   /** What it shows, said first to a screen reader. */
   title: string;
   slices: DonutSlice[];
-  /** The big text in the middle, like "75 %". */
-  center: string;
+  /** The big number in the middle, a percent ("75 %"). */
+  percent: number;
   centerLabel?: string;
   size?: number;
 }
 
-const STROKE = 18;
+const STROKE = 20;
 
-/** A donut chart drawn with SVG (one circle per slice, its length given by
- * the dash), with its legend in words next to it. The legend is also what a
- * screen reader gets, so nobody depends on the colors to read it. */
-export function DonutChart({ title, slices, center, centerLabel, size = 168 }: DonutChartProps) {
+/** A donut chart drawn with SVG: one rounded piece per slice with a small
+ * gap between them, drawn one after the other when it appears, and the
+ * percent in the middle counting up. The legend says each slice in words,
+ * with how many and what part of the whole, so nobody depends on colors. */
+export function DonutChart({ title, slices, percent, centerLabel, size = 196 }: DonutChartProps) {
   const titleId = useId();
   const radius = (size - STROKE) / 2;
   const length = 2 * Math.PI * radius;
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
+  const shown = slices.filter((slice) => slice.value > 0);
+  // The round ends grow past each piece, so the gap makes room for them.
+  const gap = shown.length > 1 ? STROKE + 4 : 0;
 
-  // Each slice starts where the ones before it ended.
-  const portions = slices.map((slice) => (total ? slice.value / total : 0));
-  const arcs = slices.map((slice, i) => {
-    const before = portions.slice(0, i).reduce((sum, portion) => sum + portion, 0);
-    return { ...slice, dash: portions[i] * length, offset: -before * length };
+  // Each piece starts where the ones before it ended.
+  const parts = shown.map((slice) => (slice.value / total) * length);
+  const arcs = shown.map((slice, index) => {
+    const start = parts.slice(0, index).reduce((sum, part) => sum + part, 0);
+    return { ...slice, index, dash: Math.max(parts[index] - gap, 0.01), offset: -(start + gap / 2) };
   });
 
   return (
     <figure className={styles.donut} aria-labelledby={titleId}>
-      <div className={styles.donutGraphic} style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="var(--color-iris-pale)"
-            strokeWidth={STROKE}
-          />
-          {arcs
-            .filter((arc) => arc.dash > 0)
-            .map((arc) => (
+      <figcaption id={titleId} className={styles.chartTitle}>
+        {title}
+      </figcaption>
+      <div className={styles.donutBody}>
+        <div className={styles.donutGraphic} style={{ width: size, height: size }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke="var(--color-iris-pale)"
+              strokeWidth={STROKE}
+              opacity={0.55}
+            />
+            {arcs.map((arc) => (
               <circle
                 key={arc.label}
+                className={styles.donutArc}
                 cx={size / 2}
                 cy={size / 2}
                 r={radius}
                 fill="none"
                 stroke={arc.color}
                 strokeWidth={STROKE}
-                strokeDasharray={`${arc.dash} ${length - arc.dash}`}
+                strokeLinecap={gap ? "round" : "butt"}
                 strokeDashoffset={arc.offset}
                 transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                style={
+                  {
+                    "--dash": `${arc.dash}px`,
+                    "--length": `${length}px`,
+                    "--order": arc.index,
+                  } as CSSProperties
+                }
               />
             ))}
-        </svg>
-        <span className={styles.donutCenter} aria-hidden="true">
-          <strong>{center}</strong>
-          {centerLabel && <span>{centerLabel}</span>}
-        </span>
-      </div>
-      <figcaption>
-        <span id={titleId} className={styles.chartTitle}>
-          {title}
-        </span>
+          </svg>
+          <span className={styles.donutCenter} aria-hidden="true">
+            <strong>
+              <CountUp value={percent} suffix=" %" />
+            </strong>
+            {centerLabel && <span>{centerLabel}</span>}
+          </span>
+        </div>
         <ul className={styles.legend}>
-          {slices.map((slice) => (
-            <li key={slice.label}>
-              <span className={styles.swatch} style={{ background: slice.color }} aria-hidden="true" />
-              {slice.label}: <strong>{slice.value}</strong>
-            </li>
-          ))}
+          {slices.map((slice) => {
+            const part = total ? Math.round((100 * slice.value) / total) : 0;
+            return (
+              <li key={slice.label}>
+                <span className={styles.swatch} style={{ background: slice.color }} aria-hidden="true" />
+                <span className={styles.legendLabel}>{slice.label}</span>
+                <strong className={styles.legendValue}>{slice.value}</strong>
+                <span className={styles.legendPart}>{part} %</span>
+              </li>
+            );
+          })}
         </ul>
-      </figcaption>
+      </div>
     </figure>
   );
 }

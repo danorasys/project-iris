@@ -26,6 +26,8 @@ class KidInLesson:
 class LessonStatistics:
     lesson_id: UUID
     title: str
+    # Its unit, so the teacher sees the lessons grouped by unit.
+    unit_id: UUID
     unit_title: str
     has_activity: bool
     average_percent: int
@@ -103,6 +105,7 @@ def summarize(
             LessonStatistics(
                 lesson_id=lesson.id,
                 title=lesson.title,
+                unit_id=lesson.unit_id,
                 unit_title=unit_titles.get(lesson.unit_id, ""),
                 has_activity=lesson.activity is not None,
                 average_percent=round(sum(k.percent for k in kids) / len(kids)) if kids else 0,

@@ -202,16 +202,17 @@ class UserClaims:
 
 # Result of identity-service's /internal/students/{id}. Used to enrich lists
 # of enrolled students and requests with the student's name/avatar and the
-# guardian's contact info.
+# guardian's name, email and relationship with the kid.
 @dataclass
 class StudentInfo:
     student_id: UUID
     first_name: str
+    last_name: str
     avatar_id: int
     guardian_first_name: str
     guardian_last_name: str
     guardian_email: str
-    guardian_phone: str
+    guardian_relationship: str
     # The id the guardian signs in with, so notification-service can tell
     # them about their kid's requests.
     guardian_person_id: UUID
@@ -219,3 +220,8 @@ class StudentInfo:
     @property
     def guardian_name(self) -> str:
         return f"{self.guardian_first_name} {self.guardian_last_name}"
+
+    # The kid's full name, so two kids called the same can be told apart.
+    @property
+    def full_name(self) -> str:
+        return " ".join(part for part in (self.first_name, self.last_name) if part)

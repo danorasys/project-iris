@@ -64,6 +64,54 @@
   border-bottom: 1px solid var(--color-iris-pale);
 }
 
+/* "Recibidos" and "Enviados", like the folders of a mail: the open one in
+   blue with a line under it, the other one grey. A thin line keeps them
+   apart from the box to pick. */
+.boxes {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  align-self: stretch;
+  margin: -6px 0;
+  padding-left: 12px;
+  border-left: 1px solid var(--color-iris-pale);
+}
+
+.box {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+
+.box:hover {
+  background: var(--color-canvas);
+  color: var(--color-iris-deep);
+}
+
+.box[aria-pressed="true"] {
+  border-bottom-color: var(--color-iris-medium);
+  color: var(--color-iris-medium);
+}
+
+.box:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
 /* On the right of the bar: "1–8 de 26" and the arrows. */
 .toolbarRange {
   display: flex;
@@ -403,6 +451,21 @@
   color: var(--color-iris-deep);
 }
 
+.emptyText {
+  max-width: 46ch;
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--color-ink-soft);
+}
+
+/* Empty inside the tray (a box with nothing yet): no card of its own, the
+   bar with "Recibidos" and "Enviados" stays on top. */
+.inbox .empty {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 /* --- One notification, read in full, like an opened mail --- */
 .mail {
   overflow: hidden;
@@ -703,7 +766,8 @@
   .pageNumber,
   .mailBack,
   .mailDelete,
-  .mailStep {
+  .mailStep,
+  .box {
     transition: none;
   }
 }
@@ -745,5 +809,25 @@
 
   .mailDeleteText {
     display: none;
+  }
+
+  /* "Recibidos" and "Enviados" go down to a line of their own, half each. */
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .boxes {
+    order: 3;
+    flex-basis: calc(100% + 24px);
+    margin: 0 -14px -6px -10px;
+    padding: 0;
+    border-left: none;
+    border-top: 1px solid var(--color-iris-pale);
+  }
+
+  .box {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
   }
 }

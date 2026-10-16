@@ -1,0 +1,14 @@
+/* What shows in place of the profiles while they load or when there are none. */
+.status,
+.subtitle {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--portal-muted, var(--color-ink-soft));
+}
+
+.error {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-error);
+}

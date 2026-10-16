@@ -77,7 +77,9 @@ class EnrolledStudent:
     # identity-service doesn't have the kid anymore.
     guardian_name: str | None = None
     guardian_email: str | None = None
-    guardian_phone: str | None = None
+    guardian_relationship: str | None = None
+    # The kid's last name, so the teacher sees the full name.
+    last_name: str = ""
 
 
 @dataclass
@@ -91,9 +93,11 @@ class EnrichedRequest:
     enrollment_id: UUID
     student_id: UUID
     student_first_name: str
+    student_last_name: str
     student_avatar_id: int
     guardian_name: str
-    guardian_contact: str
+    guardian_email: str
+    guardian_relationship: str
     requested_at: datetime
 
 

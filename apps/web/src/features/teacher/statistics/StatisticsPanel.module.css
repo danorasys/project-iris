@@ -1,84 +1,767 @@
-/* "Estadísticas" of a class: the numbers on top, then the charts side by
-   side, then the lessons, each one a row that opens its own. */
+/* "Estadísticas" of a class, in the look of the portal: white cards with
+   soft shadows, the blue to sky of IRIS for progress, and green, yellow and
+   orange for done, on the way and not yet. The cards rise in one after the
+   other (--order), the bars grow and the rings draw themselves; with less
+   motion asked, everything just shows. */
+
+/* --- Entrance: each card rises a little, after the one before --- */
+.rise {
+  animation: rise 560ms var(--ease-out) both;
+  animation-delay: calc(var(--order, 0) * 70ms);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* --- The numbers on top: the icon on a pale tile like the options of the
+   class, the number and what it is --- */
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: var(--space-3);
 }
 
 .kpi {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+  padding: 18px 20px;
+  border: 1px solid var(--portal-line, var(--color-iris-pale));
+  border-radius: var(--portal-radius, var(--radius-large));
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 200ms var(--ease-out),
+    box-shadow 200ms var(--ease-out);
+}
+
+.kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+.kpiIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-medium);
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
+}
+
+.kpiText {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
+  min-width: 0;
 }
 
 .kpiValue {
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 1.75rem;
   font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   color: var(--color-iris-deep);
+  font-variant-numeric: tabular-nums;
 }
 
-.kpiLabel {
-  font-size: 0.9rem;
+.kpiOf {
+  font-size: 1.05rem;
+  font-weight: 700;
   color: var(--color-ink-soft);
 }
 
+.kpiLabel {
+  font-size: 0.86rem;
+  color: var(--color-ink-soft);
+}
+
+/* --- Cards of charts, side by side --- */
 .charts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: var(--space-4);
 }
 
-.lessonRow {
-  width: 100%;
-  text-align: left;
+.card {
+  box-shadow: var(--shadow-card);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.titleIcon {
+  color: var(--color-iris-medium);
+}
+
+/* "Ver todos": the same soft chip as "Ver todas" in Inicio. */
+.seeAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-canvas);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-iris-medium);
   cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.seeAll svg {
+  transition: transform 200ms var(--ease-out);
+}
+
+.seeAll:hover {
+  background: var(--landing-mist-1, var(--color-iris-pale));
+}
+
+.seeAll:hover svg {
+  transform: translateX(2px);
+}
+
+.moreKids {
+  margin: calc(var(--space-2) * -1) 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}
+
+/* --- A kid: their avatar and full name, in every list --- */
+.kid {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.kidAvatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-iris-pale);
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-iris-pale);
+}
+
+.kidText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The whole name always shows: a long one goes on to a second line. */
+.kidName {
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-iris-deep);
+  overflow-wrap: anywhere;
+}
+
+.kidNote {
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+}
+
+/* --- One row per kid: their place, who, a bar, the percent, an arrow --- */
+.kidRows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kidRow {
+  display: grid;
+  grid-template-columns: minmax(150px, 280px) minmax(60px, 1fr) 3.6em auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 14px;
+}
+
+.kidRow[data-ranked="true"] {
+  grid-template-columns: 28px minmax(150px, 280px) minmax(60px, 1fr) 3.6em auto;
+}
+
+.kidButton {
+  border: none;
+  background: transparent;
   font: inherit;
   color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    transform 160ms var(--ease-out);
+}
+
+.kidButton:hover {
+  background: var(--color-canvas);
+}
+
+.kidButton:hover .kidArrow {
+  color: var(--color-iris-medium);
+  transform: translateX(2px);
+}
+
+.kidButton:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+/* The place in the class; the first three in gold, silver and bronze tints. */
+.rank {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--color-ink-soft);
+}
+
+.rank[data-top="1"] {
+  background: linear-gradient(135deg, #ffe08a, var(--landing-sun));
+  color: #7a5200;
+}
+
+.rank[data-top="2"] {
+  background: linear-gradient(135deg, #eef3f8, #cfd9e4);
+  color: #44566b;
+}
+
+.rank[data-top="3"] {
+  background: linear-gradient(135deg, #ffd6b8, #f6a46c);
+  color: #7a3b10;
+}
+
+/* The bar: a track and a fill in the blue to sky of IRIS that grows in,
+   one row after the other. */
+.kidTrack,
+.miniTrack {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-iris-pale);
+}
+
+.kidTrack > span,
+.miniTrack > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--landing-sky), var(--color-iris-medium));
+  transform-origin: left center;
+  animation: grow 900ms var(--ease-out) both;
+  animation-delay: calc(var(--order, 0) * 80ms + 200ms);
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.kidValue {
+  text-align: right;
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--color-iris-deep);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.kidArrow {
+  color: var(--color-ink-soft);
+  transition:
+    color 160ms ease,
+    transform 200ms var(--ease-out);
+}
+
+/* --- The lessons by unit: one card per unit, its ring on the left --- */
+.units {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.unitsTitle {
+  margin: var(--space-2) 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.unitCard {
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.unitHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.ringPercent {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.ringPercent small {
+  margin-left: 1px;
+  font-size: 0.7em;
+  color: var(--color-ink-soft);
+}
+
+.ringPercent[data-size="large"] {
+  font-size: 1.45rem;
+}
+
+.unitMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.unitEyebrow {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-iris-medium);
+}
+
+.unitTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.unitMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 0;
+}
+
+/* Small tags of the counts, each with its icon and color. */
+.tag {
+  --tone: var(--color-iris-medium);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 10%, var(--color-surface));
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--tone) 80%, var(--color-ink));
+}
+
+.tag[data-tone="mint"] {
+  --tone: var(--landing-mint-dark);
+}
+
+.tag[data-tone="sun"] {
+  --tone: var(--landing-brick);
+}
+
+/* --- The lessons of a unit, each a row with its number and a small bar --- */
+.lessonList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lessonRow {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(70px, 140px) 3.4em auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 12px 12px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: var(--color-canvas);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms var(--ease-out);
 }
 
 .lessonRow:hover {
-  border-color: var(--color-iris-medium);
+  border-color: var(--color-iris-pale);
+  background: var(--color-surface);
+  transform: translateX(2px);
+}
+
+.lessonRow:hover .rowArrow {
+  color: var(--color-iris-medium);
+  transform: translateX(2px);
 }
 
 .lessonRow:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 2px;
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+.lessonNumber {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--color-iris-medium);
+}
+
+.lessonMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lessonHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lessonTitle {
+  font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+.lessonMeta {
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}
+
+.miniTrack {
+  height: 8px;
 }
 
 .rowPercent {
+  text-align: right;
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: var(--color-iris-deep);
+  font-variant-numeric: tabular-nums;
 }
 
-.rankingTitle {
-  margin: 0 0 var(--space-2);
+.rowArrow {
+  color: var(--color-ink-soft);
+  transition:
+    color 160ms ease,
+    transform 200ms var(--ease-out);
+}
+
+/* Where the kid is in a lesson, as a small tag in the colors of the charts. */
+.state {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.state[data-tone="done"] {
+  background: color-mix(in srgb, var(--landing-mint) 16%, var(--color-surface));
+  color: var(--landing-mint-dark);
+}
+
+.state[data-tone="going"] {
+  background: color-mix(in srgb, var(--landing-sun) 30%, var(--color-surface));
+  color: #7a5200;
+}
+
+.state[data-tone="none"] {
+  background: color-mix(in srgb, var(--landing-orange) 14%, var(--color-surface));
+  color: var(--landing-brick);
+}
+
+/* --- The top of a lesson or a kid: a ring and the name over a soft sky --- */
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  overflow: hidden;
+  padding: 26px 28px;
+  border: 1px solid var(--portal-line, var(--color-iris-pale));
+  border-radius: var(--portal-radius, var(--radius-large));
+  background:
+    radial-gradient(circle at 92% 20%, color-mix(in srgb, var(--landing-sky) 28%, transparent), transparent 45%),
+    linear-gradient(120deg, var(--color-surface) 35%, var(--landing-mist-1, var(--color-canvas)));
+  box-shadow: var(--shadow-card);
+}
+
+.heroEyebrow {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-iris-medium);
+}
+
+.heroTitle {
+  margin: 4px 0 6px;
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: clamp(1.4rem, 1.1rem + 1vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1.15;
   color: var(--color-iris-deep);
 }
 
-.ranking {
+.heroText {
   margin: 0;
-  padding-left: 1.2rem;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  color: var(--color-ink-soft);
 }
 
-.ranking li {
-  display: flex;
-  flex-direction: column;
+.heroText strong {
+  color: var(--color-iris-deep);
 }
 
-.rankingName {
+/* --- Best and lowest performances --- */
+.ranking {
+  --tone: var(--landing-mint);
+}
+
+.ranking[data-tone="low"] {
+  --tone: var(--landing-orange);
+}
+
+.ranking .titleIcon {
+  color: var(--tone);
+}
+
+.rankingList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rankingRow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--tone) 7%, var(--color-surface));
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    transform 160ms var(--ease-out);
+}
+
+.rankingRow:hover {
+  background: color-mix(in srgb, var(--tone) 13%, var(--color-surface));
+  transform: translateX(2px);
+}
+
+.rankingRow:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+/* The best try as a score, green when it passed. */
+.score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--landing-brick);
+}
+
+.score[data-passed="true"] {
+  color: var(--landing-mint-dark);
+}
+
+.scoreLabel {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+}
+
+/* Who hasn't tried yet, as chips with their avatar. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  padding: 6px 14px 6px 6px;
+  border: 1px solid var(--color-iris-pale);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.chip:hover {
+  border-color: var(--color-iris-medium);
+  background: var(--color-canvas);
+}
+
+.chip:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-halo);
+}
+
+/* --- Every kid: the title and the search on one line --- */
+.studentsHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.studentsTitle {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
   font-weight: 700;
+  color: var(--color-iris-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .kidTrack > span,
+  .miniTrack > span {
+    animation: none;
+  }
+
+  .kpi,
+  .kidButton,
+  .lessonRow,
+  .rankingRow,
+  .kidArrow,
+  .rowArrow,
+  .seeAll svg {
+    transition: none;
+  }
+
+  .kpi:hover,
+  .lessonRow:hover,
+  .rankingRow:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .kidRow,
+  .kidRow[data-ranked="true"] {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .kidRow:not([data-ranked="true"]) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .kidTrack {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .kidArrow {
+    display: none;
+  }
+
+  .lessonRow {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+  }
+
+  .miniTrack,
+  .rowArrow {
+    display: none;
+  }
+
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+  }
+
+  .unitHead {
+    align-items: flex-start;
+  }
 }

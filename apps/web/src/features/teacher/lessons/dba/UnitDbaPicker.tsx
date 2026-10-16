@@ -1,8 +1,14 @@
 import type { Dba } from "@iris/shared-types";
-import { SelectField } from "@/features/auth/ui/SelectField";
 import { CountedTextField } from "@/shared/ui/CountedTextField";
-import { IconArrowRight, IconPlus, IconTrash } from "@/shared/ui/icons";
-import { DBA_DOCUMENTS, DBA_OWN_NAME_MAX, DBA_OWN_POINTS_MAX, DBA_POINT_MAX } from "../../classrooms/classroomDetails";
+import { IconArrowRight, IconBook, IconCheck, IconPlus, IconTrash } from "@/shared/ui/icons";
+import { PortalSelect } from "@/shared/ui/portal/PortalSelect";
+import {
+  DBA_DOCUMENTS,
+  DBA_OWN_NAME_MAX,
+  DBA_OWN_POINTS_MAX,
+  DBA_POINT_MAX,
+  dbaLabel,
+} from "../../classrooms/classroomDetails";
 import styles from "./Dba.module.css";
 import { unitDbaHasPoints, type UnitDbaDraft } from "./unitDbaDraft";
 
@@ -24,7 +30,8 @@ const OWN = "own";
 /** The DBA of a unit, in the areas that have DBA: one of the MEN catalog of
  * the class's area and grade, with a link to the official text on Colombia
  * Aprende, or one the teacher writes. Then its Evidencias de Aprendizaje:
- * the catalog's, ticked, and the teacher's own. */
+ * the catalog's, ticked, and the teacher's own. Its title and intro are the
+ * step of the unit's window it goes in. */
 export function UnitDbaPicker({ catalog, loading, failed, value, onChange, showErrors, disabled }: UnitDbaPickerProps) {
   const own = value.own_name !== null;
   const chosen = own ? null : (catalog?.find((dba) => dba.id === value.dba_id) ?? null);
@@ -49,14 +56,15 @@ export function UnitDbaPicker({ catalog, loading, failed, value, onChange, showE
     onChange({ ...value, own_points: value.own_points.map((point, i) => (i === index ? text : point)) });
   }
 
-  return (
-    <fieldset className={styles.box}>
-      <legend className={styles.legend}>DBA de la unidad</legend>
-      <p className={styles.intro}>
-        El Derecho Básico de Aprendizaje del Ministerio de Educación que trabajan las lecciones de la unidad, o uno
-        propio, y las Evidencias de Aprendizaje que trabaja de él.
-      </p>
+  // The new field takes the focus, so typing goes there and not to the button.
+  function addOwnPoint() {
+    const index = value.own_points.length;
+    onChange({ ...value, own_points: [...value.own_points, ""] });
+    requestAnimationFrame(() => document.getElementById(`unit-dba-point-${index}`)?.focus());
+  }
 
+  return (
+    <div className={styles.picker}>
       {loading && <p className={styles.status}>Cargando los DBA de la clase…</p>}
       {failed && (
         <p role="alert" className={styles.error}>
@@ -65,13 +73,13 @@ export function UnitDbaPicker({ catalog, loading, failed, value, onChange, showE
       )}
 
       {catalog && (
-        <SelectField
+        <PortalSelect
           id="unit-dba"
           label="DBA"
           value={own ? OWN : (value.dba_id ?? "")}
           onChange={pick}
+          placeholder="Elige el DBA"
           options={[
-            { value: "", label: "Elige el DBA", disabled: true },
             ...catalog.map((dba) => ({
               value: dba.id,
               label: `${severalSubjects ? `${DBA_DOCUMENTS[dba.subject].name} · ` : ""}DBA ${dba.number}: ${dba.name}`,
@@ -84,6 +92,28 @@ export function UnitDbaPicker({ catalog, loading, failed, value, onChange, showE
           required
           disabled={disabled}
         />
+      )}
+
+      {/* The picked DBA whole (the select cuts long names), with its link. */}
+      {chosen && (
+        <div className={styles.chosen}>
+          <span className={styles.chosenIcon} aria-hidden="true">
+            <IconBook width={20} height={20} />
+          </span>
+          <div className={styles.chosenText}>
+            <p className={styles.chosenLabel}>{dbaLabel(chosen)}</p>
+            <p className={styles.chosenName}>{chosen.name}</p>
+            <a
+              className={styles.link}
+              href={DBA_DOCUMENTS[chosen.subject].url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Ver el texto oficial de los DBA de {DBA_DOCUMENTS[chosen.subject].name} en Colombia Aprende
+              <IconArrowRight width={16} height={16} aria-hidden="true" />
+            </a>
+          </div>
+        </div>
       )}
 
       {own && (
@@ -102,32 +132,32 @@ export function UnitDbaPicker({ catalog, loading, failed, value, onChange, showE
         />
       )}
 
-      {chosen && (
-        <a className={styles.link} href={DBA_DOCUMENTS[chosen.subject].url} target="_blank" rel="noopener noreferrer">
-          Ver el texto oficial de los DBA de {DBA_DOCUMENTS[chosen.subject].name} en Colombia Aprende
-          <IconArrowRight width={16} height={16} aria-hidden="true" />
-        </a>
-      )}
-
+      {/* The catalog's evidences as cards to tick, the ticked one in blue. */}
       {chosen && (
         <fieldset className={styles.points}>
           <legend className={styles.pointsTitle}>Evidencias de Aprendizaje del DBA</legend>
           {chosen.evidences.length > 0 ? (
-            <ul className={styles.evidences}>
-              {chosen.evidences.map((evidence) => (
-                <li key={evidence.id}>
-                  <label className={styles.evidence}>
-                    <input
-                      type="checkbox"
-                      checked={value.evidence_ids.includes(evidence.id)}
-                      onChange={() => toggle(evidence.id)}
-                      disabled={disabled}
-                    />
-                    <span>{evidence.text}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p className={styles.pointsHint}>Marca las que trabaja la unidad.</p>
+              <ul className={styles.evidences}>
+                {chosen.evidences.map((evidence) => (
+                  <li key={evidence.id}>
+                    <label className={styles.evidence}>
+                      <input
+                        type="checkbox"
+                        checked={value.evidence_ids.includes(evidence.id)}
+                        onChange={() => toggle(evidence.id)}
+                        disabled={disabled}
+                      />
+                      <span className={styles.checkBox} aria-hidden="true">
+                        <IconCheck width={14} height={14} />
+                      </span>
+                      <span>{evidence.text}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
             <p className={styles.hint}>
               El documento del Ministerio no trae evidencias para este DBA: escribe las tuyas.
@@ -139,6 +169,9 @@ export function UnitDbaPicker({ catalog, loading, failed, value, onChange, showE
       {picked && (
         <div className={styles.points}>
           <p className={styles.pointsTitle}>Evidencias de Aprendizaje propias</p>
+          {value.own_points.length === 0 && (
+            <p className={styles.pointsHint}>Si quieres, escribe otras con tus palabras.</p>
+          )}
           {value.own_points.map((point, index) => (
             <div key={index} className={styles.ownPoint}>
               <CountedTextField
@@ -154,6 +187,7 @@ export function UnitDbaPicker({ catalog, loading, failed, value, onChange, showE
                 className={styles.remove}
                 onClick={() => onChange({ ...value, own_points: value.own_points.filter((_, i) => i !== index) })}
                 aria-label={`Quitar la evidencia propia ${index + 1}`}
+                title="Quitar"
                 disabled={disabled}
               >
                 <IconTrash width={16} height={16} aria-hidden="true" />
@@ -164,10 +198,12 @@ export function UnitDbaPicker({ catalog, loading, failed, value, onChange, showE
             <button
               type="button"
               className={styles.add}
-              onClick={() => onChange({ ...value, own_points: [...value.own_points, ""] })}
+              onClick={addOwnPoint}
               disabled={disabled}
             >
-              <IconPlus width={16} height={16} aria-hidden="true" />
+              <span className={styles.addIcon} aria-hidden="true">
+                <IconPlus width={14} height={14} />
+              </span>
               Agregar una evidencia propia
             </button>
           )}
@@ -181,6 +217,6 @@ export function UnitDbaPicker({ catalog, loading, failed, value, onChange, showE
             : "Escribe al menos una evidencia de aprendizaje propia."}
         </p>
       )}
-    </fieldset>
+    </div>
   );
 }

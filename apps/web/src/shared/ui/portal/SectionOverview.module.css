@@ -1,0 +1,119 @@
+/* The card on top of a part of a class (SectionOverview.tsx): a white
+   panel, its icon on a lavender circle like the counts of Inicio, and what
+   each thing below tells, in two pale columns. */
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  color: var(--color-iris-medium);
+}
+
+.headText {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--color-iris-deep);
+}
+
+.text {
+  margin: 2px 0 0;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.text strong {
+  color: var(--color-iris-deep);
+}
+
+.guides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.guide {
+  padding: var(--space-3);
+  border: 1px solid var(--color-iris-pale);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-iris-pale) 25%, var(--color-surface));
+}
+
+.guideTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.guideList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guideList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+
+.guideList svg,
+.guideTitle svg {
+  flex: none;
+  color: var(--color-iris-medium);
+}
+
+.guideList svg {
+  margin-top: 2px;
+}
+
+/* On a phone: the button goes under the title and one column of guides. */
+@media (max-width: 640px) {
+  .head {
+    flex-wrap: wrap;
+  }
+
+  .head > :last-child:not(.headText) {
+    flex-basis: 100%;
+  }
+
+  .guides {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

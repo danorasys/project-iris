@@ -5,6 +5,11 @@
   flex-shrink: 0;
 }
 
+.tiny {
+  width: 36px;
+  height: 36px;
+}
+
 .small {
   width: 56px;
   height: 56px;

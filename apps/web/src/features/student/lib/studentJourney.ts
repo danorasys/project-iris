@@ -1,12 +1,11 @@
-import { getInputMode } from "@/shared/gaze/inputMode";
+// The order a kid goes through when they enter IRIS. They always move with
+// their eyes, so the calibration comes first, with the tutor's session, and
+// they pick their profile and write their PIN with the eyes too:
+//   Portal Peques → [conditions → camera (first time on this device)]
+//   → calibration → profiles → PIN → tour (first time) → home
+// What was done is remembered on this device (localStorage).
 
-// The order a kid goes through when they enter IRIS (see the Fase 7 spec):
-//   first time: [gaze: conditions → camera → calibration] → tour → home
-//   other times: [gaze: calibration] → home
-// The avatar isn't a step here: the family picks it from the parents' portal.
-// What was done is remembered per profile on this device (localStorage).
-
-const READY_PREFIX = "iris_perfil_listo_";
+const DEVICE_READY_KEY = "iris_equipo_listo";
 const TOUR_PREFIX = "iris_recorrido_hecho_";
 // Set by an older version once the tour was seen: it means the same.
 const LEGACY_TOUR_PREFIX = "iris_recorrido_visto_";
@@ -27,13 +26,13 @@ function mark(key: string): void {
   }
 }
 
-/** The kid already set up the camera and calibrated once on this device. */
-export function isProfileReady(profileId: string): boolean {
-  return read(READY_PREFIX + profileId);
+/** The camera was already set up and calibrated once on this device. */
+export function isDeviceReady(): boolean {
+  return read(DEVICE_READY_KEY);
 }
 
-export function markProfileReady(profileId: string): void {
-  mark(READY_PREFIX + profileId);
+export function markDeviceReady(): void {
+  mark(DEVICE_READY_KEY);
 }
 
 export function isTourDone(profileId: string): boolean {
@@ -44,15 +43,12 @@ export function markTourDone(profileId: string): void {
   mark(TOUR_PREFIX + profileId);
 }
 
-const gaze = () => getInputMode() === "gaze";
-
-/** Right after the PIN. With the gaze, every session starts by calibrating. */
-export function routeAfterPin(profileId: string): string {
-  if (!gaze()) return routeAfterCalibration(profileId);
-  return isProfileReady(profileId) ? "/student/calibration" : "/student/setup-conditions";
+/** From "Portal Peques": every time starts by calibrating. */
+export function routeIntoKids(): string {
+  return isDeviceReady() ? "/kids/calibration" : "/kids/setup-conditions";
 }
 
-/** Once the kid can move around: the tour the first time (HU-89), then home. */
-export function routeAfterCalibration(profileId: string): string {
+/** Right after the PIN: the tour the first time (HU-89), then home. */
+export function routeAfterPin(profileId: string): string {
   return isTourDone(profileId) ? "/student/home" : "/student/tour";
 }

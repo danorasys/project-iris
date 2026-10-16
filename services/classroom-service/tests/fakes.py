@@ -72,11 +72,12 @@ class FakeIdentityGateway:
         self._students[student_id] = StudentInfo(
             student_id=student_id,
             first_name=nombres,
+            last_name="Pérez",
             avatar_id=avatar_id,
             guardian_first_name="Ana",
             guardian_last_name="Pérez",
             guardian_email="ana@example.com",
-            guardian_phone="3001234567",
+            guardian_relationship="Madre",
             guardian_person_id=self.guardian_person_id,
         )
         return token, student_id
@@ -220,6 +221,7 @@ class FakeContentGateway:
         lesson = {
             "lesson_id": str(uuid4()),
             "title": "Animales",
+            "unit_id": str(uuid4()),
             "unit_title": "Unidad 1",
             "has_activity": True,
             "average_percent": 100,

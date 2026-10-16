@@ -462,7 +462,10 @@ async def test_flujo_feliz_completo(client: AsyncClient, identity_gateway: FakeI
     assert len(body) == 1
     assert body[0]["enrollment_id"] == enrollment_id
     assert body[0]["student_first_name"] == "Sofía"
-    assert body[0]["guardian_contact"] == "ana@example.com · 3001234567"
+    assert body[0]["guardian_email"] == "ana@example.com"
+    assert body[0]["guardian_relationship"] == "Madre"
+    assert body[0]["student_last_name"] == "Pérez"
+    assert "guardian_phone" not in body[0]
 
     resolver = await client.post(
         f"/classrooms/{aula['id']}/requests/{enrollment_id}/resolve",

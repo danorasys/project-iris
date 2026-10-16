@@ -35,11 +35,12 @@ const detail: ClassroomWithStudents = {
       enrollment_id: "e1",
       student_id: "s1",
       first_name: "Sofía",
+      last_name: "Pérez",
       avatar_id: 1,
       status: "aceptada",
       guardian_name: "Ana Pérez",
       guardian_email: "ana@example.com",
-      guardian_phone: "3001234567",
+      guardian_relationship: "Madre",
     },
   ],
 };
@@ -57,9 +58,11 @@ vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
         enrollment_id: "e2",
         student_id: "s2",
         student_first_name: "Tomás",
+        student_last_name: "Gómez",
         student_avatar_id: 2,
         guardian_name: "Luis Gómez",
-        guardian_contact: "luis@example.com · 3005556677",
+        guardian_email: "luis@example.com",
+        guardian_relationship: "Padre",
         requested_at: "2026-10-04T10:00:00Z",
       },
     ],
@@ -73,6 +76,7 @@ vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
   useRestoreClassroom: () => ({ mutateAsync: restoreClassroom, isPending: false }),
   useRemoveStudent: () => ({ mutateAsync: removeStudent, isPending: false }),
   useResolveRequest: () => ({ mutateAsync: resolveRequest, isPending: false }),
+  useSendFamilyMessage: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/shared/api/hooks/useLessonsApi", () => ({
@@ -89,8 +93,10 @@ vi.mock("@/shared/api/hooks/useLessonsApi", () => ({
 // The kids' avatars come from a catalog, not needed here.
 vi.mock("@/shared/ui/StudentAvatarImage", () => ({ StudentAvatarImage: () => null }));
 vi.mock("@/shared/api/hooks/useNotifications", () => ({
-  useClassMessages: () => ({ data: { items: [], total: 0 }, isLoading: false, isError: false }),
-  useMarkNotificationRead: () => ({ mutate: vi.fn() }),
+  useClassMessages: () => ({ data: { items: [], total: 0, unread_count: 0 }, isLoading: false, isError: false }),
+  useMarkNotificationRead: () => ({ mutateAsync: vi.fn() }),
+  useDeleteNotification: () => ({ mutateAsync: vi.fn() }),
+  useDeleteNotifications: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 function renderSection() {
@@ -303,8 +309,8 @@ describe("Mis clases", { timeout: 20_000 }, () => {
 
     // Its members are only listed.
     await user.click(screen.getByRole("button", { name: /^Miembros/ }));
-    expect(screen.getByText("Sofía")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Retirar a Sofía de la clase" })).toBeNull();
+    expect(screen.getByText("Sofía Pérez")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Retirar a Sofía Pérez de la clase" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Regresar a la clase" }));
 
     await user.click(screen.getByRole("button", { name: "Restaurar" }));
@@ -372,14 +378,15 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     await user.click(screen.getByRole("button", { name: /Matemáticas Básicas/ }));
     await user.click(screen.getByRole("button", { name: /^Miembros/ }));
 
-    expect(screen.getByText("Ana Pérez")).toBeTruthy();
-    expect(screen.getByText(/ana@example.com/)).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: "Retirar a Sofía de la clase" }));
+    expect(screen.getByText("Ana Pérez (Madre)")).toBeTruthy();
+    expect(screen.getByText("ana@example.com")).toBeTruthy();
+    expect(screen.getByText("Luis Gómez (Padre)")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Retirar a Sofía Pérez de la clase" }));
     expect(screen.getByText(/Su tutor recibirá una notificación/)).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Sí, retirar" }));
 
     expect(removeStudent).toHaveBeenCalledWith({ classroomId: "c1", enrollmentId: "e1" });
-    expect(await screen.findByText("Sofía salió de la clase. Le avisamos a su familia.")).toBeTruthy();
+    expect(await screen.findByText("Sofía Pérez salió de la clase. Le avisamos a su familia.")).toBeTruthy();
   });
 
   it("accepts a waiting request from the members", async () => {
@@ -392,7 +399,53 @@ describe("Mis clases", { timeout: 20_000 }, () => {
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     expect(resolveRequest).toHaveBeenCalledWith({ classroomId: "c1", enrollmentId: "e2", decision: "aceptar" });
-    expect(await screen.findByText("Tomás ya es parte de la clase.")).toBeTruthy();
+    expect(await screen.findByText("Tomás Gómez ya es parte de la clase.")).toBeTruthy();
+  });
+
+  it("writing to a member opens a new message in Mensajes, addressed to their family", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderSection();
+
+    await user.click(screen.getByRole("button", { name: /Matemáticas Básicas/ }));
+    await user.click(screen.getByRole("button", { name: /^Miembros/ }));
+    await user.click(screen.getByRole("button", { name: "Escribirle a Sofía Pérez o a su familia" }));
+
+    expect(screen.getByRole("heading", { name: "Mensaje nuevo" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Para" }).textContent).toContain("Ana Pérez (Madre) · familia de Sofía Pérez");
+  });
+
+  it("asks before rejecting a request, and cancelling leaves it waiting", async () => {
+    resolveRequest.mockResolvedValue({ enrollment_id: "e2", status: "rechazada" });
+    const user = userEvent.setup({ delay: null });
+    renderSection();
+
+    await user.click(screen.getByRole("button", { name: /Matemáticas Básicas/ }));
+    await user.click(screen.getByRole("button", { name: /^Miembros/ }));
+    await user.click(screen.getByRole("button", { name: "Rechazar" }));
+    expect(screen.getByText(/rechazar la solicitud de Tomás Gómez para unirse a la clase "Matemáticas Básicas"/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(resolveRequest).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Rechazar" }));
+    await user.click(screen.getByRole("button", { name: "Sí, rechazar" }));
+    expect(resolveRequest).toHaveBeenCalledWith({ classroomId: "c1", enrollmentId: "e2", decision: "rechazar" });
+    expect(await screen.findByText("Rechazaste la solicitud de Tomás Gómez.")).toBeTruthy();
+  });
+
+  it("while a request is being answered only its own row is locked", async () => {
+    // The answer never arrives, like a slow connection or one waiting for the 2FA code.
+    resolveRequest.mockReturnValue(new Promise(() => {}));
+    const user = userEvent.setup({ delay: null });
+    renderSection();
+
+    await user.click(screen.getByRole("button", { name: /Matemáticas Básicas/ }));
+    await user.click(screen.getByRole("button", { name: /^Miembros/ }));
+    await user.click(screen.getByRole("button", { name: "Rechazar" }));
+    await user.click(screen.getByRole("button", { name: "Sí, rechazar" }));
+
+    expect(screen.getByRole("button", { name: "Rechazar" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "Aceptar" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "Retirar a Sofía Pérez de la clase" }).hasAttribute("disabled")).toBe(false);
   });
 
   it("without classrooms shows the steps to start, like a kid without classes", () => {

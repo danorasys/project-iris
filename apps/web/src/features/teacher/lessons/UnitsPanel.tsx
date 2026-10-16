@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ClassroomArea, LessonDetail, Unit, UnitWithLessons } from "@iris/shared-types";
 import { getAuthErrorMessage } from "@/features/auth/errors";
@@ -10,11 +10,16 @@ import {
   IconArrowRight,
   IconArrowUp,
   IconBook,
+  IconCheck,
+  IconInfo,
   IconLayers,
   IconPencil,
   IconPlus,
+  IconQuestion,
+  IconSparkle,
   IconTrash,
 } from "@/shared/ui/icons";
+import { SectionOverview } from "@/shared/ui/portal/SectionOverview";
 import { hasDba, unitDbaText } from "../classrooms/classroomDetails";
 import type { TeacherPortalState } from "../portal/TeacherPortalPage";
 import { NewLessonDialog } from "./NewLessonDialog";
@@ -54,6 +59,8 @@ export function UnitsPanel({ classroomId, area, onToast, readOnly = false }: Uni
 
   const list = units.data ?? [];
   const busy = reorderUnits.isPending || reorderLessons.isPending;
+  const lessons = list.flatMap((unit) => unit.lessons);
+  const published = lessons.filter((lesson) => lesson.status === "publicada").length;
 
   function openLesson(lessonId: string) {
     const back: TeacherPortalState = { section: "clases", classroomId, view: "lecciones" };
@@ -83,25 +90,62 @@ export function UnitsPanel({ classroomId, area, onToast, readOnly = false }: Uni
 
   return (
     <section aria-labelledby="units-title" className={styles.section}>
-      <div className={styles.top}>
-        <div>
-          {/* The tab above already says it, so it's only for screen readers. */}
-          <h2 id="units-title" className={styles.visuallyHidden}>
-            Unidades y lecciones
-          </h2>
-          <p className={styles.lead}>
+      {/* The option above already says it, so it's only for screen readers. */}
+      <h2 id="units-title" className={styles.visuallyHidden}>
+        Unidades y lecciones
+      </h2>
+
+      {/* The same card the family sees on top of the class's structure. */}
+      <SectionOverview
+        titleId="units-overview-title"
+        Icon={IconLayers}
+        title="Cómo está organizada la clase"
+        text={
+          <>
+            Tiene <strong>{list.length === 1 ? "1 unidad" : `${list.length} unidades`}</strong> con{" "}
+            <strong>{lessons.length === 1 ? "1 lección" : `${lessons.length} lecciones`}</strong>
+            {lessons.length > 0 && ` (${published === 1 ? "1 publicada" : `${published} publicadas`})`}.{" "}
             {readOnly
               ? "La clase está archivada: puedes ver sus unidades y lecciones, pero no cambiarlas."
-              : "Cada unidad agrupa las lecciones de un tema. Tus estudiantes ven las unidades en este orden."}
-          </p>
-        </div>
-        {!readOnly && (
-          <button type="button" className={styles.primaryButton} onClick={() => setUnitDialog({})}>
-            <IconPlus width={16} height={16} />
-            Nueva unidad
-          </button>
-        )}
-      </div>
+              : "Tus estudiantes ven las unidades en este orden."}
+          </>
+        }
+        action={
+          !readOnly && (
+            <button type="button" className={styles.primaryButton} onClick={() => setUnitDialog({})}>
+              <IconPlus width={16} height={16} />
+              Nueva unidad
+            </button>
+          )
+        }
+        guides={[
+          {
+            title: "En cada unidad",
+            Icon: IconLayers,
+            items: [
+              { key: "question", Icon: IconQuestion, text: "La pregunta que la guía" },
+              ...(hasDba(area)
+                ? [
+                    {
+                      key: "dba",
+                      Icon: IconBook,
+                      text: "Su Derecho Básico de Aprendizaje (DBA) y sus Evidencias de Aprendizaje",
+                    },
+                  ]
+                : []),
+            ],
+          },
+          {
+            title: "En cada lección",
+            Icon: IconBook,
+            items: [
+              { key: "purpose", Icon: IconInfo, text: "Para qué es y qué debería lograr el estudiante" },
+              { key: "moments", Icon: IconCheck, text: "Su inicio, su contenido y su actividad" },
+              { key: "extras", Icon: IconSparkle, text: "Sus extras, si quieres darle más a alguien" },
+            ],
+          },
+        ]}
+      />
 
       {units.isLoading && <p className={styles.status}>Cargando las unidades…</p>}
       {units.isError && (
@@ -117,158 +161,204 @@ export function UnitsPanel({ classroomId, area, onToast, readOnly = false }: Uni
           </span>
           <p className={styles.emptyTitle}>Esta clase aún no tiene unidades</p>
           {!readOnly && (
-            <p className={styles.emptyText}>Crea la primera unidad con su pregunta guía. Después agrégale lecciones.</p>
+            <p className={styles.emptyText}>Crea una unidad. Después agrégale lecciones.</p>
           )}
         </div>
       )}
 
       <ol className={styles.units}>
-        {list.map((unit, unitIndex) => (
-          <li key={unit.id} className={styles.unit}>
-            <div className={styles.unitHead}>
-              <span className={styles.unitNumber} aria-hidden="true">
-                {unitIndex + 1}
-              </span>
-              <div className={styles.unitText}>
-                <p className={styles.unitEyebrow}>Unidad {unitIndex + 1}</p>
-                <h3 className={styles.unitTitle}>{unit.title}</h3>
-                <p className={styles.unitQuestion}>{unit.guiding_question}</p>
-                {unit.dba ? (
-                  <>
-                    <p className={styles.unitGoal}>
-                      <span className={styles.unitGoalLabel}>DBA:</span> {unitDbaText(unit.dba)}
-                    </p>
-                    {unit.dba.points.length > 0 ? (
-                      <>
-                        <p className={styles.unitGoal}>
-                          <span className={styles.unitGoalLabel}>Evidencias de Aprendizaje:</span>
-                        </p>
-                        <ul
-                          className={styles.unitPoints}
-                          aria-label={`Evidencias de Aprendizaje de la unidad ${unit.title}`}
-                        >
-                          {unit.dba.points.map((point, index) => (
-                            <li key={point.evidence_id ?? `own-${index}`}>{point.text}</li>
-                          ))}
-                        </ul>
-                      </>
-                    ) : (
-                      !readOnly && (
-                        <MissingNote action="Marcarlas" onFix={() => setUnitDialog({ unit })}>
-                          Faltan las Evidencias de Aprendizaje de la unidad: sin ellas no se pueden publicar sus
-                          lecciones.
-                        </MissingNote>
-                      )
+        {list.map((unit, unitIndex) => {
+          const unitPublished = unit.lessons.filter((lesson) => lesson.status === "publicada").length;
+          const drafts = unit.lessons.length - unitPublished;
+          return (
+            <li key={unit.id} className={styles.unit} style={{ "--order": unitIndex } as CSSProperties}>
+              <div className={styles.unitHead}>
+                <span className={styles.unitNumber} aria-hidden="true">
+                  {unitIndex + 1}
+                </span>
+                <div className={styles.unitText}>
+                  <p className={styles.unitEyebrow}>Unidad {unitIndex + 1}</p>
+                  <h3 className={styles.unitTitle}>{unit.title}</h3>
+                  <p className={styles.unitTags}>
+                    <span className={styles.tag}>
+                      <IconBook width={14} height={14} aria-hidden="true" />
+                      {unit.lessons.length === 1 ? "1 lección" : `${unit.lessons.length} lecciones`}
+                    </span>
+                    {unitPublished > 0 && (
+                      <span className={styles.tag} data-tone="mint">
+                        <IconCheck width={14} height={14} aria-hidden="true" />
+                        {unitPublished === 1 ? "1 publicada" : `${unitPublished} publicadas`}
+                      </span>
                     )}
-                  </>
-                ) : (
-                  // In the areas with DBA its lessons can't be published without it.
-                  hasDba(area) &&
-                  !readOnly && (
-                    <MissingNote action="Elegirlo" onFix={() => setUnitDialog({ unit })}>
-                      Falta el DBA de la unidad: sin él no se pueden publicar sus lecciones.
-                    </MissingNote>
-                  )
+                    {drafts > 0 && (
+                      <span className={styles.tag} data-tone="sun">
+                        <IconPencil width={14} height={14} aria-hidden="true" />
+                        {drafts === 1 ? "1 en borrador" : `${drafts} en borrador`}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {!readOnly && (
+                  <div className={styles.unitActions}>
+                    <button
+                      type="button"
+                      className={styles.iconButton}
+                      onClick={() => moveUnit(unitIndex, -1)}
+                      disabled={unitIndex === 0 || busy}
+                      aria-label={`Subir la unidad ${unit.title}`}
+                      title="Subir"
+                    >
+                      <IconArrowUp width={17} height={17} />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.iconButton}
+                      onClick={() => moveUnit(unitIndex, 1)}
+                      disabled={unitIndex === list.length - 1 || busy}
+                      aria-label={`Bajar la unidad ${unit.title}`}
+                      title="Bajar"
+                    >
+                      <IconArrowDown width={17} height={17} />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.iconButton}
+                      onClick={() => setUnitDialog({ unit })}
+                      aria-label={`Editar la unidad ${unit.title}`}
+                      title="Editar"
+                    >
+                      <IconPencil width={17} height={17} />
+                    </button>
+                    {/* A unit with lessons can't go: first move or delete them. */}
+                    <button
+                      type="button"
+                      className={`${styles.iconButton} ${styles.iconDanger}`}
+                      onClick={() => setToDelete(unit)}
+                      disabled={unit.lessons.length > 0}
+                      aria-label={
+                        unit.lessons.length > 0
+                          ? `No se puede eliminar la unidad ${unit.title} mientras tenga lecciones`
+                          : `Eliminar la unidad ${unit.title}`
+                      }
+                      title={unit.lessons.length > 0 ? "Primero mueve o elimina sus lecciones" : "Eliminar"}
+                    >
+                      <IconTrash width={17} height={17} />
+                    </button>
+                  </div>
                 )}
               </div>
-              {!readOnly && (
-                <div className={styles.unitActions}>
-                  <button
-                    type="button"
-                    className={styles.iconButton}
-                    onClick={() => moveUnit(unitIndex, -1)}
-                    disabled={unitIndex === 0 || busy}
-                    aria-label={`Subir la unidad ${unit.title}`}
-                  >
-                    <IconArrowUp width={18} height={18} />
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.iconButton}
-                    onClick={() => moveUnit(unitIndex, 1)}
-                    disabled={unitIndex === list.length - 1 || busy}
-                    aria-label={`Bajar la unidad ${unit.title}`}
-                  >
-                    <IconArrowDown width={18} height={18} />
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.iconButton}
-                    onClick={() => setUnitDialog({ unit })}
-                    aria-label={`Editar la unidad ${unit.title}`}
-                  >
-                    <IconPencil width={18} height={18} />
-                  </button>
-                  {/* A unit with lessons can't go: first move or delete them. */}
-                  <button
-                    type="button"
-                    className={`${styles.iconButton} ${styles.iconDanger}`}
-                    onClick={() => setToDelete(unit)}
-                    disabled={unit.lessons.length > 0}
-                    aria-label={
-                      unit.lessons.length > 0
-                        ? `No se puede eliminar la unidad ${unit.title} mientras tenga lecciones`
-                        : `Eliminar la unidad ${unit.title}`
-                    }
-                    title={unit.lessons.length > 0 ? "Primero mueve o elimina sus lecciones" : undefined}
-                  >
-                    <IconTrash width={18} height={18} />
-                  </button>
-                </div>
+
+              {/* The question that guides it, set apart like a quote. */}
+              <p className={styles.question}>
+                <span className={styles.questionIcon} aria-hidden="true">
+                  <IconQuestion width={16} height={16} />
+                </span>
+                <span>
+                  <span className={styles.questionLabel}>Pregunta guía</span>
+                  <span className={styles.questionText}>{unit.guiding_question}</span>
+                </span>
+              </p>
+
+              {unit.dba ? (
+                // The DBA and its evidences in a box that opens, so the card stays short.
+                <details className={styles.dba}>
+                  <summary className={styles.dbaSummary}>
+                    <span className={styles.dbaIcon} aria-hidden="true">
+                      <IconBook width={16} height={16} />
+                    </span>
+                    <span className={styles.dbaText}>
+                      <span className={styles.unitGoalLabel}>DBA:</span> {unitDbaText(unit.dba)}
+                    </span>
+                    <span className={styles.dbaToggle} aria-hidden="true">
+                      <IconArrowDown width={16} height={16} />
+                    </span>
+                  </summary>
+                  {unit.dba.points.length > 0 ? (
+                    <div className={styles.dbaBody}>
+                      <p className={styles.dbaPointsTitle}>Evidencias de Aprendizaje</p>
+                      <ul
+                        className={styles.unitPoints}
+                        aria-label={`Evidencias de Aprendizaje de la unidad ${unit.title}`}
+                      >
+                        {unit.dba.points.map((point, index) => (
+                          <li key={point.evidence_id ?? `own-${index}`}>
+                            <IconCheck width={15} height={15} aria-hidden="true" />
+                            {point.text}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </details>
+              ) : null}
+              {unit.dba && unit.dba.points.length === 0 && !readOnly && (
+                <MissingNote action="Marcarlas" onFix={() => setUnitDialog({ unit })}>
+                  Faltan las Evidencias de Aprendizaje de la unidad: sin ellas no se pueden publicar sus lecciones.
+                </MissingNote>
               )}
-            </div>
+              {/* In the areas with DBA its lessons can't be published without it. */}
+              {!unit.dba && hasDba(area) && !readOnly && (
+                <MissingNote action="Elegirlo" onFix={() => setUnitDialog({ unit })}>
+                  Falta el DBA de la unidad: sin él no se pueden publicar sus lecciones.
+                </MissingNote>
+              )}
 
-            {unit.lessons.length === 0 ? (
-              <p className={styles.noLessons}>Esta unidad aún no tiene lecciones.</p>
-            ) : (
-              <ol className={styles.lessons}>
-                {unit.lessons.map((lesson, lessonIndex) => (
-                  <li key={lesson.id} className={styles.lesson}>
-                    {readOnly ? (
-                      <div className={`${styles.lessonMain} ${styles.lessonStatic}`}>
-                        <LessonSummary lesson={lesson} />
-                      </div>
-                    ) : (
-                      <button type="button" className={styles.lessonMain} onClick={() => openLesson(lesson.id)}>
-                        <LessonSummary lesson={lesson} />
-                        <IconArrowRight width={18} height={18} className={styles.lessonArrow} />
-                      </button>
-                    )}
-                    {!readOnly && (
-                      <div className={styles.lessonMove}>
-                        <button
-                          type="button"
-                          className={styles.iconButton}
-                          onClick={() => moveLesson(unit, lessonIndex, -1)}
-                          disabled={lessonIndex === 0 || busy}
-                          aria-label={`Subir la lección ${lesson.title}`}
-                        >
-                          <IconArrowUp width={16} height={16} />
+              {unit.lessons.length === 0 ? (
+                <p className={styles.noLessons}>Esta unidad aún no tiene lecciones.</p>
+              ) : (
+                <ol className={styles.lessons}>
+                  {unit.lessons.map((lesson, lessonIndex) => (
+                    <li key={lesson.id} className={styles.lesson}>
+                      {readOnly ? (
+                        <div className={`${styles.lessonMain} ${styles.lessonStatic}`}>
+                          <LessonSummary lesson={lesson} number={lessonIndex + 1} />
+                        </div>
+                      ) : (
+                        <button type="button" className={styles.lessonMain} onClick={() => openLesson(lesson.id)}>
+                          <LessonSummary lesson={lesson} number={lessonIndex + 1} />
+                          <IconArrowRight width={18} height={18} className={styles.lessonArrow} aria-hidden="true" />
                         </button>
-                        <button
-                          type="button"
-                          className={styles.iconButton}
-                          onClick={() => moveLesson(unit, lessonIndex, 1)}
-                          disabled={lessonIndex === unit.lessons.length - 1 || busy}
-                          aria-label={`Bajar la lección ${lesson.title}`}
-                        >
-                          <IconArrowDown width={16} height={16} />
-                        </button>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ol>
-            )}
+                      )}
+                      {!readOnly && (
+                        <div className={styles.lessonMove}>
+                          <button
+                            type="button"
+                            className={styles.iconButton}
+                            onClick={() => moveLesson(unit, lessonIndex, -1)}
+                            disabled={lessonIndex === 0 || busy}
+                            aria-label={`Subir la lección ${lesson.title}`}
+                            title="Subir"
+                          >
+                            <IconArrowUp width={15} height={15} />
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.iconButton}
+                            onClick={() => moveLesson(unit, lessonIndex, 1)}
+                            disabled={lessonIndex === unit.lessons.length - 1 || busy}
+                            aria-label={`Bajar la lección ${lesson.title}`}
+                            title="Bajar"
+                          >
+                            <IconArrowDown width={15} height={15} />
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
 
-            {!readOnly && (
-              <button type="button" className={styles.addLesson} onClick={() => setNewLessonUnit(unit.id)}>
-                <IconPlus width={16} height={16} />
-                Nueva lección en esta unidad
-              </button>
-            )}
-          </li>
-        ))}
+              {!readOnly && (
+                <button type="button" className={styles.addLesson} onClick={() => setNewLessonUnit(unit.id)}>
+                  <span className={styles.addLessonIcon} aria-hidden="true">
+                    <IconPlus width={16} height={16} />
+                  </span>
+                  Nueva lección en esta unidad
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ol>
 
       {unitDialog && (
@@ -320,19 +410,20 @@ function MissingNote({ action, onFix, children }: { action: string; onFix: () =>
   );
 }
 
-// What a lesson row shows: its icon, title, purpose and whether it's out.
-function LessonSummary({ lesson }: { lesson: UnitWithLessons["lessons"][number] }) {
+// What a lesson row shows: its number, title, purpose and whether it's out.
+function LessonSummary({ lesson, number }: { lesson: UnitWithLessons["lessons"][number]; number: number }) {
   const published = lesson.status === "publicada";
   return (
     <>
-      <span className={styles.lessonIcon} aria-hidden="true">
-        <IconBook width={20} height={20} />
+      <span className={styles.lessonNumber} aria-hidden="true">
+        {number}
       </span>
       <span className={styles.lessonText}>
         <span className={styles.lessonTitle}>{lesson.title}</span>
         <span className={styles.lessonPurpose}>{lesson.purpose}</span>
       </span>
-      <span className={published ? `${styles.statusChip} ${styles.published}` : styles.statusChip}>
+      <span className={styles.statusChip} data-published={published}>
+        <span className={styles.statusDot} aria-hidden="true" />
         {published ? "Publicada" : "Borrador"}
       </span>
     </>

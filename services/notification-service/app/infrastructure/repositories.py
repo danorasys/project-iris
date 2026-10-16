@@ -55,6 +55,8 @@ class SqlAlchemyNotificationRepository:
         classroom_id: UUID | None = None,
         student_id: UUID | None = None,
         events: list[str] | None = None,
+        only_events: list[str] | None = None,
+        skip_events: list[str] | None = None,
     ) -> NotificationPage:
         mine = (NotificationModel.recipient_id == recipient_id) & (NotificationModel.recipient_role == recipient_role)
         # The space of one class shows only its own (HU-42).
@@ -65,16 +67,25 @@ class SqlAlchemyNotificationRepository:
         # Only some kinds, like the messages of a class (HU-77).
         if events:
             mine &= NotificationModel.event.in_(events)
+        # "Recibidos" or "Enviados": which ones are listed and counted. The
+        # unread ones are counted over everything above, so the number
+        # doesn't change when moving between the two.
+        listed = mine
+        if only_events is not None:
+            listed &= NotificationModel.event.in_(only_events)
+        if skip_events:
+            listed &= NotificationModel.event.not_in(skip_events)
         # Both counts in one query.
         counts = await self._session.execute(
-            select(func.count(), func.coalesce(func.sum(case((NotificationModel.read.is_(False), 1), else_=0)), 0)).where(
-                mine
-            )
+            select(
+                func.count().filter(listed),
+                func.coalesce(func.sum(case((NotificationModel.read.is_(False), 1), else_=0)), 0),
+            ).where(mine)
         )
         total, unread = counts.one()
         rows = await self._session.execute(
             select(NotificationModel)
-            .where(mine)
+            .where(listed)
             # The id breaks ties, so a page never repeats or skips one.
             .order_by(NotificationModel.created_at.desc(), NotificationModel.id.desc())
             .offset(offset)

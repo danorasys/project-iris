@@ -1,18 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import type { AttemptResult, PlayQuestion } from "@iris/shared-types";
 import { ApiError } from "@/shared/api/httpClient";
-import { useCheckAnswer, useSubmitAttempt } from "@/shared/api/hooks/useLessonsApi";
-import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
-import { IconArrowLeft, IconCheck, IconClose, IconUndo } from "@/shared/ui/icons";
-import { Mascot } from "@/shared/ui/Mascot";
+import { IconCheck, IconClose, IconQuestion } from "@/shared/ui/icons";
+import { KidCard, KidCards, KidHeader, KidMessage, KidPage, type KidTone } from "@/shared/ui/kid/KidKit";
+import type { PlayerBackend } from "./playerBackend";
 import styles from "./LessonPlayer.module.css";
 
-const VARIANTS = ["coral", "teal", "sol", "hoja"] as const;
+// Each answer its letter and its color, so they're easy to tell apart.
+const LETTERS = ["A", "B", "C", "D", "E", "F"];
+const TONES: KidTone[] = ["blue", "orange", "mint", "sun", "sky", "navy"];
 
 type Phase = "asking" | "checking" | "right" | "wrong" | "grading" | "not_sent";
 
 interface QuizStepProps {
-  lessonId: string;
+  /** Checks each answer and grades the whole try (the server, or the
+   * browser in the teacher's preview). */
+  backend: PlayerBackend;
   extraId: string | null;
   question: PlayQuestion;
   /** From 0, in the order of this try. */
@@ -29,12 +32,13 @@ interface QuizStepProps {
   onLeave: () => void;
 }
 
-/** One question of the activity (HU-63). Choosing an option asks the server
+/** One question of the activity (HU-63): the question big on top and each
+ * answer as a very big card with its letter. Choosing one asks the backend
  * if it's right, shows it with a little animation (never which one was the
  * right one), and goes on by itself: there's no way back to change it. After
- * the last one the server grades the whole try and keeps it. */
+ * the last one the backend grades the whole try (the server keeps it). */
 export function QuizStep({
-  lessonId,
+  backend,
   extraId,
   question,
   index,
@@ -47,8 +51,6 @@ export function QuizStep({
   onChanged,
   onLeave,
 }: QuizStepProps) {
-  const check = useCheckAnswer();
-  const submit = useSubmitAttempt();
   const [phase, setPhase] = useState<Phase>("asking");
   const [chosen, setChosen] = useState<Record<string, string>>(answers);
   const pause = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -60,12 +62,7 @@ export function QuizStep({
   async function send(all: Record<string, string>) {
     setPhase("grading");
     try {
-      const result = await submit.mutateAsync({
-        lessonId,
-        extraId,
-        answers: Object.entries(all).map(([question_id, option_id]) => ({ question_id, option_id })),
-      });
-      onGraded(result);
+      onGraded(await backend.submitAttempt(extraId, all));
     } catch (err) {
       if (err instanceof ApiError && err.code === "actividad_cambio") onChanged();
       else setPhase("not_sent");
@@ -76,7 +73,7 @@ export function QuizStep({
     setFailed(false);
     setPhase("checking");
     try {
-      const { correct } = await check.mutateAsync({ lessonId, extraId, questionId: question.id, optionId });
+      const correct = await backend.checkAnswer(extraId, question.id, optionId);
       const all = { ...answers, [question.id]: optionId };
       setChosen(all);
       setPhase(correct ? "right" : "wrong");
@@ -96,75 +93,60 @@ export function QuizStep({
 
   if (phase === "grading" || phase === "not_sent") {
     return (
-      <main className={styles.centered}>
-        <Mascot mood="thinking" size="large">
+      <KidPage
+        next={phase === "not_sent" ? { label: "Enviar otra vez", onSelect: () => void send(chosen) } : undefined}
+        dwellDurationMs={dwellDurationMs}
+      >
+        <KidHeader eyebrow="Actividad" icon={<IconQuestion aria-hidden="true" />} title="Tus respuestas" />
+        <KidMessage mood="thinking">
           {phase === "grading"
             ? "Revisando tus respuestas…"
             : "No pudimos guardar tus respuestas. Revisa la conexión e inténtalo otra vez."}
-        </Mascot>
-        {phase === "not_sent" && (
-          <BigChoiceButton
-            variant="sol"
-            icon={<IconUndo width={36} height={36} />}
-            onSelect={() => void send(chosen)}
-            dwellDurationMs={dwellDurationMs}
-          >
-            Enviar otra vez
-          </BigChoiceButton>
-        )}
-      </main>
+        </KidMessage>
+      </KidPage>
     );
   }
 
   const answered = phase === "right" || phase === "wrong";
   return (
-    <main className={styles.centered}>
-      <p className={styles.counter}>
-        Pregunta {index + 1} de {total}
-      </p>
-      <h1 className={styles.prompt}>{question.prompt}</h1>
+    <KidPage
+      back={{ label: "Salir de la actividad", onSelect: onLeave, disabled: phase !== "asking" }}
+      dwellDurationMs={dwellDurationMs}
+    >
+      <KidHeader
+        eyebrow={`Pregunta ${index + 1} de ${total}`}
+        icon={<IconQuestion aria-hidden="true" />}
+        title={question.prompt}
+      />
       {failed && (
         <p role="alert" className={styles.error}>
           No pudimos revisar tu respuesta. Elige otra vez para intentarlo.
         </p>
       )}
-      <div className={styles.options}>
+      <KidCards className={question.options.length > 3 ? styles.manyOptions : undefined}>
         {question.options.map((option, i) => (
-          <BigChoiceButton
+          <KidCard
             key={option.id}
-            variant={VARIANTS[i % VARIANTS.length]}
+            title={option.text}
+            mark={LETTERS[i]}
+            tone={TONES[i % TONES.length]}
+            compact={question.options.length > 3}
+            answer
+            order={i}
             onSelect={() => void choose(option.id)}
             disabled={phase !== "asking"}
             dwellDurationMs={dwellDurationMs}
-          >
-            {option.text}
-          </BigChoiceButton>
+          />
         ))}
-      </div>
-      {answered ? (
-        <div
-          className={`${styles.feedback} ${phase === "right" ? styles.feedbackRight : styles.feedbackWrong}`}
-          role="status"
-        >
+      </KidCards>
+      {answered && (
+        <div className={styles.feedback} data-right={phase === "right"} role="status">
           <span className={styles.feedbackIcon} aria-hidden="true">
             {phase === "right" ? <IconCheck width={44} height={44} /> : <IconClose width={44} height={44} />}
           </span>
           {phase === "right" ? "¡Correcto!" : "Esa no era"}
         </div>
-      ) : (
-        // Apart from the answers, so it isn't taken for one of them.
-        <div className={styles.leave}>
-          <BigChoiceButton
-            variant="teal"
-            icon={<IconArrowLeft width={36} height={36} />}
-            onSelect={onLeave}
-            disabled={phase !== "asking"}
-            dwellDurationMs={dwellDurationMs}
-          >
-            Salir de la actividad
-          </BigChoiceButton>
-        </div>
       )}
-    </main>
+    </KidPage>
   );
 }

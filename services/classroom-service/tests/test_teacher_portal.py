@@ -173,7 +173,9 @@ async def test_los_miembros_traen_los_datos_de_su_tutor(
     assert student["first_name"] == "Sofía"
     assert student["guardian_name"] == "Ana Pérez"
     assert student["guardian_email"] == "ana@example.com"
-    assert student["guardian_phone"] == "3001234567"
+    assert student["guardian_relationship"] == "Madre"
+    assert student["last_name"] == "Pérez"
+    assert "guardian_phone" not in student
 
 
 async def test_un_estudiante_que_ya_no_existe_no_rompe_la_lista(
@@ -216,7 +218,7 @@ async def test_retirar_a_un_estudiante_lo_saca_y_avisa_a_su_tutor(
     event = await _next_event(pubsub)
     assert event["event"] == "enrollment.removed"
     assert event["guardian_id"] == str(identity_gateway.guardian_person_id)
-    assert event["student_name"] == "Sofía"
+    assert event["student_name"] == "Sofía Pérez"
     assert event["teacher_name"] == "Carlos Ruiz"
     assert event["classroom_name"] == "Matemáticas Básicas"
     await pubsub.aclose()

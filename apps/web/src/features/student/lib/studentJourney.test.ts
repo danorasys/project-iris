@@ -1,27 +1,21 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { setInputMode } from "@/shared/gaze/inputMode";
-import { isTourDone, markProfileReady, markTourDone, routeAfterCalibration, routeAfterPin } from "./studentJourney";
+import { isTourDone, markDeviceReady, markTourDone, routeAfterPin, routeIntoKids } from "./studentJourney";
 
 const kid = "kid-1";
 
 afterEach(() => localStorage.clear());
 
 describe("the way a kid enters IRIS", () => {
-  it("the first time with the gaze: conditions, camera, calibration, tour", () => {
-    expect(routeAfterPin(kid)).toBe("/student/setup-conditions");
-    expect(routeAfterCalibration(kid)).toBe("/student/tour");
+  it("the first time on a device: conditions and camera before calibrating", () => {
+    expect(routeIntoKids()).toBe("/kids/setup-conditions");
   });
 
-  it("the other times with the gaze: calibrate this session, then home", () => {
-    markProfileReady(kid);
-    markTourDone(kid);
-
-    expect(routeAfterPin(kid)).toBe("/student/calibration");
-    expect(routeAfterCalibration(kid)).toBe("/student/home");
+  it("the other times: straight to calibrate, before the profiles", () => {
+    markDeviceReady();
+    expect(routeIntoKids()).toBe("/kids/calibration");
   });
 
-  it("with the mouse or the keyboard there's nothing to calibrate", () => {
-    setInputMode("keyboard");
+  it("after the PIN: the tour the first time, then home", () => {
     expect(routeAfterPin(kid)).toBe("/student/tour");
 
     markTourDone(kid);

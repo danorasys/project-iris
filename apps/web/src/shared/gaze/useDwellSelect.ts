@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { calculateProgress, isInsideRect, isProgressComplete } from "./dwellMath";
+import { holdAfterSelection, isHeldAfterSelection, reportDwellProgress } from "./dwellProgress";
 import { useGazeSourceOptional } from "./useGazeSource";
 
 interface DwellSelectOptions {
@@ -26,6 +27,8 @@ export function useDwellSelect<T extends HTMLElement>({
   active = true,
 }: DwellSelectOptions): DwellSelectResult<T> {
   const ref = useRef<T>(null);
+  // Who this target is for the gaze cursor (see dwellProgress.ts).
+  const [target] = useState(() => ({}));
   const [progress, setProgress] = useState(0);
   const [focused, setFocused] = useState(false);
   const source = useGazeSourceOptional();
@@ -55,6 +58,19 @@ export function useDwellSelect<T extends HTMLElement>({
         dwellStartRef.current = null;
         selectedRef.current = false;
         setProgress(0);
+        reportDwellProgress(target, 0);
+        return;
+      }
+
+      // Chosen: it stays so until the gaze leaves it.
+      if (selectedRef.current) return;
+
+      // Right after choosing something else in this same spot (a new screen
+      // came), it waits for the gaze to move away first.
+      if (isHeldAfterSelection(x, y)) {
+        dwellStartRef.current = null;
+        setProgress(0);
+        reportDwellProgress(target, 0);
         return;
       }
 
@@ -63,10 +79,13 @@ export function useDwellSelect<T extends HTMLElement>({
       }
 
       const elapsed = performance.now() - dwellStartRef.current;
-      setProgress(calculateProgress(elapsed, durationMs));
+      const filled = calculateProgress(elapsed, durationMs);
+      setProgress(filled);
+      reportDwellProgress(target, filled);
 
       if (isProgressComplete(elapsed, durationMs) && !selectedRef.current) {
         selectedRef.current = true;
+        holdAfterSelection(x, y);
         onSelectRef.current();
       }
     });
@@ -75,12 +94,13 @@ export function useDwellSelect<T extends HTMLElement>({
     // turned back on starts from the beginning.
     return () => {
       unsubscribe();
+      reportDwellProgress(target, 0);
       dwellStartRef.current = null;
       selectedRef.current = false;
       setProgress(0);
       setFocused(false);
     };
-  }, [source, durationMs, enabled]);
+  }, [source, durationMs, enabled, target]);
 
   // While it's off it always reads as empty, whatever was left in the state.
   return { ref, progress: enabled ? progress : 0, focused: enabled && focused };

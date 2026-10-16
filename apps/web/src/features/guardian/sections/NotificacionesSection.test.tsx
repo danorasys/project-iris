@@ -15,7 +15,8 @@ const noClassTray = { data: undefined, isLoading: false, isError: false };
 const classTray = vi.fn();
 
 vi.mock("@/shared/api/hooks/useNotifications", () => ({
-  useBandejaNotificaciones: (page: number, pageSize: number) => trayQuery(page, pageSize),
+  useBandejaNotificaciones: (page: number, pageSize: number, _enabled: boolean, box?: string) =>
+    trayQuery(page, pageSize, box),
   // Only used inside the space of a class, off here.
   useClassNotifications: () => classTray() ?? noClassTray,
   useMarcarNotificacionLeida: () => ({ mutateAsync: markRead }),
@@ -97,6 +98,27 @@ afterEach(() => {
 });
 
 describe("NotificacionesSection", () => {
+  it("splits the tray into Recibidos and Enviados, starting on Recibidos", async () => {
+    trayQuery.mockImplementation((_page: number, _size: number, box?: string) => ({
+      data: box === "sent" ? page([]) : page([accepted]),
+      isLoading: false,
+      isError: false,
+    }));
+    renderSection();
+
+    expect(trayQuery).toHaveBeenLastCalledWith(1, 8, "received");
+    expect(screen.getByRole("button", { name: "Recibidos" }).getAttribute("aria-pressed")).toBe("true");
+
+    await userEvent.click(screen.getByRole("button", { name: "Enviados" }));
+
+    expect(trayQuery).toHaveBeenLastCalledWith(1, 8, "sent");
+    expect(screen.getByRole("button", { name: "Enviados" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Aún no has enviado mensajes")).toBeTruthy();
+    // The bar stays, to go back.
+    await userEvent.click(screen.getByRole("button", { name: "Recibidos" }));
+    expect(screen.getByRole("list", { name: "Lista de notificaciones" })).toBeTruthy();
+  });
+
   it("lists them newest first like a mail inbox: who, subject, start of the message and when", () => {
     trayReturns(page([accepted, sent]));
 
@@ -391,7 +413,7 @@ describe("NotificacionesSection", () => {
     expect((screen.getByRole("button", { name: /Anterior/ }) as HTMLButtonElement).disabled).toBe(true);
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
 
-    expect(trayQuery).toHaveBeenLastCalledWith(2, 8);
+    expect(trayQuery).toHaveBeenLastCalledWith(2, 8, "received");
     expect(screen.getByText("Página 2 de 2")).toBeTruthy();
   });
 
@@ -405,11 +427,11 @@ describe("NotificacionesSection", () => {
     expect((screen.getByRole("button", { name: "Página anterior" }) as HTMLButtonElement).disabled).toBe(true);
 
     await user.click(screen.getByRole("button", { name: "Página 3" }));
-    expect(trayQuery).toHaveBeenLastCalledWith(3, 8);
+    expect(trayQuery).toHaveBeenLastCalledWith(3, 8, "received");
     expect(screen.getByRole("button", { name: "Página 3" }).getAttribute("aria-current")).toBe("page");
 
     await user.click(screen.getByRole("button", { name: "Página siguiente" }));
-    expect(trayQuery).toHaveBeenLastCalledWith(4, 8);
+    expect(trayQuery).toHaveBeenLastCalledWith(4, 8, "received");
   });
 
   it("has no page buttons when everything fits in one", () => {

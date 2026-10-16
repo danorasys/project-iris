@@ -56,7 +56,13 @@ vi.mock("@/shared/api/hooks/useLessonsApi", () => ({
   useUpdateExtra: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSetExtraActivity: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteExtra: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  // The kid's player asks for these; the preview must never use them.
+  useReachPage: () => ({ mutateAsync: serverCall }),
+  useCheckAnswer: () => ({ mutateAsync: serverCall }),
+  useSubmitAttempt: () => ({ mutateAsync: serverCall }),
 }));
+
+const serverCall = vi.fn();
 
 const LIVING_THINGS: UnitDba = {
   own: false,
@@ -75,6 +81,13 @@ let unitDba: UnitDba | null = null;
 
 // The class, with an area without DBA unless a test says otherwise.
 let classroom: { students: never[]; area: string; grade: number } = { students: [], area: "arts", grade: 1 };
+
+// The Portal Docente around the editor: its account, bell and session.
+vi.mock("@/shared/auth/useAuth", () => ({ useAuth: () => ({ closeSession: vi.fn() }) }));
+vi.mock("@/shared/api/hooks/useNotifications", () => ({ useUnreadNotifications: () => ({ data: 2 }) }));
+vi.mock("@/shared/api/hooks/useTeacherProfileApi", () => ({
+  useMyTeacherAccount: () => ({ data: { first_name: "Carlos", last_name: "Ruiz", email: "carlos@example.com" } }),
+}));
 
 vi.mock("@/shared/api/hooks/useClassroomsApi", () => ({
   useClassroomDetail: () => ({ data: classroom }),
@@ -95,7 +108,7 @@ afterEach(() => {
   lesson = draft;
   classroom = { students: [], area: "arts", grade: 1 };
   unitDba = null;
-  for (const mock of [updateLesson, setActivity, publish, uploadImage]) mock.mockReset();
+  for (const mock of [updateLesson, setActivity, publish, uploadImage, serverCall]) mock.mockReset();
 });
 
 describe("LessonEditorPage", { timeout: 20_000 }, () => {
@@ -190,7 +203,7 @@ describe("LessonEditorPage", { timeout: 20_000 }, () => {
 
     await user.click(screen.getByRole("tab", { name: /Contenido/ }));
     const heavy = new File([new Uint8Array(5 * 1024 * 1024 + 1)], "grande.png", { type: "image/png" });
-    await user.upload(screen.getByLabelText("Agregar una imagen a la página 1"), heavy);
+    await user.upload(screen.getByLabelText("Agregar una imagen a la diapositiva 1"), heavy);
 
     expect(await screen.findByText("La imagen no puede superar 5 MB.")).toBeTruthy();
     expect(uploadImage).not.toHaveBeenCalled();
@@ -219,7 +232,7 @@ describe("LessonEditorPage", { timeout: 20_000 }, () => {
     renderEditor();
 
     await user.click(screen.getByRole("tab", { name: /Contenido/ }));
-    await user.clear(screen.getByLabelText(/^Título, página 1/));
+    await user.clear(screen.getByLabelText(/^Título, diapositiva 1/));
 
     expect(
       await screen.findByText("Contenido, página 1: completa o quita los bloques vacíos.", undefined, {
@@ -227,5 +240,68 @@ describe("LessonEditorPage", { timeout: 20_000 }, () => {
       }),
     ).toBeTruthy();
     expect(screen.getByText("La lección ya está publicada: completa esto antes de guardar.")).toBeTruthy();
+  });
+
+  it("opens inside the Portal Docente, with its menu on Mis clases", () => {
+    renderEditor();
+
+    const menu = screen.getByRole("navigation", { name: "Opciones del portal docente" });
+    expect(within(menu).getByRole("button", { name: /Mis clases/ }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("button", { name: /Regresar a unidades y lecciones/ })).toBeTruthy();
+  });
+
+  it("writes the content as slides, one at a time, like the kid sees them", async () => {
+    updateLesson.mockResolvedValue(draft);
+    const user = userEvent.setup({ delay: null });
+    renderEditor();
+
+    await user.click(screen.getByRole("tab", { name: /Contenido/ }));
+    expect(screen.getByText(/Animales terrestres · Página 1 de 1/)).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: /Nueva diapositiva/ }));
+    expect(screen.getByText(/Página 2 de 2/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Diapositiva 2" }).getAttribute("aria-current")).toBe("true");
+
+    // Back to the first one with its thumbnail; taking it out asks first.
+    await user.click(screen.getByRole("button", { name: "Diapositiva 1" }));
+    expect((screen.getByLabelText(/^Título, diapositiva 1/) as HTMLInputElement).value).toBe("Los animales");
+    await user.click(screen.getByRole("button", { name: "Eliminar la diapositiva 1" }));
+    expect(screen.getByText(/Se quita todo lo que tiene/)).toBeTruthy();
+  });
+
+  it("previews the lesson like a kid, answering it without saving anything", async () => {
+    lesson = {
+      ...draft,
+      activity: {
+        pass_threshold: 1,
+        questions: [
+          {
+            prompt: "¿Dónde vive el perro?",
+            options: [
+              { text: "En la tierra", is_correct: true },
+              { text: "En el mar", is_correct: false },
+            ],
+          },
+        ],
+      },
+    };
+    const user = userEvent.setup({ delay: null });
+    renderEditor();
+
+    await user.click(screen.getByRole("button", { name: /Vista previa/ }));
+    const preview = screen.getByRole("dialog", { name: /Vista previa · así la verá tu estudiante/ });
+    expect(within(preview).getByText(draft.purpose)).toBeTruthy();
+
+    await user.click(within(preview).getByRole("button", { name: "Continuar" }));
+    await user.click(within(preview).getByRole("button", { name: /Contenido/ }));
+    expect(within(preview).getByRole("heading", { name: "Los animales" })).toBeTruthy();
+    await user.click(within(preview).getByRole("button", { name: /Terminar la lectura/ }));
+    await user.click(within(preview).getByRole("button", { name: /Ir a la lección/ }));
+    await user.click(within(preview).getByRole("button", { name: /Actividad/ }));
+    await user.click(within(preview).getByRole("button", { name: "Empezar" }));
+    await user.click(within(preview).getByRole("button", { name: "En la tierra" }));
+
+    expect(await within(preview).findByText("¡Correcto!")).toBeTruthy();
+    expect(serverCall).not.toHaveBeenCalled();
   });
 });

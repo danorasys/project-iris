@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
-import { IconArrowLeft, IconArrowRight, IconTrash } from "@/shared/ui/icons";
+import type { TrayBox } from "@/shared/api/hooks/useNotifications";
+import { IconArrowLeft, IconArrowRight, IconInbox, IconSend, IconTrash } from "@/shared/ui/icons";
 import styles from "./NotificationTray.module.css";
+import { NOTIFICATION_WORDS, type TrayWords } from "./trayWords";
 
 /** Which ones of all are on this page ("1–8 de 26") and the arrows to the
  * page before and after; a missing one means there's no page there. */
@@ -19,34 +21,56 @@ interface TrayToolbarProps {
   onDelete: () => void;
   busy: boolean;
   range: TrayRange;
+  /** Notifications unless said otherwise. */
+  words?: TrayWords;
+  /** "Recibidos" or "Enviados", and how to move between them. */
+  box?: TrayBox;
+  onBoxChange?: (box: TrayBox) => void;
 }
 
+const BOXES = [
+  { box: "received", label: "Recibidos", Icon: IconInbox },
+  { box: "sent", label: "Enviados", Icon: IconSend },
+] as const;
+
 /** The bar on top of the tray: a box to pick the whole page and, once
- * something is picked, how many and "Eliminar"; on the right, which ones
- * are shown and the arrows to the other pages. */
-export function TrayToolbar({ selectedCount, allSelected, onToggleAll, onDelete, busy, range }: TrayToolbarProps) {
-  const box = useRef<HTMLInputElement>(null);
+ * something is picked, how many and "Eliminar"; then "Recibidos" and
+ * "Enviados", like the folders of a mail; on the right, which ones are
+ * shown and the arrows to the other pages. */
+export function TrayToolbar({
+  selectedCount,
+  allSelected,
+  onToggleAll,
+  onDelete,
+  busy,
+  range,
+  words = NOTIFICATION_WORDS,
+  box,
+  onBoxChange,
+}: TrayToolbarProps) {
+  const pickAll = useRef<HTMLInputElement>(null);
 
   // Half marked when only some are picked, like Gmail.
   useEffect(() => {
-    if (box.current) box.current.indeterminate = selectedCount > 0 && !allSelected;
+    if (pickAll.current) pickAll.current.indeterminate = selectedCount > 0 && !allSelected;
   }, [selectedCount, allSelected]);
 
   return (
     <div className={styles.toolbar}>
       <label className={styles.check}>
         <input
-          ref={box}
+          ref={pickAll}
           type="checkbox"
           checked={allSelected}
           onChange={onToggleAll}
-          aria-label="Seleccionar todas las notificaciones de esta página"
+          disabled={range.total === 0}
+          aria-label={`Seleccionar ${words.all} ${words.those} ${words.many} de esta página`}
         />
       </label>
       {selectedCount > 0 ? (
         <>
           <span className={styles.toolbarText} aria-live="polite">
-            {selectedCount === 1 ? "1 seleccionada" : `${selectedCount} seleccionadas`}
+            {selectedCount === 1 ? `1 ${words.picked}` : `${selectedCount} ${words.pickedMany}`}
           </span>
           <button type="button" className={styles.toolbarDelete} onClick={onDelete} disabled={busy}>
             <IconTrash width={16} height={16} />
@@ -54,13 +78,32 @@ export function TrayToolbar({ selectedCount, allSelected, onToggleAll, onDelete,
           </button>
         </>
       ) : (
-        <span className={styles.toolbarHint}>Seleccionar todas</span>
+        <span className={styles.toolbarHint}>Seleccionar {words.all}</span>
+      )}
+
+      {box && onBoxChange && (
+        <div className={styles.boxes} role="group" aria-label="Bandeja">
+          {BOXES.map(({ box: each, label, Icon }) => (
+            <button
+              key={each}
+              type="button"
+              className={styles.box}
+              aria-pressed={box === each}
+              onClick={() => onBoxChange(each)}
+            >
+              <Icon width={17} height={17} aria-hidden="true" />
+              {label}
+            </button>
+          ))}
+        </div>
       )}
 
       <div className={styles.toolbarRange}>
-        <span className={styles.toolbarCount}>
-          {range.from}–{range.to} de {range.total}
-        </span>
+        {range.total > 0 && (
+          <span className={styles.toolbarCount}>
+            {range.from}–{range.to} de {range.total}
+          </span>
+        )}
         <button
           type="button"
           className={styles.mailStep}

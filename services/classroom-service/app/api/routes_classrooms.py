@@ -245,11 +245,12 @@ async def get_classroom(classroom_id: UUID, user: TeacherDep, classrooms: Classr
                 enrollment_id=s.enrollment_id,
                 student_id=s.student_id,
                 first_name=s.first_name,
+                last_name=s.last_name,
                 avatar_id=s.avatar_id,
                 status=s.status,
                 guardian_name=s.guardian_name,
                 guardian_email=s.guardian_email,
-                guardian_phone=s.guardian_phone,
+                guardian_relationship=s.guardian_relationship,
             )
             for s in detail.students
         ],
@@ -378,9 +379,11 @@ async def list_requests(classroom_id: UUID, user: TeacherDep, classrooms: Classr
             enrollment_id=r.enrollment_id,
             student_id=r.student_id,
             student_first_name=r.student_first_name,
+            student_last_name=r.student_last_name,
             student_avatar_id=r.student_avatar_id,
             guardian_name=r.guardian_name,
-            guardian_contact=r.guardian_contact,
+            guardian_email=r.guardian_email,
+            guardian_relationship=r.guardian_relationship,
             requested_at=r.requested_at,
         )
         for r in requests

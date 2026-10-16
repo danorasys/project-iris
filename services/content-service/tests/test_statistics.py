@@ -64,6 +64,8 @@ async def test_las_estadisticas_de_una_leccion_y_de_la_clase(
 
     animals, plants = stats["lessons"]
     assert (animals["title"], plants["title"]) == ("Animales", "Plantas")
+    # Both in the same unit, so they're shown together.
+    assert animals["unit_id"] == plants["unit_id"] == first["unit_id"]
     assert (animals["completed"], animals["in_progress"], animals["not_started"]) == (2, 1, 1)
     assert (animals["passed"], animals["tried_not_passed"]) == (2, 0)
     assert animals["average_percent"] == round((100 + 100 + 33 + 0) / 4)

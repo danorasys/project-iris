@@ -7,15 +7,15 @@ import type {
   PlayLesson,
   PlayQuestion,
 } from "@iris/shared-types";
-import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
-import { IconArrowLeft, IconBook, IconCheck, IconClose, IconQuestion, IconSparkle, IconUndo } from "@/shared/ui/icons";
-import { Mascot } from "@/shared/ui/Mascot";
+import { IconBook, IconCheck, IconClose, IconQuestion, IconSparkle } from "@/shared/ui/icons";
+import { KidCard, KidCards, KidHeader, KidMessage, KidPage } from "@/shared/ui/kid/KidKit";
 import { ViewEnter } from "@/shared/ui/ViewEnter";
 import { ExtrasStep } from "./ExtrasStep";
 import { pagesOf, readPercent, resultMessage, resumePage, shuffled } from "./lessonRules";
 import { PagesStep } from "./PagesStep";
+import type { PlayerBackend } from "./playerBackend";
 import { QuizStep } from "./QuizStep";
-import { useReachedPages } from "./useReachedPages";
+import { useServerBackend } from "./useServerBackend";
 import styles from "./LessonPlayer.module.css";
 
 // One part of the lesson: the lesson itself (extraId null) or an extra.
@@ -102,14 +102,23 @@ interface LessonPlayerProps {
   onReload: () => void;
   /** How long right or wrong stays on screen in the activity. */
   feedbackMs?: number;
+  /** Where the way through is kept. The server unless said otherwise; the
+   * teacher's preview keeps it in the browser. */
+  backend?: PlayerBackend;
 }
 
-/** A lesson the way a kid goes through it, all of it by gaze (HU-61 to
- * HU-64). The mascot says what it's for, then the lesson's hub: its content
- * (and how much of it they read), its activity once they read it all, and
- * the extras once they did the activity. Every page and every whole try is
- * kept, for them and for their family (HU-46/47). */
-export function LessonPlayer({ lesson, dwellDurationMs, onExit, onReload, feedbackMs = 1600 }: LessonPlayerProps) {
+/** A lesson the way a kid goes through it, all by gaze (HU-61 to HU-64):
+ * its purpose, then three big cards for the content, the activity (once
+ * it's all read) and the extras (once the activity is done). Pages and
+ * tries are saved for the kid and the family (HU-46/47). */
+export function LessonPlayer({
+  lesson,
+  dwellDurationMs,
+  onExit,
+  onReload,
+  feedbackMs = 1600,
+  backend,
+}: LessonPlayerProps) {
   const main: Part = { extraId: null, title: lesson.title, pages: pagesOf(lesson.blocks), activity: lesson.activity };
   const [step, setStep] = useState<Step>({ kind: "intro" });
 
@@ -123,7 +132,8 @@ export function LessonPlayer({ lesson, dwellDurationMs, onExit, onReload, feedba
   const [done, setDone] = useState<Record<string, boolean>>(() =>
     Object.fromEntries([["", lesson.activity_done], ...lesson.extras.map((e) => [e.id, e.activity_done])]),
   );
-  const reachPage = useReachedPages(lesson.id, last);
+  const server = useServerBackend(lesson.id, last);
+  const api = backend ?? server;
   // The invitation to the activity, only the first time the reading gets to
   // 100 % (HU-62): if it already was, there's none.
   const invitePending = useRef(readPercent(lesson.pages_seen, main.pages.length) < 100);
@@ -137,7 +147,7 @@ export function LessonPlayer({ lesson, dwellDurationMs, onExit, onReload, feedba
     setStep({ kind: "pages", part, page });
     setLast((l) => ({ ...l, [key]: page + 1 }));
     setSeen((s) => ({ ...s, [key]: Math.max(s[key] ?? 0, page + 1) }));
-    reachPage(part.extraId, page + 1);
+    api.reachPage(part.extraId, page + 1);
   }
 
   // A part opens on its pages, where they left them. An extra that's only
@@ -175,206 +185,171 @@ export function LessonPlayer({ lesson, dwellDurationMs, onExit, onReload, feedba
     return read > 0 ? `Para leer · llevas ${read} %` : "Para leer";
   }
 
+  const lessonHeader = (subtitle?: string) => (
+    <KidHeader eyebrow="Lección" icon={<IconBook aria-hidden="true" />} title={lesson.title} subtitle={subtitle} />
+  );
+
   return (
-    <ViewEnter view={stepKey(step)} level={stepLevel(step)} onMount className={styles.stage}>
-      {step.kind === "intro" && (
-        <main className={styles.centered}>
-          <Mascot mood="cheering" size="large">
-            {lesson.purpose}
-          </Mascot>
-          <h1 className={styles.title}>{lesson.title}</h1>
-          <BigChoiceButton variant="hoja" onSelect={() => setStep({ kind: "hub" })} dwellDurationMs={dwellDurationMs}>
-            Continuar
-          </BigChoiceButton>
-        </main>
-      )}
+    <div data-theme="portal" className={styles.stage}>
+      <ViewEnter view={stepKey(step)} level={stepLevel(step)} onMount className={styles.step}>
+        {step.kind === "intro" && (
+          <KidPage next={{ label: "Continuar", onSelect: () => setStep({ kind: "hub" }) }} dwellDurationMs={dwellDurationMs}>
+            {lessonHeader()}
+            <KidMessage mood="cheering">{lesson.purpose}</KidMessage>
+          </KidPage>
+        )}
 
-      {step.kind === "hub" && (
-        <main className={styles.centered}>
-          <Mascot mood="happy" size="medium">
-            ¿Qué quieres hacer en esta lección?
-          </Mascot>
-          <h1 className={styles.title}>{lesson.title}</h1>
-          <div className={styles.choices}>
-            <BigChoiceButton
-              variant="coral"
-              icon={<IconBook width={36} height={36} />}
-              note={mainRead === 100 ? "Ya leíste todo" : `Llevas ${mainRead} %`}
-              onSelect={() => open(main)}
-              dwellDurationMs={dwellDurationMs}
-            >
-              Contenido
-            </BigChoiceButton>
-            {main.activity && (
-              <BigChoiceButton
-                variant="sol"
-                icon={<IconQuestion width={36} height={36} />}
-                note={
-                  !activityOpen
-                    ? "Primero lee todo el contenido"
-                    : done[""]
-                      ? "Ya la hiciste. ¡Puedes repetirla!"
-                      : "¡Ya puedes hacerla!"
-                }
-                disabled={!activityOpen}
-                onSelect={() => setStep({ kind: "briefing", part: main })}
+        {step.kind === "hub" && (
+          <KidPage back={{ label: "Volver a las lecciones", onSelect: onExit }} dwellDurationMs={dwellDurationMs}>
+            {lessonHeader("¿Qué quieres hacer en esta lección?")}
+            <KidCards>
+              <KidCard
+                title="Contenido"
+                icon={<IconBook />}
+                tone="blue"
+                note={mainRead === 100 ? "Ya leíste todo" : `Llevas ${mainRead} %`}
+                noteTone={mainRead === 100 ? "done" : "plain"}
+                onSelect={() => open(main)}
                 dwellDurationMs={dwellDurationMs}
-              >
-                Actividad
-              </BigChoiceButton>
-            )}
-            {lesson.extras.length > 0 && (
-              <BigChoiceButton
-                variant="hoja"
-                icon={<IconSparkle width={36} height={36} />}
-                note={extrasOpen ? "Algo más para ti" : "Primero haz la actividad"}
-                disabled={!extrasOpen}
-                onSelect={() => setStep({ kind: "extras" })}
-                dwellDurationMs={dwellDurationMs}
-              >
-                Extra
-              </BigChoiceButton>
-            )}
-            <BigChoiceButton
-              variant="teal"
-              icon={<IconArrowLeft width={36} height={36} />}
-              onSelect={onExit}
-              dwellDurationMs={dwellDurationMs}
-            >
-              Volver a las lecciones
-            </BigChoiceButton>
-          </div>
-        </main>
-      )}
+              />
+              {main.activity && (
+                <KidCard
+                  title="Actividad"
+                  icon={<IconQuestion />}
+                  tone="orange"
+                  order={1}
+                  note={
+                    !activityOpen
+                      ? "Primero lee todo el contenido"
+                      : done[""]
+                        ? "Ya la hiciste. ¡Puedes repetirla!"
+                        : "¡Ya puedes hacerla!"
+                  }
+                  noteTone={!activityOpen ? "locked" : done[""] ? "done" : "plain"}
+                  disabled={!activityOpen}
+                  onSelect={() => setStep({ kind: "briefing", part: main })}
+                  dwellDurationMs={dwellDurationMs}
+                />
+              )}
+              {lesson.extras.length > 0 && (
+                <KidCard
+                  title="Extra"
+                  icon={<IconSparkle />}
+                  tone="mint"
+                  order={2}
+                  note={extrasOpen ? "Algo más para ti" : "Primero haz la actividad"}
+                  noteTone={extrasOpen ? "plain" : "locked"}
+                  disabled={!extrasOpen}
+                  onSelect={() => setStep({ kind: "extras" })}
+                  dwellDurationMs={dwellDurationMs}
+                />
+              )}
+            </KidCards>
+          </KidPage>
+        )}
 
-      {step.kind === "pages" && (
-        <PagesStep
-          lessonId={lesson.id}
-          title={step.part.title}
-          pages={step.part.pages}
-          page={step.page}
-          dwellDurationMs={dwellDurationMs}
-          onPage={(page) => showPage(step.part, page)}
-          onBefore={() => setStep(backFrom(step.part))}
-          backLabel={step.part.extraId === null ? "Volver a la lección" : "Volver a los extras"}
-          onDone={() => afterPages(step.part)}
-        />
-      )}
+        {step.kind === "pages" && (
+          <PagesStep
+            lessonId={lesson.id}
+            title={step.part.title}
+            pages={step.part.pages}
+            page={step.page}
+            dwellDurationMs={dwellDurationMs}
+            onPage={(page) => showPage(step.part, page)}
+            onBefore={() => setStep(backFrom(step.part))}
+            backLabel={step.part.extraId === null ? "Volver a la lección" : "Volver a los extras"}
+            onDone={() => afterPages(step.part)}
+          />
+        )}
 
-      {step.kind === "invite" && (
-        <main className={styles.centered}>
-          <Mascot mood="celebrating" size="large">
-            ¡Terminaste de leer todo! Ahora ya puedes hacer la actividad de esta lección.
-          </Mascot>
-          <BigChoiceButton
-            variant="hoja"
-            icon={<IconCheck width={36} height={36} />}
-            onSelect={() => setStep({ kind: "hub" })}
+        {step.kind === "invite" && (
+          <KidPage
+            next={{ label: "Ir a la lección", onSelect: () => setStep({ kind: "hub" }) }}
             dwellDurationMs={dwellDurationMs}
           >
-            Ir a la lección
-          </BigChoiceButton>
-        </main>
-      )}
+            {lessonHeader()}
+            <KidMessage mood="celebrating">
+              ¡Terminaste de leer todo! Ahora ya puedes hacer la actividad de esta lección.
+            </KidMessage>
+          </KidPage>
+        )}
 
-      {step.kind === "briefing" && step.part.activity && (
-        <main className={styles.centered}>
-          <Mascot mood="cheering" size="large">
-            {`Vas a responder ${step.part.activity.questions.length} preguntas, una por una. Elige la respuesta que creas correcta y te diré si acertaste. ¡Puedes intentarlo las veces que quieras!`}
-          </Mascot>
-          <div className={styles.choices}>
-            <BigChoiceButton
-              variant="hoja"
-              icon={<IconQuestion width={36} height={36} />}
-              onSelect={() => startQuiz(step.part)}
-              dwellDurationMs={dwellDurationMs}
-            >
-              Empezar
-            </BigChoiceButton>
-            <BigChoiceButton
-              variant="teal"
-              icon={<IconArrowLeft width={36} height={36} />}
-              onSelect={() => setStep(backFrom(step.part))}
-              dwellDurationMs={dwellDurationMs}
-            >
-              Regresar
-            </BigChoiceButton>
-          </div>
-        </main>
-      )}
+        {step.kind === "briefing" && step.part.activity && (
+          <KidPage
+            back={{ label: "Regresar", onSelect: () => setStep(backFrom(step.part)) }}
+            next={{ label: "Empezar", onSelect: () => startQuiz(step.part) }}
+            dwellDurationMs={dwellDurationMs}
+          >
+            <KidHeader eyebrow="Actividad" icon={<IconQuestion aria-hidden="true" />} title={step.part.title} />
+            <KidMessage mood="cheering">
+              {`Vas a responder ${step.part.activity.questions.length} preguntas, una por una. Elige la respuesta que creas correcta y te diré si acertaste. ¡Puedes intentarlo las veces que quieras!`}
+            </KidMessage>
+          </KidPage>
+        )}
 
-      {step.kind === "quiz" && (
-        <QuizStep
-          // A new question starts fresh.
-          key={step.index}
-          lessonId={lesson.id}
-          extraId={step.part.extraId}
-          question={step.order[step.index]}
-          index={step.index}
-          total={step.order.length}
-          answers={step.answers}
-          dwellDurationMs={dwellDurationMs}
-          feedbackMs={feedbackMs}
-          onNext={(answers) => setStep({ ...step, index: step.index + 1, answers })}
-          onGraded={(result) => graded(step, result)}
-          onChanged={() => setStep({ kind: "changed" })}
-          onLeave={() => setStep({ kind: "leaving", quiz: step })}
-        />
-      )}
+        {step.kind === "quiz" && (
+          <QuizStep
+            // A new question starts fresh.
+            key={step.index}
+            backend={api}
+            extraId={step.part.extraId}
+            question={step.order[step.index]}
+            index={step.index}
+            total={step.order.length}
+            answers={step.answers}
+            dwellDurationMs={dwellDurationMs}
+            feedbackMs={feedbackMs}
+            onNext={(answers) => setStep({ ...step, index: step.index + 1, answers })}
+            onGraded={(result) => graded(step, result)}
+            onChanged={() => setStep({ kind: "changed" })}
+            onLeave={() => setStep({ kind: "leaving", quiz: step })}
+          />
+        )}
 
-      {step.kind === "leaving" && (
-        <main className={styles.centered}>
-          <Mascot mood="thinking" size="large">
-            Si sales ahora, este intento no se guarda. ¿Quieres salir de la actividad?
-          </Mascot>
-          <div className={styles.choices}>
-            <BigChoiceButton variant="hoja" onSelect={() => setStep(step.quiz)} dwellDurationMs={dwellDurationMs}>
-              Seguir respondiendo
-            </BigChoiceButton>
-            <BigChoiceButton
-              variant="coral"
-              icon={<IconArrowLeft width={36} height={36} />}
-              onSelect={() => setStep(backFrom(step.quiz.part))}
-              dwellDurationMs={dwellDurationMs}
-            >
-              Sí, salir
-            </BigChoiceButton>
-          </div>
-        </main>
-      )}
+        {step.kind === "leaving" && (
+          <KidPage
+            back={{ label: "Sí, salir", onSelect: () => setStep(backFrom(step.quiz.part)) }}
+            next={{ label: "Seguir respondiendo", onSelect: () => setStep(step.quiz) }}
+            dwellDurationMs={dwellDurationMs}
+          >
+            <KidHeader eyebrow="Actividad" icon={<IconQuestion aria-hidden="true" />} title="¿Quieres salir?" />
+            <KidMessage mood="thinking">
+              Si sales ahora, este intento no se guarda. ¿Quieres salir de la actividad?
+            </KidMessage>
+          </KidPage>
+        )}
 
-      {step.kind === "result" && (
-        <ResultStep
-          part={step.part}
-          order={step.order}
-          result={step.result}
-          dwellDurationMs={dwellDurationMs}
-          onAgain={() => startQuiz(step.part)}
-          onBack={() => setStep(backFrom(step.part))}
-        />
-      )}
+        {step.kind === "result" && (
+          <ResultStep
+            part={step.part}
+            order={step.order}
+            result={step.result}
+            dwellDurationMs={dwellDurationMs}
+            onAgain={() => startQuiz(step.part)}
+            onBack={() => setStep(backFrom(step.part))}
+          />
+        )}
 
-      {step.kind === "changed" && (
-        <main className={styles.centered}>
-          <Mascot mood="thinking" size="large">
-            Tu profe cambió esta actividad mientras la hacías. Vamos a abrirla de nuevo.
-          </Mascot>
-          <BigChoiceButton variant="teal" onSelect={onReload} dwellDurationMs={dwellDurationMs}>
-            Abrir de nuevo
-          </BigChoiceButton>
-        </main>
-      )}
+        {step.kind === "changed" && (
+          <KidPage next={{ label: "Abrir de nuevo", onSelect: onReload }} dwellDurationMs={dwellDurationMs}>
+            {lessonHeader()}
+            <KidMessage mood="thinking">
+              Tu profe cambió esta actividad mientras la hacías. Vamos a abrirla de nuevo.
+            </KidMessage>
+          </KidPage>
+        )}
 
-      {step.kind === "extras" && (
-        <ExtrasStep
-          extras={lesson.extras}
-          noteOf={extraNote}
-          dwellDurationMs={dwellDurationMs}
-          onOpen={(extra) => open(partOf(extra))}
-          onBack={() => setStep({ kind: "hub" })}
-        />
-      )}
-    </ViewEnter>
+        {step.kind === "extras" && (
+          <ExtrasStep
+            extras={lesson.extras}
+            noteOf={extraNote}
+            dwellDurationMs={dwellDurationMs}
+            onOpen={(extra) => open(partOf(extra))}
+            onBack={() => setStep({ kind: "hub" })}
+          />
+        )}
+      </ViewEnter>
+    </div>
   );
 }
 
@@ -396,42 +371,31 @@ function ResultStep({ part, order, result, dwellDurationMs, onAgain, onBack }: R
   const perfect = result.correct === result.total;
 
   return (
-    <main className={styles.centered}>
-      <Mascot mood={result.passed ? "celebrating" : "cheering"} size="large">
+    <KidPage
+      back={{ label: part.extraId === null ? "Volver a la lección" : "Volver a los extras", onSelect: onBack }}
+      next={{ label: perfect ? "Hacerla otra vez" : "Intentar de nuevo", onSelect: onAgain }}
+      dwellDurationMs={dwellDurationMs}
+    >
+      <KidHeader
+        eyebrow="Actividad"
+        icon={<IconQuestion aria-hidden="true" />}
+        title={`${result.correct} de ${result.total} bien`}
+      />
+      <KidMessage mood={result.passed ? "celebrating" : "cheering"}>
         {resultMessage(result.correct, result.total, result.passed)}
-      </Mascot>
+      </KidMessage>
       <ol className={styles.results} aria-label="Tus respuestas">
         {rightInKidOrder.map((right, index) => (
-          <li key={index} className={right ? styles.right : styles.wrong}>
-            {right ? (
-              <IconCheck width={22} height={22} aria-hidden="true" />
-            ) : (
-              <IconClose width={22} height={22} aria-hidden="true" />
-            )}
+          <li key={index} className={styles.result} data-right={right}>
+            <span className={styles.resultIcon} aria-hidden="true">
+              {right ? <IconCheck width={22} height={22} /> : <IconClose width={22} height={22} />}
+            </span>
             <span>
               Pregunta {index + 1}: {right ? "bien" : "para repasar"}
             </span>
           </li>
         ))}
       </ol>
-      <div className={styles.choices}>
-        <BigChoiceButton
-          variant="sol"
-          icon={<IconUndo width={36} height={36} />}
-          onSelect={onAgain}
-          dwellDurationMs={dwellDurationMs}
-        >
-          {perfect ? "Hacerla otra vez" : "Intentar de nuevo"}
-        </BigChoiceButton>
-        <BigChoiceButton
-          variant="hoja"
-          icon={<IconArrowLeft width={36} height={36} />}
-          onSelect={onBack}
-          dwellDurationMs={dwellDurationMs}
-        >
-          {part.extraId === null ? "Volver a la lección" : "Volver a los extras"}
-        </BigChoiceButton>
-      </div>
-    </main>
+    </KidPage>
   );
 }

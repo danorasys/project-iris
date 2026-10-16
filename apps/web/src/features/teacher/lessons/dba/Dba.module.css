@@ -75,16 +75,72 @@
   border-radius: 4px;
 }
 
-/* The catalog's evidences and the own ones, each in a white card. */
+/* --- The picker, inside the step of the unit's window --- */
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* The picked DBA whole, on a soft sky card with the book on a white tile. */
+.chosen {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--landing-sky-pale, var(--color-iris-pale));
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--landing-sky) 16%, transparent) 0%, transparent 55%),
+    var(--landing-mist-1, var(--color-canvas));
+  animation: chosen-in 240ms ease both;
+}
+
+.chosenIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-iris-medium);
+}
+
+.chosenText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.chosenLabel {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-iris-medium);
+}
+
+.chosenName {
+  margin: 0 0 4px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-iris-deep);
+}
+
+/* The evidences of the DBA and the own ones: a white box with a thin line. */
 .points {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 10px;
   min-width: 0;
   margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-iris-pale);
-  border-radius: var(--radius-medium);
+  padding: 16px;
+  border: 1px solid var(--portal-line, var(--color-iris-pale));
+  border-radius: 18px;
   background: var(--color-surface);
 }
 
@@ -95,29 +151,117 @@
   color: var(--color-ink);
 }
 
+/* A legend only takes the box's gap with this, like the steps' titles. */
+legend.pointsTitle {
+  float: left;
+  width: 100%;
+}
+
+legend.pointsTitle + * {
+  clear: both;
+}
+
+.pointsHint {
+  margin: -4px 0 0;
+  font-size: 0.88rem;
+  color: var(--portal-muted, var(--color-ink-soft));
+}
+
 .evidences {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Each evidence a card to tick: the real checkbox stays for keyboards and
+   screen readers, unseen, and a rounded box with a check draws it. */
 .evidence {
+  position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--portal-line, var(--color-iris-pale));
+  border-radius: 14px;
+  background: var(--color-surface);
   line-height: 1.5;
+  color: var(--color-ink);
   cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.evidence:hover {
+  border-color: var(--landing-sky-pale, var(--color-iris-pale));
+  background: var(--landing-mist-1, var(--color-canvas));
 }
 
 .evidence input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* The box in the IRIS blue, the same of the checkboxes of the portal and of
+   the picked option of a select: a thin blue line, then filled with a white
+   check when it's ticked. */
+.checkBox {
+  display: grid;
   flex: none;
-  width: 18px;
-  height: 18px;
-  margin-top: 3px;
-  accent-color: var(--color-iris-medium);
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border: 2px solid color-mix(in srgb, var(--color-iris-medium) 45%, var(--color-surface));
+  border-radius: 7px;
+  background: var(--color-surface);
+  color: transparent;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.evidence:hover .checkBox {
+  border-color: var(--color-iris-medium);
+}
+
+/* A ticked one: the card in the soft blue of IRIS, its line and text in blue. */
+.evidence:has(input:checked) {
+  border-color: var(--color-iris-medium);
+  background: color-mix(in srgb, var(--color-iris-medium) 7%, var(--color-surface));
+  color: var(--color-iris-deep);
+}
+
+.evidence input:checked + .checkBox {
+  border-color: var(--color-iris-medium);
+  background: var(--color-iris-medium);
+  color: var(--color-surface);
+}
+
+.checkBox svg {
+  stroke-width: 3;
+}
+
+.evidence input:checked + .checkBox svg {
+  animation: check-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.evidence input:focus-visible + .checkBox {
+  box-shadow: var(--focus-halo);
+}
+
+.evidence:has(input:disabled) {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .ownPoint {
@@ -135,37 +279,82 @@
 .add {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border-radius: var(--radius-medium);
+  gap: 8px;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
 }
 
+/* Round and soft red, like the other ways to remove something. */
 .remove {
   --button-focus-halo: var(--focus-halo-danger);
   flex: none;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   margin-top: 30px;
-  padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--color-error) 35%, var(--color-surface));
-  background: var(--color-surface);
+  border: none;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-error) 9%, var(--color-surface));
   color: var(--color-error);
+  transition: background 140ms ease;
 }
 
+.remove:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 16%, var(--color-surface));
+}
+
+/* A dashed line to add, like "Nueva lección en esta unidad". */
 .add {
-  align-self: flex-start;
-  padding: 8px 14px;
-  border: 1.5px dashed color-mix(in srgb, var(--color-iris-medium) 60%, var(--color-surface));
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1.5px dashed color-mix(in srgb, var(--color-iris-medium) 45%, var(--color-surface));
+  border-radius: 14px;
   background: var(--color-surface);
-  color: var(--color-iris-deep);
+  color: var(--color-iris-medium);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
 }
 
-.add:hover {
+.add:hover:not(:disabled) {
   border-color: var(--color-iris-medium);
+  background: var(--landing-mist-1, var(--color-canvas));
+}
+
+.addIcon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--color-iris-pale);
+  color: var(--color-iris-deep);
 }
 
 .remove:focus-visible,
 .add:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+@keyframes chosen-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes check-pop {
+  from {
+    transform: scale(0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chosen,
+  .evidence input:checked + .checkBox svg {
+    animation: none;
+  }
 }

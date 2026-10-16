@@ -7,8 +7,8 @@ import { IconBook, IconQuestion, IconSparkle, IconTrash } from "@/shared/ui/icon
 import { LIMITS } from "../lessonLimits";
 import { ActivityEditor } from "./ActivityEditor";
 import { toActivity, toBlocks, toEditorActivity, toPages, type EditorActivity, type EditorPage } from "./editorModel";
-import { PagesEditor } from "./PagesEditor";
 import { SaveStatus } from "./SaveStatus";
+import { SlidesEditor } from "./SlidesEditor";
 import { combineSaveStates, useAutosave } from "./useAutosave";
 import styles from "./Editor.module.css";
 
@@ -213,7 +213,14 @@ function ExtraCard({ lessonId, extra, students, onError }: ExtraCardProps) {
       </fieldset>
 
       {isContent ? (
-        <PagesEditor lessonId={lessonId} pages={pages} onChange={setPages} onError={onError} owner="el extra" />
+        <SlidesEditor
+          lessonId={lessonId}
+          title={extra.title}
+          pages={pages}
+          onChange={setPages}
+          onError={onError}
+          owner="el extra"
+        />
       ) : (
         <ActivityEditor activity={activity} onChange={setActivityState} name={`extra-${extra.id}`} />
       )}

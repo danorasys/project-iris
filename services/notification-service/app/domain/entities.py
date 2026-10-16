@@ -48,6 +48,13 @@ ROLE_GUARDIAN = "guardian"
 # The kid's own tray: new lessons and their teacher's messages.
 ROLE_STUDENT = "student"
 
+# The two boxes of a tray: what the person received and what they sent.
+# What a teacher or a guardian sent is the copy they keep of their own
+# messages (HU-51); a kid doesn't write any.
+BOX_RECEIVED = "received"
+BOX_SENT = "sent"
+OWN_COPY_EVENT = {ROLE_TEACHER: TEACHER_MESSAGE, ROLE_GUARDIAN: MESSAGE_SENT}
+
 
 @dataclasses.dataclass
 class Notification:

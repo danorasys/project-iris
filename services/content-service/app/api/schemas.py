@@ -465,6 +465,7 @@ class KidInLessonOut(BaseModel):
 class LessonStatisticsOut(BaseModel):
     lesson_id: UUID
     title: str
+    unit_id: UUID
     unit_title: str
     has_activity: bool
     average_percent: int

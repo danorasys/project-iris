@@ -1,24 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { calculateAverageDwellMs, saveDwellDurationMs, getDwellDurationMs } from "./dwellPreferences";
-
-describe("calculateAverageDwellMs", () => {
-  it("devuelve 0 si no hay mediciones", () => {
-    expect(calculateAverageDwellMs([])).toBe(0);
-  });
-
-  it("promedia y redondea las mediciones", () => {
-    expect(calculateAverageDwellMs([800, 900, 1000])).toBe(900);
-  });
-
-  it("redondea al entero más cercano cuando el promedio no es exacto", () => {
-    expect(calculateAverageDwellMs([700, 800])).toBe(750);
-    expect(calculateAverageDwellMs([701, 800])).toBe(751);
-  });
-
-  it("funciona con una sola medición", () => {
-    expect(calculateAverageDwellMs([1234])).toBe(1234);
-  });
-});
+import { saveDwellDurationMs, getDwellDurationMs } from "./dwellPreferences";
 
 describe("preferencias en localStorage", () => {
   const subjectId = "student-1";

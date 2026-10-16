@@ -1,0 +1,10 @@
+/* The unit window takes its look from the new class one
+   (ClassroomFormDialog.module.css), in one column: only the steps. The
+   element in front so it wins over the class window's rules. */
+form.card {
+  max-width: 860px;
+}
+
+.card .body {
+  grid-template-columns: minmax(0, 1fr);
+}

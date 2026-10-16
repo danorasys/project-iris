@@ -7,13 +7,13 @@ import { useTeacherClassrooms } from "@/shared/api/hooks/useClassroomsApi";
 import { useUnreadNotifications } from "@/shared/api/hooks/useNotifications";
 import { useMyTeacherAccount } from "@/shared/api/hooks/useTeacherProfileApi";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { IconBell, IconClassroom, IconHome, IconLogOut, IconUserCircle } from "@/shared/ui/icons";
-import { PortalSection, PortalShell, type PortalHeader, type PortalNavItem } from "@/shared/ui/portal/PortalShell";
+import { PortalSection, PortalShell, type PortalHeader } from "@/shared/ui/portal/PortalShell";
 import { ClassroomsSection } from "./sections/ClassroomsSection";
 import type { ClassroomView } from "./sections/ClassroomSpace";
 import { TeacherHomeSection } from "./sections/TeacherHomeSection";
 import { TeacherNotificationsSection } from "./sections/TeacherNotificationsSection";
 import { TeacherProfileSection } from "./sections/TeacherProfileSection";
+import { teacherNavItems } from "./teacherNav";
 import styles from "./TeacherPortalPage.module.css";
 
 export type TeacherSection = "inicio" | "notificaciones" | "perfil" | "clases";
@@ -123,35 +123,7 @@ export default function TeacherPortalPage() {
     );
   }
 
-  const items: PortalNavItem[] = [
-    { key: "inicio", label: "Inicio", Icon: IconHome, onSelect: () => select("inicio"), active: section === "inicio" },
-    {
-      key: "clases",
-      label: "Mis clases",
-      Icon: IconClassroom,
-      onSelect: () => select("clases"),
-      active: section === "clases",
-    },
-    {
-      key: "notificaciones",
-      label: "Notificaciones",
-      Icon: IconBell,
-      onSelect: () => select("notificaciones"),
-      active: section === "notificaciones",
-      badgeCount: unread,
-      badgeLabel: "sin leer",
-    },
-    // "Mi perfil" goes down with the account, like in the Portal de Padres.
-    {
-      key: "perfil",
-      label: "Mi perfil",
-      Icon: IconUserCircle,
-      onSelect: () => select("perfil"),
-      active: section === "perfil",
-      footer: true,
-    },
-    { key: "salir", label: "Cerrar sesión", Icon: IconLogOut, onSelect: requestLogout, danger: true, footer: true },
-  ];
+  const items = teacherNavItems({ section, select, logout: requestLogout, unread });
 
   // What the top bar says on each section. Mis clases, Notificaciones and Mi
   // perfil draw their own heading, like in the Portal de Padres, so there it

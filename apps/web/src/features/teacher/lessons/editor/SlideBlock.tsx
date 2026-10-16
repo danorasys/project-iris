@@ -1,16 +1,16 @@
 import type { ChangeEvent, ReactNode } from "react";
 import { lessonImagePath } from "@/shared/api/mediaPaths";
 import { AuthImage } from "@/shared/ui/AuthImage";
-import { IconArrowDown, IconArrowUp, IconPlus, IconTrash } from "@/shared/ui/icons";
+import { IconArrowDown, IconArrowUp, IconImage, IconPlus, IconTrash } from "@/shared/ui/icons";
 import { LIMITS } from "../lessonLimits";
 import { BLOCK_KINDS } from "./blockKinds";
 import { removeAt, replaceAt, type EditorBlock } from "./editorModel";
-import styles from "./Editor.module.css";
+import styles from "./Slides.module.css";
 
-interface BlockEditorProps {
+interface SlideBlockProps {
   block: EditorBlock;
   lessonId: string;
-  /** "Página 2, bloque 3", for the labels of screen readers. */
+  /** "Diapositiva 2, bloque 3", for the labels of screen readers. */
   where: string;
   onChange: (block: EditorBlock) => void;
   onMove: (step: -1 | 1) => void;
@@ -20,12 +20,13 @@ interface BlockEditorProps {
   /** Picks a new picture for an image block. */
   onReplaceImage: (file: File) => void;
   uploading: boolean;
-  disabled: boolean;
 }
 
-/** One block of a page, with the editor its type needs and its buttons to
- * move it or take it out. Nothing is HTML: what's written is plain text. */
-export function BlockEditor({
+/** One block written right on the slide, looking the way the kid will read
+ * it: a title is written big like a title, a paragraph like a paragraph.
+ * Its buttons (move it, take it out) show when it's pointed at or focused.
+ * Nothing is HTML: what's written is plain text. */
+export function SlideBlock({
   block,
   lessonId,
   where,
@@ -36,8 +37,7 @@ export function BlockEditor({
   canMoveDown,
   onReplaceImage,
   uploading,
-  disabled,
-}: BlockEditorProps) {
+}: SlideBlockProps) {
   const kind = BLOCK_KINDS[block.type];
 
   function pickImage(event: ChangeEvent<HTMLInputElement>) {
@@ -52,60 +52,62 @@ export function BlockEditor({
     case "subtitulo":
       editor = (
         <input
-          className={`${styles.input} ${styles.headingInput} ${block.text.trim() ? "" : styles.inputMissing}`}
+          className={block.type === "titulo" ? styles.title : styles.subtitle}
           value={block.text}
           maxLength={LIMITS.heading}
           onChange={(event) => onChange({ ...block, text: event.target.value.replace(/\n/g, " ") })}
           aria-label={`${kind.label}, ${where}`}
           placeholder={block.type === "titulo" ? "Escribe el título" : "Escribe el subtítulo"}
-          disabled={disabled}
+          data-empty={!block.text.trim()}
         />
       );
       break;
     case "texto":
       editor = (
         <textarea
-          className={`${styles.textarea} ${block.text.trim() ? "" : styles.inputMissing}`}
+          className={styles.paragraph}
           value={block.text}
           maxLength={LIMITS.paragraph}
           onChange={(event) => onChange({ ...block, text: event.target.value })}
           aria-label={`Párrafo, ${where}`}
-          placeholder="Escribe el párrafo"
-          disabled={disabled}
+          placeholder="Escribe lo que el peque va a leer"
+          rows={2}
+          data-empty={!block.text.trim()}
         />
       );
       break;
     case "lista":
       editor = (
-        <div className={styles.stackTight}>
+        <div className={styles.list}>
           {block.items.map((item, index) => (
             // Items are plain strings that can repeat, their position is their key.
-            <div key={index} className={styles.row}>
+            <div key={index} className={styles.listItem}>
               <span className={styles.bullet} aria-hidden="true" />
               <input
-                className={`${styles.input} ${item.trim() ? "" : styles.inputMissing}`}
+                className={styles.listInput}
                 value={item}
                 maxLength={LIMITS.listItem}
                 onChange={(event) => onChange({ ...block, items: replaceAt(block.items, index, event.target.value) })}
                 aria-label={`Elemento ${index + 1} de la lista, ${where}`}
-                disabled={disabled}
+                placeholder={`Elemento ${index + 1}`}
+                data-empty={!item.trim()}
               />
               <button
                 type="button"
-                className={`${styles.iconButton} ${styles.danger}`}
+                className={styles.inlineRemove}
                 onClick={() => onChange({ ...block, items: removeAt(block.items, index) })}
-                disabled={disabled || block.items.length === 1}
+                disabled={block.items.length === 1}
                 aria-label={`Quitar el elemento ${index + 1} de la lista`}
               >
-                <IconTrash width={16} height={16} />
+                <IconTrash width={14} height={14} />
               </button>
             </div>
           ))}
           <button
             type="button"
-            className={styles.small}
+            className={styles.inlineAdd}
             onClick={() => onChange({ ...block, items: [...block.items, ""] })}
-            disabled={disabled || block.items.length >= LIMITS.listItems}
+            disabled={block.items.length >= LIMITS.listItems}
           >
             <IconPlus width={14} height={14} /> Agregar elemento
           </button>
@@ -117,15 +119,15 @@ export function BlockEditor({
       const setCell = (row: number, column: number, value: string) =>
         onChange({ ...block, rows: replaceAt(block.rows, row, replaceAt(block.rows[row], column, value)) });
       editor = (
-        <div className={styles.stackTight}>
+        <div className={styles.tableBlock}>
           <div className={styles.tableWrap}>
-            <div className={styles.tableGrid} style={{ gridTemplateColumns: `repeat(${columns}, minmax(110px, 1fr))` }}>
+            <div className={styles.table} style={{ gridTemplateColumns: `repeat(${columns}, minmax(110px, 1fr))` }}>
               {block.rows.map((row, rowIndex) =>
                 row.map((cell, column) => (
                   <input
                     // Cells are plain strings, their position is their key.
                     key={`${rowIndex}-${column}`}
-                    className={`${styles.input} ${rowIndex === 0 ? styles.headerCell : ""} ${cell.trim() ? "" : styles.inputMissing}`}
+                    className={rowIndex === 0 ? `${styles.cell} ${styles.headerCell}` : styles.cell}
                     value={cell}
                     maxLength={LIMITS.tableCell}
                     onChange={(event) => setCell(rowIndex, column, event.target.value)}
@@ -135,42 +137,42 @@ export function BlockEditor({
                         : `Fila ${rowIndex}, columna ${column + 1}, ${where}`
                     }
                     placeholder={rowIndex === 0 ? "Encabezado" : ""}
-                    disabled={disabled}
+                    data-empty={!cell.trim()}
                   />
                 )),
               )}
             </div>
           </div>
-          <div className={styles.row}>
+          <div className={styles.inlineRow}>
             <button
               type="button"
-              className={styles.small}
+              className={styles.inlineAdd}
               onClick={() => onChange({ ...block, rows: [...block.rows, Array<string>(columns).fill("")] })}
-              disabled={disabled || block.rows.length >= LIMITS.tableRows}
+              disabled={block.rows.length >= LIMITS.tableRows}
             >
               <IconPlus width={14} height={14} /> Fila
             </button>
             <button
               type="button"
-              className={styles.small}
+              className={styles.inlineAdd}
               onClick={() => onChange({ ...block, rows: block.rows.slice(0, -1) })}
-              disabled={disabled || block.rows.length <= 2}
+              disabled={block.rows.length <= 2}
             >
               Quitar fila
             </button>
             <button
               type="button"
-              className={styles.small}
+              className={styles.inlineAdd}
               onClick={() => onChange({ ...block, rows: block.rows.map((row) => [...row, ""]) })}
-              disabled={disabled || columns >= LIMITS.tableColumns}
+              disabled={columns >= LIMITS.tableColumns}
             >
               <IconPlus width={14} height={14} /> Columna
             </button>
             <button
               type="button"
-              className={styles.small}
+              className={styles.inlineAdd}
               onClick={() => onChange({ ...block, rows: block.rows.map((row) => row.slice(0, -1)) })}
-              disabled={disabled || columns <= 1}
+              disabled={columns <= 1}
             >
               Quitar columna
             </button>
@@ -181,71 +183,71 @@ export function BlockEditor({
     }
     case "imagen":
       editor = (
-        <div className={styles.stackTight}>
+        <figure className={styles.figure}>
           <AuthImage path={lessonImagePath(lessonId, block.image_file)} alt="" className={styles.image} />
-          <input
-            className={`${styles.input} ${(block.alt_text ?? "").trim() ? "" : styles.inputMissing}`}
-            value={block.alt_text ?? ""}
-            maxLength={LIMITS.altText}
-            onChange={(event) => onChange({ ...block, alt_text: event.target.value })}
-            aria-label={`Descripción de la imagen, ${where}`}
-            placeholder="Describe lo que muestra la imagen, por ejemplo: un perro corriendo en el parque"
-            disabled={disabled}
-          />
-          {!(block.alt_text ?? "").trim() && (
-            <p className={styles.missing}>Describe la imagen: la necesita quien no puede verla.</p>
-          )}
-          <label className={styles.small}>
-            {uploading ? "Subiendo…" : "Cambiar imagen"}
+          <figcaption className={styles.altBox}>
             <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              className={styles.fileInput}
-              onChange={pickImage}
-              disabled={disabled || uploading}
+              className={styles.altInput}
+              value={block.alt_text ?? ""}
+              maxLength={LIMITS.altText}
+              onChange={(event) => onChange({ ...block, alt_text: event.target.value })}
+              aria-label={`Descripción de la imagen, ${where}`}
+              placeholder="Describe la imagen, por ejemplo: un perro corriendo en el parque"
+              data-empty={!(block.alt_text ?? "").trim()}
             />
-          </label>
-        </div>
+            <label className={styles.inlineAdd}>
+              <IconImage width={14} height={14} />
+              {uploading ? "Subiendo…" : "Cambiar imagen"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className={styles.fileInput}
+                onChange={pickImage}
+                disabled={uploading}
+              />
+            </label>
+          </figcaption>
+          {!(block.alt_text ?? "").trim() && (
+            <p className={styles.altMissing}>Describe la imagen: la necesita quien no puede verla.</p>
+          )}
+        </figure>
       );
       break;
   }
 
   return (
-    <div className={styles.block}>
-      <div className={styles.blockHead}>
-        <span className={styles.blockType}>
+    <div className={styles.block} data-type={block.type}>
+      <div className={styles.blockTools}>
+        <span className={styles.blockKind}>
           {kind.icon}
           {kind.label}
         </span>
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.iconButton}
-            onClick={() => onMove(-1)}
-            disabled={disabled || !canMoveUp}
-            aria-label={`Subir ${kind.label.toLowerCase()}, ${where}`}
-          >
-            <IconArrowUp width={16} height={16} />
-          </button>
-          <button
-            type="button"
-            className={styles.iconButton}
-            onClick={() => onMove(1)}
-            disabled={disabled || !canMoveDown}
-            aria-label={`Bajar ${kind.label.toLowerCase()}, ${where}`}
-          >
-            <IconArrowDown width={16} height={16} />
-          </button>
-          <button
-            type="button"
-            className={`${styles.iconButton} ${styles.danger}`}
-            onClick={onRemove}
-            disabled={disabled}
-            aria-label={`Quitar ${kind.label.toLowerCase()}, ${where}`}
-          >
-            <IconTrash width={16} height={16} />
-          </button>
-        </div>
+        <button
+          type="button"
+          className={styles.toolButton}
+          onClick={() => onMove(-1)}
+          disabled={!canMoveUp}
+          aria-label={`Subir ${kind.label.toLowerCase()}, ${where}`}
+        >
+          <IconArrowUp width={15} height={15} />
+        </button>
+        <button
+          type="button"
+          className={styles.toolButton}
+          onClick={() => onMove(1)}
+          disabled={!canMoveDown}
+          aria-label={`Bajar ${kind.label.toLowerCase()}, ${where}`}
+        >
+          <IconArrowDown width={15} height={15} />
+        </button>
+        <button
+          type="button"
+          className={`${styles.toolButton} ${styles.toolDanger}`}
+          onClick={onRemove}
+          aria-label={`Quitar ${kind.label.toLowerCase()}, ${where}`}
+        >
+          <IconTrash width={15} height={15} />
+        </button>
       </div>
       {editor}
     </div>

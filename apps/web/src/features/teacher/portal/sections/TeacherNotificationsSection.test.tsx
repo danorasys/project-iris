@@ -42,13 +42,27 @@ const familyMessage: NotificationItem = {
 };
 
 let pending: EnrollmentRequest[] = [];
+// Which box each render asked for.
+const trayBoxes: (string | undefined)[] = [];
 
 vi.mock("@/shared/api/hooks/useNotifications", () => ({
-  useNotificationTray: (): { data: NotificationPage; isLoading: boolean; isError: boolean } => ({
-    data: { items: [request, answered, familyMessage], total: 3, unread_count: 1, page: 1, page_size: 8 },
-    isLoading: false,
-    isError: false,
-  }),
+  useNotificationTray: (
+    _role: string,
+    _page: number,
+    _size: number,
+    _enabled: boolean,
+    box?: string,
+  ): { data: NotificationPage; isLoading: boolean; isError: boolean } => {
+    trayBoxes.push(box);
+    return {
+      data:
+        box === "sent"
+          ? { items: [], total: 0, unread_count: 1, page: 1, page_size: 8 }
+          : { items: [request, answered, familyMessage], total: 3, unread_count: 1, page: 1, page_size: 8 },
+      isLoading: false,
+      isError: false,
+    };
+  },
   useMarkNotificationRead: () => ({ mutateAsync: markRead }),
   useDeleteNotification: () => ({ mutateAsync: vi.fn() }),
   useDeleteNotifications: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -97,15 +111,30 @@ describe("Notificaciones del docente", { timeout: 20_000 }, () => {
     expect(rows.some((text) => text?.includes("Una pregunta"))).toBe(true);
   });
 
+  it("has Recibidos and Enviados in the bar, and an empty Enviados says so", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<TeacherNotificationsSection />);
+
+    expect(trayBoxes.at(-1)).toBe("received");
+    await user.click(screen.getByRole("button", { name: "Enviados" }));
+
+    expect(trayBoxes.at(-1)).toBe("sent");
+    expect(screen.getByRole("button", { name: "Enviados" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Aún no has enviado mensajes")).toBeTruthy();
+    expect(screen.getByText("0 enviados")).toBeTruthy();
+  });
+
   it("opens a pending request with the kid and the guardian, and accepts it", async () => {
     pending = [
       {
         enrollment_id: "e1",
         student_id: "s1",
         student_first_name: "Sofía",
+        student_last_name: "Pérez",
         student_avatar_id: 1,
         guardian_name: "Ana Pérez",
-        guardian_contact: "ana@example.com · 3001234567",
+        guardian_email: "ana@example.com",
+        guardian_relationship: "Madre",
         requested_at: "2026-10-04T15:42:00Z",
       },
     ];
@@ -120,10 +149,43 @@ describe("Notificaciones del docente", { timeout: 20_000 }, () => {
     );
 
     expect(markRead).toHaveBeenCalledWith("n1");
-    expect(screen.getByText("ana@example.com · 3001234567")).toBeTruthy();
+    expect(screen.getByText("ana@example.com")).toBeTruthy();
+    expect(screen.getByText("Tutor (Madre)")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     expect(resolveRequest).toHaveBeenCalledWith({ classroomId: "c1", enrollmentId: "e1", decision: "aceptar" });
-    expect(await screen.findByText("Sofía ya es parte de la clase.")).toBeTruthy();
+    expect(await screen.findByText("Sofía Pérez ya es parte de la clase.")).toBeTruthy();
+  });
+
+  it("asks before rejecting a request opened from a notification", async () => {
+    pending = [
+      {
+        enrollment_id: "e1",
+        student_id: "s1",
+        student_first_name: "Sofía",
+        student_last_name: "Pérez",
+        student_avatar_id: 1,
+        guardian_name: "Ana Pérez",
+        guardian_email: "ana@example.com",
+        guardian_relationship: "Madre",
+        requested_at: "2026-10-04T15:42:00Z",
+      },
+    ];
+    resolveRequest.mockResolvedValue({ enrollment_id: "e1", status: "rechazada" });
+    const user = userEvent.setup({ delay: null });
+    render(<TeacherNotificationsSection />);
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /^No leída:\s*IRIS\s*Automático\s*Sofía · Matemáticas Básicas\s*Nueva solicitud de ingreso/,
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Rechazar" }));
+    expect(resolveRequest).not.toHaveBeenCalled();
+    expect(screen.getByText(/rechazar la solicitud de Sofía Pérez para unirse a la clase "Matemáticas Básicas"/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Sí, rechazar" }));
+
+    expect(resolveRequest).toHaveBeenCalledWith({ classroomId: "c1", enrollmentId: "e1", decision: "rechazar" });
+    expect(await screen.findByText("Rechazaste la solicitud de Sofía Pérez.")).toBeTruthy();
   });
 
   it("says when a request was already answered, without the buttons", async () => {

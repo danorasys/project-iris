@@ -162,7 +162,7 @@ export default function LandingPage() {
           id="how-it-is-organized-title"
           eyebrow="Cómo se organiza"
           title="Una estructura clara para cada clase"
-          lead="Cada clase en IRIS se apoya en el currículo colombiano del Ministerio de Educación Nacional."
+          lead="Cada clase en IRIS se apoya en el currículo del Ministerio de Educación Nacional (MEN) de Colombia."
         />
         <Curriculum />
       </Section>

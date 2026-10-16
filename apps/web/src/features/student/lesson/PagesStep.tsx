@@ -1,8 +1,6 @@
 import type { ContentBlock } from "@iris/shared-types";
-import { BigChoiceButton } from "@/shared/ui/BigChoiceButton";
-import { IconArrowLeft } from "@/shared/ui/icons";
 import { BlockView } from "@/shared/ui/lesson/BlockView";
-import { DwellArrow } from "../components/DwellArrow";
+import { KidPage } from "@/shared/ui/kid/KidKit";
 import styles from "./LessonPlayer.module.css";
 
 interface PagesStepProps {
@@ -20,8 +18,10 @@ interface PagesStepProps {
   onDone: () => void;
 }
 
-/** One page at a time, with the big arrows on the sides (HU-62). The way
- * back is on every page: leaving halfway keeps the page for next time. */
+/** One page at a time, with the arrows on the edges of the screen (HU-62).
+ * The page is a white sheet in the middle, drawn in the kid's own colors,
+ * the same as the teacher sees it in the editor. The way back is the bar on
+ * the bottom edge: leaving halfway keeps the page for next time. */
 export function PagesStep({
   lessonId,
   title,
@@ -35,39 +35,32 @@ export function PagesStep({
 }: PagesStepProps) {
   const last = page === pages.length - 1;
   return (
-    <main className={styles.viewer}>
-      <DwellArrow
-        direction="left"
-        label={page === 0 ? "Volver" : "Página anterior"}
-        onSelect={() => (page === 0 ? onBefore() : onPage(page - 1))}
-        dwellDurationMs={dwellDurationMs}
-      />
-      <div className={styles.content}>
-        <div className={styles.pagesTop}>
-          <BigChoiceButton
-            variant="teal"
-            icon={<IconArrowLeft width={28} height={28} />}
-            onSelect={onBefore}
-            dwellDurationMs={dwellDurationMs}
-          >
-            {backLabel}
-          </BigChoiceButton>
-          <p className={styles.counter} aria-live="polite">
-            {title} · Página {page + 1} de {pages.length}
-          </p>
-        </div>
-        <div className={styles.page}>
-          {pages[page].map((block) => (
-            <BlockView key={block.id} block={block} lessonId={lessonId} large />
-          ))}
-        </div>
+    <KidPage
+      fill
+      back={{ label: backLabel, onSelect: onBefore }}
+      previousArrow={{
+        label: page === 0 ? "Volver" : "Página anterior",
+        onSelect: () => (page === 0 ? onBefore() : onPage(page - 1)),
+      }}
+      nextArrow={{
+        label: last ? "Terminar la lectura" : "Página siguiente",
+        onSelect: () => (last ? onDone() : onPage(page + 1)),
+      }}
+      dwellDurationMs={dwellDurationMs}
+    >
+      <div className={styles.sheetTop}>
+        <p className={styles.counter} aria-live="polite">
+          {title} · Página {page + 1} de {pages.length}
+        </p>
+        <span className={styles.progressTrack} aria-hidden="true">
+          <span className={styles.progressFill} style={{ width: `${((page + 1) / pages.length) * 100}%` }} />
+        </span>
       </div>
-      <DwellArrow
-        direction="right"
-        label={last ? "Terminar la lectura" : "Página siguiente"}
-        onSelect={() => (last ? onDone() : onPage(page + 1))}
-        dwellDurationMs={dwellDurationMs}
-      />
-    </main>
+      <div className={styles.sheet} data-theme="kid">
+        {pages[page].map((block) => (
+          <BlockView key={block.id} block={block} lessonId={lessonId} large />
+        ))}
+      </div>
+    </KidPage>
   );
 }

@@ -67,7 +67,9 @@ describe("the units of a class (HU-104)", () => {
     units = ["Animales", "Plantas", "Agua", "Suelo"].map((title, i) => unit(`u${i}`, title));
     renderAt("/student/classrooms/c1/units");
 
-    expect(screen.getByRole("heading", { name: "Ciencias naturales" })).toBeTruthy();
+    // The class on top, then what IRIS asks.
+    expect(screen.getByText("Ciencias naturales")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "¿Qué tema quieres aprender hoy?" })).toBeTruthy();
     expect(screen.getByText("¿Qué hay en Animales?")).toBeTruthy();
     expect(screen.queryByText("Suelo")).toBeNull();
     expect(screen.getByText("Unidades 1 a 3 de 4")).toBeTruthy();
@@ -126,6 +128,8 @@ describe("the lessons of a unit (HU-60)", () => {
     units = [unit("u1", "Animales")];
     renderAt("/student/classrooms/c1/units/u9");
 
-    expect(screen.getByRole("heading", { name: "Ciencias naturales" })).toBeTruthy();
+    // The class on top, then what IRIS asks.
+    expect(screen.getByText("Ciencias naturales")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "¿Qué tema quieres aprender hoy?" })).toBeTruthy();
   });
 });

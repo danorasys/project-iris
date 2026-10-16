@@ -7,9 +7,10 @@ import {
   useEliminarNotificacion,
   useEliminarNotificaciones,
   useMarcarNotificacionLeida,
+  type TrayBox,
 } from "@/shared/api/hooks/useNotifications";
 import { getAuthErrorMessage } from "@/features/auth/errors";
-import { IconBell, IconTrash } from "@/shared/ui/icons";
+import { IconBell, IconSend, IconTrash } from "@/shared/ui/icons";
 import {
   formatArrival,
   formatShortArrival,
@@ -44,20 +45,22 @@ interface NotificacionesSectionProps {
   ofClass?: { classroomId: string; studentId: string; heading: ReactNode };
 }
 
-/** "Notificaciones": the guardian's tray. The newest first and a page at a
+/** "Notificaciones": the guardian's tray, in two boxes: "Recibidos" and
+ * "Enviados" (the messages they wrote). The newest first and a page at a
  * time, the unread ones stand out, each one says which kid, which class and
  * who it's from, and it can be opened to read in full or deleted. The space
  * of a class uses this same tray, with only that class. */
 export function NotificacionesSection({ initialNotification = null, ofClass }: NotificacionesSectionProps) {
   const [page, setPage] = useState(1);
+  const [box, setBox] = useState<TrayBox>("received");
   const [opened, setOpened] = useState<NotificationItem | null>(initialNotification);
   const [toDelete, setToDelete] = useState<NotificationItem | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   // Only one of the two asks the server: the whole tray or the class one.
-  const wholeTray = useBandejaNotificaciones(page, PAGE_SIZE, !ofClass);
-  const classTray = useClassNotifications(ofClass?.classroomId, ofClass?.studentId, page, PAGE_SIZE);
+  const wholeTray = useBandejaNotificaciones(page, PAGE_SIZE, !ofClass, box);
+  const classTray = useClassNotifications(ofClass?.classroomId, ofClass?.studentId, page, PAGE_SIZE, box);
   const tray = ofClass ? classTray : wholeTray;
   const markRead = useMarcarNotificacionLeida();
   const remove = useEliminarNotificacion();
@@ -158,6 +161,15 @@ export function NotificacionesSection({ initialNotification = null, ofClass }: N
     inbox.current?.scrollIntoView?.({ block: "start" });
   }
 
+  // The other box starts with nothing picked, on its first page.
+  function changeBox(next: TrayBox) {
+    if (next === box) return;
+    selection.clear();
+    setPendingEdge(null);
+    setBox(next);
+    setPage(1);
+  }
+
   if (tray.isLoading) return <p className={styles.status}>Cargando las notificaciones…</p>;
   // Nothing typed to keep here, a closed portal just goes to the code screen.
   if (isPortalAccessRequired(tray.error)) return <Navigate to="/guardian/verify-2fa" replace />;
@@ -200,41 +212,54 @@ export function NotificacionesSection({ initialNotification = null, ofClass }: N
                   </>
                 }
                 chips={[
-                  total === 1 ? "1 notificación" : `${total} notificaciones`,
+                  box === "sent"
+                    ? total === 1
+                      ? "1 enviado"
+                      : `${total} enviados`
+                    : total === 1
+                      ? "1 notificación"
+                      : `${total} notificaciones`,
                   unread === 1 ? "1 sin leer" : `${unread} sin leer`,
                 ]}
                 icon={<IconBell width={40} height={40} />}
               />
             )}
 
-            {items.length === 0 ? (
-              <div className={styles.empty}>
-                <span className={styles.emptyIcon} aria-hidden="true">
-                  <IconBell width={26} height={26} />
-                </span>
-                <p className={styles.emptyTitle}>
-                  {ofClass
-                    ? "Esta clase todavía no te ha enviado notificaciones"
-                    : "No tienes notificaciones por ahora"}
-                </p>
-              </div>
-            ) : (
-              <div ref={inbox} className={styles.inbox}>
-                <TrayToolbar
-                  selectedCount={selection.selected.length}
-                  allSelected={selection.allSelected}
-                  onToggleAll={selection.toggleAll}
-                  onDelete={() => setConfirmingMany(true)}
-                  busy={removeMany.isPending}
-                  range={{
-                    from: (page - 1) * PAGE_SIZE + 1,
-                    to: (page - 1) * PAGE_SIZE + items.length,
-                    total,
-                    onPrev: page > 1 ? () => changePage(page - 1) : undefined,
-                    onNext: page < totalPages ? () => changePage(page + 1) : undefined,
-                  }}
-                />
-                <ul className={styles.list} aria-label="Lista de notificaciones">
+            <div ref={inbox} className={styles.inbox}>
+              <TrayToolbar
+                selectedCount={selection.selected.length}
+                allSelected={selection.allSelected}
+                onToggleAll={selection.toggleAll}
+                onDelete={() => setConfirmingMany(true)}
+                busy={removeMany.isPending}
+                box={box}
+                onBoxChange={changeBox}
+                range={{
+                  from: (page - 1) * PAGE_SIZE + 1,
+                  to: (page - 1) * PAGE_SIZE + items.length,
+                  total,
+                  onPrev: page > 1 ? () => changePage(page - 1) : undefined,
+                  onNext: page < totalPages ? () => changePage(page + 1) : undefined,
+                }}
+              />
+              {items.length === 0 ? (
+                <div className={styles.empty}>
+                  <span className={styles.emptyIcon} aria-hidden="true">
+                    {box === "sent" ? <IconSend width={22} height={22} /> : <IconBell width={22} height={22} />}
+                  </span>
+                  <p className={styles.emptyTitle}>
+                    {box === "sent"
+                      ? "Aún no has enviado mensajes"
+                      : ofClass
+                        ? "Esta clase todavía no te ha enviado notificaciones"
+                        : "No tienes notificaciones por ahora"}
+                  </p>
+                  {box === "sent" && (
+                    <p className={styles.emptyText}>Aquí verás los mensajes que les escribas a los docentes.</p>
+                  )}
+                </div>
+              ) : (
+                <ul className={styles.list} aria-label={box === "sent" ? "Mensajes enviados" : "Lista de notificaciones"}>
                   {items.map((n) => (
                     <NotificationRow
                       key={n.id}
@@ -247,8 +272,8 @@ export function NotificacionesSection({ initialNotification = null, ofClass }: N
                     />
                   ))}
                 </ul>
-              </div>
-            )}
+              )}
+            </div>
 
             <TrayPager page={page} totalPages={totalPages} onChange={changePage} />
           </>
