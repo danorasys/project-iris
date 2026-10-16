@@ -20,6 +20,10 @@ export function formatClock(totalSeconds: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+/** The sign ups show it under the email after their first step, and the
+ * register too if someone takes that email in the meantime. */
+export const EMAIL_TAKEN_MESSAGE = 'Ese correo ya está registrado. Si ya tienes cuenta, usa "Inicia sesión".';
+
 /** Translates identity-service error codes into a Spanish message ready to
  * show the user. If the code isn't recognized, falls back to whatever
  * message the backend already sent (`ApiError.message`). */
@@ -30,7 +34,7 @@ export function getAuthErrorMessage(error: unknown): string {
 
   switch (error.code) {
     case "correo_ya_registrado":
-      return "Ese correo ya está registrado. Si ya tienes cuenta, usa «Inicia sesión».";
+      return EMAIL_TAKEN_MESSAGE;
     case "credenciales_invalidas":
       return "Correo o contraseña incorrectos.";
     case "pin_invalido":

@@ -4,6 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import GuardianRegistrationWizard from "./GuardianRegistrationWizard";
 
+// The email check of "Siguiente", taken or not depending on the test.
+const isEmailTaken = vi.fn();
+// What the check already knows (its cache), so the error survives a blur.
+const knownTaken = vi.fn<(email: string) => boolean>(() => false);
+
 vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => ({ setSession: vi.fn() }),
 }));
@@ -21,6 +26,7 @@ vi.mock("@/shared/api/hooks/useAuthApi", () => ({
     isError: false,
   }),
   useAvatars: () => ({ data: [], isLoading: false, isError: false }),
+  useEmailCheck: () => ({ prefetch: vi.fn(), isTaken: isEmailTaken, knownTaken }),
 }));
 
 function renderWizard() {
@@ -36,7 +42,11 @@ function statusOf(label: RegExp) {
   return screen.getByLabelText(label).parentElement?.dataset.status;
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  isEmailTaken.mockReset();
+  knownTaken.mockReset().mockReturnValue(false);
+});
 
 // The texts are typed without the pause between keys ({ delay: null }) and
 // each test gets more time: every key re-renders the whole wizard, and with
@@ -106,5 +116,43 @@ describe("GuardianRegistrationWizard, checking each field when it's left", { tim
     expect(statusOf(/^Apellidos/)).toBe("invalid");
     expect(screen.getByText("Ingresa tus apellidos.")).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByLabelText(/^Apellidos/));
+  });
+});
+
+describe("GuardianRegistrationWizard, an email that already has an account", { timeout: 20000 }, () => {
+  it("is told under the email after step 1, without going on", async () => {
+    isEmailTaken.mockImplementation(async (email: string) => {
+      knownTaken.mockImplementation((value) => value === email);
+      return true;
+    });
+    const user = userEvent.setup({ delay: null });
+    renderWizard();
+
+    await user.type(screen.getByLabelText(/^Nombres/), "Prueba");
+    await user.type(screen.getByLabelText(/^Apellidos/), "Tutor");
+    await user.type(screen.getByLabelText(/^Fecha de nacimiento/), "1990-04-12");
+    await user.type(screen.getByLabelText(/^Número de documento/), "1020304050");
+    await user.type(screen.getByLabelText(/^Fecha de expedición del documento/), "2015-06-01");
+    await user.type(screen.getByLabelText(/^Correo electrónico/), "ocupado@example.test");
+    await user.type(screen.getByLabelText(/^Teléfono/), "3001234567");
+    await user.type(screen.getByLabelText(/^Contraseña/), "Clave-Demo-2026!");
+    await user.type(screen.getByLabelText(/^Confirmar contraseña/), "Clave-Demo-2026!");
+    await user.click(screen.getByRole("button", { name: "Siguiente" }));
+
+    expect(
+      await screen.findByText('Ese correo ya está registrado. Si ya tienes cuenta, usa "Inicia sesión".'),
+    ).toBeTruthy();
+    expect(isEmailTaken).toHaveBeenCalledWith("ocupado@example.test");
+    expect(statusOf(/^Correo electrónico/)).toBe("invalid");
+    expect(screen.getByRole("heading", { name: "Crear cuenta: Tutor, papá o mamá" })).toBeTruthy();
+
+    // Leaving the field without changing the email keeps the cross.
+    await user.tab();
+    expect(statusOf(/^Correo electrónico/)).toBe("invalid");
+    expect(screen.getByText(/Ese correo ya está registrado/)).toBeTruthy();
+
+    // Changing it clears the error.
+    await user.type(screen.getByLabelText(/^Correo electrónico/), "x");
+    expect(statusOf(/^Correo electrónico/)).toBe("valid");
   });
 });

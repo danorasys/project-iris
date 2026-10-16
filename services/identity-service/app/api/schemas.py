@@ -483,6 +483,14 @@ class LoginRequest(BaseModel):
     password: str = Field(max_length=128)
 
 
+class EmailCheckRequest(BaseModel):
+    email: EmailStr
+
+
+class EmailCheckResponse(BaseModel):
+    registered: bool
+
+
 class StudentProfileLoginRequest(BaseModel):
     student_id: UUID
     pin: str = Field(min_length=4, max_length=4)

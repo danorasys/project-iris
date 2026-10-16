@@ -9,9 +9,10 @@ import type { TeacherRegistrationRequest } from "@iris/shared-types"
 import { useAuth } from "@/shared/auth/useAuth"
 import {
     useDocumentTypes,
+    useEmailCheck,
     useRegistrarDocente,
 } from "@/shared/api/hooks/useAuthApi"
-import { getAuthErrorMessage } from "@/features/auth/errors"
+import { EMAIL_TAKEN_MESSAGE, getAuthErrorMessage } from "@/features/auth/errors"
 import { firstOptionId } from "./firstOption"
 import { TextField } from "@/features/auth/ui/TextField"
 import { PhoneField } from "@/features/auth/ui/PhoneField"
@@ -95,7 +96,10 @@ export default function TeacherRegistrationWizard() {
     const { setSession } = useAuth()
     const register = useRegistrarDocente()
     const documentTypesQuery = useDocumentTypes()
+    const emailCheck = useEmailCheck()
     const step1FormRef = useRef<HTMLFormElement>(null)
+    // While "Siguiente" waits to know if the email is taken.
+    const [checkingEmail, setCheckingEmail] = useState(false)
 
     const [phase, setPhase] = useState<Phase>("formulario")
     const [firstName, setFirstName] = useState("")
@@ -181,10 +185,13 @@ export default function TeacherRegistrationWizard() {
         value
             ? validateDocumentIssuedAt(value, birth, TODAY_ISO)
             : "Ingresa la fecha de expedición del documento de identificación."
-    const emailProblem: Problem = (value) =>
-        EMAIL_PATTERN.test(value.trim())
-            ? null
-            : "Ingresa un correo electrónico válido."
+    // An email we already know has an account keeps its error when the
+    // field is left, until it's changed.
+    const emailProblem: Problem = (value) => {
+        if (!EMAIL_PATTERN.test(value.trim()))
+            return "Ingresa un correo electrónico válido."
+        return emailCheck.knownTaken(value) ? EMAIL_TAKEN_MESSAGE : null
+    }
     const phoneProblem: Problem = (value) =>
         value && isValidPhoneNumber(value)
             ? null
@@ -233,9 +240,9 @@ export default function TeacherRegistrationWizard() {
     /** Checks the fields top to bottom and stops at the first error, showing
      * it and moving to that field. The step dots use it too, through
      * `requestSubmit()`. */
-    function handleSubmitStep1(event: FormEvent) {
+    async function handleSubmitStep1(event: FormEvent) {
         event.preventDefault()
-        if (!catalogsReady) return
+        if (!catalogsReady || checkingEmail) return
 
         if (
             !checkTeacherField("firstName", "teacher-first-name", firstName, firstNameProblem) ||
@@ -265,6 +272,17 @@ export default function TeacherRegistrationWizard() {
                 passwordConfirmationProblem,
             )
         ) {
+            return
+        }
+
+        // Last, the only check that asks the server: an email that already
+        // has an account is told here and not at the end of the sign up.
+        setCheckingEmail(true)
+        const emailTaken = await emailCheck.isTaken(email)
+        setCheckingEmail(false)
+        if (emailTaken) {
+            setError("email", EMAIL_TAKEN_MESSAGE)
+            focusAndScrollToField("teacher-email")
             return
         }
 
@@ -507,7 +525,7 @@ export default function TeacherRegistrationWizard() {
                     <form
                         ref={step1FormRef}
                         className={styles.form}
-                        onSubmit={handleSubmitStep1}
+                        onSubmit={(event) => void handleSubmitStep1(event)}
                         aria-label="Datos del docente, paso 1 de 3"
                         noValidate
                     >
@@ -649,6 +667,12 @@ export default function TeacherRegistrationWizard() {
                             {...emailField}
                             label="Correo electrónico"
                             type="email"
+                            onBlur={() => {
+                                emailField.onBlur()
+                                // Starts asking the server now, so "Siguiente"
+                                // doesn't have to wait for it.
+                                if (!emailProblem(email)) emailCheck.prefetch(email)
+                            }}
                             required
                             autoComplete="email"
                         />
@@ -706,9 +730,13 @@ export default function TeacherRegistrationWizard() {
                             <button
                                 type="submit"
                                 className={styles.primaryButton}
-                                disabled={!catalogsReady}
+                                disabled={!catalogsReady || checkingEmail}
                             >
-                                {catalogsReady ? "Siguiente" : "Cargando…"}
+                                {!catalogsReady
+                                    ? "Cargando…"
+                                    : checkingEmail
+                                      ? "Revisando…"
+                                      : "Siguiente"}
                             </button>
                         </div>
                     </form>

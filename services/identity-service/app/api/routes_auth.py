@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 from app.api.deps import CurrentUser, get_auth_service, require_role
 from app.api.schemas import (
     AccessTokenResponse,
+    EmailCheckRequest,
+    EmailCheckResponse,
     GuardianRegistrationRequest,
     LoginRequest,
     StudentProfileLoginRequest,
@@ -110,6 +112,14 @@ async def register_teacher(
         user_agent=_user_agent(request),
     )
     return _start_session(response, tokens)
+
+
+@router.post("/email-check", response_model=EmailCheckResponse)
+async def check_email(payload: EmailCheckRequest, auth: AuthServiceDep) -> EmailCheckResponse:
+    """Says if an email already has an account, for the sign ups to tell it
+    right after their first step. It's a POST so the email never goes in the
+    URL (or in the logs), and the gateway's limit for /auth/ covers it."""
+    return EmailCheckResponse(registered=await auth.is_email_registered(payload.email))
 
 
 @router.post("/login", response_model=AccessTokenResponse, dependencies=[ClientHeaderDep])

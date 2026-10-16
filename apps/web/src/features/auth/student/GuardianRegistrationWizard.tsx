@@ -17,8 +17,9 @@ import {
     useDocumentTypes,
     useRelationshipTypes,
     useAvatars,
+    useEmailCheck,
 } from "@/shared/api/hooks/useAuthApi"
-import { getAuthErrorMessage } from "@/features/auth/errors"
+import { EMAIL_TAKEN_MESSAGE, getAuthErrorMessage } from "@/features/auth/errors"
 import { firstOptionId } from "./firstOption"
 import { StudentAvatarImage } from "@/shared/ui/StudentAvatarImage"
 import { TextField } from "@/features/auth/ui/TextField"
@@ -94,8 +95,11 @@ export default function GuardianRegistrationWizard() {
     const documentTypesQuery = useDocumentTypes()
     const relationshipTypesQuery = useRelationshipTypes()
     const avatarsQuery = useAvatars()
+    const emailCheck = useEmailCheck()
 
     const [step, setStep] = useState<1 | 2>(1)
+    // While "Siguiente" waits to know if the email is taken.
+    const [checkingEmail, setCheckingEmail] = useState(false)
     const [phase, setPhase] = useState<Phase>("formulario")
     const [submitError, setSubmitError] = useState<string | null>(null)
     const [postSubmitPhase, setPostSubmitPhase] =
@@ -222,10 +226,13 @@ export default function GuardianRegistrationWizard() {
         value
             ? validateDocumentIssuedAt(value, birth, TODAY_ISO)
             : "Ingresa la fecha de expedición del documento de identificación."
-    const emailProblem: Problem = (value) =>
-        EMAIL_PATTERN.test(value.trim())
-            ? null
-            : "Ingresa un correo electrónico válido."
+    // An email we already know has an account keeps its error when the
+    // field is left, until it's changed.
+    const emailProblem: Problem = (value) => {
+        if (!EMAIL_PATTERN.test(value.trim()))
+            return "Ingresa un correo electrónico válido."
+        return emailCheck.knownTaken(value) ? EMAIL_TAKEN_MESSAGE : null
+    }
     const phoneProblem: Problem = (value) =>
         value && isValidPhoneNumber(value)
             ? null
@@ -257,9 +264,9 @@ export default function GuardianRegistrationWizard() {
     /** Checks the fields top to bottom and stops at the first error, showing
      * it and moving to that field. The step circles use it too, through
      * `requestSubmit()`. */
-    function handleSubmitStep1(e: FormEvent) {
+    async function handleSubmitStep1(e: FormEvent) {
         e.preventDefault()
-        if (!catalogsReady) return
+        if (!catalogsReady || checkingEmail) return
 
         if (
             !checkField(
@@ -331,6 +338,17 @@ export default function GuardianRegistrationWizard() {
                 passwordConfirmationProblem,
             )
         ) {
+            return
+        }
+
+        // Last, the only check that asks the server: an email that already
+        // has an account is told here and not at the end of the sign up.
+        setCheckingEmail(true)
+        const emailTaken = await emailCheck.isTaken(email)
+        setCheckingEmail(false)
+        if (emailTaken) {
+            setEmailError(EMAIL_TAKEN_MESSAGE)
+            focusAndScrollToField("guardian-email")
             return
         }
 
@@ -697,7 +715,7 @@ export default function GuardianRegistrationWizard() {
                     <form
                         ref={step1FormRef}
                         className={styles.form}
-                        onSubmit={handleSubmitStep1}
+                        onSubmit={(e) => void handleSubmitStep1(e)}
                         aria-label="Datos del tutor, paso 1 de 4"
                         noValidate
                     >
@@ -846,6 +864,12 @@ export default function GuardianRegistrationWizard() {
                             {...emailField}
                             label="Correo electrónico"
                             type="email"
+                            onBlur={() => {
+                                emailField.onBlur()
+                                // Starts asking the server now, so "Siguiente"
+                                // doesn't have to wait for it.
+                                if (!emailProblem(email)) emailCheck.prefetch(email)
+                            }}
                             required
                             autoComplete="email"
                         />
@@ -915,9 +939,13 @@ export default function GuardianRegistrationWizard() {
                             <button
                                 type="submit"
                                 className={styles.primaryButton}
-                                disabled={!catalogsReady}
+                                disabled={!catalogsReady || checkingEmail}
                             >
-                                {catalogsReady ? "Siguiente" : "Cargando…"}
+                                {!catalogsReady
+                                    ? "Cargando…"
+                                    : checkingEmail
+                                      ? "Revisando…"
+                                      : "Siguiente"}
                             </button>
                         </div>
                     </form>

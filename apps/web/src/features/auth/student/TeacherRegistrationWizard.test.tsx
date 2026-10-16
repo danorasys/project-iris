@@ -7,6 +7,10 @@ import TeacherRegistrationWizard from "./TeacherRegistrationWizard";
 
 const register = vi.fn();
 const setSession = vi.fn();
+// The email check of "Siguiente", free unless a test says otherwise.
+const isEmailTaken = vi.fn();
+// What the check already knows (its cache), so the error survives a blur.
+const knownTaken = vi.fn<(email: string) => boolean>(() => false);
 
 vi.mock("@/shared/auth/useAuth", () => ({
   useAuth: () => ({ setSession }),
@@ -19,6 +23,7 @@ vi.mock("@/shared/api/hooks/useAuthApi", () => ({
     isError: false,
   }),
   useRegistrarDocente: () => ({ mutateAsync: register, isPending: false }),
+  useEmailCheck: () => ({ prefetch: vi.fn(), isTaken: isEmailTaken, knownTaken }),
 }));
 
 // The 2FA screens have their own tests, here they only stand in for the steps.
@@ -62,6 +67,8 @@ async function fillPersonalData(user: UserEvent) {
   await user.type(screen.getByLabelText(/^Confirmar contraseña/), "Clave-Segura-123");
   await user.type(screen.getByLabelText(/^Institución/), "Colegio Nacional");
   await user.click(screen.getByRole("button", { name: "Siguiente" }));
+  // The email check is async, so step 2 shows up a moment later.
+  await screen.findByText("Paso 2 de 3 — Tu perfil docente.");
 }
 
 // Step 2 ends with the data treatment consent.
@@ -73,6 +80,7 @@ async function acceptAndGoOn(user: UserEvent) {
 // jsdom has no scrolling, and the wizard scrolls to the top on every step.
 beforeEach(() => {
   vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+  isEmailTaken.mockResolvedValue(false);
 });
 
 afterEach(() => {
@@ -80,6 +88,8 @@ afterEach(() => {
   vi.restoreAllMocks();
   register.mockReset();
   setSession.mockReset();
+  isEmailTaken.mockReset();
+  knownTaken.mockReset().mockReturnValue(false);
 });
 
 // Each test fills the whole first step, so they get more time than the
@@ -273,5 +283,38 @@ describe("TeacherRegistrationWizard, same behavior as the guardian's", { timeout
     expect(screen.getByText("Sin indicar")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Confirmar y crear cuenta" }));
     expect(register).toHaveBeenCalledWith(expect.objectContaining({ institution: null }));
+  });
+});
+
+describe("TeacherRegistrationWizard, an email that already has an account", { timeout: 20_000 }, () => {
+  it("is told under the email after step 1, without going on", async () => {
+    isEmailTaken.mockImplementation(async (email: string) => {
+      knownTaken.mockImplementation((value) => value === email);
+      return true;
+    });
+    const user = userEvent.setup({ delay: null });
+    renderWizard();
+
+    await user.type(screen.getByLabelText(/^Nombres/), "Carlos");
+    await user.type(screen.getByLabelText(/^Apellidos/), "Ruiz");
+    await user.type(screen.getByLabelText(/^Fecha de nacimiento/), "1988-06-20");
+    await user.type(screen.getByLabelText(/^Número de documento/), "80012345");
+    await user.type(screen.getByLabelText(/^Fecha de expedición del documento/), "2006-07-01");
+    await user.type(screen.getByLabelText(/^Correo electrónico/), "ocupado@example.com");
+    await user.type(screen.getByLabelText(/^Teléfono/), "3009876543");
+    await user.type(screen.getByLabelText(/^Contraseña/), "Clave-Segura-123");
+    await user.type(screen.getByLabelText(/^Confirmar contraseña/), "Clave-Segura-123");
+    await user.click(screen.getByRole("button", { name: "Siguiente" }));
+
+    expect(
+      await screen.findByText('Ese correo ya está registrado. Si ya tienes cuenta, usa "Inicia sesión".'),
+    ).toBeTruthy();
+    expect(isEmailTaken).toHaveBeenCalledWith("ocupado@example.com");
+    expect(screen.getByRole("heading", { name: "Crear cuenta: Docente" })).toBeTruthy();
+
+    // Leaving the field without changing the email keeps the error.
+    await user.tab();
+    expect(screen.getByText(/Ese correo ya está registrado/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Correo electrónico/).parentElement?.dataset.status).toBe("invalid");
   });
 });

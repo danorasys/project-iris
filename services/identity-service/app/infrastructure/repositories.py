@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities import (
@@ -98,6 +98,12 @@ class SqlAlchemyPersonRepository:
         result = await self._session.execute(select(PersonModel).where(PersonModel.email == email))
         m = result.scalar_one_or_none()
         return _person_to_entity(m) if m else None
+
+    async def email_exists(self, email: str) -> bool:
+        # Only asks the unique index if it's there (SELECT EXISTS), without
+        # loading the whole row like get_by_email.
+        result = await self._session.execute(select(exists().where(PersonModel.email == email)))
+        return bool(result.scalar())
 
     async def get_by_id(self, person_id: UUID) -> Person | None:
         m = await self._session.get(PersonModel, person_id)

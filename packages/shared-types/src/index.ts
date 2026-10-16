@@ -165,6 +165,15 @@ export interface LoginRequest {
   password: string;
 }
 
+/** POST /auth/email-check, asked by the sign ups after their first step. */
+export interface EmailCheckRequest {
+  email: string;
+}
+
+export interface EmailCheckResponse {
+  registered: boolean;
+}
+
 export interface StudentProfileLoginRequest {
   student_id: string;
   pin: string;

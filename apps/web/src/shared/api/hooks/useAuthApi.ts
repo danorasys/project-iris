@@ -4,6 +4,8 @@ import type {
   ChangePasswordRequest,
   DeleteAccountRequest,
   DocumentType,
+  EmailCheckRequest,
+  EmailCheckResponse,
   GuardianProfile,
   GuardianRegistrationRequest,
   RelationshipType,
@@ -38,6 +40,49 @@ export function useRegistrarDocente() {
     mutationFn: (body: TeacherRegistrationRequest) =>
       apiFetch<TokensAuth>("/identity/auth/teachers", { method: "POST", body, auth: false }),
   });
+}
+
+// Long enough for a slow connection, short enough not to stall the sign up.
+const EMAIL_CHECK_TIMEOUT_MS = 5000;
+const emailCheckKey = (email: string) => ["auth", "email-check", email.trim()];
+
+/** Asks if an email already has an account, for the sign ups after their
+ * first step. Each answer is kept for a minute by email, so going back and
+ * forth doesn't ask again. `prefetch` starts asking when the field is left,
+ * so by "Siguiente" the answer is usually already there. If the check fails
+ * or takes too long it says "not taken": the register checks it again. */
+export function useEmailCheck() {
+  const queryClient = useQueryClient();
+
+  const options = (email: string) => ({
+    queryKey: emailCheckKey(email),
+    queryFn: () => {
+      const body: EmailCheckRequest = { email: email.trim() };
+      return apiFetch<EmailCheckResponse>("/identity/auth/email-check", {
+        method: "POST",
+        body,
+        auth: false,
+        signal: AbortSignal.timeout(EMAIL_CHECK_TIMEOUT_MS),
+      });
+    },
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  return {
+    prefetch: (email: string) => void queryClient.prefetchQuery(options(email)),
+    isTaken: async (email: string) => {
+      try {
+        return (await queryClient.fetchQuery(options(email))).registered;
+      } catch {
+        return false;
+      }
+    },
+    // What we already know without asking again, so leaving the field
+    // doesn't wipe out the "already registered" error of an unchanged email.
+    knownTaken: (email: string) =>
+      queryClient.getQueryData<EmailCheckResponse>(emailCheckKey(email))?.registered === true,
+  };
 }
 
 export function useLogin() {

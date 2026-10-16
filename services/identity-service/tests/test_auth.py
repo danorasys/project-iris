@@ -830,3 +830,19 @@ async def test_registro_docente_institucion_demasiado_larga(client: AsyncClient)
     response = await client.post("/auth/teachers", json=payload)
 
     assert response.status_code == 422
+
+
+async def test_revisar_correo_dice_si_ya_tiene_cuenta(client: AsyncClient) -> None:
+    libre = await client.post("/auth/email-check", json={"email": "nadie@example.com"})
+    assert libre.status_code == 200
+    assert libre.json() == {"registered": False}
+
+    await client.post("/auth/guardians", json=_payload_registro_tutor("ocupado@example.com"))
+    ocupado = await client.post("/auth/email-check", json={"email": "ocupado@example.com"})
+    assert ocupado.json() == {"registered": True}
+
+
+async def test_revisar_correo_rechaza_uno_que_no_es_correo(client: AsyncClient) -> None:
+    response = await client.post("/auth/email-check", json={"email": "no-es-correo"})
+
+    assert response.status_code == 422

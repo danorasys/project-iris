@@ -103,6 +103,12 @@ class AuthService:
         self._portal_access_ttl_sec = portal_access_ttl_sec
         self._portal_access_max_age_sec = portal_access_max_age_sec
 
+    async def is_email_registered(self, email: str) -> bool:
+        # The sign ups ask it after their first step, so a taken email shows
+        # up there and not at the very end. The register itself checks again.
+        async with self._uow_factory() as uow:
+            return await uow.people.email_exists(email)
+
     async def register_guardian(
         self,
         guardian_data: GuardianData,
