@@ -23,7 +23,7 @@ import badgeFamily from "@/assets/landing/badge-family.png";
 import badgeStudents from "@/assets/landing/badge-students.png";
 import badgeTeachers from "@/assets/landing/badge-teachers.png";
 import { IrisRings } from "@/shared/ui/IrisRings";
-import { REGISTER_LINK } from "./landingLinks";
+import { REGISTER_PATH } from "./landingLinks";
 import { useReveal } from "./useReveal";
 import { turn } from "./turn";
 import links from "./links.module.css";
@@ -239,7 +239,7 @@ function StartNow() {
           Las familias registran a sus peques y los docentes crean sus clases. Todo comienza con una cuenta.
         </p>
         <div className={`${styles.startActions} ${motion.rise}`} style={turn(2)}>
-          <Link to={REGISTER_LINK.to} state={REGISTER_LINK.state} className={styles.startButton}>
+          <Link to={REGISTER_PATH} className={styles.startButton}>
             Únete a IRIS
             <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
           </Link>

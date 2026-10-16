@@ -11,10 +11,10 @@ class FakeObserver {
   disconnect() {}
 }
 
-// Shows where the link went and what it carried, to check the sign up view.
-function LoginProbe() {
-  const location = useLocation();
-  return <p>{`login ${JSON.stringify(location.state)}`}</p>;
+// Shows where the link went.
+function RouteProbe() {
+  const { pathname } = useLocation();
+  return <p>{`at ${pathname}`}</p>;
 }
 
 function renderHowItWorks() {
@@ -22,7 +22,8 @@ function renderHowItWorks() {
     <MemoryRouter initialEntries={["/"]}>
       <Routes>
         <Route path="/" element={<HowItWorks />} />
-        <Route path="/login" element={<LoginProbe />} />
+        <Route path="/login" element={<RouteProbe />} />
+        <Route path="/register" element={<RouteProbe />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -51,13 +52,13 @@ describe("HowItWorks", () => {
     ]);
   });
 
-  it("the call after the paths opens the sign up view", async () => {
+  it("the call after the paths opens the sign up", async () => {
     const user = userEvent.setup();
     renderHowItWorks();
 
     await user.click(screen.getByRole("link", { name: /Únete a IRIS/ }));
 
-    expect(screen.getByText('login {"vista":"elegirRegistro"}')).toBeTruthy();
+    expect(screen.getByText("at /register")).toBeTruthy();
   });
 
   it("people who already have an account go straight to sign in", async () => {
@@ -66,6 +67,6 @@ describe("HowItWorks", () => {
 
     await user.click(screen.getByRole("link", { name: "Ya tengo cuenta" }));
 
-    expect(screen.getByText("login null")).toBeTruthy();
+    expect(screen.getByText("at /login")).toBeTruthy();
   });
 });

@@ -123,7 +123,7 @@ function PageEnter() {
 }
 
 /** The login used to live at /login/adult. A saved link or bookmark still
- * lands on it, and the state goes along (the notice or the sign up view). */
+ * lands on it, and the state goes along (e.g. a notice). */
 export function OldLoginRedirect() {
     const { state } = useLocation()
     return (
@@ -148,7 +148,11 @@ export function AppRouter() {
                     />
                     <Route
                         path="/login"
-                        element={<AdultAuthPage />}
+                        element={<AdultAuthPage view="login" />}
+                    />
+                    <Route
+                        path="/register"
+                        element={<AdultAuthPage view="register" />}
                     />
                     <Route
                         path="/login/adult/*"

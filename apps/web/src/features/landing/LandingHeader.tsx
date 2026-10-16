@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import logoIris from "@/assets/landing/logo-iris.png";
-import { NAV_LINKS, REGISTER_LINK } from "./landingLinks";
+import { NAV_LINKS, REGISTER_PATH } from "./landingLinks";
 import styles from "./LandingHeader.module.css";
 
 // The bar stays on top the whole time. Over the dark hero it's see-through
@@ -59,7 +59,7 @@ export function LandingHeader() {
           <Link to="/login" className={styles.loginButton}>
             Ingresar
           </Link>
-          <Link to={REGISTER_LINK.to} state={REGISTER_LINK.state} className={styles.registerButton}>
+          <Link to={REGISTER_PATH} className={styles.registerButton}>
             Regístrate
           </Link>
           <button

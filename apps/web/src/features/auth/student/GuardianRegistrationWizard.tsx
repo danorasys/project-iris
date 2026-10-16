@@ -569,8 +569,7 @@ export default function GuardianRegistrationWizard() {
                 className={`${styles.ring} ${styles.ringTopRight}`}
             />
             <Link
-                to="/login"
-                state={{ vista: "elegirRegistro" }}
+                to="/register"
                 className={styles.back}
             >
                 <IconArrowLeft /> Volver

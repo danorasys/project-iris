@@ -478,11 +478,13 @@
 
 .secondaryLink {
   position: relative;
+  display: inline-block;
   border: none;
   background: none;
   padding: 0;
   font-weight: 700;
   color: var(--color-iris-medium);
+  text-decoration: none;
   cursor: pointer;
   transition:
     color 200ms ease,

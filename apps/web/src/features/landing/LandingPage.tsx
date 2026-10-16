@@ -10,7 +10,7 @@ import { LandingFooter } from "./LandingFooter";
 import { LandingHeader } from "./LandingHeader";
 import { MeetIris } from "./MeetIris";
 import { WhyItMatters } from "./WhyItMatters";
-import { REGISTER_LINK } from "./landingLinks";
+import { REGISTER_PATH } from "./landingLinks";
 import { useReveal } from "./useReveal";
 import { turn } from "./turn";
 import links from "./links.module.css";
@@ -82,7 +82,7 @@ function JoinBand() {
           barreras.
         </p>
         <div className={`${styles.joinActions} ${motion.rise}`} style={turn(2)}>
-          <Link to={REGISTER_LINK.to} state={REGISTER_LINK.state} className={styles.joinButton}>
+          <Link to={REGISTER_PATH} className={styles.joinButton}>
             <HeartHandshake size={20} strokeWidth={2} aria-hidden="true" />
             Quiero unirme
           </Link>

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { leaveLoginNotice, peekLoginNotice } from "@/shared/ui/loginNotice";
 import { OldLoginRedirect } from "@/app/AppRouter";
@@ -19,7 +20,7 @@ function renderLogin() {
   return render(
     <MemoryRouter initialEntries={[{ pathname: "/login", state: { desde: "/guardian/portal" } }]}>
       <Routes>
-        <Route path="/login" element={<AdultAuthPage />} />
+        <Route path="/login" element={<AdultAuthPage view="login" />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -47,37 +48,46 @@ describe("AdultAuthPage success notice", () => {
   });
 });
 
-// Opens the page at a path with the given history state, plus the old
-// /login/adult route so the redirect can be followed.
-function renderAt(pathname: string, state: unknown) {
+// Opens the page at a path with the given history state, with the same
+// routes as the app, so the links and the old /login/adult can be followed.
+function renderAt(pathname: string, state: unknown = null) {
   return render(
     <MemoryRouter initialEntries={[{ pathname, state }]}>
       <Routes>
-        <Route path="/login" element={<AdultAuthPage />} />
+        <Route path="/login" element={<AdultAuthPage view="login" />} />
+        <Route path="/register" element={<AdultAuthPage view="register" />} />
         <Route path="/login/adult/*" element={<OldLoginRedirect />} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
-describe("AdultAuthPage state from other screens", () => {
-  it("opens the sign up view and shows the notice it's given", () => {
-    renderAt("/login", { vista: "elegirRegistro" });
+describe("AdultAuthPage routes", () => {
+  it("has its own route for the login and for the sign up", async () => {
+    const user = userEvent.setup();
+    renderAt("/register");
     expect(screen.getByRole("heading", { name: "Crea tu cuenta" })).toBeTruthy();
 
-    cleanup();
-    renderAt("/login", { aviso: "Inicia sesión de nuevo." });
-    expect(screen.getByRole("status").textContent).toBe("Inicia sesión de nuevo.");
+    await user.click(screen.getByRole("link", { name: "Inicia sesión" }));
+    expect(screen.getByRole("heading", { name: "Iniciar sesión" })).toBeTruthy();
+
+    await user.click(screen.getByRole("link", { name: "Regístrate" }));
+    expect(screen.getByRole("heading", { name: "Crea tu cuenta" })).toBeTruthy();
   });
 
-  it("ignores a state it doesn't know and just shows the login", () => {
-    renderAt("/login", { vista: "otraCosa", aviso: { text: "no es texto" } });
+  it("shows the notice another screen leaves, but only if it's a text", () => {
+    renderAt("/login", { aviso: "Inicia sesión de nuevo." });
+    expect(screen.getByRole("status").textContent).toBe("Inicia sesión de nuevo.");
+
+    cleanup();
+    renderAt("/login", { aviso: { text: "no es texto" } });
     expect(screen.getByRole("heading", { name: "Iniciar sesión" })).toBeTruthy();
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("sends the old /login/adult link to /login keeping its state", () => {
-    renderAt("/login/adult", { vista: "elegirRegistro" });
-    expect(screen.getByRole("heading", { name: "Crea tu cuenta" })).toBeTruthy();
+  it("sends the old /login/adult link to /login keeping its notice", () => {
+    renderAt("/login/adult", { aviso: "Inicia sesión de nuevo." });
+    expect(screen.getByRole("heading", { name: "Iniciar sesión" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Inicia sesión de nuevo.");
   });
 });

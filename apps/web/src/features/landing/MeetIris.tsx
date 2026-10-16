@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { HeartHandshake } from "lucide-react";
 import logoIris from "@/assets/landing/logo-iris.png";
-import { REGISTER_LINK } from "./landingLinks";
+import { REGISTER_PATH } from "./landingLinks";
 import { prefersReducedMotion, useReveal } from "./useReveal";
 import styles from "./MeetIris.module.css";
 
@@ -77,8 +77,7 @@ export function MeetIris() {
         {/* The reply keeps its place from the start (hidden), for the same
             reason: nothing below jumps when it shows up. */}
         <Link
-          to={REGISTER_LINK.to}
-          state={REGISTER_LINK.state}
+          to={REGISTER_PATH}
           className={`${styles.reply} ${done ? styles.replyIn : ""}`}
         >
           <HeartHandshake size={20} strokeWidth={2} aria-hidden="true" />

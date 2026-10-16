@@ -14,13 +14,15 @@ import { clearLoginNotice, peekLoginNotice, type LoginNotice } from "@/shared/ui
 import logoIris from "@/assets/landing/logo-iris.png"
 import styles from "./AdultAuthPage.module.css"
 
-type View = "login" | "elegirRegistro"
+type View = "login" | "register"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // The login of families and teachers with the look of the landing: its blue
-// panel on the left and the form in a white card of the portals.
-export default function AdultAuthPage() {
+// panel on the left and the form in a white card of the portals. Each view
+// has its own route (/login and /register), so the browser's back button and
+// a shared link both work.
+export default function AdultAuthPage({ view }: { view: View }) {
     usePortalTheme()
     const location = useLocation()
 
@@ -32,10 +34,9 @@ export default function AdultAuthPage() {
         clearLoginNotice()
     }, [])
 
-    // The state can bring the sign up view or a notice from another screen.
-    // Anything could be in the history, so both get checked before using them.
-    const { vista, aviso } = (location.state ?? {}) as { vista?: unknown; aviso?: unknown }
-    const [view, setView] = useState<View>(vista === "elegirRegistro" ? "elegirRegistro" : "login")
+    // Another screen can leave a notice in the state. Anything could be in
+    // the history, so it's only shown if it's really a text.
+    const { aviso } = (location.state ?? {}) as { aviso?: unknown }
     return (
         <main className={styles.page}>
             {successNotice && (
@@ -47,14 +48,13 @@ export default function AdultAuthPage() {
             )}
             <BrandPanel />
             <div className={styles.formColumn}>
-                {view === "elegirRegistro" ? (
-                    <button
-                        type="button"
+                {view === "register" ? (
+                    <Link
+                        to="/login"
                         className={styles.back}
-                        onClick={() => setView("login")}
                     >
                         <IconArrowLeft /> Volver atrás
-                    </button>
+                    </Link>
                 ) : (
                     <Link
                         to="/"
@@ -71,14 +71,9 @@ export default function AdultAuthPage() {
                     data-view={view}
                 >
                     {view === "login" ? (
-                        <LoginForm
-                            onGoToRegister={() => setView("elegirRegistro")}
-                            notice={typeof aviso === "string" ? aviso : undefined}
-                        />
+                        <LoginForm notice={typeof aviso === "string" ? aviso : undefined} />
                     ) : (
-                        <ChooseAccountType
-                            onBackToLogin={() => setView("login")}
-                        />
+                        <ChooseAccountType />
                     )}
                 </div>
                 <p className={styles.minorNotice}>
@@ -175,13 +170,7 @@ function BrandPanel() {
     )
 }
 
-function LoginForm({
-    onGoToRegister,
-    notice,
-}: {
-    onGoToRegister: () => void
-    notice?: string
-}) {
+function LoginForm({ notice }: { notice?: string }) {
     const { setSession } = useAuth()
     const navigate = useNavigate()
     const login = useLogin()
@@ -299,13 +288,12 @@ function LoginForm({
             </button>
             <p className={styles.formFooter}>
                 ¿Aún no tienes cuenta?{" "}
-                <button
-                    type="button"
+                <Link
+                    to="/register"
                     className={styles.secondaryLink}
-                    onClick={onGoToRegister}
                 >
                     Regístrate
-                </button>
+                </Link>
             </p>
         </form>
     )
@@ -329,7 +317,7 @@ const ACCOUNT_TYPES = [
     },
 ]
 
-function ChooseAccountType({ onBackToLogin }: { onBackToLogin: () => void }) {
+function ChooseAccountType() {
     return (
         <div className={styles.form}>
             <p className={styles.eyebrow}>Familias y docentes</p>
@@ -373,13 +361,12 @@ function ChooseAccountType({ onBackToLogin }: { onBackToLogin: () => void }) {
             </div>
             <p className={styles.formFooter}>
                 ¿Ya tienes cuenta?{" "}
-                <button
-                    type="button"
+                <Link
+                    to="/login"
                     className={styles.secondaryLink}
-                    onClick={onBackToLogin}
                 >
                     Inicia sesión
-                </button>
+                </Link>
             </p>
         </div>
     )

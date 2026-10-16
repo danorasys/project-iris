@@ -24,7 +24,7 @@ import heroStudent from "@/assets/landing/hero-student.jpg";
 import heroFamily from "@/assets/landing/hero-family.jpg";
 import heroTeacher from "@/assets/landing/hero-teacher.jpg";
 import { IrisRings } from "@/shared/ui/IrisRings";
-import { REGISTER_LINK } from "./landingLinks";
+import { REGISTER_PATH } from "./landingLinks";
 import { prefersReducedMotion } from "./useReveal";
 import { turn } from "./turn";
 import links from "./links.module.css";
@@ -341,7 +341,7 @@ export function HeroCarousel() {
           </p>
 
           <div className={`${styles.ctas} ${motion.rise}`} style={turn(6)}>
-            <Link to={REGISTER_LINK.to} state={REGISTER_LINK.state} className={styles.primary}>
+            <Link to={REGISTER_PATH} className={styles.primary}>
               Únete a IRIS
               <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
             </Link>

@@ -9,4 +9,4 @@ export const NAV_LINKS = [
 ];
 
 // Where people sign up from any button on the landing.
-export const REGISTER_LINK = { to: "/login", state: { vista: "elegirRegistro" } };
+export const REGISTER_PATH = "/register";
