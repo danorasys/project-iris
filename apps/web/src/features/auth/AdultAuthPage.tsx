@@ -1,24 +1,27 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
+import { ArrowRight, BookOpen, HeartHandshake, Quote } from "lucide-react"
 import { useAuth } from "@/shared/auth/useAuth"
 import { useLogin } from "@/shared/api/hooks/useAuthApi"
 import { decodeJwtPayload } from "@/shared/auth/jwt"
 import { getAuthErrorMessage } from "./errors"
 import { TextField } from "./ui/TextField"
-import { IrisMark } from "@/shared/ui/IrisMark"
 import { IconArrowLeft, IconInfo } from "@/shared/ui/icons"
+import { IrisRings } from "@/shared/ui/IrisRings"
+import { usePortalTheme } from "@/shared/ui/portal/usePortalTheme"
 import { SuccessNotice } from "@/shared/ui/SuccessNotice"
 import { clearLoginNotice, peekLoginNotice, type LoginNotice } from "@/shared/ui/loginNotice"
 import logoIris from "@/assets/landing/logo-iris.png"
-import iconGuardian from "@/assets/auth/avatar-guardian.png"
-import iconTeacher from "@/assets/auth/avatar-teacher.png"
 import styles from "./AdultAuthPage.module.css"
 
 type View = "login" | "elegirRegistro"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// The login of families and teachers with the look of the landing: its blue
+// panel on the left and the form in a white card of the portals.
 export default function AdultAuthPage() {
+    usePortalTheme()
     const location = useLocation()
 
     // One time message left by another screen, e.g. after changing the
@@ -60,7 +63,12 @@ export default function AdultAuthPage() {
                     </Link>
                 )}
 
-                <div className={styles.formWrapper}>
+                {/* The key plays the card's entrance again when the view changes. */}
+                <div
+                    key={view}
+                    className={styles.card}
+                    data-view={view}
+                >
                     {view === "login" ? (
                         <LoginForm
                             onGoToRegister={() => setView("elegirRegistro")}
@@ -86,36 +94,85 @@ export default function AdultAuthPage() {
     )
 }
 
+// The blue panel of the landing. The logo sits in the middle like the pupil
+// of an iris: the rings open around it and an amber ring fills once, like
+// the kid's cursor when it holds the gaze on an option.
 function BrandPanel() {
     return (
         <aside className={styles.brandPanel}>
-            <IrisMark
-                size={420}
-                className={`${styles.ring} ${styles.ringLarge}`}
-            />
-            <IrisMark
-                size={220}
-                className={`${styles.ring} ${styles.ringSmall}`}
-            />
-            <div className={styles.brandContent}>
-                <img
-                    src={logoIris}
-                    alt=""
-                    className={styles.brandLogo}
-                />
+            <p className={styles.brandEyebrow}>
+                Sistema de gestión del aprendizaje <span className={styles.lms}>LMS</span>
+            </p>
+
+            <div className={styles.brandCenter}>
+                <div className={styles.pupil}>
+                    <IrisRings className={styles.rings} />
+                    <span
+                        className={styles.glow}
+                        aria-hidden="true"
+                    />
+                    <img
+                        src={logoIris}
+                        alt=""
+                        className={styles.brandLogo}
+                    />
+                    <svg
+                        className={styles.dwellRing}
+                        viewBox="0 0 100 100"
+                        aria-hidden="true"
+                    >
+                        <circle
+                            className={styles.dwellTrack}
+                            cx="50"
+                            cy="50"
+                            r="47"
+                        />
+                        <circle
+                            className={styles.dwellFill}
+                            cx="50"
+                            cy="50"
+                            r="47"
+                            pathLength={1}
+                        />
+                    </svg>
+                </div>
                 <p className={styles.brandWordmark}>IRIS</p>
-                <span
-                    className={styles.brandRule}
-                    aria-hidden="true"
-                />
                 <p className={styles.brandSlogan}>
-                    Tu mirada. Tu forma de aprender.
+                    Tu{" "}
+                    <span className={styles.marked}>
+                        mirada.
+                        <svg
+                            className={styles.underline}
+                            viewBox="0 0 200 22"
+                            preserveAspectRatio="none"
+                            aria-hidden="true"
+                        >
+                            <path d="M4 14 C 50 6, 120 4, 196 9" />
+                            <path d="M30 19 C 80 13, 130 12, 170 15" />
+                        </svg>
+                    </span>{" "}
+                    <br />
+                    Tu forma de aprender.
                 </p>
                 <p className={styles.brandDescription}>
-                    Tecnología educativa inclusiva mediante seguimiento de la
-                    mirada.
+                    Un aula virtual donde los niños y niñas aprenden con la
+                    mirada, y su familia y sus docentes los acompañan.
                 </p>
             </div>
+
+            <figure className={styles.message}>
+                <Quote
+                    className={styles.messageQuote}
+                    size={22}
+                    strokeWidth={2.4}
+                    aria-hidden="true"
+                />
+                <blockquote className={styles.messageText}>
+                    Con IRIS, basta una mirada para que cada niño y niña
+                    aprenda y participe en su clase.
+                </blockquote>
+                <figcaption className={styles.messageAuthor}>Equipo IRIS</figcaption>
+            </figure>
         </aside>
     )
 }
@@ -163,10 +220,7 @@ function LoginForm({
             noValidate
             aria-label="Iniciar sesión"
         >
-            <p className={styles.accessEyebrow}>
-                Acceso para padres, madres, tutores, adultos responsables y
-                docentes
-            </p>
+            <p className={styles.eyebrow}>Familias y docentes</p>
             <h1 className={styles.title}>Iniciar sesión</h1>
             {notice && (
                 <p
@@ -239,6 +293,11 @@ function LoginForm({
                 disabled={!emailValid || !passwordValid || login.isPending}
             >
                 {login.isPending ? "Ingresando…" : "Ingresar"}
+                <ArrowRight
+                    size={18}
+                    strokeWidth={2.4}
+                    aria-hidden="true"
+                />
             </button>
             <p className={styles.formFooter}>
                 ¿Aún no tienes cuenta?{" "}
@@ -254,59 +313,65 @@ function LoginForm({
     )
 }
 
+// The two kinds of account, numbered like the steps of the landing.
+const ACCOUNT_TYPES = [
+    {
+        to: "/login/guardian/new",
+        number: "01",
+        title: "Soy tutor, papá o mamá",
+        note: "Crea tu cuenta y la de tu hijo o hija, acompaña su aprendizaje y sigue de cerca su progreso dentro de IRIS.",
+        icon: HeartHandshake,
+    },
+    {
+        to: "/login/teacher/new",
+        number: "02",
+        title: "Soy docente",
+        note: "Crea clases organizadas en unidades y lecciones para aprender con la mirada, y guía el progreso de tus estudiantes.",
+        icon: BookOpen,
+    },
+]
+
 function ChooseAccountType({ onBackToLogin }: { onBackToLogin: () => void }) {
     return (
         <div className={styles.form}>
-            <p className={styles.accessEyebrow}>
-                Acceso para padres, madres, tutores, adultos responsables y
-                docentes
-            </p>
+            <p className={styles.eyebrow}>Familias y docentes</p>
             <h1 className={styles.title}>Crea tu cuenta</h1>
             <p className={styles.subtitle}>
                 Cuéntanos cómo vas a usar IRIS para llevarte al registro
                 correcto.
             </p>
             <div className={styles.registrationOptions}>
-                <Link
-                    to="/login/guardian/new"
-                    className={styles.registrationOption}
-                >
-                    <span className={styles.registrationOptionText}>
-                        <span className={styles.registrationOptionTitle}>
-                            Soy tutor, papá o mamá
+                {ACCOUNT_TYPES.map(({ to, number, title, note, icon: Icon }) => (
+                    <Link
+                        key={to}
+                        to={to}
+                        className={styles.registrationOption}
+                    >
+                        <span
+                            className={styles.registrationOptionIcon}
+                            aria-hidden="true"
+                        >
+                            <Icon
+                                size={24}
+                                strokeWidth={2.1}
+                            />
+                            <span className={styles.registrationOptionNumber}>{number}</span>
                         </span>
-                        <span className={styles.registrationOptionNote}>
-                            Crea la cuenta de tu hijo o hija, acompaña su
-                            aprendizaje y sigue de cerca su progreso dentro de
-                            IRIS.
+                        <span className={styles.registrationOptionText}>
+                            <span className={styles.registrationOptionTitle}>{title}</span>
+                            <span className={styles.registrationOptionNote}>{note}</span>
                         </span>
-                    </span>
-                    <img
-                        src={iconGuardian}
-                        alt=""
-                        className={styles.registrationOptionIcon}
-                    />
-                </Link>
-                <Link
-                    to="/login/teacher/new"
-                    className={styles.registrationOption}
-                >
-                    <span className={styles.registrationOptionText}>
-                        <span className={styles.registrationOptionTitle}>
-                            Soy docente
+                        <span
+                            className={styles.registrationOptionArrow}
+                            aria-hidden="true"
+                        >
+                            <ArrowRight
+                                size={18}
+                                strokeWidth={2.4}
+                            />
                         </span>
-                        <span className={styles.registrationOptionNote}>
-                            Diseña aulas y lecciones pensadas para el
-                            aprendizaje por mirada, y guía el progreso de tus
-                            estudiantes.
-                        </span>
-                    </span>
-                    <img
-                        src={iconTeacher}
-                        alt=""
-                        className={styles.registrationOptionIcon}
-                    />
-                </Link>
+                    </Link>
+                ))}
             </div>
             <p className={styles.formFooter}>
                 ¿Ya tienes cuenta?{" "}

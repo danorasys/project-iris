@@ -1,107 +1,245 @@
-/* Two columns: brand panel on the left, form on the right. Same blue
-   gradient as the landing carousel's brand slide, not a new color. */
+/* Two columns: the landing's blue panel on the left and the form in a white
+   card on the right. The page wears the portals' colors and Poppins
+   (usePortalTheme), the same ones of the landing. */
 
 .page {
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: 45% 55%;
-  background: var(--color-canvas);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  background:
+    radial-gradient(55% 45% at 100% 0%, color-mix(in srgb, var(--landing-sky) 14%, transparent), transparent 70%),
+    var(--color-canvas);
+  font-family: var(--font-landing);
 }
 
-/* Brand panel */
+/* --- The blue panel --- */
 
 .brandPanel {
-  /* Dark blue behind: the focus ring is white here. */
-  --color-focus: var(--color-surface);
   position: relative;
   overflow: hidden;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6);
-  background: radial-gradient(120% 120% at 30% 24%, var(--color-iris-medium) 0%, var(--color-iris-deep) 62%);
-}
-
-.ring {
-  position: absolute;
-  opacity: 0.16;
-  pointer-events: none;
-}
-
-.ringLarge {
-  bottom: -150px;
-  right: -130px;
-}
-
-.ringSmall {
-  top: -60px;
-  left: -50px;
-  opacity: 0.12;
-}
-
-.brandContent {
-  position: relative;
-  display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-1);
-  max-width: 24rem;
+  justify-content: center;
+  padding: var(--space-5);
+  background:
+    radial-gradient(55% 40% at 50% 42%, color-mix(in srgb, var(--landing-sky) 55%, transparent), transparent 72%),
+    radial-gradient(70% 60% at 0% 100%, color-mix(in srgb, var(--landing-navy) 60%, transparent), transparent 70%),
+    var(--landing-blue);
+  color: var(--color-surface);
   text-align: center;
 }
 
-.brandLogo {
-  width: 64px;
-  height: 64px;
+/* An amber line and spaced capitals, how the landing opens its labels. It
+   stays on top on its own, so the logo is right in the middle. */
+.brandEyebrow {
+  position: absolute;
+  top: var(--space-5);
+  left: var(--space-4);
+  right: var(--space-4);
+  z-index: 1;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
+
+.brandEyebrow::before {
+  content: "";
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-amber);
+}
+
+/* The yellow tag of the landing's hero. */
+.lms {
+  padding: 0.12em 0.5em;
+  border-radius: 3px 8px 4px 9px;
+  background: var(--color-gold);
+  letter-spacing: 0.1em;
+  color: var(--landing-navy);
+}
+
+.brandCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 26rem;
+}
+
+/* The logo is the pupil: the rings of the iris open around it. */
+.pupil {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 168px;
+  height: 168px;
+  margin-bottom: var(--space-5);
+}
+
+.rings {
+  top: 50%;
+  left: 50%;
+  width: 1150px;
+  height: 1150px;
+  transform: translate(-50%, -50%);
+  opacity: 0.16;
+}
+
+/* A soft light behind the logo, breathing slowly. */
+.glow {
+  position: absolute;
+  inset: -34px;
   border-radius: 50%;
-  margin-bottom: var(--space-2);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+  background: radial-gradient(circle, color-mix(in srgb, var(--landing-sky) 70%, transparent), transparent 68%);
+  animation: iris-breathe 6s ease-in-out infinite;
+}
+
+.brandLogo {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  filter: drop-shadow(0 18px 30px rgba(10, 47, 102, 0.45));
+  animation: pop-in 700ms var(--ease-out) both;
+}
+
+/* The amber ring that fills around the logo, like the kid's cursor. */
+.dwellRing {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  transform: rotate(-90deg);
+}
+
+.dwellTrack {
+  stroke: color-mix(in srgb, var(--color-surface) 22%, transparent);
+  stroke-width: 2;
+}
+
+.dwellFill {
+  stroke: var(--color-amber);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: dwell-fill 1600ms var(--ease-out) 400ms forwards;
 }
 
 .brandWordmark {
+  position: relative;
   margin: 0;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(1.8rem, 3.4vw, 2.4rem);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-surface);
-  text-shadow: 0 4px 24px rgba(6, 14, 22, 0.35);
-}
-
-.brandRule {
-  display: block;
-  width: 56px;
-  height: 3px;
-  margin: var(--space-3) 0;
-  border-radius: 2px;
-  background: var(--color-surface);
-  opacity: 0.8;
+  font-size: clamp(2.4rem, 4.4vw, 3.3rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  animation: rise 700ms var(--ease-out) 150ms both;
 }
 
 .brandSlogan {
-  margin: 0;
-  font-family: var(--font-body);
+  position: relative;
+  margin: var(--space-3) 0 0;
+  font-size: clamp(1.25rem, 2.2vw, 1.6rem);
   font-weight: 700;
-  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
-  line-height: 1.35;
-  color: var(--color-surface);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  animation: rise 700ms var(--ease-out) 250ms both;
+}
+
+/* "mirada" gets the landing's amber line drawn by hand under it. */
+.marked {
+  position: relative;
+  white-space: nowrap;
+}
+
+.underline {
+  position: absolute;
+  left: -3%;
+  bottom: -0.06em;
+  width: 106%;
+  height: 0.32em;
+  overflow: visible;
+  fill: none;
+  stroke: var(--color-amber);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.underline path + path {
+  stroke-width: 3.5;
+  opacity: 0.75;
 }
 
 .brandDescription {
-  margin: var(--space-1) 0 0;
-  font-size: 0.92rem;
-  line-height: 1.55;
-  color: var(--color-iris-pale);
+  position: relative;
+  margin: var(--space-3) 0 0;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--color-surface) 84%, transparent);
+  animation: rise 700ms var(--ease-out) 350ms both;
 }
 
-/* Form column */
+/* A short message at the bottom of the panel, on a see-through card. */
+.message {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-5);
+  width: calc(100% - 2 * var(--space-5));
+  max-width: 30rem;
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 30px);
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--color-surface) 22%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 10%, transparent);
+  backdrop-filter: blur(6px);
+  text-align: left;
+  transform: translateX(-50%);
+  animation: rise 700ms var(--ease-out) 450ms both;
+}
+
+.messageQuote {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  color: var(--color-amber);
+}
+
+.messageText {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.messageAuthor {
+  margin-top: var(--space-1);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-surface) 70%, transparent);
+}
+
+/* --- The form column --- */
 
 .formColumn {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: var(--space-6) var(--space-5);
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
 }
 
 .back {
@@ -113,7 +251,7 @@
   border: none;
   background: none;
   padding: 0;
-  font-family: var(--font-body);
+  font-family: var(--font-landing);
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-iris-medium);
@@ -131,7 +269,9 @@
 
 /* Underline grows from the center on hover, same as the landing header's
    nav links, instead of the browser's plain text-decoration. */
-.back::after {
+.back::after,
+.forgotLink::after,
+.secondaryLink::after {
   content: "";
   position: absolute;
   left: 0;
@@ -145,28 +285,48 @@
   transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.back:hover {
+.back:hover,
+.forgotLink:hover,
+.secondaryLink:hover {
   transform: translateY(-1px);
 }
 
-.back:hover::after {
+.back:hover::after,
+.forgotLink:hover::after,
+.secondaryLink:hover::after {
   transform: scaleX(1);
 }
 
-.formWrapper {
-  flex: 1;
+/* The white card of the portals. Both views (login and sign up) get the
+   same size and place: its height goes with the screen's, and what's
+   inside sits in the middle. */
+.card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
+  width: 100%;
+  max-width: 500px;
+  min-height: min(680px, calc(100dvh - 180px));
+  margin: auto 0;
+  padding: var(--space-6) var(--space-5);
+  border-radius: 28px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  animation: rise 600ms var(--ease-out) both;
+}
+
+/* The login has less inside, so its fields spread out a bit more on tall
+   screens. */
+.card[data-view="login"] .form {
+  gap: clamp(14px, 2.8vh, 30px);
 }
 
 .minorNotice {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  max-width: 400px;
-  margin: 0 auto;
-  padding: var(--space-2) 0 0;
+  max-width: 500px;
+  margin: 0;
   font-size: 0.78rem;
   line-height: 1.5;
   color: var(--color-ink-soft);
@@ -182,27 +342,37 @@
 
 .form {
   width: 100%;
-  max-width: 400px;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
-.accessEyebrow {
-  align-self: flex-start;
-  margin: 0;
-  padding-bottom: var(--space-1);
-  border-bottom: 2px solid var(--color-slate);
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 calc(-1 * var(--space-3));
   font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-iris-medium);
 }
 
+.eyebrow::before {
+  content: "";
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-amber);
+}
+
 .title {
   margin: 0;
-  font-size: clamp(1.9rem, 3.5vw, 2.4rem);
+  font-size: clamp(1.9rem, 3.2vw, 2.3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
   color: var(--color-iris-deep);
 }
 
@@ -210,7 +380,7 @@
   margin: calc(-1 * var(--space-2)) 0 0;
   color: var(--color-ink-soft);
   font-size: 0.95rem;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .fieldWithLink {
@@ -234,33 +404,13 @@
     transform 200ms ease;
 }
 
-/* Underline grows from the center on hover, same as the landing header's
-   nav links, instead of the browser's plain text-decoration. */
-.forgotLink::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -2px;
-  height: 1.5px;
-  border-radius: 2px;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.forgotLink:hover {
-  transform: translateY(-1px);
-}
-
-.forgotLink:hover::after {
-  transform: scaleX(1);
-}
-
 .recoveryNotice {
   margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 12px;
+  background: var(--landing-mist-1);
   font-size: 0.85rem;
+  line-height: 1.5;
   color: var(--color-ink-soft);
 }
 
@@ -270,34 +420,57 @@
   color: var(--color-error);
 }
 
+/* A pill in the landing's blue, like its main buttons. */
 .primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 54px;
   border: none;
-  border-radius: var(--radius-medium);
+  border-radius: 999px;
   background: var(--color-action);
+  box-shadow: 0 14px 28px -16px color-mix(in srgb, var(--landing-blue) 80%, transparent);
   color: var(--color-surface);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-5);
   font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 120ms ease;
+  transition:
+    background-color 200ms ease,
+    transform 200ms var(--ease-out);
+}
+
+.primaryButton svg {
+  transition: transform 200ms var(--ease-out);
 }
 
 .primaryButton:hover:not(:disabled) {
   background: var(--color-action-hover);
+  transform: translateY(-2px);
+}
+
+.primaryButton:hover:not(:disabled) svg {
+  transform: translateX(3px);
+}
+
+.primaryButton:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 /* Before the fields are filled: a quiet blue-gray, so it clearly can't be
-   pressed yet, instead of a washed-out orange. */
+   pressed yet. */
 .primaryButton:disabled {
   background: var(--color-action-disabled);
+  box-shadow: none;
   color: var(--color-action-disabled-text);
   cursor: not-allowed;
 }
 
 .formFooter {
-  margin: var(--space-2) 0 0;
+  margin: var(--space-1) 0 0;
   padding-top: var(--space-4);
-  border-top: 1px solid var(--color-iris-pale);
+  border-top: 1px solid var(--portal-line);
   text-align: center;
   font-size: 0.95rem;
   color: var(--color-ink-soft);
@@ -309,58 +482,14 @@
   background: none;
   padding: 0;
   font-weight: 700;
-  color: var(--color-teal);
+  color: var(--color-iris-medium);
   cursor: pointer;
   transition:
     color 200ms ease,
     transform 200ms ease;
 }
 
-/* Underline grows from the center on hover, same as the landing header's
-   nav links, instead of the browser's plain text-decoration. */
-.secondaryLink::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -2px;
-  height: 1.5px;
-  border-radius: 2px;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.secondaryLink:hover {
-  transform: translateY(-1px);
-}
-
-.secondaryLink:hover::after {
-  transform: scaleX(1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .back,
-  .forgotLink,
-  .secondaryLink {
-    transition: color 120ms ease;
-  }
-
-  .back::after,
-  .forgotLink::after,
-  .secondaryLink::after {
-    transition: none;
-  }
-
-  .back:hover,
-  .forgotLink:hover,
-  .secondaryLink:hover {
-    transform: none;
-  }
-}
-
-/* Choose account type */
+/* --- Choose account type: two numbered cards on the landing's mist --- */
 
 .registrationOptions {
   display: flex;
@@ -370,125 +499,351 @@
 
 .registrationOption {
   display: flex;
-  flex-direction: row;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
-  text-align: left;
   padding: var(--space-4);
-  border: 2px solid var(--color-iris-pale);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
+  border-radius: 22px;
+  border: 1px solid var(--portal-line);
+  background: var(--landing-mist-1);
   color: inherit;
   text-decoration: none;
-  cursor: pointer;
   transition:
-    border-color 120ms ease,
-    transform 120ms ease;
+    transform 200ms var(--ease-out),
+    border-color 200ms ease,
+    box-shadow 300ms ease;
 }
 
 .registrationOption:hover {
-  border-color: var(--color-iris-medium);
-  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--landing-blue) 35%, transparent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+/* A round icon with its number on a corner, like the landing's steps. */
+.registrationOptionIcon {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--landing-blue) 22%, transparent);
+  color: var(--color-iris-medium);
+}
+
+.registrationOptionNumber {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--landing-mist-1);
+  background: var(--color-iris-deep);
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--color-surface);
 }
 
 .registrationOptionText {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
   min-width: 0;
 }
 
 .registrationOptionTitle {
+  font-size: 1.04rem;
   font-weight: 700;
-  font-size: 1.02rem;
   color: var(--color-iris-deep);
 }
 
 .registrationOptionNote {
-  font-size: 0.88rem;
-  font-weight: 400;
-  line-height: 1.4;
+  font-size: 0.86rem;
+  line-height: 1.45;
   color: var(--color-ink-soft);
 }
 
-.registrationOptionIcon {
+.registrationOptionArrow {
   flex: none;
-  width: 104px;
-  height: 104px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-left: auto;
   border-radius: 50%;
-}
-
-.backToChoice {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  margin-bottom: var(--space-1);
-  border: none;
-  background: none;
-  padding: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
+  background: var(--color-surface);
   color: var(--color-iris-medium);
-  cursor: pointer;
+  transition: transform 200ms var(--ease-out);
 }
 
-.backToChoice svg {
-  width: 14px;
-  height: 14px;
+.registrationOption:hover .registrationOptionArrow {
+  transform: translateX(3px);
 }
 
-.backToChoice:hover {
-  text-decoration: underline;
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
 }
 
-/* Mobile: brand panel shrinks to a top strip, form stays visible. */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
 
-@media (max-width: 768px) {
-  .page {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+@keyframes dwell-fill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow,
+  .brandLogo,
+  .brandWordmark,
+  .brandSlogan,
+  .brandDescription,
+  .message,
+  .card {
+    animation: none;
   }
 
+  /* The ring is already full, without drawing itself. */
+  .dwellFill {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .back,
+  .forgotLink,
+  .secondaryLink,
+  .primaryButton,
+  .primaryButton svg,
+  .registrationOption,
+  .registrationOptionArrow {
+    transition: none;
+  }
+
+  .back::after,
+  .forgotLink::after,
+  .secondaryLink::after {
+    transition: none;
+  }
+}
+
+/* Short screens (a laptop at 768px or 720px): everything a bit tighter, so
+   the whole page fits without scrolling. */
+@media (max-height: 860px) {
   .brandPanel {
     padding: var(--space-4);
   }
 
-  .brandContent {
-    flex-direction: row;
-    gap: var(--space-2);
-    max-width: none;
-    text-align: left;
+  .pupil {
+    width: 132px;
+    height: 132px;
+    margin-bottom: var(--space-4);
   }
 
   .brandLogo {
-    width: 40px;
-    height: 40px;
-    margin-bottom: 0;
+    width: 104px;
+    height: 104px;
+  }
+
+  .formColumn {
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .card {
+    padding: var(--space-5);
+  }
+
+  .form {
+    gap: var(--space-3);
+  }
+
+  .eyebrow {
+    margin-bottom: calc(-1 * var(--space-2));
+  }
+
+  .title {
+    font-size: 1.9rem;
+  }
+
+  .subtitle {
+    margin-top: calc(-1 * var(--space-1));
+  }
+
+  .primaryButton {
+    min-height: 50px;
+  }
+
+  .formFooter {
+    margin-top: 0;
+    padding-top: var(--space-3);
+  }
+
+  .registrationOption {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .registrationOptionIcon {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+@media (max-height: 740px) {
+  .brandDescription {
+    display: none;
+  }
+
+  .card {
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .title {
+    font-size: 1.75rem;
+  }
+
+  .registrationOptionNote {
+    font-size: 0.82rem;
+  }
+}
+
+/* Smaller screens: the panel becomes a short band over the card, with the
+   logo and the name side by side. */
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  /* The band goes from side to side, with straight edges. */
+  .brandPanel {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: var(--space-4);
+    text-align: left;
+  }
+
+  .brandEyebrow,
+  .brandDescription,
+  .message,
+  .rings,
+  .glow {
+    display: none;
+  }
+
+  /* Next to the name, the slogan in one small line. */
+  .brandSlogan {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+
+  .brandSlogan br {
+    display: none;
+  }
+
+  .brandSlogan .underline {
+    display: none;
+  }
+
+  .brandCenter {
+    flex-direction: row;
+    gap: var(--space-3);
+    max-width: none;
+  }
+
+  .pupil {
+    width: 56px;
+    height: 56px;
+    margin: 0;
+  }
+
+  .brandLogo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .brandWordmark {
+    font-size: 1.8rem;
+  }
+
+  .formColumn {
+    padding: var(--space-3);
+  }
+
+  .card {
+    min-height: calc(100dvh - 260px);
+    margin: 0;
+    padding: var(--space-5) var(--space-4);
+    border-radius: 24px;
+  }
+}
+
+/* A phone: the band and the card as small as they can be, and the long
+   notes of each account kind are left out (their titles say enough). */
+@media (max-width: 600px) {
+  .brandPanel {
+    padding: var(--space-3);
+  }
+
+  .pupil {
+    width: 46px;
+    height: 46px;
+  }
+
+  .brandLogo {
+    width: 36px;
+    height: 36px;
   }
 
   .brandWordmark {
     font-size: 1.4rem;
   }
 
-  .brandRule,
-  .brandSlogan,
-  .brandDescription {
-    display: none;
-  }
-
-  .ring {
-    display: none;
+  .brandSlogan {
+    font-size: 0.82rem;
   }
 
   .formColumn {
-    padding: var(--space-5) var(--space-4);
+    gap: var(--space-2);
+    padding: var(--space-2);
   }
-}
 
-@media (max-width: 400px) {
-  .formColumn {
-    padding: var(--space-4) var(--space-3);
+  .card {
+    padding: var(--space-4);
+    border-radius: 20px;
+  }
+
+  .form {
+    gap: var(--space-3);
+  }
+
+  .title {
+    font-size: 1.6rem;
+  }
+
+  .subtitle {
+    font-size: 0.88rem;
+  }
+
+  .registrationOptionNote,
+  .registrationOptionArrow {
+    display: none;
+  }
+
+  .minorNotice {
+    font-size: 0.72rem;
   }
 }
