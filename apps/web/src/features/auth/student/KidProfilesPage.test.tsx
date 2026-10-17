@@ -70,7 +70,7 @@ describe("Portal Peques", () => {
     await openKidsPortal();
     await userEvent.click(screen.getByRole("button", { name: /Volver/ }));
 
-    expect(navigate).toHaveBeenCalledWith("/login/guardian/portal");
+    expect(navigate).toHaveBeenCalledWith("/guardian/start");
   });
 });
 

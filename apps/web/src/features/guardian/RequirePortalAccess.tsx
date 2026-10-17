@@ -13,7 +13,7 @@ export function RequirePortalAccess({ children }: { children: ReactNode }) {
   if (access.isPending) return <LoadingScreen />;
   if (access.isError) {
     const needsCode = access.error instanceof ApiError && access.error.code === "acceso_portal_requerido";
-    return <Navigate to={needsCode ? "/guardian/verify-2fa" : "/login/guardian/portal"} replace />;
+    return <Navigate to={needsCode ? "/guardian/verify-2fa" : "/guardian/start"} replace />;
   }
   return <>{children}</>;
 }

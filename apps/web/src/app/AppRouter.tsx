@@ -186,12 +186,15 @@ export function AppRouter() {
                             />
                         }
                     />
+                    {/* The tutor's "¿Cómo quieres continuar?" used to live
+                        here; it's /guardian/start now. */}
                     <Route
                         path="/login/guardian/portal"
                         element={
-                            <RequireRol role="guardian">
-                                <ProfileSelectorAuth />
-                            </RequireRol>
+                            <Navigate
+                                to="/guardian/start"
+                                replace
+                            />
                         }
                     />
                     <Route
@@ -327,6 +330,10 @@ export function AppRouter() {
                                     replace
                                 />
                             }
+                        />
+                        <Route
+                            path="start"
+                            element={<ProfileSelectorAuth />}
                         />
                         <Route
                             path="verify-2fa"

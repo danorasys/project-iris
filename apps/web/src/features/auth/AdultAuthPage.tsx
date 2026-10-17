@@ -195,7 +195,7 @@ function LoginForm({ notice }: { notice?: string }) {
             })
             setSession(tokens)
             const isGuardian = decodeJwtPayload(tokens.access_token)?.role === "guardian"
-            navigate(isGuardian ? "/login/guardian/portal" : "/teacher/portal", { replace: true })
+            navigate(isGuardian ? "/guardian/start" : "/teacher/portal", { replace: true })
         } catch (reason) {
             setError(getAuthErrorMessage(reason))
         }

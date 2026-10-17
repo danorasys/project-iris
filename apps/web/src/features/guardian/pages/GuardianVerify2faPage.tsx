@@ -14,7 +14,7 @@ export default function GuardianVerify2faPage() {
     <VerifyCodePage
       purpose="para entrar al Portal Padres"
       pending={confirmAccess.isPending}
-      onBack={() => navigate("/login/guardian/portal")}
+      onBack={() => navigate("/guardian/start")}
       onConfirm={async (code) => {
         const { failed_attempts_before: failedAttempts } = await confirmAccess.mutateAsync({ code });
         // The portal shows a notice if someone typed wrong codes since the last entry.

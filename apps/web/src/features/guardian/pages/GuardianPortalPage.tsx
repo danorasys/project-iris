@@ -113,7 +113,7 @@ export default function GuardianPortalPage() {
         message: "¿Quieres volver a elegir entre el Portal Padres y el Portal Peques?",
         acceptLabel: "Sí, cambiar de perfil",
         cancelLabel: "Cancelar",
-        onAccept: () => navigate("/login/guardian/portal", { replace: true }),
+        onAccept: () => navigate("/guardian/start", { replace: true }),
       });
     });
   }

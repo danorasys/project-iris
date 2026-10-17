@@ -14,7 +14,7 @@ import styles from "./KidProfilesPage.module.css";
  * switches to the kid's session. */
 export default function KidProfilesPage() {
   const navigate = useNavigate();
-  return <ProfilePicker onBack={() => navigate("/login/guardian/portal")} />;
+  return <ProfilePicker onBack={() => navigate("/guardian/start")} />;
 }
 
 function ProfilePicker({ onBack }: { onBack: () => void }) {

@@ -23,7 +23,7 @@ function renderGuard() {
           }
         />
         <Route path="/guardian/verify-2fa" element={<p>Pantalla del código</p>} />
-        <Route path="/login/guardian/portal" element={<p>Selector de portal</p>} />
+        <Route path="/guardian/start" element={<p>Selector de portal</p>} />
       </Routes>
     </MemoryRouter>,
   );

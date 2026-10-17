@@ -7,7 +7,7 @@ import avatarGuardian from "@/assets/auth/avatar-guardian.png";
 import avatarPeques from "@/assets/auth/avatar-peques.png";
 import styles from "./ProfileSelectorAuth.module.css";
 
-/** `/login/guardian/portal`, behind RequireRol so it needs a tutor session.
+/** `/guardian/start`, behind RequireRol so it needs a tutor session.
  * "Portal Peques" goes to /kids: first the calibration, then the profiles. */
 export default function ProfileSelectorAuth() {
   return <GuardianPortalChoice />;
