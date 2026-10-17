@@ -1,4 +1,4 @@
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 WORKDIR /build
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # the final image means less software to patch and to attack.
 RUN pip uninstall --yes pip
 
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 # The base image can be days behind Debian's security fixes (OpenSSL, for
 # example), so they are applied here instead of waiting for it to be rebuilt.
 RUN apt-get update \
